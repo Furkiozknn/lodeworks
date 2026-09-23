@@ -118,6 +118,16 @@ const STALL_TICKS := 4
 
 ## Multipliers owned by the outer game (stratum richness, research tree).
 var speed_mult: float = 1.0
+## Applied only to machines tagged `source` -- the Drill. Brittle Rock's
+## "Drills run 35% faster, but everything downstream runs 15% slower" was half
+## implemented: `process_speed` was read and `source_speed` was not, so the
+## modifier was a pure penalty and the card on the stratum screen was a lie.
+var source_speed_mult: float = 1.0
+## Scales what Amplifiers and Condensers are worth. Resonant Strata's
+## "Amplifiers are twice as strong" was computed by `Strata.describe()` and
+## then read by nobody: a board measured under Resonant produced numbers
+## identical to the same board on a clean stratum, to the last credit.
+var amplify_mult: float = 1.0
 var yield_mult: float = 1.0
 var value_mult: float = 1.0
 var research_mult: float = 1.0
@@ -166,7 +176,9 @@ func effective_rate(i: int) -> float:
 	var eff: float = MachineDB.heat_efficiency(
 		grid.heat_at(i), float(m["heat_optimum"]),
 		float(m["heat_tolerance"]) + tolerance_bonus)
-	return float(m["rate"]) * eff * grid.amplify_at(i) * speed_mult
+	var amp: float = 1.0 + (grid.amplify_at(i) - 1.0) * amplify_mult
+	var src: float = source_speed_mult if (m.get("tags", []) as Array).has("source") else 1.0
+	return float(m["rate"]) * eff * amp * speed_mult * src
 
 
 ## --- phase 1 ---------------------------------------------------------------
@@ -234,7 +246,9 @@ func _transfer() -> void:
 ## order so the rotation is deterministic and a replay is a replay.
 func _takers(source: int, res: int) -> Array[int]:
 	var out: Array[int] = []
-	for other in grid.neighbour_machines(source):
+	# Bridged, not merely adjacent: a support machine passes material straight
+	# through to whatever is on its far side rather than blocking the line.
+	for other in grid.bridged_machines(source):
 		var c: Dictionary = grid.cells[other]
 		var m: Dictionary = MachineDB.get_machine(String(c["id"]))
 		var tags: Array = m["tags"]

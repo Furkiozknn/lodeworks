@@ -105,7 +105,7 @@ const MACHINES := {
 	},
 	"boiler": {
 		"name": "Boiler",
-		"desc": "Produces nothing. Heats everything around it. The first machine that is only worth placing because of what it is next to.",
+		"desc": "Produces nothing. Heats everything around it, and lets material pass through. The first machine that is only worth placing because of what it is next to.",
 		"cost": 90.0,
 		"cost_growth": 1.20,
 		"inputs": {},
@@ -119,7 +119,7 @@ const MACHINES := {
 	},
 	"coolant": {
 		"name": "Coolant Cell",
-		"desc": "Negative heat. Costs you a tile you would rather have filled, which is exactly the trade the game is about.",
+		"desc": "Negative heat, and material still passes through it. Costs you a tile of production but never a connection.",
 		"cost": 110.0,
 		"cost_growth": 1.20,
 		"inputs": {},
@@ -161,7 +161,7 @@ const MACHINES := {
 	},
 	"amplifier": {
 		"name": "Amplifier",
-		"desc": "Every producing neighbour runs 35% faster. Stacks with other Amplifiers, which is how the board stops being flat.",
+		"desc": "Every working neighbour runs 35% faster, and the more of them it touches the harder it pushes. Ore passes straight through it.",
 		"cost": 900.0,
 		"cost_growth": 1.24,
 		"inputs": {},
@@ -191,7 +191,7 @@ const MACHINES := {
 	},
 	"duplicator": {
 		"name": "Duplicator",
-		"desc": "A flat chance that anything passing through an adjacent machine comes out twice. Cheap to describe, very hard to place well.",
+		"desc": "A chance that a neighbour's output comes out twice, larger the more neighbours it serves. Material passes straight through it.",
 		"cost": 5200.0,
 		"cost_growth": 1.26,
 		"inputs": {},
@@ -206,7 +206,7 @@ const MACHINES := {
 	},
 	"condenser": {
 		"name": "Condenser",
-		"desc": "Cools hard and amplifies weakly. The tile you place when you have run out of room to do both separately.",
+		"desc": "Cools hard and amplifies weakly, and passes material through. The tile you place when you have run out of room to do both separately.",
 		"cost": 9000.0,
 		"cost_growth": 1.25,
 		"inputs": {},

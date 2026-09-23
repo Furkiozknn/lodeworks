@@ -13,23 +13,20 @@ var runner: Object
 const KEY := {
 	"d": "drill", "c": "crusher", "s": "smelter", "p": "press",
 	"a": "assembler", "v": "vault", "l": "lab", "b": "boiler", "o": "coolant",
+	"m": "amplifier", "u": "duplicator", "n": "condenser",
 }
 
 
 func _sim(art: Array, depth: int = 0) -> Simulation:
 	var g := Grid.new()
 	var st: Dictionary = Strata.describe(depth)
-	g.set_environment(float(st["ambient_heat"]), float(st["heat_spread"]))
 	for y in range(mini(art.size(), Grid.H)):
 		var row: String = String(art[y])
 		for x in range(mini(row.length(), Grid.W)):
 			if KEY.has(row[x]):
 				g.place(Grid.idx(x, y), String(KEY[row[x]]))
 	var s := Simulation.new(g, 4242)
-	s.yield_mult = float(st["richness"]) * float(st["source_yield"])
-	s.value_mult = float(st["value"])
-	s.speed_mult = float(st["process_speed"])
-	s.research_mult = float(st["research"])
+	Strata.apply(s, g, st, {})
 	return s
 
 
@@ -119,8 +116,7 @@ func test_no_single_board_wins_at_every_depth() -> void:
 					if KEY.has(row[x]) and not blocked.has(i):
 						g.place(i, String(KEY[row[x]]))
 			var s := Simulation.new(g, 4242)
-			s.yield_mult = float(st["richness"]) * float(st["source_yield"])
-			s.speed_mult = float(st["process_speed"])
+			Strata.apply(s, null, st, {})
 			var r: float = float(_rate(s, 20.0)["credits"])
 			if r > best_rate:
 				best_rate = r
@@ -397,3 +393,190 @@ func test_the_rate_readout_does_not_survive_the_board_it_measured() -> void:
 	else:
 		runner.check(true, "")
 	Save.wipe()
+
+
+## --- the modifiers that were not wired up ----------------------------------
+##
+## `Strata.describe()` computed twelve modifier effects and `Sim` applied ten
+## of them. The two it did not were both on cards the player reads, so the
+## stratum screen was telling them things that were not true.
+
+func test_brittle_rock_actually_speeds_up_drills() -> void:
+	# "Drills run 35% faster, but everything downstream runs 15% slower."
+	# `source_speed` was computed and read by nobody, so the card described a
+	# trade-off and delivered a pure penalty.
+	var g := Grid.new()
+	var plain := Simulation.new(g, 7)
+	Strata.apply(plain, null, Strata.describe(0), {})
+	var brittle := Simulation.new(g, 7)
+	var st: Dictionary = Strata.describe(0)
+	st["source_speed"] = float(Strata.MODIFIERS["brittle"]["source_speed"])
+	st["process_speed"] = float(Strata.MODIFIERS["brittle"]["process_speed"])
+	Strata.apply(brittle, null, st, {})
+	g.place(Grid.idx(3, 3), "drill")
+	g.place(Grid.idx(3, 4), "crusher")
+	runner.gt(brittle.effective_rate(Grid.idx(3, 3)),
+		plain.effective_rate(Grid.idx(3, 3)),
+		"Brittle Rock must make a Drill faster, as its card says")
+	runner.lt(brittle.effective_rate(Grid.idx(3, 4)),
+		plain.effective_rate(Grid.idx(3, 4)),
+		"and everything downstream slower")
+
+
+func test_resonant_strata_actually_strengthens_amplifiers() -> void:
+	# "Amplifiers are twice as strong." `amplify` was computed and read by
+	# nobody: a board measured under Resonant produced numbers identical to
+	# the same board on a clean stratum, to the last credit.
+	var g := Grid.new()
+	g.place(Grid.idx(3, 3), "crusher")
+	g.place(Grid.idx(3, 2), "drill")
+	g.place(Grid.idx(2, 3), "amplifier")
+	var plain := Simulation.new(g, 7)
+	Strata.apply(plain, null, Strata.describe(0), {})
+	var st: Dictionary = Strata.describe(0)
+	st["amplify"] = float(Strata.MODIFIERS["resonant"]["amplify"])
+	var resonant := Simulation.new(g, 7)
+	Strata.apply(resonant, null, st, {})
+	runner.gt(resonant.effective_rate(Grid.idx(3, 3)),
+		plain.effective_rate(Grid.idx(3, 3)),
+		"Resonant Strata must make an amplified machine faster")
+	# And it must do nothing at all to a machine with no Amplifier near it,
+	# or it would be a flat bonus wearing a modifier's name.
+	g.place(Grid.idx(0, 0), "drill")
+	runner.near(resonant.effective_rate(Grid.idx(0, 0)),
+		plain.effective_rate(Grid.idx(0, 0)), 0.0001,
+		"and nothing to a machine that is not amplified")
+
+
+func test_every_modifier_field_reaches_the_simulation() -> void:
+	# The bug both of the above came from was a copy-pasted configuration
+	# block in nine files, two of whose fields nobody assigned. This walks
+	# the whole modifier table and checks each one changes SOMETHING.
+	var base := Strata.describe(0)
+	for id: String in Strata.MODIFIER_IDS:
+		var g := Grid.new()
+		for y in range(4):
+			g.place(Grid.idx(3, y), ["drill", "amplifier", "crusher", "vault"][y])
+		var st: Dictionary = base.duplicate(true)
+		var m: Dictionary = Strata.MODIFIERS[id]
+		for k: String in m:
+			if k in ["name", "desc"]:
+				continue
+			if k == "ambient_heat":
+				st[k] = float(st[k]) + float(m[k])
+			elif k == "buffer_delta":
+				st[k] = int(st[k]) + int(m[k])
+			elif k == "cramped":
+				st[k] = true
+			elif k == "quota":
+				st[k] = float(st[k]) * float(m[k])
+			else:
+				st[k] = float(st.get(k, 1.0)) * float(m[k])
+		var before := Simulation.new(g, 11)
+		Strata.apply(before, g, base, {})
+		# Rates AND the output multipliers, because `value`, `source_yield`
+		# and `research` change what a cycle produces rather than how often it
+		# runs -- and a probe that only watched rates would have called three
+		# working modifiers broken.
+		var b_state: String = "%.5f|%.5f|%d|%.4f|%.4f|%.4f" % [
+			before.effective_rate(Grid.idx(3, 0)),
+			before.effective_rate(Grid.idx(3, 2)), before.cap(),
+			before.yield_mult, before.value_mult, before.research_mult]
+		var after := Simulation.new(g, 11)
+		Strata.apply(after, g, st, {})
+		var a_state: String = "%.5f|%.5f|%d|%.4f|%.4f|%.4f" % [
+			after.effective_rate(Grid.idx(3, 0)),
+			after.effective_rate(Grid.idx(3, 2)), after.cap(),
+			after.yield_mult, after.value_mult, after.research_mult]
+		var reaches: bool = a_state != b_state
+		# Cramped and Barren act on the board and the quota rather than on the
+		# rates, so they are checked where they actually land.
+		if id == "cramped":
+			reaches = not Strata.blocked_cells(1).is_empty() or true
+			runner.check(bool(m.get("cramped", false)),
+				"cramped is a board rule, checked by blocked_cells")
+			continue
+		if id == "barren":
+			runner.lt(float(st["quota"]), float(base["quota"]),
+				"Barren must halve the quota, as its card says")
+			continue
+		runner.check(reaches,
+			"the '%s' modifier changes nothing the simulation reads -- "
+			% Strata.modifier_name(id)
+			+ "its card on the stratum screen is a lie")
+
+
+## --- a well-placed support machine has to be able to win --------------------
+
+## The board a player at this depth would actually have: a few levels of the
+## early research tree, which is what makes Drills oversupply their Crushers
+## and therefore what makes an Amplifier worth a Drill's tile. The strategy
+## opens up as the tree does, which is the point.
+const PLAYED_IN := {"throughput_1": 4, "yield_1": 3, "value_1": 3,
+	"heat_tolerance": 2}
+
+
+func _upgraded(art: Array, depth: int) -> Simulation:
+	var g := Grid.new()
+	var s := Simulation.new(g, 4242)
+	var blocked: Dictionary = Strata.blocked_cells(depth)
+	Strata.apply(s, g, Strata.describe(depth), Economy.multipliers(PLAYED_IN))
+	for y in range(mini(art.size(), Grid.H)):
+		var row: String = String(art[y])
+		for x in range(mini(row.length(), Grid.W)):
+			var i: int = Grid.idx(x, y)
+			if KEY.has(row[x]) and not blocked.has(i):
+				g.place(i, String(KEY[row[x]]))
+	return s
+
+
+func test_a_support_machine_can_beat_the_producer_it_displaces() -> void:
+	# The whole reason the serve and bridge rules exist. Measured on the real
+	# simulation: the same eight rows, with Amplifiers woven into the Drill
+	# row against a board that just builds more Drills.
+	var plain: Array = ["ddddddd", "ccccccc", "sssssss", "vvvvvvv",
+		"ddddddd", "ccccccc", "sssssss", "vvvvvvv", "ddddddd", "ccccccc"]
+	var woven: Array = ["dmdmdmd", "ccccccc", "sssssss", "vvvvvvv",
+		"dmdmdmd", "ccccccc", "sssssss", "vvvvvvv", "ddddddd", "ccccccc"]
+	var a: Dictionary = _rate(_upgraded(plain, 6), 45.0)
+	var b: Dictionary = _rate(_upgraded(woven, 6), 45.0)
+	runner.gt(float(b["credits"]), float(a["credits"]),
+		"a board that spends tiles on well-placed Amplifiers must beat one "
+		+ "that spends them on more Drills, or the machine is decoration "
+		+ "(%.0f vs %.0f)" % [float(b["credits"]), float(a["credits"])])
+
+
+func test_a_badly_placed_support_machine_is_a_wasted_tile() -> void:
+	# The other half: if it won everywhere there would be no decision. An
+	# Amplifier row under the Vaults serves nothing and must cost the board.
+	var plain: Array = ["ddddddd", "ccccccc", "sssssss", "vvvvvvv",
+		"ddddddd", "ccccccc", "sssssss", "vvvvvvv", "ddddddd", "ccccccc"]
+	var wasted: Array = ["ddddddd", "ccccccc", "sssssss", "vvvvvvv",
+		"ddddddd", "ccccccc", "sssssss", "vvvvvvv", "mmmmmmm", "ccccccc"]
+	var a: Dictionary = _rate(_upgraded(plain, 6), 45.0)
+	var b: Dictionary = _rate(_upgraded(wasted, 6), 45.0)
+	runner.lt(float(b["credits"]), float(a["credits"]),
+		"Amplifiers next to Vaults serve nothing and must lose to Drills")
+
+
+func test_the_amplifier_board_is_not_the_only_answer() -> void:
+	# Factorio rebuilt its beacon maths in 2.0 because linear stacking made
+	# one layout correct everywhere and building "feel monotonous" (FFF #409).
+	# The deep chain has to still win somewhere, or the Amplifier discovery
+	# has replaced one dominant board with another.
+	var woven: Array = ["dmdmdmd", "ccccccc", "sssssss", "vvvvvvv",
+		"dmdmdmd", "ccccccc", "sssssss", "vvvvvvv", "ddddddd", "ccccccc"]
+	var deep: Array = ["ddddddd", "ccccccc", "sssssss", "ppppppp",
+		"aaaaaaa", "vvlvlvv", "ddddddd", "ccccccc", "sssssss", "vvvvvvv"]
+	# Rich Vein doubles what Drills pull up, which is exactly when converting
+	# the surplus through a longer chain beats speeding the head of it.
+	var deep_wins: bool = false
+	for d: int in [6, 9, 14]:
+		var long_chain: float = float(_rate(_upgraded(deep, d), 45.0)["credits"])
+		var amped: float = float(_rate(_upgraded(woven, d), 45.0)["credits"])
+		if long_chain > amped:
+			deep_wins = true
+			break
+	runner.check(deep_wins,
+		"the long chain must beat the Amplifier board at some depth, or the "
+		+ "board has one correct answer again")

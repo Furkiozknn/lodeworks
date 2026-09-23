@@ -431,3 +431,44 @@ func test_the_research_behind_the_catalogue_is_in_the_repository() -> void:
 		"and cite Play's own billing documentation for the rules it implements")
 	runner.check(_read("res://docs/research/README.md").contains(
 		"monetization-2026.md"), "the index should list it")
+
+
+## --- one entry point for the stratum ---------------------------------------
+
+func test_nothing_configures_a_simulation_by_hand() -> void:
+	# Two modifiers shipped doing nothing because nine files each built a
+	# Simulation from a stratum by copying six assignments, and two of the
+	# stratum's fields were assigned in none of them. `Strata.apply()` is now
+	# the only way, so a new field is wired once or not at all.
+	var files: Array = []
+	_gd_files("res://scripts", files)
+	_gd_files("res://tools", files)
+	_gd_files("res://tests", files)
+	for path: String in files:
+		if path.ends_with("strata.gd") or path.ends_with("simulation.gd"):
+			continue
+		var text: String = _read(path)
+		for field: String in ["speed_mult", "yield_mult", "value_mult",
+				"research_mult", "source_speed_mult", "amplify_mult",
+				"tolerance_bonus"]:
+			runner.check(not text.contains("." + field + " ="),
+				"%s sets %s by hand -- a stratum is applied through "
+				% [path, field] + "Strata.apply() and nowhere else")
+
+
+func test_every_stratum_field_is_applied_somewhere() -> void:
+	# The complement: a field that `describe()` produces and `apply()` ignores
+	# is a card on the stratum screen that does not do anything.
+	var applied: String = _read("res://scripts/core/strata.gd")
+	var body: String = applied.substr(applied.find("static func apply("))
+	for field: String in ["process_speed", "source_speed", "amplify",
+			"source_yield", "richness", "value", "research", "ambient_heat",
+			"heat_spread", "buffer_delta"]:
+		runner.check(body.contains(field),
+			"Strata.apply() never reads '%s', so any modifier that sets it "
+			% field + "changes nothing the player can see")
+	# `quota` and `cramped` act on the run rather than on the simulation.
+	runner.check(_read("res://scripts/sim/sim.gd").contains("quota"),
+		"quota is applied by the run")
+	runner.check(applied.contains("blocked_cells"),
+		"cramped is applied by the board")

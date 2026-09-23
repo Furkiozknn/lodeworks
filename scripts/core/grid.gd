@@ -145,27 +145,170 @@ func raw_heat_at(i: int) -> float:
 	return _heat[i]
 
 
-## Sum of amplify from neighbours that carry the tag. Returned as a multiplier
-## so the sim can apply it without knowing the rule.
-func amplify_at(i: int) -> float:
+## --- support machines --------------------------------------------------------
+##
+## A support machine -- Amplifier, Duplicator, Condenser -- makes nothing. It
+## spends a tile so that its neighbours do better. On a seventy-tile board
+## that is a straight trade: it has to be worth more than the producer that
+## would otherwise stand there.
+##
+## It measurably was not. `tools/strategy_lab.gd` scores the same eight-row
+## chain with its fourteen spare tiles spent seven different ways, and with a
+## flat per-neighbour effect the Boiler, Coolant Cell, Duplicator and Condenser
+## rows all landed within 1% of leaving the tiles EMPTY, while simply building
+## more chain won 24 of 32 conditions. Four of the twelve machines were
+## decoration.
+##
+## The fix is one rule, and it is the rule the machines already implied:
+##
+##     **A support machine works harder the more machines it serves.**
+##     Its effect is multiplied by 1 + 0.5 x (n - 1), where n is how many
+##     working neighbours it has, up to four.
+##
+## So the same Amplifier is worth 0.35 producers in a corner and 3.5 in the
+## middle of a chain, and *where you put it* becomes the decision instead of
+## *whether you can afford it*. Nothing is hidden: the number is on the
+## placement preview before the tile is bought and the Codex has a page that
+## is a running board showing it.
+##
+## The receiving side deliberately does NOT scale the same way. Factorio spent
+## 2.0 rebuilding its beacon maths because linear stacking made one layout
+## correct everywhere and, in their words, made building "feel monotonous"
+## (FFF #409). So stacked supports pay 1, 0.6, 0.36, 0.22 of their value --
+## a second Amplifier on the same tile is worth having and a fourth is nearly
+## not. The board stays a question.
+const SERVE_BONUS := 0.5
+const STACK_FALLOFF := 0.6
+
+
+## Is this a support machine -- a tile that makes nothing and exists only for
+## what it does to its neighbours?
+func is_support(i: int) -> bool:
+	var m: Dictionary = MachineDB.get_machine(machine_at(i))
+	if m.is_empty():
+		return false
+	var tags: Array = m.get("tags", [])
+	if tags.has("sink") or tags.has("research"):
+		return false
+	return (m.get("inputs", {}) as Dictionary).is_empty() \
+		and (m.get("outputs", {}) as Dictionary).is_empty()
+
+
+## Neighbours, plus whatever lies one tile beyond a support machine.
+##
+## **A support machine bridges a line rather than blocking it.** It still makes
+## nothing and still holds nothing -- material does not stop in it, it passes
+## straight through to the real consumer on the far side.
+##
+## This is the one rule change the audit produced, and it exists because the
+## geometry made five of the twelve machines impossible to use. On a
+## four-neighbour grid with no belts, every tile of a chain is the sole outlet
+## of the tile upstream of it. So a Boiler, Coolant Cell, Amplifier,
+## Duplicator or Condenser placed *inside* a chain starves whatever was
+## feeding through it, and one placed *outside* a chain is next to Vaults and
+## serves nothing. The two requirements were mutually exclusive, and the
+## numbers said so plainly: in `tools/strategy_lab.gd` the Boiler, Coolant,
+## Duplicator and Condenser rows all scored within 1% of leaving those tiles
+## EMPTY, and an Amplifier row woven into a Crusher row scored 473 against 652
+## for not building it, because it starved three Drills at the head of the
+## chain and amplifying a starved machine returns nothing.
+##
+## Bridging makes the trade the one it was always described as: a support tile
+## costs you a tile of *production*, not a tile of *connection*. "The first
+## machine that is only worth placing because of what it is next to" becomes
+## true instead of aspirational.
+##
+## Deliberately one hop. Two would turn the board into a graph problem and
+## make "what is this machine connected to" impossible to see at a glance,
+## which is the thing the whole visual design is for.
+func bridged_machines(i: int) -> Array[int]:
+	var out: Array[int] = []
+	var seen: Dictionary = {i: true}
+	for n in neighbour_machines(i):
+		if seen.has(n):
+			continue
+		seen[n] = true
+		if is_support(n):
+			# Look through it, do not stop in it.
+			for far in neighbour_machines(n):
+				if not seen.has(far) and not is_support(far):
+					seen[far] = true
+					out.append(far)
+			continue
+		out.append(n)
+	out.sort()
+	return out
+
+
+## How many working machines this support tile serves. Empty tiles, Vaults and
+## other support machines do not count: an Amplifier boosting an Amplifier is
+## not serving anything, and a Vault has no rate to raise.
+func serves(i: int) -> int:
+	var n: int = 0
+	for j in neighbour_machines(i):
+		var m: Dictionary = MachineDB.get_machine(machine_at(j))
+		if m.is_empty():
+			continue
+		var tags: Array = m.get("tags", [])
+		if tags.has("sink"):
+			continue
+		if m.has("amplify") or m.has("duplicate_chance"):
+			continue
+		if (m.get("outputs", {}) as Dictionary).is_empty() \
+				and not tags.has("research"):
+			continue
+		n += 1
+	return n
+
+
+func serve_factor(i: int) -> float:
+	var n: int = serves(i)
+	if n <= 0:
+		return 0.0
+	return 1.0 + SERVE_BONUS * float(n - 1)
+
+
+
+
+
+## Stacked contributions with diminishing returns: sorted high to low, each
+## one worth `STACK_FALLOFF` of the last.
+func _stacked(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	values.sort()
+	values.reverse()
 	var total: float = 0.0
+	var weight: float = 1.0
+	for v: float in values:
+		total += v * weight
+		weight *= STACK_FALLOFF
+	return total
+
+
+## Amplify from neighbours that carry the tag, as a multiplier.
+func amplify_at(i: int) -> float:
+	var parts: Array = []
 	for n in neighbour_machines(i):
 		var m: Dictionary = MachineDB.get_machine(machine_at(n))
 		if m.has("amplify"):
-			total += float(m["amplify"])
-	return 1.0 + total
+			var f: float = serve_factor(n)
+			if f > 0.0:
+				parts.append(float(m["amplify"]) * f)
+	return 1.0 + _stacked(parts)
 
 
 func duplicate_chance_at(i: int) -> float:
-	var best: float = 0.0
+	var parts: Array = []
 	for n in neighbour_machines(i):
 		var m: Dictionary = MachineDB.get_machine(machine_at(n))
 		if m.has("duplicate_chance"):
-			# Chances do not stack additively: two Duplicators next to one
-			# machine should be worse than spreading them out, so that the
-			# board stays a layout problem.
-			best = maxf(best, float(m["duplicate_chance"]))
-	return best
+			var f: float = serve_factor(n)
+			if f > 0.0:
+				parts.append(float(m["duplicate_chance"]) * f)
+	# Capped below 1.0: a guaranteed double would make the rest of the board
+	# irrelevant, and an idle game with one correct tile is not a game.
+	return minf(_stacked(parts), 0.9)
 
 
 ## Changing a stratum parameter invalidates the cached field.

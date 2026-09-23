@@ -161,12 +161,7 @@ func _score(layout: Array, final: bool = false) -> Dictionary:
 			placed += 1
 
 	var sim := Simulation.new(g, 4242)
-	sim.speed_mult = float(_mult["speed"]) * float(_stratum["process_speed"])
-	sim.yield_mult = float(_mult["yield"]) * float(_stratum["source_yield"]) \
-		* float(_stratum["richness"])
-	sim.value_mult = float(_mult["value"]) * float(_stratum["value"])
-	sim.research_mult = float(_mult["research"]) * float(_stratum["research"])
-	sim.tolerance_bonus = float(_mult["tolerance"])
+	Strata.apply(sim, null, _stratum, _mult)
 
 	sim.run_ticks(int((FINAL_WARM if final else SEARCH_WARM) * Simulation.TICK_HZ))
 	var out: Dictionary = sim.run_ticks(

@@ -66,7 +66,7 @@ const RESEARCH_TREE := {
 		"name": "Ceramic Lining",
 		"desc": "Every machine tolerates 0.6 more heat before it chokes.",
 		"cost_research": 150.0,
-		"cost_cores": 1,
+		"cost_cores": 3,
 		"max": 5,
 		"cost_growth": 2.6,
 		"effect": "tolerance",
@@ -76,7 +76,7 @@ const RESEARCH_TREE := {
 		"name": "Night Shift",
 		"desc": "Offline production banks 2 more hours.",
 		"cost_research": 200.0,
-		"cost_cores": 1,
+		"cost_cores": 3,
 		"max": 6,
 		"cost_growth": 2.2,
 		"effect": "offline_hours",
@@ -86,7 +86,7 @@ const RESEARCH_TREE := {
 		"name": "Standing Orders",
 		"desc": "Offline production runs at 12% more of your live rate.",
 		"cost_research": 260.0,
-		"cost_cores": 2,
+		"cost_cores": 6,
 		"max": 4,
 		"cost_growth": 2.8,
 		"effect": "offline_rate",
@@ -96,7 +96,7 @@ const RESEARCH_TREE := {
 		"name": "Seismic Survey",
 		"desc": "A collapse yields 25% more Cores. Compounds with every run.",
 		"cost_research": 400.0,
-		"cost_cores": 3,
+		"cost_cores": 9,
 		"max": 5,
 		"cost_growth": 3.0,
 		"effect": "core_yield",
@@ -106,7 +106,7 @@ const RESEARCH_TREE := {
 		"name": "Drafting Table",
 		"desc": "One more blueprint slot for saved layouts.",
 		"cost_research": 180.0,
-		"cost_cores": 1,
+		"cost_cores": 3,
 		"max": 3,
 		"cost_growth": 2.4,
 		"effect": "blueprints",
@@ -126,6 +126,14 @@ const OFFLINE_BASE_RATE := 0.45
 const OFFLINE_MAX_HOURS := 24.0
 
 
+## Core costs rise faster than they used to (1.2 per level rather than 0.6),
+## so the last level of an upgrade is the expensive one and the first is still
+## reachable after a single early collapse. The whole tree now costs 372 Cores
+## against 88 before; a strong run pays around 86, so finishing it is a
+## fifteen-or-so-collapse project instead of a formality.
+const CORE_COST_GROWTH := 1.2
+
+
 static func upgrade_cost(id: String, level: int) -> Dictionary:
 	var u: Dictionary = RESEARCH_TREE.get(id, {})
 	if u.is_empty():
@@ -133,21 +141,46 @@ static func upgrade_cost(id: String, level: int) -> Dictionary:
 	var g: float = pow(float(u["cost_growth"]), float(level))
 	return {
 		"research": float(u["cost_research"]) * g,
-		"cores": int(ceil(float(u["cost_cores"]) * (1.0 + 0.6 * float(level)))),
+		"cores": int(ceil(float(u["cost_cores"])
+			* (1.0 + CORE_COST_GROWTH * float(level)))),
 	}
 
 
 ## Cores earned by collapsing right now.
 ##
-## Square-rooted on credits so the first collapse of a long run is worth doing
-## and the tenth hour is not worth ten times the first -- that is what stops
-## the optimal strategy being "never collapse".
+## Rewritten after `tools/journey_lab.gd` played the long game and found the
+## prestige layer had no floor and no ceiling worth caring about. The old
+## curve used `sqrt(lifetime / 2500)` as a MULTIPLIER on depth, and lifetime
+## credits are unbounded, so a single seventy-seven minute run to stratum 20
+## paid **774 Cores against a permanent tree that cost 88 in total**. The
+## tree was finished nearly nine times over by the first collapse, every
+## subsequent collapse was a strict loss -- it takes the Research with it --
+## and the long game was over before it started. That is the Realm Grinder
+## failure exactly: "at each new prestige tier you generally don't have more
+## than one new goal to chase".
+##
+## Two changes. Credits now enter logarithmically rather than as a square
+## root, so an hour that earns ten times as much is worth about one and a
+## half times as many Cores instead of three; and the depth exponent comes
+## down from 1.25 to 1.1. The same stratum-20 run now pays about 86.
+##
+## What is deliberately kept: depth matters more than money, a collapse below
+## stratum 3 pays nothing at all, and half an hour to stratum 3 is still worth
+## a Core -- the first prestige has to pay or nobody takes it and the long
+## game never starts.
+const CREDIT_SCALE := 10000.0
+const CREDIT_BASE := 6.0
+const DEPTH_EXPONENT := 1.1
+
+
 static func cores_for_collapse(max_depth: int, lifetime_credits: float,
 		core_yield_bonus: float = 0.0) -> int:
 	if max_depth < COLLAPSE_MIN_DEPTH:
 		return 0
-	var depth_part: float = pow(float(max_depth - COLLAPSE_MIN_DEPTH + 1), 1.25)
-	var credit_part: float = sqrt(maxf(lifetime_credits, 0.0) / 2500.0)
+	var depth_part: float = pow(float(max_depth - COLLAPSE_MIN_DEPTH + 1),
+		DEPTH_EXPONENT)
+	var credit_part: float = log(1.0 + maxf(lifetime_credits, 0.0) / CREDIT_SCALE) \
+		/ log(CREDIT_BASE)
 	var raw: float = depth_part * (1.0 + credit_part) * (1.0 + core_yield_bonus)
 	return int(floor(raw))
 

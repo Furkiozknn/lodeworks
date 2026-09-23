@@ -321,18 +321,11 @@ func _recompute() -> void:
 	_stratum = Strata.describe(depth)
 	_mult = Economy.multipliers(upgrade_levels)
 
-	sim.speed_mult = float(_mult["speed"]) * float(_stratum["process_speed"])
-	# `richness` is the base reward for descending; without it, depth only ever
-	# made the board hotter and the quota higher, which is the shape of a game
-	# nobody finishes.
-	sim.yield_mult = float(_mult["yield"]) * float(_stratum["source_yield"]) \
-		* float(_stratum["richness"])
-	sim.value_mult = float(_mult["value"]) * float(_stratum["value"])
-	sim.research_mult = float(_mult["research"]) * float(_stratum["research"])
-	sim.tolerance_bonus = float(_mult["tolerance"])
-	sim.buffer_cap = Simulation.BUF_CAP + int(_stratum["buffer_delta"])
-	grid.set_environment(float(_stratum["ambient_heat"]),
-		float(_stratum["heat_spread"]))
+	# One entry point, so a stratum field can never again be wired in the game
+	# and forgotten in the five tools that measure it. `richness` is folded
+	# into the yield there: without it, depth only ever made the board hotter
+	# and the quota higher, which is the shape of a game nobody finishes.
+	Strata.apply(sim, grid, _stratum, _mult)
 
 	var newly: Array[String] = MachineDB.unlocked_at(max_depth)
 	for id in newly:

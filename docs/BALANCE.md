@@ -166,3 +166,120 @@ mutations almost never help when there is no chain to extend. Its results are
 a lower bound on what is achievable, not an optimum, and the spread figure it
 prints is meaningless when one restart scores zero. Both are noted here rather
 than in a commit message because the number it prints will be quoted later.
+
+---
+
+# The retention audit, 23 September 2026
+
+Measured with `tools/journey_lab.gd` (the player's first ten seconds, first
+thirty minutes and long game) and `tools/strategy_lab.gd` (does the modifier
+table actually change which board is correct). Everything below is a number
+the tools print, not an opinion about the design.
+
+## The first ten minutes are the strong part
+
+| moment | measured |
+|---|---|
+| a lone Drill | **earns nothing, ever** — it has nowhere to sell, so the second machine is not a suggestion |
+| Drill + Vault | first credit at **2.1 s** |
+| machine three | affordable **17 s** later |
+| first descent | **179 s**, unlocking Smelter and Boiler |
+| first ten minutes | **five descents**, one new machine at each |
+| thirty minutes | stratum 5, 70 machines, first collapse available |
+
+Nothing here needed changing. The opening teaches adjacency by making it the
+only way anything happens at all.
+
+## Four things the audit found broken
+
+### 1. Two modifiers did nothing
+
+`Strata.describe()` computed twelve modifier effects; `Sim` applied ten.
+
+- **Brittle Rock** — "Drills run 35% faster, but everything downstream runs
+  15% slower". `source_speed` was read by nobody, so the card described a
+  trade-off and delivered a pure penalty. It scored below a clean stratum in
+  **all 32** board-by-condition cells.
+- **Resonant Strata** — "Amplifiers are twice as strong". `amplify` was read
+  by nobody. A board measured under Resonant produced numbers identical to a
+  clean stratum **to the last credit**, including a board built entirely
+  around Amplifiers.
+
+Both were copy-paste omissions across nine files that each configured a
+Simulation from a stratum by hand. `Strata.apply()` is now the only way to do
+it, and `tests/test_release_config.gd` fails the build if anything sets those
+fields directly again.
+
+### 2. Four of the twelve machines were decoration
+
+The same eight-row chain with its fourteen spare tiles spent seven ways:
+
+| spare tiles spent on | credits/s at depth 14 |
+|---|---|
+| nothing | 1077 |
+| Boilers | 1069 |
+| Coolant Cells | 1069 |
+| Duplicators | 1077 |
+| Condensers | 1072 |
+| **more chain** | **1167** |
+
+Within 1% of leaving the tiles empty. The cause was geometric, not numeric: on
+a four-neighbour grid with no belts **every chain tile is the sole outlet of
+the tile upstream of it**, so a support machine woven into a chain starves it
+(an Amplifier row inside the Crusher row scored 473 against 652 for not
+building it) and a support machine in a spare row is next to Vaults and serves
+nothing. The two requirements were mutually exclusive.
+
+Two rules fixed it, both stated on the tile before it is bought:
+
+- **A support machine bridges rather than blocks.** Material passes straight
+  through it to the machine on the far side. It costs a tile of production,
+  never a connection. One hop only.
+- **A support machine is worth what it touches.** Its effect scales by
+  `1 + 0.5 x (n - 1)` for `n` working neighbours, and stacked supports pay 1,
+  0.6, 0.36, 0.22 of their value so no single layout is correct everywhere —
+  the failure Factorio rebuilt its beacon maths to avoid (FFF #409).
+
+The result, same tool, same conditions:
+
+| | before | after |
+|---|---|---|
+| distinct winning boards across 12 conditions | 2 | **3** |
+| Amplifier board ever wins | never | **6 of 12** at both depths |
+| deep chain ever wins | 4 of 12 | **5 of 12** |
+| Resonant changes the answer | no | **+44%** for the Amplifier board |
+| Resonant + Thermal Vent | no effect | **+69%** for the Amplifier board |
+
+### 3. The prestige layer had no sink
+
+One 77-minute run to stratum 20 paid **774 Cores against a permanent tree that
+cost 88 in total** — finished nearly nine times over by the first collapse.
+Every collapse after that was a strict loss, because a collapse also takes the
+Research. That is the Realm Grinder complaint exactly: *"at each new prestige
+tier you generally don't have more than one new goal to chase."*
+
+Credits now enter the Core formula logarithmically rather than as a square
+root, and the depth exponent came down from 1.25 to 1.1. Core costs rise 1.2
+per level rather than 0.6, on bases tripled.
+
+| | before | after |
+|---|---|---|
+| whole permanent tree | 88 Cores | **372 Cores** |
+| one stratum-20 run | 774 Cores | **85 Cores** |
+| first collapse at 30 minutes | 25 Cores | **7 Cores** |
+| collapses to finish the tree | under 1 | **4 at the ceiling**, many more in practice |
+
+### 4. Novelty ends at stratum 10
+
+The last new machine unlocks at depth 10. Past it a stratum is a quota, a
+richness number and a modifier pair — and over 60 strata there are 41 distinct
+modifier sets with **18 repeats**. This is reported rather than fixed: adding
+machines to cover it is the content treadmill, and the honest answer is that
+the game's depth after stratum 10 now comes from the three-way board choice
+above rather than from new tiles.
+
+## What did not change
+
+Simulation cost went from 1.197 to **1.341 ms per tick** against a 3.0 ms
+budget. Canvas draw calls are unchanged at 247. The opening, the tutorial, the
+economy model and the monetization are untouched.

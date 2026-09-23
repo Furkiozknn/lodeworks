@@ -80,18 +80,69 @@ func test_heat_never_reported_negative() -> void:
 	runner.lt(g.raw_heat_at(c), 0.0, "but the raw field does go negative")
 
 
-func test_amplify_stacks_additively() -> void:
+func test_an_amplifier_is_worth_what_it_serves() -> void:
+	# The rule the whole support-machine design rests on: the same Amplifier
+	# is weak in a corner and strong in the middle of a chain, so WHERE it
+	# goes is the decision. Before this, the effect was flat per neighbour and
+	# a support tile could never beat the producer it displaced.
+	var g := Grid.new()
+	var amp: int = Grid.idx(3, 3)
+	g.place(amp, "amplifier")
+	runner.eq(g.serves(amp), 0, "an Amplifier alone serves nothing")
+	runner.near(g.serve_factor(amp), 0.0, 0.001, "and is worth nothing")
+
+	g.place(Grid.idx(2, 3), "crusher")
+	runner.eq(g.serves(amp), 1, "one working neighbour")
+	runner.near(g.serve_factor(amp), 1.0, 0.001, "worth its face value")
+	runner.near(g.amplify_at(Grid.idx(2, 3)), 1.35, 0.001,
+		"and the neighbour gets the base boost")
+
+	g.place(Grid.idx(4, 3), "crusher")
+	g.place(Grid.idx(3, 2), "crusher")
+	g.place(Grid.idx(3, 4), "crusher")
+	runner.eq(g.serves(amp), 4, "four working neighbours")
+	runner.near(g.serve_factor(amp), 2.5, 0.001,
+		"1 + 0.5 x (n - 1), so four neighbours is two and a half times")
+	runner.near(g.amplify_at(Grid.idx(2, 3)), 1.0 + 0.35 * 2.5, 0.001,
+		"a well-placed Amplifier is worth seven times a badly-placed one, "
+		+ "counting all four neighbours")
+
+
+func test_a_vault_is_not_something_to_amplify() -> void:
+	# A Vault has no rate to raise, so an Amplifier next to one is wasted.
+	# If this ever stopped being true the obvious board would be right again.
+	var g := Grid.new()
+	var amp: int = Grid.idx(3, 3)
+	g.place(amp, "amplifier")
+	g.place(Grid.idx(2, 3), "vault")
+	g.place(Grid.idx(4, 3), "amplifier")
+	runner.eq(g.serves(amp), 0,
+		"neither a Vault nor another Amplifier counts as something served")
+
+
+func test_stacked_amplifiers_have_diminishing_returns() -> void:
+	# Factorio rebuilt its beacon maths in 2.0 because linear stacking made
+	# one layout correct everywhere and building "feel monotonous" (FFF #409).
+	# Two Amplifiers on one machine must be worth having and four must be
+	# close to pointless, or the board has a single answer.
 	var g := Grid.new()
 	var c: int = Grid.idx(3, 3)
 	g.place(c, "crusher")
 	runner.near(g.amplify_at(c), 1.0, 0.001, "no amplifier yet")
 	g.place(Grid.idx(2, 3), "amplifier")
-	runner.near(g.amplify_at(c), 1.35, 0.001, "one amplifier")
+	var one: float = g.amplify_at(c) - 1.0
 	g.place(Grid.idx(4, 3), "amplifier")
-	runner.near(g.amplify_at(c), 1.70, 0.001, "two amplifiers stack")
+	var two: float = g.amplify_at(c) - 1.0
+	g.place(Grid.idx(3, 2), "amplifier")
+	var three: float = g.amplify_at(c) - 1.0
+	runner.gt(two, one, "a second Amplifier is still worth placing")
+	runner.gt(three, two, "and a third")
+	runner.lt(three - two, two - one,
+		"but each one adds less than the one before it")
+	runner.lt(two, one * 2.0, "two are worth less than twice one")
 
 
-func test_duplicator_chance_does_not_stack() -> void:
+func test_duplicator_chance_is_capped_and_diminishing() -> void:
 	# Two Duplicators on one machine must be worse than spreading them out,
 	# otherwise the optimal board is a single blob and layout stops mattering.
 	var g := Grid.new()
@@ -100,7 +151,70 @@ func test_duplicator_chance_does_not_stack() -> void:
 	g.place(Grid.idx(2, 3), "duplicator")
 	var one: float = g.duplicate_chance_at(c)
 	g.place(Grid.idx(4, 3), "duplicator")
-	runner.near(g.duplicate_chance_at(c), one, 0.001, "second duplicator adds nothing")
+	var two: float = g.duplicate_chance_at(c)
+	runner.gt(two, one, "a second Duplicator is worth something")
+	runner.lt(two, one * 2.0, "but less than the first")
+	g.place(Grid.idx(3, 2), "duplicator")
+	g.place(Grid.idx(3, 4), "duplicator")
+	runner.lte(g.duplicate_chance_at(c), 0.9,
+		"and a guaranteed double would make the rest of the board irrelevant")
+
+
+## --- support machines bridge rather than block -----------------------------
+
+func test_a_support_machine_passes_material_through() -> void:
+	# The one rule change the audit produced. Without it, a support machine
+	# placed inside a chain starves whatever was feeding through it, and one
+	# placed outside a chain is next to Vaults and serves nothing -- which
+	# made five of the twelve machines impossible to use.
+	var g := Grid.new()
+	var drill: int = Grid.idx(3, 3)
+	var amp: int = Grid.idx(3, 4)
+	var crusher: int = Grid.idx(3, 5)
+	g.place(drill, "drill")
+	g.place(crusher, "crusher")
+	runner.check(not g.bridged_machines(drill).has(crusher),
+		"two tiles apart with nothing between them is not a connection")
+	g.place(amp, "amplifier")
+	runner.check(g.bridged_machines(drill).has(crusher),
+		"an Amplifier between them bridges the gap")
+	runner.check(not g.bridged_machines(drill).has(amp),
+		"and is not itself a destination -- material passes through, "
+		+ "it does not stop")
+
+
+func test_a_producer_does_not_bridge() -> void:
+	# Only machines that make nothing bridge. A Crusher between a Drill and a
+	# Smelter is part of the chain, not a gap in it.
+	var g := Grid.new()
+	g.place(Grid.idx(3, 3), "drill")
+	g.place(Grid.idx(3, 4), "crusher")
+	g.place(Grid.idx(3, 5), "smelter")
+	runner.check(not g.bridged_machines(Grid.idx(3, 3)).has(Grid.idx(3, 5)),
+		"a working machine is a stop, not a bridge")
+	runner.check(not g.is_support(Grid.idx(3, 4)), "a Crusher is not support")
+	runner.check(g.is_support(Grid.idx(3, 3)) == false, "nor is a Drill")
+
+
+func test_bridging_is_one_hop_only() -> void:
+	# Two hops would turn the board into a graph problem and make "what is
+	# this connected to" impossible to see at a glance, which is what the
+	# whole visual design exists for.
+	var g := Grid.new()
+	g.place(Grid.idx(3, 2), "drill")
+	g.place(Grid.idx(3, 3), "amplifier")
+	g.place(Grid.idx(3, 4), "amplifier")
+	g.place(Grid.idx(3, 5), "crusher")
+	runner.check(not g.bridged_machines(Grid.idx(3, 2)).has(Grid.idx(3, 5)),
+		"a support machine bridges one gap, never a corridor")
+
+
+func test_a_vault_still_only_takes_from_what_it_touches() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(3, 3), "drill")
+	g.place(Grid.idx(3, 4), "vault")
+	runner.check(g.bridged_machines(Grid.idx(3, 3)).has(Grid.idx(3, 4)),
+		"adjacency is unchanged for everything that is not support")
 
 
 func test_cost_rises_with_ownership() -> void:

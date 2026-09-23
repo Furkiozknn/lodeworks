@@ -175,6 +175,50 @@ static func blocked_cells(depth: int) -> Dictionary:
 	return out
 
 
+## Point a Simulation at a stratum. The ONLY place a stratum is applied.
+##
+## This exists because of a bug it would have prevented. Nine files -- the
+## game, five measurement tools and three test files -- each built a
+## Simulation from a stratum by hand, copying six assignments. Two of the
+## stratum's fields were therefore never assigned anywhere except in the
+## dictionary that produced them:
+##
+##   * `source_speed`, which Brittle Rock sets to 1.35, was read by nobody, so
+##     "Drills run 35% faster, but everything downstream runs 15% slower" was
+##     a pure 15% penalty. Measured: Brittle scored below a clean stratum in
+##     all 32 board-by-condition cells of `tools/strategy_lab.gd`.
+##   * `amplify`, which Resonant Strata sets to 2.0, was read by nobody, so
+##     "Amplifiers are twice as strong" changed nothing. Measured: identical
+##     to the last credit against a clean stratum, on every board including
+##     one built entirely around Amplifiers.
+##
+## Both were copy-paste omissions rather than mistakes in reasoning, which is
+## exactly the failure a single entry point removes. A new stratum field is
+## now wired in one place or in none.
+static func configure(sim: Simulation, grid: Grid, depth: int,
+		upgrade_levels: Dictionary = {}) -> Dictionary:
+	var st: Dictionary = describe(depth)
+	var mu: Dictionary = Economy.multipliers(upgrade_levels)
+	apply(sim, grid, st, mu)
+	return st
+
+
+## The same thing when the caller already holds the stratum and multipliers.
+static func apply(sim: Simulation, grid: Grid, st: Dictionary,
+		mu: Dictionary) -> void:
+	if grid != null:
+		grid.set_environment(float(st["ambient_heat"]), float(st["heat_spread"]))
+	sim.speed_mult = float(mu.get("speed", 1.0)) * float(st["process_speed"])
+	sim.source_speed_mult = float(st["source_speed"])
+	sim.amplify_mult = float(st["amplify"])
+	sim.yield_mult = float(mu.get("yield", 1.0)) * float(st["source_yield"]) \
+		* float(st["richness"])
+	sim.value_mult = float(mu.get("value", 1.0)) * float(st["value"])
+	sim.research_mult = float(mu.get("research", 1.0)) * float(st["research"])
+	sim.tolerance_bonus = float(mu.get("tolerance", 0.0))
+	sim.buffer_cap = maxi(Simulation.BUF_CAP + int(st["buffer_delta"]), 1)
+
+
 static func modifier_name(id: String) -> String:
 	return String(MODIFIERS.get(id, {}).get("name", id))
 

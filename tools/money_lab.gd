@@ -40,12 +40,7 @@ func _board(rows: Array, depth: int, upgrades: Dictionary) -> Simulation:
 	var s := Simulation.new(g, 4242)
 	var st: Dictionary = Strata.describe(depth)
 	var mu: Dictionary = Economy.multipliers(upgrades)
-	g.set_environment(float(st["ambient_heat"]), float(st["heat_spread"]))
-	s.speed_mult = float(mu["speed"]) * float(st["process_speed"])
-	s.yield_mult = float(mu["yield"]) * float(st["source_yield"]) * float(st["richness"])
-	s.value_mult = float(mu["value"]) * float(st["value"])
-	s.research_mult = float(mu["research"]) * float(st["research"])
-	s.tolerance_bonus = float(mu["tolerance"])
+	Strata.apply(s, g, st, mu)
 	for y: int in range(rows.size()):
 		var row: String = String(rows[y])
 		for x: int in range(mini(row.length(), Grid.W)):
@@ -60,12 +55,7 @@ func _pairs(pairs: Array, depth: int, upgrades: Dictionary) -> Simulation:
 	var s := Simulation.new(g, 4242)
 	var st: Dictionary = Strata.describe(depth)
 	var mu: Dictionary = Economy.multipliers(upgrades)
-	g.set_environment(float(st["ambient_heat"]), float(st["heat_spread"]))
-	s.speed_mult = float(mu["speed"]) * float(st["process_speed"])
-	s.yield_mult = float(mu["yield"]) * float(st["source_yield"]) * float(st["richness"])
-	s.value_mult = float(mu["value"]) * float(st["value"])
-	s.research_mult = float(mu["research"]) * float(st["research"])
-	s.tolerance_bonus = float(mu["tolerance"])
+	Strata.apply(s, g, st, mu)
 	for p: Array in pairs:
 		g.place(Grid.idx(int(p[0]), int(p[1])), String(p[2]))
 	return s
@@ -95,10 +85,7 @@ func _waiting() -> void:
 	var g := Grid.new()
 	var s := Simulation.new(g, 4242)
 	var st: Dictionary = Strata.describe(0)
-	g.set_environment(float(st["ambient_heat"]), float(st["heat_spread"]))
-	s.yield_mult = float(st["source_yield"]) * float(st["richness"])
-	s.value_mult = float(st["value"])
-	s.speed_mult = float(st["process_speed"])
+	Strata.apply(s, g, st, {})
 	for p: Array in STARTER:
 		g.place(Grid.idx(int(p[0]), int(p[1])), String(p[2]))
 

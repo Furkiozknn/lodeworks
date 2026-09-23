@@ -146,11 +146,7 @@ func _run(art: Array, depth: int) -> Dictionary:
 
 	var sim := Simulation.new(g, 4242)
 	var mu: Dictionary = Economy.multipliers(UPGRADES)
-	sim.speed_mult = float(mu["speed"]) * float(st["process_speed"])
-	sim.yield_mult = float(mu["yield"]) * float(st["source_yield"]) * float(st["richness"])
-	sim.value_mult = float(mu["value"]) * float(st["value"])
-	sim.research_mult = float(mu["research"]) * float(st["research"])
-	sim.tolerance_bonus = float(mu["tolerance"])
+	Strata.apply(sim, null, st, mu)
 
 	sim.run_ticks(int(WARM * Simulation.TICK_HZ))
 	var out: Dictionary = sim.run_ticks(int(SAMPLE * Simulation.TICK_HZ))

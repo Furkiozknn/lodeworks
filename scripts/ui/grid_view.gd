@@ -544,6 +544,15 @@ func _draw_placement_preview(font: Font, cs: float) -> void:
 	var emitted: float = float(m.get("heat_out", 0.0))
 
 	draw_rect(cell_rect(cell).grow(2.0), Palette.ACCENT, false, 2.0)
+
+	# A support machine's whole value is how many working neighbours it ends
+	# up with, and that is invisible until it is placed. So it is drawn on the
+	# tile before the tile is bought: how many it will serve, and what that
+	# makes it worth. This is the difference between a rule the game has and a
+	# rule a player can find.
+	if m.has("amplify") or m.has("duplicate_chance"):
+		_draw_service_preview(font, cs, cell, m)
+
 	for n in Sim.grid.neighbours(cell):
 		var nr: Rect2 = cell_rect(n)
 		var nid: String = Sim.grid.machine_at(n)
@@ -569,6 +578,42 @@ func _draw_placement_preview(font: Font, cs: float) -> void:
 					float(nm["heat_tolerance"]) + Sim.sim.tolerance_bonus)
 				txt = "%+d%%" % int(round((after - before) * 100.0))
 			_num(font, nr, txt, Palette.TEXT, cs, 0.5)
+
+
+## What a support tile would be worth here, drawn before it is bought.
+##
+## Counts what it would serve from where the finger is, including the machines
+## it would newly connect by bridging, and prints both the count and the
+## multiplier the rule gives it. A player who moves their finger one tile and
+## watches "serves 1 (x1.0)" become "serves 4 (x2.5)" has been told the rule
+## without being told the rule.
+func _draw_service_preview(font: Font, cs: float, cell: int,
+		m: Dictionary) -> void:
+	var occupied: bool = not Sim.grid.is_empty(cell)
+	var n: int = 0
+	if occupied:
+		n = Sim.grid.serves(cell)
+	else:
+		# The tile is empty, so count what a support machine standing here
+		# would serve. Same rule as `Grid.serves`, asked hypothetically.
+		for j in Sim.grid.neighbour_machines(cell):
+			var nm: Dictionary = MachineDB.get_machine(Sim.grid.machine_at(j))
+			if nm.is_empty():
+				continue
+			var tags: Array = nm.get("tags", [])
+			if tags.has("sink") or nm.has("amplify") or nm.has("duplicate_chance"):
+				continue
+			if (nm.get("outputs", {}) as Dictionary).is_empty() \
+					and not tags.has("research"):
+				continue
+			n += 1
+	var factor: float = 0.0 if n <= 0 else 1.0 + Grid.SERVE_BONUS * float(n - 1)
+	var r: Rect2 = cell_rect(cell)
+	var col: Color = Palette.GOOD if n >= 3 else (
+		Palette.WARN if n >= 1 else Palette.BAD)
+	if cs > 30.0:
+		_num(font, r, "serves %d" % n, col, cs, 0.26)
+		_num(font, r, "x%.1f" % factor, col, cs, 0.5)
 
 
 func _num(font: Font, r: Rect2, text: String, col: Color, cs: float,
