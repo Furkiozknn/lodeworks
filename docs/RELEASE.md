@@ -175,7 +175,8 @@ claims with the evidence next to each one.
 | The export *configuration* is correct | **verified** | `tests/test_release_config.gd` checks both preset names against the workflow, targetSdk/minSdk, APK-vs-AAB parity, permissions, committed signing material, launcher icons, package name, version alignment, renderer and every file the workflows invoke — 51 assertions, on every run |
 | The device procedure matches the instrument | **verified** | a test fails if the self test grows a row `docs/DEVICE-TEST.md` does not mention, or the document names a control the diagnostics screen no longer has |
 | A rewarded ad plays | **NOT VERIFIED** | no AdMob account, no ad unit ids, no device. Until the self test's Ad plugin row reads `loaded` on hardware and an ad has actually paid out, monetization is not working |
-| `foremans_licence` is purchasable | **NOT VERIFIED** | no Play Console product exists. Billing returns nothing for an app Play has never seen, so this cannot even be attempted before a first upload |
+| The purchase *logic* is correct | **verified offline** | `tests/test_store.gd` drives every documented Play state through the real client — product found and not found, success, cancel, PENDING both ways, restore, duplicate delivery, already-owned, billing unavailable, network failure, unknown error code, no SDK, corrupt and tampered entitlement files — and the same state machine runs on the device as the self test's `purchase` row |
+| `foremans_licence` and `foundry_themes` are purchasable | **NOT VERIFIED** | no Play Console products exist. Billing returns nothing for an app Play has never seen, so this cannot even be attempted before a first upload |
 | Performance on a phone | **UNKNOWN** | never run on hardware. The self test measures frame time, input-to-frame latency, draw calls, shader stalls and memory in one tap; nobody has tapped it |
 | The tutorial teaches by pointing at tiles, not by explaining | **verified** | `tests/test_gameplay.gd` walks all eight steps against the live game using the same calls the UI makes, and asserts every line fits one phone line |
 | Every Codex page runs a real simulation | **verified** | each page's board is placed and ticked in the test suite; a page where nothing happens fails |
@@ -205,7 +206,12 @@ Nothing below can be automated, and nothing below has been done.
 4. **An AdMob account**, and the app + ad unit IDs it issues. Those IDs go into
    the plugin configuration; until then, `Ads` reports "no ad available" and the
    game plays normally without one.
-5. **A Play Console IAP product** with the id `foremans_licence`, and a price.
+5. **Two Play Console IAP products**, `foremans_licence` and `foundry_themes`,
+   both one-time and Active, each with a price. The ids, titles and
+   descriptions are generated from the catalogue — run
+   `godot --headless --path . --script res://tools/play_readiness.gd` and copy
+   them. [`PLAY.md`](PLAY.md) has the full submission list, and the same
+   script reports every requirement as done, manual or unknown.
    The code never hardcodes a price — it asks the platform, because a hardcoded
    price is wrong in most of the world and against store guidelines.
 6. **A privacy policy hosted at a public URL.** Draft copy is in
