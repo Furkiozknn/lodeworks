@@ -24,17 +24,32 @@ mkdir -p "$(dirname "$OUT")"
 cp export_presets.cfg export_presets.cfg.bak
 trap 'mv -f export_presets.cfg.bak export_presets.cfg' EXIT
 
-cat >> export_presets.cfg <<PRESET
-keystore/release="${LODEWORKS_KEYSTORE}"
-keystore/release_user="${LODEWORKS_KEYSTORE_USER}"
-keystore/release_password="${LODEWORKS_KEYSTORE_PASSWORD}"
-PRESET
+# Injected into [preset.0.options] specifically, not appended to the file --
+# there is a second preset after it now, and keys landing in the wrong section
+# produce an unsigned bundle and no error at all.
+python3 tools/_inject_keystore.py \
+  "$LODEWORKS_KEYSTORE" "$LODEWORKS_KEYSTORE_USER" "$LODEWORKS_KEYSTORE_PASSWORD"
 
 echo "==> tests"
 "$GODOT" --headless --path . --script res://tests/test_runner.gd
 
+echo "==> self test"
+"$GODOT" --headless --path . --script res://tools/selftest_cli.gd
+
 echo "==> export"
 "$GODOT" --headless --path . --export-release "Android" "$OUT"
+
+# An export that produced nothing still exits zero often enough to be worth
+# checking. A signed Godot bundle is tens of megabytes.
+if [ ! -s "$OUT" ]; then
+  echo "!! $OUT is empty -- the Gradle build did not produce a bundle" >&2
+  exit 1
+fi
+size=$(stat -c%s "$OUT" 2>/dev/null || stat -f%z "$OUT")
+if [ "$size" -lt 5000000 ]; then
+  echo "!! $OUT is only $size bytes -- that is not a complete bundle" >&2
+  exit 1
+fi
 
 echo "==> done: $OUT"
 ls -lh "$OUT"

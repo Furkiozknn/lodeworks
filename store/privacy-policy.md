@@ -19,10 +19,18 @@ itself. Your saved game is a file on your device and nowhere else.
 
 ## Anonymous gameplay statistics
 
-If enabled, the game records events such as: a session started, a tutorial step
-completed, a stratum reached, a rewarded ad watched, a purchase made. Each event
-carries the random install identifier and the app version. No personal data, no
-contacts, no location, no advertising ID, no device fingerprint.
+If enabled, the game records thirteen kinds of event and no others. The list is
+fixed in the code — anything not on it is discarded rather than sent:
+
+first launch · session started · session ended, with its length · tutorial
+completed · first production · first upgrade · stratum reached · shaft
+collapsed · rewarded ad shown · rewarded ad completed · purchase started ·
+purchase succeeded · purchase failed
+
+Each event carries the random install identifier, the app version, a timestamp
+and, where relevant, a depth or a count. No personal data, no contacts, no
+location, no advertising ID, no device fingerprint, no free text. The set of
+fields an event may carry is fixed in the code in the same way.
 
 You can turn this off at any time in the game's settings menu. Turning it off
 deletes the locally buffered events.
@@ -39,7 +47,8 @@ advertising identifiers. Google's practices are described at
 
 If you are in the European Economic Area, the United Kingdom or Switzerland,
 you will be asked for consent before personalised ads are shown, and you can
-change or withdraw that choice at any time from the game's settings.
+change or withdraw that choice at any time from the game's settings, under
+**Ad privacy options**.
 
 Buying the Foreman's Licence removes all ads and, with them, the ad SDK's
 collection.

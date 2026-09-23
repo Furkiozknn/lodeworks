@@ -73,6 +73,7 @@ func start() -> void:
 	_recompute()
 	if not report.is_empty():
 		offline_earnings.emit(report)
+	Analytics.track("first_launch")
 	Analytics.track("session_start", {"depth": depth, "collapses": collapses})
 
 
@@ -88,6 +89,10 @@ func _process(delta: float) -> void:
 		var r: float = float(out["research"])
 		credits += c
 		research += r
+		if c > 0.0 and lifetime_credits <= 0.0:
+			# The moment the numbers first move. If this never fires for a
+			# player, the tutorial failed, not the balance.
+			Analytics.track("first_production")
 		lifetime_credits += c
 		# Instantaneous rate, exponentially smoothed.
 		var inst_c: float = c / Simulation.TICK_DT
@@ -134,7 +139,6 @@ func try_place(cell: int, id: String) -> bool:
 	sim.reset_progress()
 	_recompute()
 	stats_changed.emit()
-	Analytics.track("machine_placed", {"id": id, "depth": depth})
 	return true
 
 
@@ -192,7 +196,7 @@ func descend() -> bool:
 		machines_unlocked.emit(gained)
 	stats_changed.emit()
 	Save.save_game(self)
-	Analytics.track("descend", {"depth": depth, "unlocked": gained.size()})
+	Analytics.track("depth_reached", {"depth": depth})
 	return true
 
 
@@ -260,7 +264,7 @@ func buy_upgrade(id: String) -> bool:
 	_recompute()
 	stats_changed.emit()
 	Save.save_game(self)
-	Analytics.track("upgrade", {"id": id, "level": lvl + 1})
+	Analytics.track("first_upgrade")
 	return true
 
 
@@ -318,7 +322,8 @@ func tutorial_step() -> int:
 
 func advance_tutorial() -> void:
 	_tutorial_step += 1
-	Analytics.track("tutorial_step", {"step": _tutorial_step})
+	if tutorial_done():
+		Analytics.track("tutorial_complete", {"depth": depth})
 	Save.save_game(self)
 
 
@@ -329,6 +334,10 @@ func tutorial_done() -> bool:
 ## --- persistence -----------------------------------------------------------
 
 func to_dict() -> Dictionary:
+	# Serialising before anything has constructed the board is legitimate --
+	# the self test does it, and so does a save triggered by an early
+	# background notification. Build on demand rather than dereferencing null.
+	_ensure()
 	return {
 		"v": 1,
 		"credits": credits,

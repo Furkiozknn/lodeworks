@@ -50,6 +50,7 @@ func _ready() -> void:
 	Sim.offline_earnings.connect(_show_offline)
 	Sim.collapsed.connect(_on_collapsed)
 	Ads.reward_granted.connect(_on_reward)
+	Ads.reward_failed.connect(_on_reward_failed)
 	Store.purchase_completed.connect(func(_p): _toast_msg("Foreman's Licence active. Thank you."); _refresh())
 	Sim.start()
 	_rebuild_palette()
@@ -373,6 +374,19 @@ func _on_reward(placement: String) -> void:
 			_toast_msg("Reward granted.")
 
 
+## An ad that does not play is not the player's problem, and it is not worth a
+## modal. The base offline payout was already credited before the ad was ever
+## offered, so nothing is lost here -- only the doubling.
+func _on_reward_failed(_placement: String, reason: String) -> void:
+	match reason:
+		"dismissed":
+			pass  # They closed it deliberately. Saying anything is nagging.
+		"timeout", "show_failed":
+			_toast_msg("The ad did not play. Nothing was lost.")
+		_:
+			_toast_msg("No ad available right now.")
+
+
 ## --- refresh ---------------------------------------------------------------
 
 func _refresh() -> void:
@@ -643,11 +657,15 @@ func _show_settings() -> void:
 		var buy := _button(
 			"Get the Licence" if Store.price_text() == "" else "Get it — %s" % Store.price_text(),
 			Palette.CORE)
-		buy.disabled = not Store.is_available()
+		# Drawn enabled only when the store has confirmed the product is
+		# actually sellable on this device. A buy button that fails is worse
+		# than no buy button, and "the code can call purchase()" is not the
+		# same claim as "this can be bought".
+		buy.disabled = not Store.can_purchase()
 		buy.pressed.connect(func(): Store.purchase())
 		col.add_child(buy)
-		if not Store.is_available():
-			col.add_child(_label("Store not available in this build.", 16, Palette.TEXT_FAINT))
+		if not Store.can_purchase():
+			col.add_child(_label(_store_reason(), 16, Palette.TEXT_FAINT))
 		var restore := _button("Restore purchase", Palette.PANEL_HI)
 		restore.add_theme_color_override("font_color", Palette.TEXT)
 		restore.pressed.connect(func(): Store.restore())
@@ -669,7 +687,47 @@ func _show_settings() -> void:
 	anon.toggled.connect(func(on): Analytics.set_enabled(on))
 	col.add_child(anon)
 	col.add_child(_label(
-		"No account, no advertising ID, no personal data. Counts only: sessions, depth reached, and whether tutorials complete.",
+		"No account, no advertising ID, no personal data. %d event types only: sessions, depth reached, tutorial and first-production milestones, ads watched and purchases."
+		% Analytics.ALLOWED.size(),
+		15, Palette.TEXT_FAINT))
+
+	# GDPR requires consent to be withdrawable, not just grantable. The ad
+	# SDK owns that form; this is the entry point into it, and it is the step
+	# most implementations leave out.
+	if Ads.is_plugin_present():
+		var privacy := _button("Ad privacy options", Palette.PANEL_HI)
+		privacy.add_theme_color_override("font_color", Palette.TEXT)
+		privacy.pressed.connect(func():
+			if not Ads.show_privacy_options():
+				_toast_msg("The ad SDK did not offer a privacy form."))
+		col.add_child(privacy)
+
+	col.add_child(HSeparator.new())
+
+	var diag := _button("Run device self test", Palette.PANEL_HI)
+	diag.add_theme_color_override("font_color", Palette.TEXT)
+	diag.pressed.connect(func():
+		_close_overlay()
+		_open_diagnostics())
+	col.add_child(diag)
+	col.add_child(_label(
+		"Frame time, screen shape, save integrity and plugin status, measured on this device.",
 		15, Palette.TEXT_FAINT))
 
 	_open_overlay("Lodeworks", col, [])
+
+
+## Why the buy button is not offered. Said plainly rather than left blank --
+## "unavailable" with no reason is how a real store outage gets mistaken for a
+## bug in the game.
+func _store_reason() -> String:
+	if not Store.is_available():
+		return "No billing service in this build."
+	if not Store.product_confirmed():
+		return "The store has not confirmed this product yet."
+	return "Not available right now."
+
+
+func _open_diagnostics() -> void:
+	var d: Control = (load("res://scripts/ui/diagnostics.gd") as GDScript).new()
+	add_child(d)

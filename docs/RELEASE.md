@@ -40,8 +40,11 @@ Billing Library 9.1.0, which clears both the
 ## 3. Plugins to install before the first real build
 
 None are in the repository — they are native Android addons that do not exist
-in the editor or in CI, and every service in `scripts/services/` is written to
-run without them. Install them into `addons/` when building for a device.
+in the editor or in a headless test run, and every service in
+`scripts/services/` is written to run without them. `tools/install-plugins.sh`
+fetches both into `addons/` and records exactly what it fetched; the `android`
+workflow runs it. Versions below are from research and have **not** been
+downloaded or checked against a hash by anything in this repository.
 
 | purpose | package | version at time of writing |
 |---|---|---|
@@ -63,10 +66,15 @@ tooling has proved insufficient is a dependency taken on for nothing.
 - [x] 16 KB page alignment — automatic on 4.5+
 - [x] arm64-v8a, AAB export, Gradle build enabled — set in `export_presets.cfg`
 - [x] Privacy-minimal analytics — no ad ID, no account, no personal data, and
-      an off switch in the game's own settings
-- [ ] **UMP consent flow, including `showPrivacyOptionsForm()`** — the AdMob
-      plugin ships UMP, but the "withdraw consent" entry point is the step most
-      often skipped and GDPR requires revocability
+      an off switch in the game's own settings. The event vocabulary is a
+      hard-coded allowlist of 13 names with an allowlist of 8 property keys;
+      anything else is dropped rather than sent, which is what keeps the Data
+      Safety declaration short enough to be honest
+- [~] **UMP consent flow, including `showPrivacyOptionsForm()`** — wired:
+      `Ads._request_consent()` runs on bind and **Settings → Ad privacy
+      options** calls `show_privacy_options_form()`, which is the withdrawal
+      path GDPR requires and the step most implementations skip. Not verified
+      — it needs the plugin and a device, and it is a row on the self test
 - [ ] Data safety form — must disclose everything the ads SDK collects: IP
       address, user product interactions, diagnostics, and device/advertising
       identifiers
@@ -92,6 +100,20 @@ tooling has proved insufficient is a dependency taken on for nothing.
 
 ## 5. Building
 
+### The APK you can put on a phone
+
+Play only accepts the AAB, and an AAB cannot be installed on a device. So
+there is a second export preset that produces an APK, and the `android`
+workflow builds it on every push — twice, once with the native plugins and
+once deliberately without them. The plugin-free leg is the standing proof of
+the claim the whole service layer rests on: the game builds, passes its tests
+and runs with no ad or billing SDK present at all.
+
+Download it from Actions, install it, and open **Settings → Run device self
+test**. [`DEVICE-TEST.md`](DEVICE-TEST.md) is the procedure.
+
+### The signed bundle
+
 ```bash
 GODOT=/path/to/godot4.7.2 \
 LODEWORKS_KEYSTORE=$HOME/keys/lodeworks-release.keystore \
@@ -100,11 +122,18 @@ LODEWORKS_KEYSTORE_PASSWORD='...' \
 tools/build-android.sh
 ```
 
-The script runs the tests first, injects the signing block into a throwaway
-copy of the preset, exports the AAB, and restores the clean preset afterwards.
-Godot writes keystore passwords into `export_presets.cfg` in plain text, which
-is why that file is committed with the signing block empty and why the build
-script works this way rather than the obvious way.
+The script runs the tests and the self test first, injects the signing block
+into `[preset.0.options]` of a throwaway copy of the preset, exports the AAB,
+checks the result is actually a bundle rather than an empty file, and restores
+the clean preset afterwards. Godot writes keystore passwords into
+`export_presets.cfg` in plain text, which is why that file is committed with
+the signing block empty and why the build script works this way rather than
+the obvious way.
+
+In CI the same script runs on a `v*` tag, taking the keystore from the
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_USER` and
+`ANDROID_KEYSTORE_PASSWORD` secrets. With no keystore secret set it builds
+nothing and says so, rather than quietly producing a debug-signed bundle.
 
 Generate a keystore once:
 
@@ -114,10 +143,47 @@ keytool -genkey -v -keystore lodeworks-release.keystore \
 ```
 
 Keep it and its password somewhere you will still have them in five years.
-Losing an upload key is recoverable through Play support; losing an app signing
-key without Play App Signing enrolled is not.
+Losing an upload key is recoverable through Play support; losing an app
+signing key without Play App Signing enrolled is not.
 
-## 6. What still needs a human
+### The native plugins
+
+```bash
+tools/install-plugins.sh                       # latest of each
+ADMOB_TAG=v5.1.0 BILLING_TAG=v3.3.0 tools/install-plugins.sh
+```
+
+They are not vendored. `addons/` is in `.gitignore`, the installer writes
+`addons/PLUGINS.lock` with the tag, asset name and sha256 of what it actually
+fetched, and CI uploads that lock file with the APK so a build can be traced
+back to the bytes that went into it. A plugin that cannot be fetched is not a
+build failure — the game still builds, and the diagnostics screen says the
+plugin is not installed.
+
+## 6. Where monetization actually stands
+
+This is the section it is tempting to overstate, so it is written as a set of
+claims with the evidence next to each one.
+
+| claim | status | evidence |
+|---|---|---|
+| The game runs with no ad or billing SDK | **verified** | `test_services.gd`, `test_monetization.gd`, and a CI leg that builds an APK with the plugins deliberately absent |
+| The game stays playable when the ad SDK binds and then fails | **verified** | `test_monetization.gd::test_a_broken_ad_sdk_still_leaves_the_game_playable`, plus a watchdog that fails a hung ad after 90 s |
+| Ads and the purchase cannot move an economy number | **verified** | `test_monetization.gd` runs the same board licensed and unlicensed and requires identical output, to 1e-4 |
+| Only the decided events are sent | **verified** | `Analytics.ALLOWED` is an allowlist; unlisted events and unlisted properties are dropped, and the drop is visible on the diagnostics screen |
+| The project exports an installable APK and an uploadable AAB | **not yet verified here** | the export needs the Android SDK, JDK 17 and Google's Maven repos, none of which the development container can reach. The `android` workflow is written to do it on a runner; the first green run is the evidence |
+| A rewarded ad plays | **NOT VERIFIED** | no AdMob account, no ad unit ids, no device. Until the self test's Ad plugin row reads `loaded` on hardware and an ad has actually paid out, monetization is not working |
+| `foremans_licence` is purchasable | **NOT VERIFIED** | no Play Console product exists. Billing returns nothing for an app Play has never seen, so this cannot even be attempted before a first upload |
+| Performance on a phone | **UNKNOWN** | never run on hardware. The self test measures it in one tap; nobody has tapped it |
+
+The MVP ships **one** ad placement — doubling offline earnings — out of the
+three that are written. It is the only one where the player knows the exact
+value of the reward before deciding, because the offline panel has just
+printed it. `P_REROLL_STRATUM` and `P_EXTRA_BLUEPRINT` stay in the code,
+tested and unreachable, because shipping three ad surfaces at once means never
+learning which one players wanted.
+
+## 7. What still needs a human
 
 Nothing below can be automated, and nothing below has been done.
 
@@ -137,19 +203,25 @@ Nothing below can be automated, and nothing below has been done.
    contact address adding and somewhere to live.
 7. **12 testers for 14 continuous days.** Budget three weeks of calendar time
    before production is even possible.
-8. **A physical Android device.** The game has never run on one. No emulator
-   check substitutes for real thermal behaviour, real touch latency and real
-   battery drain.
-9. **Trademark and store-name availability** for "Lodeworks" in the categories
-   and territories you care about. Not checked.
+8. **A physical Android device**, and one run through
+   [`DEVICE-TEST.md`](DEVICE-TEST.md). The game has never run on one. No
+   emulator check substitutes for real thermal behaviour, real touch latency
+   and real battery drain.
+9. **A GitHub repository.** The workflows are written and committed but have
+   never executed, because the repository does not exist yet. Creating one is
+   the single step that turns "the export chain should work" into "the export
+   chain works".
+10. **Trademark and store-name availability** for "Lodeworks" in the categories
+    and territories you care about. Not checked.
 
-## 7. Known gaps in the build itself
+## 8. Known gaps in the build itself
 
 - **No sound.** Not a single audio file. The design does not depend on it, but
   a silent idle game reads as unfinished to some reviewers.
-- **No ad or billing plugin installed**, so no real ad has been shown and no
-  purchase made. The interfaces are written and the no-op paths are tested; the
-  live paths are not.
+- **No ad or billing plugin has ever been fetched.** `tools/install-plugins.sh`
+  resolves both from the GitHub release API at build time; it has not been run,
+  because the development container cannot reach that API. The versions in the
+  table above came from research, not from a download.
 - **Blueprints are saved and loaded but have no UI yet.** The research tree
   already sells slots for them.
 - **Never run on hardware.** Performance figures for a real device: **UNKNOWN**.
@@ -157,3 +229,6 @@ Nothing below can be automated, and nothing below has been done.
   that switching to the Mobile/Vulkan renderer is
   [reported to reduce the supported-device count](https://github.com/godotengine/godot/issues/111729),
   so check Play Console's device numbers before changing it.
+- **No emulator run either.** An emulator would catch a packaging failure but
+  tells you nothing about thermals, touch latency or battery, which are the
+  three things a real device is needed for.

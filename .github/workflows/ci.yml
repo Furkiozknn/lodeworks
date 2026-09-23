@@ -38,6 +38,12 @@ jobs:
       - name: Run tests
         run: ./godot --headless --path . --script res://tests/test_runner.gd
 
+      # The same checks the device self test runs, minus the ones that need
+      # hardware. Those report UNKNOWN here and are answered by installing the
+      # APK the android workflow builds.
+      - name: Self test
+        run: ./godot --headless --path . --script res://tools/selftest_cli.gd
+
       - name: Balance diagnostics
         run: ./godot --headless --path . --script res://tools/diagnose.gd
 
@@ -66,3 +72,33 @@ jobs:
         with:
           name: screenshots
           path: ~/.local/share/godot/app_userdata/Lodeworks/shots/
+
+  smoke:
+    name: ui smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -sSL -o godot.zip "$url"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+      - run: ./godot --headless --path . --import
+      # The unit tests never build a Control, so a UI that fails to
+      # instantiate passes all of them. This boots the real game, opens the
+      # settings panel and the device self test, and checks that what came up
+      # is not a black rectangle.
+      - name: Boot the game and open the self test
+        run: |
+          xvfb-run -a ./godot --path . --resolution 720x1440 \
+            --rendering-driver opengl3 tools/smoke.tscn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screens
+          path: ~/.local/share/godot/app_userdata/Lodeworks/smoke/
+          if-no-files-found: warn

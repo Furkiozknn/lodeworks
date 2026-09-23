@@ -48,6 +48,10 @@ of data and a large multiple of gameplay.** A match-3 gets one more level.
 - **One IAP.** "Foreman's Licence" — removes ads, +4 hours of offline banking,
   +2 blueprint slots. It unlocks no machine, no stratum, no upgrade. The whole
   game is reachable without it.
+- **Neither one can move an economy number**, and that is a test rather than a
+  promise: the suite runs the same board licensed and unlicensed and requires
+  identical output. If the ad SDK is missing, broken, or hangs mid-ad, the game
+  keeps running and the player loses nothing but the ad.
 - **No energy, no timers, no gacha, no subscription, no daily-login guilt.**
 
 The revenue cost of skipping interstitials is real and it is on purpose. An
@@ -57,10 +61,16 @@ delete in week one.
 ## Running it
 
 ```bash
-godot --path . --resolution 720x1440           # play it
-godot --headless --path . --script res://tests/test_runner.gd   # 61 tests
-godot --headless --path . --script res://tools/diagnose.gd      # per-tile balance dump
+godot --path . --resolution 720x1440                              # play it
+godot --headless --path . --script res://tests/test_runner.gd     # 97 tests
+godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
+godot --headless --path . --script res://tools/diagnose.gd        # per-tile balance dump
 ```
+
+For a phone: the `android` workflow builds an installable APK on every push —
+twice, once with the native plugins and once deliberately without them.
+[docs/DEVICE-TEST.md](docs/DEVICE-TEST.md) is the procedure for getting it onto
+a device and reading the numbers off.
 
 Needs **Godot 4.7.2 or newer** — 4.5 is the floor for Google Play because
 anything older targets an SDK Play no longer accepts (see
@@ -79,6 +89,12 @@ at real tick rate and asserts against wall-clock seconds:
 - a complete ore → component → research chain fits on the board and runs
 - the curve has not walled out by stratum 20
 
+`tests/test_monetization.gd` is the other one worth reading: it asserts that
+ads and the purchase cannot touch credits, research or cores, that a bound but
+broken ad SDK leaves the game fully playable, that a hand-edited entitlement
+file cannot invent a product, and that the analytics vocabulary is exactly the
+thirteen events that were decided on and not one more.
+
 Three real balance bugs were found by these and fixed: depth added no yield at
 all (`richness` was computed and never applied), the late-game chain deadlocked
 because multi-input machines could not be fed on a four-neighbour grid, and the
@@ -91,11 +107,15 @@ differently.
 scripts/core/     Grid, Simulation, MachineDB, Strata, Economy — all RefCounted,
                   no nodes, so the whole game runs headless
 scripts/sim/      the one autoload that owns live state
-scripts/services/ save, analytics, ads, IAP — each degrades to a no-op when its
-                  native plugin is absent, so the game always runs and always tests
+scripts/services/ save, analytics, ads, IAP, and the device self test — each
+                  degrades to a no-op when its native plugin is absent, so the
+                  game always runs and always tests
 scripts/ui/       drawn with _draw(); there is not one bitmap in the project
-tests/            61 tests, no framework dependency
-tools/            screenshots, balance diagnostics, the Android build script
+tests/            97 tests, no framework dependency
+tools/            screenshots, balance diagnostics, the self test CLI, the
+                  plugin installer and the Android build script
+.github/          tests and screenshots on every push; the Android export runs
+                  there because it is the only place with an Android SDK
 store/            listing copy, icon, screenshots generated from the real game
 docs/             design and release notes
 ```
@@ -106,10 +126,24 @@ Working: the simulation, the economy, the descent, prestige, the research tree,
 saves with offline progress, the tutorial, the UI, and the ad/IAP/analytics
 interfaces with their no-op fallbacks.
 
-Not done: no ad or billing plugin is installed yet, so no real ad has ever been
-shown and no purchase has ever been made; there is no sound; and the game has
-never run on a physical phone. See [docs/RELEASE.md](docs/RELEASE.md) for what
-remains, and which parts of it need a human.
+Not done, stated plainly because the alternative is a plausible number with
+nothing behind it:
+
+- **The game has never run on a phone.** Every performance, input, thermal and
+  battery figure for real hardware is UNKNOWN. The self test measures all of
+  them in one tap; nobody has tapped it.
+- **No ad has ever been shown and no purchase has ever been made.** No AdMob
+  account, no ad unit ids, no Play Console product. The integration is written
+  and its failure paths are tested; the live paths are not, so monetization is
+  not working.
+- **The Android export has never been executed.** It needs an Android SDK, JDK
+  17 and Google's Maven repositories, which the machine this was written on
+  cannot reach. The workflow that does it is committed and has never run,
+  because the GitHub repository does not exist yet.
+- No sound, and blueprints save and load but have no UI.
+
+See [docs/RELEASE.md](docs/RELEASE.md) §6 for claim-by-claim evidence and §7
+for what needs a human.
 
 ## Licence
 

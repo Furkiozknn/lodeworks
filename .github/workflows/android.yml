@@ -1,0 +1,233 @@
+name: android
+
+# The real Android export chain.
+#
+# This exists because the export cannot be exercised where the code is
+# written: it needs the Android SDK, JDK 17, Gradle and network access to
+# Google's Maven repositories, which a development container does not have.
+# A GitHub runner has all four, so that is where the build lives.
+#
+# What this proves and what it does not:
+#
+#   proves    the project exports with targetSdk 36, that the Gradle build
+#             resolves, that the plugins (when present) link, and that the
+#             result is an installable APK and an uploadable AAB
+#   does not  prove anything about how the game performs, looks or behaves on
+#             a phone. No emulator is run and no device is attached. Every
+#             device-level question is answered by installing the APK this
+#             produces and opening Settings -> Run device self test.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      install_plugins:
+        description: 'Fetch the AdMob and Billing plugins into addons/'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  apk:
+    name: debug apk
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both legs matter. "without" is the claim the whole service layer is
+        # built on -- that the game builds and runs with no ad or billing SDK
+        # at all -- and it is the only leg that cannot break because someone
+        # else shipped a release. "with" is what actually goes to a device.
+        plugins: [without, with]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Godot's Android export needs 17 specifically. The runner defaults to a
+      # newer JDK, and the Gradle build fails with an unhelpful error if it is
+      # allowed to pick that up.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Godot ${{ env.GODOT_VERSION }} and export templates
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          ./godot --headless --version
+
+          curl -sSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          unzip -q templates.tpz -d tpl
+          mv tpl/templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          ls "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" | head
+
+      # Godot reads the SDK path, the JDK path and the debug keystore out of
+      # editor settings, not out of the project, so CI has to write them. The
+      # debug keystore is generated fresh every run: it signs a sideload-only
+      # build and must never be confused with a release key.
+      - name: Point Godot at the runner's Android SDK
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$sdk" || { echo "no Android SDK on this runner"; exit 1; }
+          echo "Android SDK: $sdk"
+          echo "JDK: $JAVA_HOME"
+
+          keytool -genkeypair -v -keystore "$HOME/debug.keystore" \
+            -alias androiddebugkey -storepass android -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US" >/dev/null
+
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<TRES
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$sdk"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/force_system_user = false
+          export/android/shutdown_adb_on_exit = true
+          TRES
+          sed -i 's/^          //' "$HOME/.config/godot/editor_settings-4.tres"
+          cat "$HOME/.config/godot/editor_settings-4.tres"
+
+      - name: Install native plugins
+        if: matrix.plugins == 'with'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: tools/install-plugins.sh
+
+      - name: Import project
+        run: ./godot --headless --path . --import
+
+      # The suite has to pass before anything is packaged. A build that ships
+      # a broken economy is worse than no build.
+      - name: Tests
+        run: ./godot --headless --path . --script res://tests/test_runner.gd
+
+      - name: Self test (the checks that do not need hardware)
+        run: ./godot --headless --path . --script res://tools/selftest_cli.gd
+
+      - name: Export APK
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          ./godot --headless --path . --export-debug "Android APK" \
+            "$PWD/build/lodeworks-${{ matrix.plugins }}-plugins.apk" -v
+          ls -lh build/
+
+      # An APK Godot "exported" but Gradle never produced is a zero-byte file
+      # and a green tick. Check the bytes, not the exit code.
+      - name: Verify the APK is real
+        run: |
+          set -euo pipefail
+          apk="build/lodeworks-${{ matrix.plugins }}-plugins.apk"
+          test -s "$apk" || { echo "$apk is empty"; exit 1; }
+          size=$(stat -c%s "$apk")
+          echo "size: $size bytes"
+          test "$size" -gt 5000000 || { echo "suspiciously small for a Godot APK"; exit 1; }
+          unzip -l "$apk" | grep -q "classes.dex" || { echo "no dex in the apk"; exit 1; }
+          unzip -l "$apk" | grep -q "lib/arm64-v8a/" || { echo "no arm64 library"; exit 1; }
+          "$ANDROID_SDK_ROOT"/build-tools/*/aapt2 dump badging "$apk" 2>/dev/null \
+            | grep -E "package:|sdkVersion|targetSdkVersion" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lodeworks-apk-${{ matrix.plugins }}-plugins
+          path: |
+            build/*.apk
+            addons/PLUGINS.lock
+          if-no-files-found: error
+          retention-days: 30
+
+  aab:
+    name: release aab
+    # Only on a tag, and only when a signing key exists. A release build that
+    # silently falls back to a debug key is how an unsigned bundle reaches a
+    # store listing.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for signing secrets
+        id: keys
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS" ]; then echo "have=yes" >> "$GITHUB_OUTPUT";
+          else echo "have=no" >> "$GITHUB_OUTPUT";
+            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret, so no signed bundle was built."; fi
+
+      - uses: actions/setup-java@v4
+        if: steps.keys.outputs.have == 'yes'
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Godot and templates
+        if: steps.keys.outputs.have == 'yes'
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          curl -sSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          unzip -q templates.tpz -d tpl
+          mv tpl/templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+
+      - name: Install native plugins
+        if: steps.keys.outputs.have == 'yes'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: tools/install-plugins.sh
+
+      # The keystore never touches the repository and the passwords never
+      # touch export_presets.cfg on disk beyond the life of this job. Godot
+      # writes keystore passwords into that file in plain text, which is why
+      # the committed copy has an empty signing block.
+      - name: Sign and export the bundle
+        if: steps.keys.outputs.have == 'yes'
+        env:
+          GODOT: ./godot
+          LODEWORKS_KEYSTORE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
+          LODEWORKS_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          mkdir -p "$HOME/.config/godot"
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
+            "$sdk" "$JAVA_HOME" > "$HOME/.config/godot/editor_settings-4.tres"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$HOME/release.keystore"
+          export LODEWORKS_KEYSTORE="$HOME/release.keystore"
+          ./godot --headless --path . --import
+          tools/build-android.sh
+          rm -f "$HOME/release.keystore"
+          ls -lh build/
+
+      - uses: actions/upload-artifact@v4
+        if: steps.keys.outputs.have == 'yes'
+        with:
+          name: lodeworks-aab
+          path: build/*.aab
+          if-no-files-found: error
+          retention-days: 90

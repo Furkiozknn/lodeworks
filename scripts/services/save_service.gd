@@ -99,10 +99,9 @@ func load_game(state: Node) -> Dictionary:
 	state.lifetime_credits += float(report["amount"])
 	state.research += float(report["research"])
 	last_offline_report = report
-	Analytics.track("offline_return", {
-		"seconds": int(away),
-		"capped": bool(report["capped"]),
-	})
+	# No event here on purpose. An offline return happens on almost every
+	# launch and answers no question that session_start does not already
+	# answer, so tracking it would be volume without a decision behind it.
 	return report
 
 

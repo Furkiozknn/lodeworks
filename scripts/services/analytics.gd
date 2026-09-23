@@ -1,30 +1,79 @@
 extends Node
 
-## Event tracking, deliberately small.
+## Event tracking, deliberately small -- and enforced small.
 ##
-## The questions this has to answer are the ones that decide whether the game
-## is worth continuing to work on:
+## The events here are exactly the ones that answer a question someone will
+## actually act on:
 ##
-##   - do people finish the tutorial?
-##   - how long is a first session?
-##   - do they come back?
-##   - how deep do they get before they stop?
-##   - does anyone watch a rewarded ad, and does anyone buy the unlock?
+##   first_launch        did the install turn into a play session at all
+##   tutorial_complete   did the core loop land
+##   first_production    did they ever see the numbers move
+##   first_upgrade       did they reach the progression layer
+##   depth_reached       how far players get before they stop
+##   collapse            does anyone reach the prestige layer
+##   rewarded_shown      how often an ad is actually watched
+##   rewarded_completed  ...and how often it pays out
+##   iap_started/purchased/failed   the purchase funnel, all three steps
+##   session_start/session_end      session count and session length
 ##
-## Everything else is noise. So there is no user id, no device fingerprint, no
-## IP logging, no ad id, and no third-party SDK in the default build. Events
-## carry an install-scoped random id and nothing else that identifies anyone.
-## That is not only a privacy position: it is also what keeps the Play Data
-## Safety form short and honest, and it means the game needs no consent dialog
-## of its own beyond the ad SDK's.
+## Anything not on that list is dropped by `track()` rather than sent. That is
+## the point: an allowlist makes "we only collect what we decided to collect" a
+## property of the code instead of a promise in a document, and it means a
+## stray call added in a hurry six months from now cannot quietly widen what
+## the Play Data Safety form has to declare.
+##
+## There is no user id, no device fingerprint, no IP logging, no ad id and no
+## third-party analytics SDK. Events carry an install-scoped random number and
+## nothing else that identifies anyone. Property keys are allowlisted too, so
+## a caller cannot smuggle a field in through `props`.
 ##
 ## Events queue locally and are flushed to whatever sink is configured. With no
-## sink configured -- which is the default, and the state the game ships in
-## until an endpoint exists -- they are written to a local ring buffer that can
-## be read during development and never leaves the device.
+## sink configured -- the default, and the state the game ships in -- they are
+## written to a local ring buffer that never leaves the device.
 
 const MAX_BUFFER := 400
 const LOCAL_PATH := "user://events.json"
+const MILESTONE_PATH := "user://milestones.json"
+
+## The complete event vocabulary. Adding to this list is a decision, not a
+## detail: every entry has to be justified in the Data Safety declaration.
+const ALLOWED: Array[String] = [
+	"first_launch",
+	"session_start",
+	"session_end",
+	"tutorial_complete",
+	"first_production",
+	"first_upgrade",
+	"depth_reached",
+	"collapse",
+	"rewarded_shown",
+	"rewarded_completed",
+	"iap_started",
+	"iap_purchased",
+	"iap_failed",
+]
+
+## Events that must only ever fire once per install. Tracked on disk so a
+## reinstall is a new player and a relaunch is not.
+const ONCE_ONLY: Array[String] = [
+	"first_launch",
+	"tutorial_complete",
+	"first_production",
+	"first_upgrade",
+]
+
+## Property keys a caller may attach. Everything else is dropped. None of these
+## can carry free text from the device or the player.
+const ALLOWED_PROPS: Array[String] = [
+	"depth",        # int, stratum index
+	"collapses",    # int, lifetime prestige count
+	"cores",        # int, cores granted by a collapse
+	"seconds",      # int, session length
+	"placement",    # String, one of the three fixed ad placements
+	"product",      # String, the one product id
+	"code",         # String, the store's own error code
+	"count",        # int, rewarded ads watched this install
+]
 
 ## Set this to an https endpoint to forward events. Left empty, nothing is ever
 ## sent anywhere. Keeping the default empty is deliberate: a game should not
@@ -36,12 +85,15 @@ var _install_id: String = ""
 var _session_id: String = ""
 var _buffer: Array = []
 var _session_start: float = 0.0
+var _milestones: Dictionary = {}
+var _dropped: Array[String] = []
 
 
 func _ready() -> void:
 	_install_id = _load_or_make_install_id()
 	_session_id = _random_id()
 	_session_start = Time.get_unix_time_from_system()
+	_load_milestones()
 
 
 func _random_id() -> String:
@@ -69,9 +121,45 @@ func _load_or_make_install_id() -> String:
 	return made
 
 
+func _load_milestones() -> void:
+	if not FileAccess.file_exists(MILESTONE_PATH):
+		return
+	var f := FileAccess.open(MILESTONE_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(parsed) == TYPE_DICTIONARY:
+		_milestones = parsed
+
+
+func _save_milestones() -> void:
+	var f := FileAccess.open(MILESTONE_PATH, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(_milestones))
+	f.close()
+
+
+## Whether a once-only milestone has already fired on this install.
+func milestone_done(event: String) -> bool:
+	return bool(_milestones.get(event, false))
+
+
 func track(event: String, props: Dictionary = {}) -> void:
 	if not enabled:
 		return
+	if not ALLOWED.has(event):
+		# Not an error -- a deliberate refusal. Recorded so the diagnostics
+		# screen and the test suite can both see that it happened.
+		if not _dropped.has(event):
+			_dropped.append(event)
+		return
+	if ONCE_ONLY.has(event):
+		if milestone_done(event):
+			return
+		_milestones[event] = true
+		_save_milestones()
 	var e: Dictionary = {
 		"e": event,
 		"t": int(Time.get_unix_time_from_system()),
@@ -80,12 +168,19 @@ func track(event: String, props: Dictionary = {}) -> void:
 		"v": ProjectSettings.get_setting("application/config/version", "0"),
 	}
 	for k: String in props:
-		e[k] = props[k]
+		if ALLOWED_PROPS.has(k):
+			e[k] = props[k]
 	_buffer.append(e)
 	if _buffer.size() > MAX_BUFFER:
 		_buffer.pop_front()
 	if endpoint != "":
 		_flush_one(e)
+
+
+## Event names that were refused. Empty is the expected state; anything in here
+## is a call site that needs deleting or an event that needs a decision.
+func dropped_events() -> Array[String]:
+	return _dropped.duplicate()
 
 
 func _flush_one(e: Dictionary) -> void:
@@ -100,8 +195,8 @@ func _flush_one(e: Dictionary) -> void:
 		http.queue_free()
 
 
-## Session length is one of the five numbers that matter, and it is the one
-## most easily lost when an app is backgrounded rather than closed.
+## Session length is one of the numbers that matter, and it is the one most
+## easily lost when an app is backgrounded rather than closed.
 func end_session(depth: int) -> void:
 	track("session_end", {
 		"seconds": int(Time.get_unix_time_from_system() - _session_start),
@@ -123,6 +218,10 @@ func recent(n: int = 50) -> Array:
 	return _buffer.slice(start)
 
 
+func event_count() -> int:
+	return _buffer.size()
+
+
 ## Turning this off has to actually turn it off, including the local buffer.
 func set_enabled(on: bool) -> void:
 	enabled = on
@@ -131,3 +230,15 @@ func set_enabled(on: bool) -> void:
 		var d := DirAccess.open("user://")
 		if d != null and d.file_exists(LOCAL_PATH):
 			d.remove(LOCAL_PATH)
+
+
+## Test hook: forget which milestones have fired. Debug builds only.
+func debug_reset_milestones() -> void:
+	if not OS.is_debug_build():
+		return
+	_milestones.clear()
+	_dropped.clear()
+	_buffer.clear()
+	var d := DirAccess.open("user://")
+	if d != null and d.file_exists(MILESTONE_PATH):
+		d.remove(MILESTONE_PATH)
