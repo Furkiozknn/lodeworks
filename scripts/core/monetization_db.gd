@@ -345,8 +345,43 @@ const AD_PLACEMENTS := {
 		# doubles the cap, and asking a paying player to watch an ad is how a
 		# purchase stops feeling like one.
 		"suppressed_by": LICENCE,
+		# The live AdMob rewarded unit for this placement. Empty until the
+		# AdMob account and app exist; see `ad_unit_for()` for what a build
+		# does with an empty one.
+		"unit_id": "",
 	},
 }
+
+## Google's published sample rewarded unit. Every debug build uses it,
+## whatever `unit_id` says: requesting live ads from a development device is
+## the classic way to get an AdMob account suspended for invalid traffic, and
+## a sample unit always fills, so a device test can prove the flow end to end.
+const ADMOB_TEST_REWARDED_UNIT := "ca-app-pub-3940256099942544/5224354917"
+
+static var _force_test_ads: int = -1   # -1 unset, 0 live, 1 test
+
+
+## The unit a rewarded load for this placement should ask for, in this build.
+##
+## A release build with no live id configured returns "" and the ad layer
+## then offers nothing -- a release must never show Google's sample ads, and
+## an ad button that can never fill is worse than no button.
+static func ad_unit_for(placement: String) -> String:
+	if not AD_PLACEMENTS.has(placement):
+		return ""
+	var test: bool = OS.is_debug_build() if _force_test_ads < 0 else _force_test_ads == 1
+	if test:
+		return ADMOB_TEST_REWARDED_UNIT
+	return String((AD_PLACEMENTS[placement] as Dictionary).get("unit_id", ""))
+
+
+## Test hook: resolve units as a release (false) or debug (true) build would.
+static func force_test_ads(on: bool) -> void:
+	_force_test_ads = 1 if on else 0
+
+
+static func clear_force_test_ads() -> void:
+	_force_test_ads = -1
 
 
 ## --- store listing copy ------------------------------------------------------

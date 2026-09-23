@@ -42,14 +42,32 @@ Billing Library 9.1.0, which clears both the
 None are in the repository — they are native Android addons that do not exist
 in the editor or in a headless test run, and every service in
 `scripts/services/` is written to run without them. `tools/install-plugins.sh`
-fetches both into `addons/` and records exactly what it fetched; the `android`
-workflow runs it. Versions below are from research and have **not** been
-downloaded or checked against a hash by anything in this repository.
+fetches both into `addons/`, enables them in the working copy's
+`project.godot`, and records the sha256 of every file it fetched in
+`addons/PLUGINS.lock`; the `android` workflow runs it.
+
+The versions are **pinned**, and the bindings in `scripts/services/ads.gd` and
+`scripts/services/store.gd` were rewritten on 23 September 2026 against these
+exact releases' source (the billing plugin's `GodotGooglePlayBilling.kt` and
+`Utils.kt`, the AdMob addon's `gdscript/src` wrapper). The first version of
+both files had been written against guessed names: it never called
+`initPlugin()` (a crash on the phone, since the Kotlin side builds its
+BillingClient there), bound signal names the plugins do not emit, and passed
+the wrong argument counts to `purchase()` and `queryPurchases()`; the ad side
+bound a singleton called `AdMob` that the plugin never registers.
+`tests/test_plugin_protocol.gd` now drives both layers through stand-ins of
+the real singletons, so a wrong name fails a test instead of a phone.
 
 | purpose | package | version at time of writing |
 |---|---|---|
-| Ads + GDPR consent | [`poingstudios/godot-admob-plugin`](https://github.com/poingstudios/godot-admob-plugin) | v5.1.0, 13 Sep 2026 — Android + iOS, UMP built in |
-| IAP | [`godot-sdk-integrations/godot-google-play-billing`](https://github.com/godot-sdk-integrations/godot-google-play-billing) | v3.3.0, 27 Jul 2026 — Billing Library 9.1.0 |
+| Ads + GDPR consent | [`poingstudios/godot-admob-plugin`](https://github.com/poingstudios/godot-admob-plugin) | **pinned v5.1.0** (13 Sep 2026) — addon `poing-godot-admob-v5.1.0.zip` + `android-template-v4.7.2.zip`, UMP built in |
+| IAP | [`godot-sdk-integrations/godot-google-play-billing`](https://github.com/godot-sdk-integrations/godot-google-play-billing) | **pinned 3.3.0** (27 Jul 2026) — declares `billing-ktx:9.1.0` |
+
+AdMob ids: the app id is the project setting `admob/general/android/app_id`
+(the addon defaults it to Google's sample app id), and the rewarded unit is
+`MonetizationDB.AD_PLACEMENTS.double_offline.unit_id`. A debug build always
+requests Google's sample rewarded unit; a release build with no unit set
+offers no ad at all rather than a sample one.
 
 Note: `poing-studios/godot-admob-android` — the repo most guides still link —
 was **archived on 18 March 2026**. Use the one above.

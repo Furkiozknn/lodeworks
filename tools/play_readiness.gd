@@ -206,9 +206,16 @@ func _check_products() -> void:
 	_row("products", "purchase acknowledgement within 3 days", DONE,
 		"acknowledged on receipt of a PURCHASED record, queued and retried "
 		+ "on every reconnect and resume if the call fails")
-	_row("products", "billing library version", UNKNOWN,
-		"supplied by the billing plugin, not by this project -- Play has "
-		+ "required Billing Library 7+ since 31 Aug 2026")
+	_row("products", "billing library version", DONE,
+		"tools/install-plugins.sh pins godot-google-play-billing 3.3.0, whose "
+		+ "export plugin declares com.android.billingclient:billing-ktx:9.1.0 "
+		+ "(Play requires 7+ since 31 Aug 2026); confirm in the built APK's "
+		+ "dependencies on the first CI run")
+	_row("products", "binding matches the plugin's real API", DONE,
+		"initPlugin before startConnection, 4-argument purchase(), "
+		+ "2-argument queryPurchases(), and the plugin's own signal names and "
+		+ "dictionary keys; tests/test_plugin_protocol.gd drives them through "
+		+ "a stand-in of the 3.3.0 singleton")
 	_row("products", "a real purchase completed end to end", UNKNOWN,
 		"needs a Play Console account, a license tester and a device; until "
 		+ "then the purchase flow is implemented but NOT verified")
@@ -235,9 +242,17 @@ func _check_ads() -> void:
 		+ "from settings; the code path exists in scripts/services/ads.gd")
 	_row("ads", "consent form actually shown to a real EEA user", UNKNOWN,
 		"needs a device with an EEA IP and a live AdMob app id")
+	_row("ads", "binding matches the plugin's real API", DONE,
+		"Poing AdMob 5.1.0 singletons (PoingGodotAdMob, ...RewardedAd, "
+		+ "...ConsentInformation, ...UserMessagingPlatform) bound by their real "
+		+ "method and signal names; tests/test_plugin_protocol.gd covers "
+		+ "earned-once, early close, late reward, no fill and consent order")
 	_row("ads", "AdMob app id and unit ids", MANUAL,
-		"an AdMob account, an app registered in it, and one rewarded unit; "
-		+ "the ids go in the export preset's plugin configuration")
+		"an AdMob account, an app registered in it, and one rewarded unit. "
+		+ "The app id goes in project setting admob/general/android/app_id "
+		+ "(Google's sample id is the default), the unit id in "
+		+ "MonetizationDB.AD_PLACEMENTS.double_offline.unit_id. Debug builds "
+		+ "always use Google's sample unit; a release with no unit shows no ad")
 
 
 ## --- account-level -----------------------------------------------------------

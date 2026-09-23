@@ -153,53 +153,67 @@ func _ready() -> void:
 
 
 ## --- plugin binding ---------------------------------------------------------
+##
+## Bound to the `GodotGooglePlayBilling` singleton of
+## `godot-sdk-integrations/godot-google-play-billing` 3.x (Billing Library 9),
+## version pinned in `tools/install-plugins.sh`. The method names, argument
+## counts, signal names and dictionary keys below are the plugin's own
+## (`GodotGooglePlayBilling.kt`, `Utils.kt`), not guesses: a JNI call with the
+## wrong number of arguments fails, and a signal bound under the wrong name
+## simply never fires, so there is no such thing as a tolerant binding here.
+
+const SINGLETON := "GodotGooglePlayBilling"
+
 
 func _try_bind_plugin() -> void:
-	for n: String in ["GodotGooglePlayBilling", "GooglePlayBilling", "StoreKit"]:
-		if Engine.has_singleton(n):
-			_plugin = Engine.get_singleton(n)
-			break
-	if _plugin == null:
+	if not Engine.has_singleton(SINGLETON):
 		_available = false
 		last_error = "plugin_absent"
 		return
-	_bind(["purchases_updated", "on_purchases_updated"], _on_purchases_updated)
-	_bind(["purchase_error", "on_purchase_error"], _on_purchase_error)
-	_bind(["connected", "on_connected"], _on_connected)
-	_bind(["disconnected", "on_disconnected"], _on_disconnected)
-	_bind(["connect_error", "on_connect_error"], _on_connect_error)
-	_bind(["product_details_query_completed", "sku_details_query_completed",
-		"on_query_product_details_response"], _on_details)
-	_bind(["product_details_query_error", "sku_details_query_error"], _on_details_error)
-	_bind(["purchase_acknowledged", "on_purchase_acknowledged"], _on_ack_ok)
-	_bind(["purchase_acknowledgement_error", "on_purchase_acknowledgement_error"],
-		_on_ack_failed)
+	_bind_plugin(Engine.get_singleton(SINGLETON))
+
+
+func _bind_plugin(plugin: Object) -> void:
+	_plugin = plugin
+	if _plugin == null:
+		_available = false
+		last_error = "singleton_null"
+		return
+	# The Kotlin side builds its BillingClient in initPlugin(). Every other
+	# call dereferences it, so calling startConnection() first is an
+	# uninitialised-property crash on the phone, not an error code.
+	if not _plugin.has_method("initPlugin"):
+		last_error = "no_init_method"
+		_plugin = null
+		_available = false
+		return
+	_call("initPlugin")
+	_bind("connected", _on_connected)
+	_bind("disconnected", _on_disconnected)
+	_bind("connect_error", _on_connect_error)
+	_bind("query_product_details_response", _on_details_response)
+	_bind("query_purchases_response", _on_query_purchases_response)
+	_bind("on_purchase_updated", _on_purchase_updated)
+	_bind("acknowledge_purchase_response", _on_ack_response)
 	_connect_billing()
 
 
 func _connect_billing() -> void:
-	if not _safe_call("startConnection"):
-		_safe_call("start_connection")
+	_call("startConnection")
 
 
-func _bind(names: Array, target: Callable) -> void:
-	for sig: String in names:
-		if _plugin.has_signal(sig) and not _plugin.is_connected(sig, target):
-			_plugin.connect(sig, target)
+func _bind(sig: String, target: Callable) -> void:
+	if _plugin.has_signal(sig) and not _plugin.is_connected(sig, target):
+		_plugin.connect(sig, target)
 
 
-func _safe_call(method: String, a: Variant = null, b: Variant = null) -> bool:
-	if _plugin == null:
-		return false
-	if not _plugin.has_method(method):
-		return false
-	if a == null:
-		_plugin.call(method)
-	elif b == null:
-		_plugin.call(method, a)
-	else:
-		_plugin.call(method, a, b)
-	return true
+## Every call into the singleton goes through here. Returns the call's result,
+## or null when there is no plugin or no such method -- callers that need to
+## tell those apart check `has_method` themselves.
+func _call(method: String, args: Array = []) -> Variant:
+	if _plugin == null or not _plugin.has_method(method):
+		return null
+	return _plugin.callv(method, args)
 
 
 func _now() -> float:
@@ -262,15 +276,23 @@ func query_product_details() -> void:
 	var ids: Array = MonetizationDB.all_store_ids()
 	if ids.is_empty():
 		return
+	if not _plugin.has_method("queryProductDetails"):
+		last_error = "no_details_method"
+		return
 	_details_requested_at = _now()
-	if _safe_call("queryProductDetails", ids, "inapp"):
+	_call("queryProductDetails", [PackedStringArray(ids), "inapp"])
+
+
+## `query_product_details_response`: {response_code, debug_message,
+## product_details: [...], unfetched_products: [...]}.
+func _on_details_response(response: Variant = null) -> void:
+	var d: Dictionary = response if typeof(response) == TYPE_DICTIONARY else {}
+	var c: int = _code(d.get("response_code", null))
+	if c != CODE_OK:
+		_on_details_error(c, d.get("debug_message", ""))
 		return
-	if _safe_call("querySkuDetails", ids, "inapp"):
-		return
-	if _safe_call("query_product_details", ids):
-		return
-	_details_requested_at = -1.0
-	last_error = "no_details_method"
+	var rows: Variant = d.get("product_details", [])
+	_on_details(rows if typeof(rows) == TYPE_ARRAY else [])
 
 
 func _on_details(details: Variant = null) -> void:
@@ -314,6 +336,14 @@ func _extract_price(d: Dictionary) -> String:
 			var v: String = String(d[k])
 			if v != "":
 				return v
+	# Billing Library 8+: one-time products carry a LIST of offers. The first
+	# is the base purchase option, which is what `purchase()` buys when no
+	# purchase option id is given.
+	var offers: Variant = d.get("one_time_purchase_offer_details_list", null)
+	if typeof(offers) == TYPE_ARRAY and not (offers as Array).is_empty():
+		var first: Variant = (offers as Array)[0]
+		if typeof(first) == TYPE_DICTIONARY:
+			return String((first as Dictionary).get("formatted_price", ""))
 	var offer: Variant = d.get("one_time_purchase_offer_details", null)
 	if typeof(offer) == TYPE_DICTIONARY:
 		return String((offer as Dictionary).get("formatted_price", ""))
@@ -584,13 +614,23 @@ func purchase(key: String) -> bool:
 	_purchase_started_at = _now()
 	Analytics.track("iap_started", {"product": key})
 	var id: String = MonetizationDB.store_id(key)
-	if _safe_call("purchase", id):
-		return true
-	_purchase_in_flight = ""
-	_purchase_started_at = -1.0
-	last_error = "no_purchase_method"
-	purchase_failed.emit(key, "no_method")
-	return false
+	if _plugin == null or not _plugin.has_method("purchase"):
+		_purchase_in_flight = ""
+		_purchase_started_at = -1.0
+		last_error = "no_purchase_method"
+		purchase_failed.emit(key, "no_method")
+		return false
+	# purchase(product_id, purchase_option_id, offer_id, is_offer_personalized)
+	# returns the launchBillingFlow result synchronously. OK means the sheet
+	# is up and the outcome will arrive on `on_purchase_updated`; anything
+	# else means the sheet never opened.
+	var r: Variant = _call("purchase", [id, "", "", false])
+	var d: Dictionary = r if typeof(r) == TYPE_DICTIONARY else {}
+	var c: int = _code(d.get("response_code", CODE_OK)) if not d.is_empty() else CODE_OK
+	if c != CODE_OK:
+		_on_purchase_error(c, d.get("debug_message", ""))
+		return false
+	return true
 
 
 func _unavailable_reason() -> String:
@@ -604,9 +644,67 @@ func _unavailable_reason() -> String:
 func restore() -> void:
 	if not is_available():
 		return
-	if _safe_call("queryPurchases", "inapp"):
+	_call("queryPurchases", ["inapp", false])
+
+
+## `query_purchases_response`: {response_code, debug_message, purchases}. The
+## platform's complete answer for this account, so it is also the moment a
+## refunded or revoked product -- or a forged line in the local cache --
+## stops being owned, and a PENDING that was abandoned stops being pending.
+func _on_query_purchases_response(response: Variant = null) -> void:
+	var d: Dictionary = response if typeof(response) == TYPE_DICTIONARY else {}
+	var c: int = _code(d.get("response_code", null))
+	if c != CODE_OK:
+		last_error = "query_purchases_error:%d" % c
 		return
-	_safe_call("query_purchases")
+	var list: Variant = d.get("purchases", [])
+	var rows: Array = list if typeof(list) == TYPE_ARRAY else []
+	var present: Dictionary = {}
+	var touched: bool = false
+	for p: Variant in rows:
+		var k: String = _key_of(p)
+		if k != "":
+			present[k] = true
+		if _ingest(p):
+			touched = true
+	for k: String in MonetizationDB.keys():
+		if present.has(k) or state_of(k) == State.NONE:
+			continue
+		_state.erase(k)
+		touched = true
+		if k == THEMES_PRODUCT and not Themes.is_free(_selected_theme):
+			_selected_theme = Themes.DEFAULT
+	if touched:
+		_save_owned()
+		_apply()
+		restored.emit()
+
+
+## `on_purchase_updated`: the outcome of a purchase flow, or a purchase that
+## arrived by itself (a PENDING that cleared, a promo code). Errors -- a
+## cancel, ITEM_ALREADY_OWNED, a network drop -- come through here too, as a
+## response code with no purchases.
+func _on_purchase_updated(response: Variant = null) -> void:
+	var d: Dictionary = response if typeof(response) == TYPE_DICTIONARY else {}
+	var c: int = _code(d.get("response_code", null))
+	if c != CODE_OK:
+		_on_purchase_error(c, d.get("debug_message", ""))
+		return
+	var list: Variant = d.get("purchases", [])
+	_on_purchases_updated(list if typeof(list) == TYPE_ARRAY else [])
+
+
+func _key_of(p: Variant) -> String:
+	if typeof(p) != TYPE_DICTIONARY:
+		return MonetizationDB.key_for_store_id(String(p)) if typeof(p) == TYPE_STRING else ""
+	var d: Dictionary = p
+	var id: String = String(d.get("product_id", d.get("productId", "")))
+	if id == "":
+		var ids: Variant = d.get("product_ids", d.get("products", null))
+		if (typeof(ids) == TYPE_ARRAY or typeof(ids) == TYPE_PACKED_STRING_ARRAY) \
+				and ids.size() > 0:
+			id = String(ids[0])
+	return MonetizationDB.key_for_store_id(id)
 
 
 ## --- incoming purchases -----------------------------------------------------
@@ -641,8 +739,9 @@ func _ingest(p: Variant) -> bool:
 		# Some plugin majors hand back a list of ids per purchase.
 		if id == "":
 			var ids: Variant = d.get("product_ids", d.get("products", null))
-			if typeof(ids) == TYPE_ARRAY and (ids as Array).size() > 0:
-				id = String((ids as Array)[0])
+			if (typeof(ids) == TYPE_ARRAY or typeof(ids) == TYPE_PACKED_STRING_ARRAY) \
+					and ids.size() > 0:
+				id = String(ids[0])
 		state_raw = d.get("purchase_state", d.get("purchaseState", null))
 		token = String(d.get("purchase_token", d.get("purchaseToken", "")))
 		acked = bool(d.get("is_acknowledged", d.get("isAcknowledged", false)))
@@ -724,8 +823,17 @@ func _flush_acks(force: bool) -> void:
 		return
 	_ack_next_try = _now() + ACK_RETRY_SECONDS
 	for token: String in _ack_queue.keys():
-		if not _safe_call("acknowledgePurchase", token):
-			_safe_call("acknowledge_purchase", token)
+		_call("acknowledgePurchase", [token])
+
+
+## `acknowledge_purchase_response`: {response_code, debug_message, token}.
+func _on_ack_response(response: Variant = null) -> void:
+	var d: Dictionary = response if typeof(response) == TYPE_DICTIONARY else {}
+	var c: int = _code(d.get("response_code", null))
+	if c == CODE_OK:
+		_on_ack_ok(d.get("token", ""))
+	else:
+		_on_ack_failed(c, d.get("debug_message", ""))
 
 
 func _on_ack_ok(token: Variant = null, _b = null) -> void:
@@ -861,9 +969,47 @@ func debug_ack_queue() -> int:
 	return _ack_queue.size()
 
 
+## Bind a stand-in singleton that speaks the plugin's protocol, so the tests
+## drive the real binding rather than a shortcut around it.
+func debug_bind(plugin: Object) -> void:
+	if not OS.is_debug_build():
+		return
+	debug_unbind()
+	_bind_plugin(plugin)
+
+
+func debug_unbind() -> void:
+	if not OS.is_debug_build():
+		return
+	if _plugin != null:
+		for sig: Dictionary in _plugin.get_signal_list():
+			for conn: Dictionary in _plugin.get_signal_connection_list(String(sig["name"])):
+				var cb: Callable = conn["callable"]
+				if cb.get_object() == self:
+					_plugin.disconnect(String(sig["name"]), cb)
+	_plugin = null
+	_available = false
+	_reconnect_at = -1.0
+	_reconnect_tries = 0
+	_details_requested_at = -1.0
+	_purchase_in_flight = ""
+	_purchase_started_at = -1.0
+
+
+## Run the reconnect and acknowledgement timers now.
+func debug_expire_timers() -> void:
+	if not OS.is_debug_build():
+		return
+	if _reconnect_at > 0.0:
+		_reconnect_at = _now() - 1.0
+	_ack_next_try = 0.0
+	_process(0.0)
+
+
 func debug_clear_state() -> void:
 	if not OS.is_debug_build():
 		return
+	debug_unbind()
 	_debug_force_available = false
 	_available = false
 	_state.clear()
