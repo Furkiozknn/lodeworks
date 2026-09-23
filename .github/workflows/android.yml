@@ -149,8 +149,12 @@ jobs:
           size=$(stat -c%s "$apk")
           echo "size: $size bytes"
           test "$size" -gt 5000000 || { echo "suspiciously small for a Godot APK"; exit 1; }
-          unzip -l "$apk" | grep -q "classes.dex" || { echo "no dex in the apk"; exit 1; }
-          unzip -l "$apk" | grep -q "lib/arm64-v8a/" || { echo "no arm64 library"; exit 1; }
+          # Listed once into a file: under pipefail, "unzip | grep -q" and
+          # "grep | head" fail with SIGPIPE as soon as the listing is long
+          # enough -- which the plugin build's is.
+          unzip -l "$apk" > build/apk-list.txt
+          grep -q "classes.dex" build/apk-list.txt || { echo "no dex in the apk"; exit 1; }
+          grep -q "lib/arm64-v8a/" build/apk-list.txt || { echo "no arm64 library"; exit 1; }
           # What the package actually declares, written down rather than
           # only printed: this is the evidence that the export produced what
           # the preset asked for, and it is the first thing anyone will want
@@ -164,7 +168,7 @@ jobs:
             echo "plugins: ${{ matrix.plugins }}"
             echo
             echo "--- contents ---"
-            unzip -l "$apk" | grep -E "classes.dex|lib/|assets/" | head -20
+            grep -E "classes.dex|lib/|assets/" build/apk-list.txt | sed -n 1,20p
             echo
             echo "--- badging ---"
             "$ANDROID_SDK_ROOT"/build-tools/*/aapt2 dump badging "$apk" 2>/dev/null \
@@ -175,11 +179,32 @@ jobs:
             cat addons/PLUGINS.lock 2>/dev/null || echo "no plugins installed"
           } | tee "$report"
 
+      # The bundle preset, built with the throwaway debug key. It cannot be
+      # uploaded to Play -- that needs the release key, which only the tag
+      # job below has -- but it proves the AAB half of the Gradle chain on
+      # every push instead of for the first time on release day.
+      - name: Export a debug AAB (not for upload)
+        if: matrix.plugins == 'with'
+        run: |
+          set -euo pipefail
+          aab="build/lodeworks-DEBUG-not-for-upload.aab"
+          ./godot --headless --path . --export-debug "Android" "$PWD/$aab"
+          test -s "$aab" || { echo "$aab is empty"; exit 1; }
+          unzip -l "$aab" > build/aab-list.txt
+          grep -q "base/dex/classes.dex" build/aab-list.txt || { echo "no dex in the bundle"; exit 1; }
+          grep -q "base/lib/arm64-v8a/" build/aab-list.txt || { echo "no arm64 library in the bundle"; exit 1; }
+          {
+            echo "aab: $(basename "$aab") (debug-signed, not uploadable)"
+            echo "bytes: $(stat -c%s "$aab")"
+            echo "sha256: $(sha256sum "$aab" | cut -d' ' -f1)"
+          } | tee build/build-report-aab-debug.txt
+
       - uses: actions/upload-artifact@v4
         with:
           name: lodeworks-apk-${{ matrix.plugins }}-plugins
           path: |
             build/*.apk
+            build/*.aab
             build/build-report-*.txt
             build/selftest-*.txt
             addons/PLUGINS.lock
