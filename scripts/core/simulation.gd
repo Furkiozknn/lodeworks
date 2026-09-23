@@ -244,6 +244,14 @@ func _transfer() -> void:
 
 ## The neighbours of `source` that would accept `res` right now, in board
 ## order so the rotation is deterministic and a replay is a replay.
+## The same question the board asks when it decides where to draw a conduit.
+## Exposed so `tests/test_gameplay.gd` can check that the picture and the
+## simulation agree about what can feed what -- a pipe drawn where nothing can
+## flow is the board lying to the player.
+func debug_takers(source: int, res: int) -> Array[int]:
+	return _takers(source, res)
+
+
 func _takers(source: int, res: int) -> Array[int]:
 	var out: Array[int] = []
 	# Bridged, not merely adjacent: a support machine passes material straight

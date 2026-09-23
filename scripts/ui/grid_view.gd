@@ -282,6 +282,18 @@ func _draw() -> void:
 		else:
 			_draw_cell_base(r, cell, Sim.grid.machine_at(cell), cs)
 
+	# Pass 1b: the light each machine throws onto the floor around it. Drawn
+	# under everything else so a working factory lights its own ground, which
+	# is most of what "the place is alive" is made of.
+	for cell in range(Grid.W * Grid.H):
+		if blocked.has(cell) or Sim.grid.machine_at(cell) == "":
+			continue
+		_draw_light_pool(cell, cs)
+
+	# Pass 1c: the conduits. A short run of pipe across every seam where one
+	# machine can actually hand something to the one beside it.
+	_draw_conduits(cs, blocked)
+
 	# Pass 2: the machines themselves, on top of every base, so a neighbour's
 	# heat wash never paints over a silhouette.
 	for cell in range(Grid.W * Grid.H):
@@ -308,7 +320,9 @@ func _draw() -> void:
 	if overlay == Overlay.HEAT and cs > 34.0:
 		_draw_heat_numbers(font, cs, blocked)
 
+	_draw_dust(cs)
 	_draw_motes(cs)
+	_draw_vignette(cs)
 
 	if not highlight_cells.is_empty():
 		_draw_highlights(cs)
@@ -630,6 +644,141 @@ func _draw_status_pip(r: Rect2, cs: float, st: int, thermal: bool,
 
 ## Material in transit. One mote per transfer the simulation actually made,
 ## travelling from the machine that gave it to the machine that took it.
+## The light a machine throws on the floor.
+##
+## A lit object with an unlit floor under it looks like a sticker. This paints
+## a soft warm pool on the machine's own tile and a weaker one on each
+## neighbour, in the machine's own light colour and scaled by how hard it is
+## currently glowing -- so a running factory lights its own ground, a stalled
+## one goes dark, and the brightness of the FLOOR is a second, peripheral
+## channel for the same fact the status pip carries.
+func _draw_light_pool(cell: int, cs: float) -> void:
+	var st: int = Sim.sim.status_of(cell)
+	if st == Simulation.Status.STARVED or st == Simulation.Status.BLOCKED:
+		return
+	var k: float = 1.0 if st == Simulation.Status.RUNNING else 0.45
+	k += float(_flash.get(cell, 0.0)) * 0.9
+	var col: Color = Palette.machine_light(Sim.grid.machine_at(cell))
+	var r: Rect2 = cell_rect(cell)
+	# A falloff rather than a slab. The first version painted two big squares
+	# of flat alpha and produced coloured rectangles bleeding across the
+	# board, which read as tinted tiles instead of as light -- prettier and
+	# less legible, which is the failure this whole pass is guarded against.
+	const FALL := [0.30, 0.18, 0.08, 0.0]
+	const A := [0.020, 0.035, 0.055, 0.075]
+	for i in range(FALL.size()):
+		col.a = A[i] * k
+		draw_rect(r.grow(cs * FALL[i]), col, true)
+
+
+## Conduits: the game's central rule, made visible when nothing is moving.
+##
+## Lodeworks has no belts on purpose -- a machine hands what it makes to any
+## orthogonal neighbour that wants it. That rule is legible the moment a mote
+## crosses a seam and completely invisible the rest of the time, which is
+## exactly when a player is standing still trying to work out why a tile is
+## starved.
+##
+## So every seam where one machine CAN feed the one beside it gets a short run
+## of pipe, coloured by the resource that would cross it. Dim when nothing is
+## flowing, lit when something is. It is the same information the motes carry,
+## available at rest, and it is also the thing that makes a dense board look
+## like plumbing rather than like a spreadsheet of tiles.
+func _draw_conduits(cs: float, blocked: Dictionary) -> void:
+	if cs < 30.0:
+		return
+	var w: float = maxf(cs * 0.055, 2.0)
+	var reach: float = cs * 0.22
+	for cell: int in Sim.grid.cells:
+		if blocked.has(cell):
+			continue
+		var res: int = Palette.output_res(Sim.grid.machine_at(cell))
+		if res < 0:
+			continue
+		var a: Vector2 = cell_center(cell)
+		for n in Sim.grid.bridged_machines(cell):
+			# Only downstream, and only once per pair: the pipe runs from the
+			# maker to the taker.
+			if not _accepts(n, res):
+				continue
+			var b: Vector2 = cell_center(n)
+			var mid: Vector2 = (a + b) * 0.5
+			var live: bool = Sim.sim.status_of(cell) == Simulation.Status.RUNNING
+			var col: Color = Palette.res_color(res)
+			# At rest the pipe is barely there: it is answering "could this
+			# feed that" for somebody who is looking for it, not competing
+			# with the machines for attention.
+			var body: Color = col.lerp(Palette.BG, 0.35 if live else 0.80)
+			var horizontal: bool = absf(b.x - a.x) > absf(b.y - a.y)
+			var seg: Rect2
+			if horizontal:
+				seg = Rect2(mid.x - reach, mid.y - w * 0.5, reach * 2.0, w)
+			else:
+				seg = Rect2(mid.x - w * 0.5, mid.y - reach, w, reach * 2.0)
+			# A dark casing with a lit core, so the pipe reads as a pipe and
+			# not as a coloured line.
+			draw_rect(seg.grow(maxf(cs * 0.012, 1.0)), Palette.BG, true)
+			draw_rect(seg, body, true)
+			if live:
+				draw_rect(seg.grow(-w * 0.30), col.lerp(Color.WHITE, 0.30), true)
+
+
+## Can the machine on this tile take that resource? Vaults take anything.
+func _accepts(cell: int, res: int) -> bool:
+	var m: Dictionary = MachineDB.get_machine(Sim.grid.machine_at(cell))
+	if m.is_empty():
+		return false
+	if (m.get("tags", []) as Array).has("sink"):
+		return true
+	return (m.get("inputs", {}) as Dictionary).has(res)
+
+
+## Ambient particles: dust at the surface, embers in the deep.
+##
+## Sixteen of them, drifting on a fixed loop, seeded per stratum so the same
+## depth always looks the same. This is the cheapest thing on the board and it
+## is the difference between air and vacuum.
+func _draw_dust(cs: float) -> void:
+	if _rock.is_empty() or _shaft.is_empty():
+		return
+	var ember: float = float(_shaft["ember"])
+	var col: Color = (_shaft["fleck"] as Color).lerp(_shaft["vein"], ember)
+	var board := Rect2(Vector2.ZERO, size)
+	for i in range(16):
+		var seed_a: float = _rock[(i * 7) % _rock.size()]
+		var seed_b: float = _rock[(i * 13 + 3) % _rock.size()]
+		# Rising, slowly, at a speed of its own.
+		var t: float = fposmod(_anim * (0.06 + seed_a * 0.09) + seed_b, 1.0)
+		var p := Vector2(
+			board.size.x * seed_a + sin(_anim * 0.4 + float(i)) * cs * 0.18,
+			board.size.y * (1.0 - t))
+		var s: float = cs * (0.025 + seed_b * 0.035)
+		var c: Color = col
+		c.a = (0.12 + ember * 0.28) * sin(t * PI)
+		draw_rect(Rect2(p, Vector2(s, s)), c, true)
+
+
+## A dark frame around the shaft.
+##
+## The board used to run edge to edge inside its panel, which read as a table
+## with tiles on it. Four gradient bands push the corners back and leave the
+## middle lit, so the factory sits in a hole in the ground rather than on a
+## sheet of paper.
+func _draw_vignette(cs: float) -> void:
+	var steps: int = 6
+	var depth_px: float = cs * 0.55
+	for i in range(steps):
+		var t: float = float(i) / float(steps)
+		var c := Color(0.02, 0.03, 0.05)
+		c.a = 0.16 * (1.0 - t)
+		var band: float = depth_px * (1.0 - t) / float(steps) + 1.0
+		var off: float = depth_px * t
+		draw_rect(Rect2(0.0, off, size.x, band), c, true)
+		draw_rect(Rect2(0.0, size.y - off - band, size.x, band), c, true)
+		draw_rect(Rect2(off, 0.0, band, size.y), c, true)
+		draw_rect(Rect2(size.x - off - band, 0.0, band, size.y), c, true)
+
+
 func _draw_motes(cs: float) -> void:
 	if _motes.is_empty():
 		return

@@ -187,9 +187,18 @@ func _build() -> void:
 	head.add_child(close)
 	col.add_child(head)
 
-	col.add_child(_label(
+	var intro := HBoxContainer.new()
+	intro.add_theme_constant_override("separation", 10)
+	var cx_badge := Foreman.Badge.new(Foreman.Pose.POINT, 62.0)
+	cx_badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	intro.add_child(cx_badge)
+	var intro_lbl: Label = _label(
 		"Small boards that are actually running. Nothing here is a diagram.",
-		15, Palette.TEXT_FAINT))
+		15, Palette.TEXT_FAINT)
+	intro_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	intro.add_child(intro_lbl)
+	col.add_child(intro)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

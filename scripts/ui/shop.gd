@@ -199,9 +199,17 @@ func _build() -> void:
 	head.add_child(close)
 	col.add_child(head)
 
-	col.add_child(_label(
+	var intro := HBoxContainer.new()
+	intro.add_theme_constant_override("separation", 10)
+	var sh_badge := Foreman.Badge.new(Foreman.Pose.IDLE, 58.0)
+	sh_badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	intro.add_child(sh_badge)
+	var intro_lbl: Label = _wrap(
 		"Two things, bought once. Neither unlocks a machine, a stratum or an upgrade.",
-		15, Palette.TEXT_FAINT))
+		15, Palette.TEXT_FAINT)
+	intro_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	intro.add_child(intro_lbl)
+	col.add_child(intro)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

@@ -610,16 +610,72 @@ func _on_descend() -> void:
 		_refresh_hint()
 
 
+## A Control that shows one machine at whatever size it is given, running.
+##
+## Used for the unlock moment. A new machine announced as a line of text is a
+## line of text; the same machine drawn four times the size of a board tile,
+## lit and moving, is the reason somebody goes and places one.
+class MachineHero extends Control:
+	var id: String = ""
+	var _t: float = 0.0
+
+	func _init(machine_id: String, px: float = 150.0) -> void:
+		id = machine_id
+		custom_minimum_size = Vector2(px, px)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _process(delta: float) -> void:
+		_t += delta * 0.8
+		queue_redraw()
+
+	func _draw() -> void:
+		var u: float = minf(size.x, size.y)
+		if u < 8.0:
+			return
+		var r := Rect2((size - Vector2(u, u)) * 0.5, Vector2(u, u))
+		# A pool of its own light behind it, so the machine arrives lit rather
+		# than pasted onto the panel.
+		Palette.emissive(self, r.grow(-u * 0.22),
+			Palette.machine_light(id), 0.35)
+		MachineArt.tile(self, r, id, ThemeDB.fallback_font, 1.0,
+			{"running": true, "phase": fposmod(_t, 1.0), "glow": 1.2,
+				"tier": 1})
+
+
 func _on_unlocked(ids: Array) -> void:
 	if ids.is_empty():
 		return
-	var names: Array = []
-	for id in ids:
-		names.append(String(MachineDB.get_machine(id)["name"]))
 	_rebuild_palette()
 	Juice.unlock()
-	_info("New machine unlocked", "\n".join(names) +
-		"\n\nIt is in the tray at the bottom. What it is next to matters more than how many you own.")
+
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	for id: String in ids:
+		row.add_child(MachineHero.new(String(id), 190.0))
+	body.add_child(row)
+	for id2: String in ids:
+		var m: Dictionary = MachineDB.get_machine(id2)
+		body.add_child(_label(String(m["name"]), 24,
+			Palette.machine_light(String(id2))))
+		body.add_child(_wrap_label(MachineDB.recipe_text(String(id2))))
+		body.add_child(_wrap_label(String(m["desc"])))
+	body.add_child(HSeparator.new())
+	var hint := HBoxContainer.new()
+	hint.add_theme_constant_override("separation", 12)
+	var badge := Foreman.Badge.new(Foreman.Pose.CHEER, 86.0)
+	badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	hint.add_child(badge)
+	var hint_lbl: Label = _wrap_label(
+		"It is in the tray at the bottom. What it is next to matters more "
+		+ "than how many you own.")
+	hint_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hint_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hint.add_child(hint_lbl)
+	body.add_child(hint)
+	_open_overlay("New machine unlocked", body, [])
 
 
 func _on_collapsed(gained: int) -> void:
@@ -1067,7 +1123,18 @@ func _show_offline(report: Dictionary) -> void:
 
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 10)
-	body.add_child(_label("+%s credits" % Economy.fmt(amount), 34, Palette.ACCENT))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
+	var off_badge := Foreman.Badge.new(Foreman.Pose.POINT, 84.0)
+	off_badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	head.add_child(off_badge)
+	var sum_col := VBoxContainer.new()
+	sum_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sum_col.add_child(_label("+%s credits" % Economy.fmt(amount), 34,
+		Palette.ACCENT))
+	sum_col.add_child(_label("The shaft kept running.", 16, Palette.TEXT_DIM))
+	head.add_child(sum_col)
+	body.add_child(head)
 	var detail: String = "Away %s. Counted %s at %d%% of your live rate." % [away, counted, rate_pct]
 	if bool(report.get("capped", false)):
 		detail += "\n\nYour offline banking is full at %.0f hours. Night Shift in Research raises it." % Sim.offline_hours()

@@ -95,6 +95,15 @@ func _run() -> void:
 		codex.queue_free()
 	await _settle(0.4)
 
+	# The unlock moment: a machine four times board size, running, with the
+	# Foreman cheering. It is the one screen whose whole job is to make
+	# somebody want to go and place the thing, so it gets a shot.
+	_main.call("_on_unlocked", ["assembler"])
+	await _settle(0.9)
+	await _shot("07_unlock")
+	_main.call("_close_overlay")
+	await _settle(0.4)
+
 	# The placement preview for a support machine is verified by
 	# `tests/test_grid.gd` rather than by a screenshot: it only exists while a
 	# finger is down, and a shot of transient input state is a flaky test

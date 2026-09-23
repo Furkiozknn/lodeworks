@@ -131,10 +131,22 @@ underneath. None of it is allowed in front of a machine.
 
 ## 8. Character language
 
-There is no mascot, and that is a decision rather than an omission. This game
-has no narrator, no dialogue and nobody on screen; introducing a character to
-hand out rewards would be the first thing in it that talks. The factory is the
-character, and the reward moments are carried by the machines.
+**The Foreman** — a small robot, built from the same `Palette.block()` calls
+as the machines and lit by the same key light, so he belongs to the factory
+rather than visiting it. Hard hat with a dome and a brim, wide cyan visor, a
+warm core in his chest, green antenna light that blinks on its own clock.
+Three poses: idle, pointing, cheering.
+
+The earlier direction argued there should be no mascot on the grounds that
+"the factory is the character". Both things are true at once, and this is the
+resolution: **the mascot is a machine**. It costs no texture, no import, no
+atlas, and it cannot drift between the version in the tutorial and the version
+in the shop, because there is only one of him and he is a function.
+
+He is deliberately **not on the gameplay screen** — a mascot standing next to
+a board somebody is trying to read is a mascot in the way. He appears at the
+four moments where the game is talking rather than being played: coming back
+from being away, unlocking a machine, the Codex, and the shop.
 
 ## 9. UI language
 
@@ -157,6 +169,25 @@ store page shows the place the game is actually set.
 
 ## 11. VFX language
 
+- **light pools** — every working machine paints a soft falloff of its own
+  light colour onto the floor around it, and a stalled one paints none. The
+  brightness of the *ground* is a second, peripheral channel for the same fact
+  the status pip carries. Drawn as four nested rects of falling alpha; the
+  first version used two slabs of flat alpha and produced coloured rectangles
+  bleeding across the board, which read as tinted tiles rather than as light.
+- **conduits** — a short run of pipe across every seam where one machine can
+  actually hand something to the one beside it, coloured by the resource,
+  barely there at rest and lit when something is flowing. This game has no
+  belts on purpose, which made adjacency legible only in the instant a mote
+  crossed a gap — exactly not the moment somebody is standing still trying to
+  work out why a tile is starved. `test_a_conduit_is_drawn_exactly_where_material_can_move`
+  checks the picture and the simulation agree, because a pipe drawn where
+  nothing can flow is the board lying.
+- **ambient dust** — sixteen particles drifting upward, pale quartz at the
+  surface and embers in the deep. The cheapest thing on the board and the
+  difference between air and vacuum.
+- **vignette** — four gradient bands pushing the corners back, so the factory
+  sits in a hole in the ground rather than on a sheet of paper.
 - **material in transit** — a lit packet crossing the gap between two
   machines, eased so it leaves fast and arrives soft. On a busy board dozens
   are in flight, and that is the clearest signal the factory is working.
@@ -197,7 +228,8 @@ animate a lie:
 | texture memory | 11.5 MB | 11.5 MB |
 | bitmap assets in the game | 0 | 0 |
 
-The draw calls went **down** while the machines got four times more detailed,
+The draw calls went **down** while the machines got four times more detailed
+and gained light pools, conduits, drifting dust and a vignette,
 because the board is now drawn in passes — every platform, then every body,
 then every readout, then every glyph — instead of interleaving rectangles and
 text seventy times. A glyph is a texture and a texture switch breaks the

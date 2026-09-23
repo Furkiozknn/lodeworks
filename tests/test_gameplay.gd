@@ -580,3 +580,65 @@ func test_the_amplifier_board_is_not_the_only_answer() -> void:
 	runner.check(deep_wins,
 		"the long chain must beat the Amplifier board at some depth, or the "
 		+ "board has one correct answer again")
+
+
+## --- the board must not draw a pipe where nothing flows ---------------------
+
+func test_a_conduit_is_drawn_exactly_where_material_can_move() -> void:
+	# The board now draws a short run of pipe across every seam where one
+	# machine can hand something to the one beside it, so that the game's
+	# central rule is visible when nothing happens to be moving. That is only
+	# worth having if the pipe and the simulation agree: a pipe drawn where
+	# nothing can flow is the board lying to the player.
+	#
+	# `GridView._accepts` is the drawing side. `Simulation._takers` is the
+	# truth. This checks they say the same thing about every ordered pair on
+	# a board with one of everything on it.
+	var g := Grid.new()
+	var s := Simulation.new(g, 99)
+	var ids: Array = MachineDB.ORDER
+	for i in range(ids.size()):
+		g.place(Grid.idx(i % Grid.W, i / Grid.W), String(ids[i]))
+	var checked: int = 0
+	for cell: int in g.cells:
+		var res: int = Palette.output_res(g.machine_at(cell))
+		if res < 0:
+			continue
+		var takers: Array = s.debug_takers(cell, res)
+		for n in g.bridged_machines(cell):
+			var drawn: bool = _drawable(g, n, res)
+			checked += 1
+			runner.eq(drawn, takers.has(n),
+				"the board and the simulation disagree about whether %s can "
+				% g.machine_at(cell) + "feed %s" % g.machine_at(n))
+	runner.gt(float(checked), 10.0, "there were pairs to check")
+
+
+## The same rule `GridView._accepts` uses, kept here so the test does not need
+## a Control on screen. If these two ever drift apart this test stops meaning
+## anything, so it is written to the same three lines.
+func _drawable(g: Grid, cell: int, res: int) -> bool:
+	var m: Dictionary = MachineDB.get_machine(g.machine_at(cell))
+	if m.is_empty():
+		return false
+	if (m.get("tags", []) as Array).has("sink"):
+		return true
+	return (m.get("inputs", {}) as Dictionary).has(res)
+
+
+## --- the Foreman ------------------------------------------------------------
+
+func test_the_foreman_has_every_pose_and_draws_at_any_size() -> void:
+	# The mascot is drawn, not imported, so "does the asset exist" is really
+	# "does the function produce something at the sizes it is used at".
+	runner.eq(Foreman.Pose.size(), 3, "idle, point and cheer")
+	var probe := Control.new()
+	for px: float in [40.0, 86.0, 256.0]:
+		for pose: int in [Foreman.Pose.IDLE, Foreman.Pose.POINT,
+				Foreman.Pose.CHEER]:
+			# Drawing off-tree is a no-op rather than an error; what this
+			# catches is a pose the match statement does not handle, which
+			# would throw.
+			Foreman.draw_at(probe, Rect2(0, 0, px, px), pose, 0.3)
+	runner.check(true, "every pose draws at every size without throwing")
+	probe.free()
