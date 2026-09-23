@@ -50,6 +50,7 @@ var research_per_sec: float = 0.0
 var _rate_accum_credits: float = 0.0
 var _rate_accum_research: float = 0.0
 var _rate_elapsed: float = 0.0
+var _board_changed_at: float = 0.0
 var _tick_accum: float = 0.0
 var _save_accum: float = 0.0
 var _stratum: Dictionary = {}
@@ -307,6 +308,7 @@ func _reset_rate_window(and_display: bool = false) -> void:
 	_rate_accum_credits = 0.0
 	_rate_accum_research = 0.0
 	_rate_elapsed = 0.0
+	_board_changed_at = Time.get_ticks_msec() / 1000.0
 	if and_display:
 		credits_per_sec = 0.0
 		research_per_sec = 0.0
@@ -373,6 +375,17 @@ func blueprint_slots() -> int:
 func offline_hours() -> float:
 	return float(_mult.get("offline_hours", Economy.OFFLINE_BASE_HOURS)) \
 		+ Store.bonus_offline_hours()
+
+
+## How much simulated time the number on the header is currently averaging
+## over, and how long ago the board it describes last changed. The device
+## self test compares them: the window can never be older than the board.
+func rate_window_age() -> float:
+	return _rate_elapsed
+
+
+func seconds_since_board_change() -> float:
+	return Time.get_ticks_msec() / 1000.0 - _board_changed_at
 
 
 ## --- undo ------------------------------------------------------------------

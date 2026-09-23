@@ -70,6 +70,8 @@ static func run_all(state: Object = null) -> Array:
 	out.append(screen_check())
 	out.append(safe_area_check())
 	out.append(scaling_check())
+	out.append(orientation_check())
+	out.append(touch_target_check())
 	out.append(draw_budget())
 	out.append(shader_stall_check())
 	out.append(cpu_benchmark())
@@ -78,6 +80,10 @@ static func run_all(state: Object = null) -> Array:
 	out.append(save_round_trip(state))
 	out.append(save_cost())
 	out.append(long_idle_check())
+	out.append(persistence_check(state))
+	out.append(preview_truth())
+	out.append(rate_freshness(state))
+	out.append(soak_check())
 	out.append(lifecycle_check())
 	out.append(economy_integrity())
 	out.append(audio_check())
@@ -314,6 +320,56 @@ static func memory_check() -> Dictionary:
 	return _r("memory", "Memory", PASS, detail)
 
 
+## The board is portrait-locked. A phone that ignores that, or a foldable that
+## reports a landscape window anyway, is a layout that has never been seen.
+static func orientation_check() -> Dictionary:
+	if _headless():
+		return _r("orientation", "Orientation", UNKNOWN, "headless run")
+	var win: Vector2i = DisplayServer.window_get_size()
+	var want_portrait: bool = int(ProjectSettings.get_setting(
+		"display/window/handheld/orientation", 1)) == 1
+	var is_portrait: bool = win.y >= win.x
+	var detail: String = "%dx%d, %s" % [win.x, win.y,
+		"portrait" if is_portrait else "landscape"]
+	if want_portrait and not is_portrait:
+		return _r("orientation", "Orientation", FAIL,
+			detail + " -- the project is portrait-locked and this window is not")
+	return _r("orientation", "Orientation", PASS, detail)
+
+
+## The last board cell size, in pixels, as the board actually drew it. Set by
+## `GridView` rather than guessed, because the board fits itself to whatever
+## space the layout gives it and that depends on the screen.
+static var last_cell_px: float = 0.0
+
+
+## Android's minimum touch target is 48dp. A 7x10 grid on a narrow phone is
+## right at that line, which is why nothing inside a cell is tappable -- but
+## the cell itself is, and if it falls under the floor the board is not usable
+## one-handed.
+static func touch_target_check() -> Dictionary:
+	if _headless():
+		return _r("touch", "Touch targets", UNKNOWN, "headless run")
+	if last_cell_px <= 0.0:
+		return _r("touch", "Touch targets", UNKNOWN,
+			"the board has not drawn yet")
+	var dpi: int = DisplayServer.screen_get_dpi()
+	if dpi <= 0:
+		return _r("touch", "Touch targets", UNKNOWN,
+			"this display reports no dpi, so pixels cannot be converted to dp")
+	var dp: float = last_cell_px / (float(dpi) / 160.0)
+	var detail: String = "%.0f px per cell at %d dpi = %.0f dp" % [
+		last_cell_px, dpi, dp]
+	if dp < 44.0:
+		return _r("touch", "Touch targets", FAIL,
+			detail + " -- under Android's 48dp minimum, the board will be "
+			+ "hard to use one-handed")
+	if dp < 48.0:
+		return _r("touch", "Touch targets", INFO,
+			detail + " -- just under the 48dp guideline; watch for mis-taps")
+	return _r("touch", "Touch targets", PASS, detail)
+
+
 ## --- the game's own cost ---------------------------------------------------
 ##
 ## This is the part of performance that is the game's fault rather than the
@@ -486,6 +542,118 @@ static func save_cost(state: Object = null) -> Dictionary:
 const SAVE_BUDGET_MS := 20.0
 
 
+## Killed and reopened, not paused and resumed.
+##
+## Android does not close apps, it kills them, and the path where a process
+## dies between two frames is the one autosave does not get to run on. This
+## reads the save file back off disk exactly as a cold launch would and
+## compares it to what is in memory.
+static func persistence_check(state: Object) -> Dictionary:
+	var save: Node = _svc("Save")
+	if save == null or state == null or not state.has_method("to_dict"):
+		return _r("persistence", "Survives a restart", UNKNOWN,
+			"no live game state")
+	if not save.save_game(state):
+		return _r("persistence", "Survives a restart", FAIL, "the write failed")
+	var f := FileAccess.open(save.PATH, FileAccess.READ)
+	if f == null:
+		return _r("persistence", "Survives a restart", FAIL,
+			"the file cannot be reopened")
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return _r("persistence", "Survives a restart", FAIL,
+			"what is on disk is not valid JSON")
+	var live: Dictionary = state.to_dict()
+	var disk: Dictionary = parsed
+	# Everything a player would notice losing, including the board itself and
+	# how far through the tutorial they are.
+	var fields: Array[String] = ["credits", "research", "cores", "depth",
+		"max_depth", "collapses", "tutorial"]
+	var missing: Array[String] = []
+	for k: String in fields:
+		if not live.has(k):
+			continue
+		if not disk.has(k):
+			missing.append(k)
+	if not missing.is_empty():
+		return _r("persistence", "Survives a restart", FAIL,
+			"not written to disk: " + ", ".join(missing))
+	var grid_on_disk: bool = disk.has("grid") \
+		and typeof(disk["grid"]) == TYPE_DICTIONARY
+	if not grid_on_disk:
+		return _r("persistence", "Survives a restart", FAIL,
+			"the board itself is not in the save")
+	return _r("persistence", "Survives a restart", PASS,
+		"%d fields and the board, read back off disk" % fields.size())
+
+
+## The board promises, before any credits are spent, what a placement will do
+## to each neighbour. If that number and the result disagree, the feature is
+## worse than not having it.
+static func preview_truth() -> Dictionary:
+	var g := Grid.new()
+	g.place(Grid.idx(3, 3), "smelter")
+	var before: float = g.heat_at(Grid.idx(3, 3))
+	var boiler: Dictionary = MachineDB.get_machine("boiler")
+	var predicted: float = float(boiler["heat_out"]) * g.heat_spread
+	g.place(Grid.idx(3, 2), "boiler")
+	var actual: float = g.heat_at(Grid.idx(3, 3)) - before
+	if absf(actual - predicted) > 0.001:
+		return _r("preview", "Placement preview", FAIL,
+			"promised %+.2f heat, delivered %+.2f" % [predicted, actual])
+	return _r("preview", "Placement preview", PASS,
+		"the previewed change is the change that happens (%+.2f)" % actual)
+
+
+## The headline credits-per-second is an average over a window. It used to
+## keep publishing that window after the board had changed, so for three
+## seconds after any placement -- and right through a collapse, on an empty
+## board -- it reported the rate of a factory that no longer existed.
+##
+## Checked live rather than synthetically: the measurement window can never be
+## older than the last change to the board.
+static func rate_freshness(state: Object) -> Dictionary:
+	if state == null or not state.has_method("rate_window_age"):
+		return _r("rate", "Rate readout", UNKNOWN, "no live game state")
+	var window: float = float(state.call("rate_window_age"))
+	var since: float = float(state.call("seconds_since_board_change"))
+	var detail: String = "measured over %.1fs; board last changed %.1fs ago" % [
+		window, since]
+	if window > since + 0.35:
+		return _r("rate", "Rate readout", FAIL,
+			detail + " -- the number on screen includes a board that is gone")
+	return _r("rate", "Rate readout", PASS, detail)
+
+
+## The result of the last soak run, if one has been done. A soak is the only
+## way to see thermal throttling and slow memory growth, and it is the one
+## check that cannot be hurried.
+static var soak_result: Dictionary = {}
+
+
+static func soak_check() -> Dictionary:
+	if soak_result.is_empty():
+		return _r("soak", "Long session", UNKNOWN,
+			"no soak run yet -- start one from this screen and leave the "
+			+ "phone alone")
+	var d: Dictionary = soak_result
+	var detail: String = ("%.0f min: frame p99 %.1f -> %.1f ms, "
+		+ "memory %+.1f MB, %d samples") % [float(d["minutes"]),
+		float(d["p99_start"]), float(d["p99_end"]), float(d["mem_delta_mb"]),
+		int(d["samples"])]
+	# A phone that throttles shows up as frame time climbing while nothing on
+	# screen has changed. Half again as slow is well past noticeable.
+	if float(d["p99_end"]) > float(d["p99_start"]) * 1.5 + 2.0:
+		return _r("soak", "Long session", FAIL,
+			detail + " -- frame time degraded, which is what thermal "
+			+ "throttling looks like")
+	if float(d["mem_delta_mb"]) > 40.0:
+		return _r("soak", "Long session", FAIL,
+			detail + " -- memory kept growing")
+	return _r("soak", "Long session", PASS, detail)
+
+
 ## --- app lifecycle ---------------------------------------------------------
 ##
 ## Launch, suspend, resume, relaunch. None of these can be tested from a build
@@ -656,6 +824,17 @@ static func as_text(results: Array) -> String:
 			String(r["label"]), String(r["detail"])])
 	lines.append("")
 	lines.append(summary(results))
+	return "\n".join(lines)
+
+
+## One line per check, in a shape that can be pasted back verbatim. The whole
+## point of the device pass is that its result travels, and a screenshot of a
+## scrolling list does not.
+static func as_checklist(results: Array) -> String:
+	var lines: Array[String] = []
+	for r: Dictionary in results:
+		lines.append("%-12s %-8s %s" % [String(r["id"]),
+			String(r["status"]).to_upper(), String(r["detail"])])
 	return "\n".join(lines)
 
 

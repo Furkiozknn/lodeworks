@@ -36,6 +36,11 @@ var _probe: Button
 var _log: Label
 var _on_close: Callable
 var _pipelines_at_open: int = 0
+var _soak_left: float = -1.0
+var _soak_frames: PackedFloat32Array = PackedFloat32Array()
+var _soak_first: PackedFloat32Array = PackedFloat32Array()
+var _soak_mem_start: float = 0.0
+var _soak_btn: Button = null
 
 
 static func open_over(parent: Node, on_close: Callable = Callable()) -> Control:
@@ -72,7 +77,10 @@ func _build() -> void:
 	# Translucent, so the board keeps rendering underneath and the frame times
 	# below are the frame times of the actual game.
 	var dim := ColorRect.new()
-	dim.color = Color(0.03, 0.04, 0.05, 0.86)
+	# Nearly opaque. The first version let the board show through at 0.86 and
+	# the header and action row behind it read as part of this screen, which
+	# on a report that is meant to be pasted into a bug is worse than useless.
+	dim.color = Color(0.03, 0.04, 0.05, 0.985)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -108,6 +116,13 @@ func _build() -> void:
 	live.add_child(_action("Break the SDK", _try_break))
 	col.add_child(live)
 
+	var live2 := HBoxContainer.new()
+	live2.add_theme_constant_override("separation", 6)
+	live2.add_child(_action("Sound + buzz", _try_audio))
+	live2.add_child(_action("Soak %d min" % SOAK_MINUTES, _toggle_soak))
+	live2.add_child(_action("Copy report", _copy_report))
+	col.add_child(live2)
+
 	_log = _head("", 15, Palette.TEXT_DIM)
 	col.add_child(_log)
 
@@ -136,10 +151,6 @@ func _build() -> void:
 		run_checks()
 		start_sampling())
 	row.add_child(again)
-
-	var copy := _btn("Copy report")
-	copy.pressed.connect(_copy_report)
-	row.add_child(copy)
 
 	var close := _btn("Close")
 	close.pressed.connect(func():
@@ -217,6 +228,99 @@ func _try_restore() -> void:
 ## Prove the game survives the SDK failing, on the device, rather than only in
 ## the test suite. Flips the ad layer into its broken state and leaves it
 ## there until the screen is closed.
+## Every sound in the game, in order, with a buzz on each.
+##
+## A phone can be silent for reasons that have nothing to do with the game --
+## a mute switch, a routed output, a broken speaker, a sound that failed to
+## synthesise. This is the only way to find out which, and it takes eight
+## seconds.
+func _try_audio() -> void:
+	var names: Array = Juice.sfx_names()
+	_say("Playing %d sounds. You should hear each one and feel a buzz."
+		% names.size())
+	var i: int = 0
+	for n: String in names:
+		if String(n) == "ambient":
+			continue
+		var delay: float = float(i) * 0.55
+		get_tree().create_timer(delay).timeout.connect(func():
+			Juice.play(String(n))
+			Input.vibrate_handheld(14, 0.5))
+		i += 1
+
+
+## How long a soak runs. Long enough for a phone to get warm and start
+## throttling, short enough that somebody will actually sit through it.
+const SOAK_MINUTES := 3
+## The first and last thirty seconds are compared; everything between is what
+## heats the device up.
+const SOAK_EDGE_SECONDS := 30.0
+
+
+func _toggle_soak() -> void:
+	if _soak_left > 0.0:
+		_soak_left = -1.0
+		_say("Soak cancelled.")
+		return
+	_soak_left = float(SOAK_MINUTES) * 60.0
+	_soak_frames = PackedFloat32Array()
+	_soak_first = PackedFloat32Array()
+	_soak_mem_start = _memory_mb()
+	_say("Soaking for %d minutes. Leave the game on this screen and put the "
+		% SOAK_MINUTES + "phone down. Frame time and memory are being "
+		+ "sampled; thermal throttling shows up as the first number rising.")
+
+
+func _memory_mb() -> float:
+	var info: Dictionary = OS.get_memory_info()
+	var phys: int = int(info.get("available", -1))
+	if phys > 0:
+		# Available memory falls as the app grows, so the delta is negated to
+		# read as "the app grew by".
+		return -float(phys) / 1048576.0
+	if OS.is_debug_build():
+		return Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
+	return 0.0
+
+
+func _soak_step(delta: float) -> void:
+	var ms: float = delta * 1000.0
+	if _soak_left > float(SOAK_MINUTES) * 60.0 - SOAK_EDGE_SECONDS:
+		_soak_first.append(ms)
+	_soak_frames.append(ms)
+	_soak_left -= delta
+	var left: int = int(ceil(_soak_left))
+	if left % 10 == 0:
+		_say("Soaking... %d:%02d left, %d samples"
+			% [left / 60, left % 60, _soak_frames.size()])
+	if _soak_left > 0.0:
+		return
+	_soak_left = -1.0
+	# The last thirty seconds against the first thirty.
+	var tail := PackedFloat32Array()
+	var window: int = mini(_soak_first.size(), _soak_frames.size())
+	for i in range(maxi(_soak_frames.size() - window, 0), _soak_frames.size()):
+		tail.append(_soak_frames[i])
+	SelfTest.soak_result = {
+		"minutes": float(SOAK_MINUTES),
+		"p99_start": _p99(_soak_first),
+		"p99_end": _p99(tail),
+		"mem_delta_mb": _memory_mb() - _soak_mem_start,
+		"samples": _soak_frames.size(),
+	}
+	run_checks()
+	_say("Soak finished. The Long session row above has the result.")
+
+
+func _p99(a: PackedFloat32Array) -> float:
+	if a.is_empty():
+		return 0.0
+	var sorted: Array = Array(a)
+	sorted.sort()
+	return float(sorted[mini(sorted.size() - 1,
+		int(float(sorted.size()) * 0.99))])
+
+
 func _try_break() -> void:
 	Ads.debug_set_break_on_device(true)
 	run_checks()
@@ -266,6 +370,8 @@ func start_sampling() -> void:
 
 
 func _process(delta: float) -> void:
+	if _soak_left > 0.0:
+		_soak_step(delta)
 	if _input_at_usec > 0:
 		_input_to_frame_ms = float(Time.get_ticks_usec() - _input_at_usec) / 1000.0
 		_input_at_usec = -1
@@ -343,6 +449,9 @@ func report_text() -> String:
 	var body: String = SelfTest.as_text(_results)
 	var live: String = "\nlive frame timing: " + _perf_text()
 	live += "\nrenderer: " + _counter_text()
+	# The pasteable part. A scrolling list of rows does not travel; one block
+	# of "id STATUS detail" does.
+	live += "\n\n--- checklist ---\n" + SelfTest.as_checklist(_results)
 	if _input_to_frame_ms >= 0.0:
 		live += "\ninput to frame: %.1f ms" % _input_to_frame_ms
 	else:

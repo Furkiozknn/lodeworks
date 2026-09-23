@@ -156,6 +156,10 @@ func _layout() -> void:
 	_cell_size = minf(s.x / float(Grid.W), s.y / float(Grid.H))
 	var board := Vector2(_cell_size * Grid.W, _cell_size * Grid.H)
 	_origin = (s - board) * 0.5
+	# Published rather than guessed: the device self test converts this to dp
+	# and compares it with Android's 48dp minimum touch target, and only the
+	# board knows how much room the layout gave it.
+	SelfTest.last_cell_px = _cell_size
 
 
 func cell_at(pos: Vector2) -> int:

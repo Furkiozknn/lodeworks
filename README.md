@@ -153,7 +153,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 720x1440                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 122 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 137 tests
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
 godot --headless --path . --script res://tools/diagnose.gd        # per-tile balance dump
 godot --headless --path . --script res://tools/layout_lab.gd      # score the reference layouts
@@ -237,7 +237,7 @@ scripts/services/ save, analytics, ads, IAP, and the device self test — each
 scripts/ui/       drawn with _draw(); there is not one bitmap in the project,
                   and MachineArt is the single place a machine is drawn -- the
                   board, the icon and the feature graphic all call it
-tests/            122 tests, no framework dependency
+tests/            137 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs
@@ -252,6 +252,28 @@ Working: the simulation, the economy, the descent, prestige, the research tree,
 saves with offline progress, the tutorial, the UI, and the ad/IAP/analytics
 interfaces with their no-op fallbacks.
 
+Everything that can be automated has been. What is left is one manual step
+and a phone:
+
+- **The build chain is ready and has never run.** One empty GitHub repository
+  — private is fine — then `tools/push-to-github.sh <url>`, and CI builds two
+  APKs (one deliberately with no ad or billing SDK at all) and checks the
+  bytes of each. [`docs/CI.md`](docs/CI.md) is the whole procedure. Creating
+  the repository is the single step this project cannot do for itself.
+- **The export configuration is verified without a build.** The Android
+  toolchain is unreachable from where this was written, so instead
+  `tests/test_release_config.gd` checks the entire configuration surface on
+  every run: both preset names against what the workflow asks for, targetSdk
+  36 and minSdk 24, that the APK and AAB presets are identical except for
+  their output format, permissions, that no keystore material is committed,
+  that every launcher icon exists, that the versions match, and that every
+  file the two workflows invoke is present.
+- **The device pass is a twenty-minute scripted procedure**, not a wish.
+  [`docs/DEVICE-TEST.md`](docs/DEVICE-TEST.md) has twenty-five checks with
+  pass criteria; eighteen of them the game runs on itself in one tap and
+  prints as a pasteable block, including a three-minute soak that compares
+  the last thirty seconds of frame time against the first.
+
 Not done, stated plainly because the alternative is a plausible number with
 nothing behind it:
 
@@ -263,9 +285,10 @@ nothing behind it:
   and its failure paths are tested; the live paths are not, so monetization is
   not working.
 - **The Android export has never been executed.** It needs an Android SDK, JDK
-  17 and Google's Maven repositories, which the machine this was written on
-  cannot reach. The workflow that does it is committed and has never run,
-  because the GitHub repository does not exist yet.
+  17 and Google's Maven repositories; `dl.google.com`, `maven.google.com`,
+  `services.gradle.org` and `repo1.maven.org` are all unreachable from the
+  machine this was written on, and so are Godot's own export templates. The
+  workflow that does it is committed, validated and has never run.
 - No sound, and blueprints save and load but have no UI.
 
 See [docs/RELEASE.md](docs/RELEASE.md) §6 for claim-by-claim evidence and §7
