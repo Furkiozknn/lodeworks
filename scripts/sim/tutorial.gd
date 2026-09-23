@@ -60,7 +60,7 @@ const STEPS := [
 	},
 	{
 		"id": "move_one",
-		"line": "Drag the Vault one tile away. Moving is always free.",
+		"line": "Tap the Vault, then drag it one tile away. Moving is free.",
 		"arm": "",
 		"highlight": "owned",
 	},

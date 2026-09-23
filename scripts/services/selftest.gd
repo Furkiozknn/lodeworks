@@ -209,8 +209,8 @@ static func scaling_check() -> Dictionary:
 		return _r("scaling", "UI scaling", UNKNOWN, "headless run")
 	var win: Vector2i = DisplayServer.window_get_size()
 	var base := Vector2i(
-		int(ProjectSettings.get_setting("display/window/size/viewport_width", 720)),
-		int(ProjectSettings.get_setting("display/window/size/viewport_height", 1440)))
+		int(ProjectSettings.get_setting("display/window/size/viewport_width", 1440)),
+		int(ProjectSettings.get_setting("display/window/size/viewport_height", 720)))
 	var loop: MainLoop = Engine.get_main_loop()
 	var scale: float = 1.0
 	if loop is SceneTree:
@@ -219,9 +219,10 @@ static func scaling_check() -> Dictionary:
 		var vp: Vector2i = root.get_visible_rect().size
 		var detail: String = "%dx%d window, %dx%d canvas, base %dx%d, scale %.2f" % [
 			win.x, win.y, vp.x, vp.y, base.x, base.y, scale]
-		# The board is laid out to the shorter axis, so a canvas narrower than
-		# the design base is the case that would clip it.
-		if vp.x < base.x * 0.8:
+		# The canvas only ever grows from the design base in one direction; a
+		# canvas smaller than the base on either axis is the case that would
+		# clip the interface.
+		if vp.x < base.x * 0.8 or vp.y < base.y * 0.8:
 			return _r("scaling", "UI scaling", FAIL,
 				detail + " -- the canvas is much narrower than the layout was "
 				+ "designed against, so the board may be clipped")
@@ -321,33 +322,36 @@ static func memory_check() -> Dictionary:
 	return _r("memory", "Memory", PASS, detail)
 
 
-## The board is portrait-locked. A phone that ignores that, or a foldable that
-## reports a landscape window anyway, is a layout that has never been seen.
+## The game is landscape (either way up). A phone that ignores that, or a
+## foldable that reports a portrait window anyway, is a layout that has never
+## been seen.
 static func orientation_check() -> Dictionary:
 	if _headless():
 		return _r("orientation", "Orientation", UNKNOWN, "headless run")
 	var win: Vector2i = DisplayServer.window_get_size()
-	var want_portrait: bool = int(ProjectSettings.get_setting(
-		"display/window/handheld/orientation", 1)) == 1
-	var is_portrait: bool = win.y >= win.x
+	var o: int = int(ProjectSettings.get_setting("display/window/handheld/orientation", 4))
+	var want_landscape: bool = o == 0 or o == 2 or o == 4
+	var is_landscape: bool = win.x >= win.y
 	var detail: String = "%dx%d, %s" % [win.x, win.y,
-		"portrait" if is_portrait else "landscape"]
-	if want_portrait and not is_portrait:
+		"landscape" if is_landscape else "portrait"]
+	if want_landscape and not is_landscape:
 		return _r("orientation", "Orientation", FAIL,
-			detail + " -- the project is portrait-locked and this window is not")
+			detail + " -- the project is landscape-locked and this window is not")
 	return _r("orientation", "Orientation", PASS, detail)
 
 
-## The last board cell size, in pixels, as the board actually drew it. Set by
-## `GridView` rather than guessed, because the board fits itself to whatever
-## space the layout gives it and that depends on the screen.
+## A board cell's short axis on the physical screen, in pixels, as the board
+## actually drew it: at the current zoom, and at the closest zoom the camera
+## allows. Set by `IsoView`, because the cell size is now a camera decision
+## rather than a layout one.
 static var last_cell_px: float = 0.0
+static var max_cell_px: float = 0.0
 
 
-## Android's minimum touch target is 48dp. A 7x10 grid on a narrow phone is
-## right at that line, which is why nothing inside a cell is tappable -- but
-## the cell itself is, and if it falls under the floor the board is not usable
-## one-handed.
+## Android's minimum touch target is 48dp. A 2:1 isometric cell is half as
+## tall as it is wide, so the tall axis is the one that decides: the check
+## passes when the closest zoom reaches 48dp, and reports the default zoom
+## alongside, because that is where the player starts.
 static func touch_target_check() -> Dictionary:
 	if _headless():
 		return _r("touch", "Touch targets", UNKNOWN, "headless run")
@@ -359,15 +363,15 @@ static func touch_target_check() -> Dictionary:
 		return _r("touch", "Touch targets", UNKNOWN,
 			"this display reports no dpi, so pixels cannot be converted to dp")
 	var dp: float = last_cell_px / (float(dpi) / 160.0)
-	var detail: String = "%.0f px per cell at %d dpi = %.0f dp" % [
-		last_cell_px, dpi, dp]
-	if dp < 44.0:
+	var dp_max: float = max_cell_px / (float(dpi) / 160.0)
+	var detail: String = "cell height %.0f px = %.0f dp now, %.0f dp at closest zoom (%d dpi)" % [
+		last_cell_px, dp, dp_max, dpi]
+	if dp_max < 44.0:
 		return _r("touch", "Touch targets", FAIL,
-			detail + " -- under Android's 48dp minimum, the board will be "
-			+ "hard to use one-handed")
+			detail + " -- even zoomed in, a cell is under Android's 48dp minimum")
 	if dp < 48.0:
 		return _r("touch", "Touch targets", INFO,
-			detail + " -- just under the 48dp guideline; watch for mis-taps")
+			detail + " -- under 48dp at this zoom; zoom in to place precisely")
 	return _r("touch", "Touch targets", PASS, detail)
 
 

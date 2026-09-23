@@ -21,7 +21,7 @@ extends Node
 const OUT_DIR := "user://shots"
 const REEL_DIR := "user://reel"
 
-## Portrait phone screenshots have to be at least 1080x1920 to count towards
+## Landscape phone screenshots have to be at least 1920x1080 to count towards
 ## the three Play wants before a game is eligible for its recommendation
 ## surfaces, and must be 24-bit with no alpha channel.
 const SHOTS := [
@@ -75,6 +75,10 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	if OS.get_environment("LODEWORKS_CAPTURE") == "audit":
+		await _run_audit()
+		get_tree().quit()
+		return
 	for s: Dictionary in SHOTS:
 		_apply_build(String(s["build"]))
 		_set_overlay(bool(s.get("overlay", false)))
@@ -116,27 +120,26 @@ func _clear_transient() -> void:
 		_main.call("_close_overlay")
 	if _main.has_method("_close_sheet"):
 		_main.call("_close_sheet")
-	var gv: GridView = _main.get("grid_view")
+	var gv: IsoView = _main.get("iso_view")
 	if gv != null:
 		gv.arm_id = ""
 		gv.selected_cell = -1
 		gv.set("_press_cell", -1)
-		gv.set_overlay(GridView.Overlay.NONE)
-		gv.queue_redraw()
+		gv.set("_pressed", false)
+		gv.set_overlay(IsoView.Overlay.NONE)
 
 
 func _set_overlay(on: bool) -> void:
-	var gv: GridView = _main.get("grid_view")
+	var gv: IsoView = _main.get("iso_view")
 	if gv != null:
-		gv.set_overlay(GridView.Overlay.HEAT if on else GridView.Overlay.NONE)
+		gv.set_overlay(IsoView.Overlay.HEAT if on else IsoView.Overlay.NONE)
 
 
 func _select(cell: int) -> void:
-	var gv: GridView = _main.get("grid_view")
+	var gv: IsoView = _main.get("iso_view")
 	if gv == null:
 		return
 	gv.selected_cell = cell
-	gv.queue_redraw()
 	if _main.has_method("_show_cell_info"):
 		_main.call("_show_cell_info", cell)
 
@@ -144,12 +147,12 @@ func _select(cell: int) -> void:
 ## Freeze the board in the middle of a placement, which is where the game
 ## explains both of its rules at once.
 func _press(cell: int, arm: String) -> void:
-	var gv: GridView = _main.get("grid_view")
+	var gv: IsoView = _main.get("iso_view")
 	if gv == null:
 		return
 	gv.arm_id = arm
 	gv.set("_press_cell", cell)
-	gv.queue_redraw()
+	gv.set("_pressed", true)
 
 
 ## Boards used for the shots. Hand-built, because a screenshot should show a
@@ -203,6 +206,32 @@ func _apply_build(kind: String) -> void:
 				[4, 3, "press"], [5, 3, "assembler"],
 				[1, 4, "drill"], [2, 4, "crusher"], [3, 4, "smelter"],
 				[5, 4, "lab"],
+			])
+		"hero":
+			# The board the audit screenshots show, chosen by measurement
+			# (a scratch run compared four candidate boards at depths 5-8):
+			# a mid-game factory at the Workings, 397.9 credits a second at
+			# stratum 7, the Dense Seam. Every chain is complete, so the one
+			# jammed drill and the press row running hot are the only badges
+			# on screen -- the heat language, without noise.
+			Sim.depth = 7
+			Sim.max_depth = 7
+			Sim.cores = 6
+			Sim.research = 340.0
+			Sim.credits = 41000.0
+			Sim.upgrade_levels = {"throughput_1": 1, "yield_1": 1}
+			_place([
+				[1, 0, "drill"], [2, 0, "drill"], [3, 0, "drill"], [4, 0, "drill"], [5, 0, "drill"],
+				[1, 1, "crusher"], [2, 1, "crusher"], [3, 1, "amplifier"], [4, 1, "crusher"],
+				[5, 1, "crusher"],
+				[0, 2, "vault"], [1, 2, "smelter"], [2, 2, "smelter"], [3, 2, "vault"],
+				[4, 2, "smelter"], [5, 2, "smelter"], [6, 2, "vault"],
+				[0, 3, "vault"], [1, 3, "press"], [2, 3, "press"], [3, 3, "coolant"],
+				[4, 3, "press"], [5, 3, "press"], [6, 3, "vault"],
+				[1, 4, "vault"], [2, 4, "assembler"], [3, 4, "assembler"], [4, 4, "assembler"],
+				[5, 4, "vault"],
+				[2, 5, "vault"], [3, 5, "lab"], [4, 5, "vault"],
+				[1, 7, "drill"], [2, 7, "crusher"], [3, 7, "smelter"], [4, 7, "vault"],
 			])
 		"full":
 			Sim.depth = 9
@@ -339,3 +368,46 @@ func _write_alt_text() -> void:
 	if f != null:
 		f.store_string("\n".join(lines) + "\n")
 		f.close()
+
+
+## --- the visual audit ------------------------------------------------------
+
+const AUDIT_DIR := "user://audit"
+
+
+func _run_audit() -> void:
+	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
+	var gv: IsoView = _main.get("iso_view")
+	_apply_build("hero")
+	# A save from an earlier run brings up the offline panel; the audit is
+	# about the board, so it is closed rather than photographed.
+	_main.call("_close_overlay")
+	gv.frame_board()
+	# Long enough for the badges' 1.5 s hysteresis and a settled heat field.
+	await _settle(3.2)
+	await _audit_shot("01_main_landscape")
+
+	var c: Vector2 = Iso.board_rect().get_center()
+	gv.cam.focus(c, 1.3)
+	await _settle(1.6)
+	await _audit_shot("02_zoomed")
+
+	gv.cam.focus(gv.cam.anchor, 0.0001)
+	await _settle(1.6)
+	await _audit_shot("03_full_world")
+
+	var target: int = Grid.idx(2, 3)
+	gv.selected_cell = target
+	_main.call("_show_cell_info", target)
+	gv.cam.focus(Iso.cell_center(target) - Vector2(0, 40), gv.cam.zoom_max)
+	await _settle(1.8)
+	await _audit_shot("04_machine_closeup")
+	print("wrote the audit screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
+
+
+func _audit_shot(name: String) -> void:
+	await RenderingServer.frame_post_draw
+	var img: Image = get_viewport().get_texture().get_image()
+	img.convert(Image.FORMAT_RGB8)
+	img.save_png("%s/%s.png" % [AUDIT_DIR, name])
+	print("  %s  %dx%d" % [name, img.get_width(), img.get_height()])
