@@ -37,7 +37,8 @@ echo "==> self test"
 "$GODOT" --headless --path . --script res://tools/selftest_cli.gd
 
 echo "==> export"
-"$GODOT" --headless --path . --export-release "Android" "$OUT"
+"$GODOT" --headless --path . --install-android-build-template \
+  --export-release "Android" "$OUT"
 
 # An export that produced nothing still exits zero often enough to be worth
 # checking. A signed Godot bundle is tens of megabytes.

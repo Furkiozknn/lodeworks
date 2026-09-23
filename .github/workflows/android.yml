@@ -131,7 +131,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build
-          ./godot --headless --path . --export-debug "Android APK" \
+          # The preset uses a Gradle build, which needs android/build/ in the
+          # project -- the editor's "Install Android Build Template". It is
+          # gitignored, so a fresh checkout has none and the export refuses.
+          ./godot --headless --path . --install-android-build-template \
+            --export-debug "Android APK" \
             "$PWD/build/lodeworks-${{ matrix.plugins }}-plugins.apk" -v
           ls -lh build/
 
