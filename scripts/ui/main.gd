@@ -41,6 +41,7 @@ var _sheet: PanelContainer
 var _sheet_body: VBoxContainer
 var _sheet_title: Label
 var _palette_buttons: Dictionary = {}
+var _palette_costs: Dictionary = {}
 
 var _armed: String = ""
 var _toast_time: float = 0.0
@@ -236,15 +237,24 @@ func _button(text: String, col: Color) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = col if state != "disabled" else col.darkened(0.55)
-		if state == "pressed":
-			sb.bg_color = col.darkened(0.2)
-		sb.corner_radius_top_left = int(Palette.RADIUS)
-		sb.corner_radius_top_right = int(Palette.RADIUS)
-		sb.corner_radius_bottom_left = int(Palette.RADIUS)
-		sb.corner_radius_bottom_right = int(Palette.RADIUS)
+		sb.bg_color = col
+		if state == "disabled":
+			sb.bg_color = col.lerp(Palette.PANEL, 0.62)
+		elif state == "pressed":
+			sb.bg_color = col.darkened(0.18)
+		elif state == "hover":
+			sb.bg_color = col.lightened(0.08)
+		sb.set_corner_radius_all(int(Palette.RADIUS))
 		sb.content_margin_left = 14
 		sb.content_margin_right = 14
+		# A lit top edge and a shadow beneath: the cheapest way to make a flat
+		# rectangle read as a physical key under the same light as the board.
+		sb.border_width_top = 2
+		sb.border_color = sb.bg_color.lerp(Color.WHITE, 0.30)
+		if state != "pressed":
+			sb.shadow_color = Color(0, 0, 0, 0.38)
+			sb.shadow_size = 5
+			sb.shadow_offset = Vector2(0, 3)
 		b.add_theme_stylebox_override(state, sb)
 	b.add_theme_color_override("font_color", Palette.BG)
 	b.add_theme_color_override("font_disabled_color", Palette.TEXT_FAINT)
@@ -455,19 +465,71 @@ func _rebuild_palette() -> void:
 		_palette_row.add_child(_make_palette_button(id))
 
 
+## A little Control that draws one machine exactly as the board draws it.
+##
+## The palette used to show a glyph and a name, which meant the thing the
+## player tapped looked nothing like the thing that appeared on the board.
+## Same code, same light, same colours -- so what you pick is what you get.
+class MachineChip extends Control:
+	var id: String = ""
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(52, 52)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		if id == "" or size.x < 4.0:
+			return
+		var side: float = minf(size.x, size.y)
+		MachineArt.tile(self, Rect2((size - Vector2(side, side)) * 0.5,
+			Vector2(side, side)), id, ThemeDB.fallback_font, 0.0,
+			{"glow": 0.85})
+
+
 func _make_palette_button(id: String) -> Control:
 	var m: Dictionary = MachineDB.get_machine(id)
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(104, 96)
+	b.custom_minimum_size = Vector2(104, 112)
 	b.toggle_mode = true
 	b.tooltip_text = "%s\n%s\n%s" % [m["name"],
 		MachineDB.recipe_text(id), m["desc"]]
-	b.add_theme_font_size_override("font_size", 15)
-	b.text = "%s\n%s\n%s" % [Palette.machine_glyph(id), m["name"],
-		Economy.fmt(Sim.cost_of(id))]
-	b.add_theme_color_override("font_color", Palette.TEXT)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Palette.PANEL_HI if state != "pressed" else \
+			Palette.machine_color(id).lerp(Palette.PANEL_HI, 0.55)
+		if state == "disabled":
+			sb.bg_color = Palette.PANEL
+		sb.set_corner_radius_all(int(Palette.RADIUS))
+		sb.content_margin_left = 4
+		sb.content_margin_right = 4
+		sb.content_margin_top = 6
+		sb.content_margin_bottom = 6
+		sb.border_width_top = 2
+		sb.border_color = Palette.machine_light(id) if state == "pressed" \
+			else sb.bg_color.lerp(Palette.KEY_TINT, 0.16)
+		b.add_theme_stylebox_override(state, sb)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var chip := MachineChip.new()
+	chip.id = id
+	chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(chip)
+	var name_lbl: Label = _label(String(m["name"]), 13, Palette.TEXT)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(name_lbl)
+	var cost_lbl: Label = _label(Economy.fmt(Sim.cost_of(id)), 14, Palette.ACCENT)
+	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(cost_lbl)
+	b.add_child(col)
+
 	b.pressed.connect(func(): _arm(id))
 	_palette_buttons[id] = b
+	_palette_costs[id] = cost_lbl
 	return b
 
 
@@ -631,12 +693,17 @@ func _refresh() -> void:
 
 	_btn_descend.disabled = not Sim.can_descend()
 	for id: String in _palette_buttons:
-		var b: Button = _palette_buttons[id]
-		var m: Dictionary = MachineDB.get_machine(id)
-		b.text = "%s\n%s\n%s" % [Palette.machine_glyph(id), m["name"],
-			Economy.fmt(Sim.cost_of(id))]
-		b.add_theme_color_override("font_color",
-			Palette.TEXT if Sim.can_afford(id) else Palette.TEXT_FAINT)
+		var afford: bool = Sim.can_afford(id)
+		var cost: Label = _palette_costs.get(id, null)
+		if cost != null:
+			cost.text = Economy.fmt(Sim.cost_of(id))
+			cost.add_theme_color_override("font_color",
+				Palette.ACCENT if afford else Palette.TEXT_FAINT)
+		# The whole chip dims when it is out of reach, so "can I afford this"
+		# is answered by the brightness of the picture rather than by reading
+		# a number and comparing it with another number.
+		(_palette_buttons[id] as Button).modulate = Color(1, 1, 1,
+			1.0 if afford else 0.45)
 
 
 ## --- undo ------------------------------------------------------------------

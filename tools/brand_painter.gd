@@ -16,6 +16,48 @@ const ICON_CHAIN := ["drill", "crusher", "vault"]
 var kind: String = "icon"
 
 
+## A shaft to stand the machines in: cool stone at the top, heat rising from
+## below, and a scatter of minerals in the rock.
+##
+## Built from `Palette.shaft()` -- the same four-band description the board
+## uses to decide what stratum nine looks like -- so the store page shows the
+## place the game is actually set rather than a gradient chosen to look nice.
+func _shaft(s: Vector2, depth: int, heat: float) -> void:
+	var sh: Dictionary = Palette.shaft(depth)
+	var rock: Color = sh["rock"]
+	draw_rect(Rect2(Vector2.ZERO, s), rock.darkened(0.55), true)
+	# Vertical light: brighter towards the top where the shaft is open.
+	var bands: int = 26
+	for i in range(bands):
+		var t: float = float(i) / float(bands)
+		var c: Color = rock.lerp(Palette.KEY_TINT, 0.10 * (1.0 - t))
+		c.a = 0.55 * (1.0 - t)
+		draw_rect(Rect2(0.0, s.y * t * 0.75, s.x, s.y / float(bands) + 1.0),
+			c, true)
+	# Heat banked into the bottom: the game is underground and it is hot.
+	# Divided by the band count: these stack, and the first version summed to
+	# an opaque orange sheet that buried the rock it was meant to sit in.
+	for i in range(bands):
+		var t: float = float(i) / float(bands)
+		var c: Color = Palette.HEAT_HOT.lerp(Palette.HEAT_WARM, t)
+		c.a = heat * (1.0 - t) * 6.0 / float(bands)
+		var h: float = s.y * (1.0 - t) * 0.8
+		draw_rect(Rect2(0.0, s.y - h, s.x, h), c, true)
+	# Minerals, on a fixed seed so the store art is identical every build.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260923
+	for i in range(34):
+		var p := Vector2(rng.randf() * s.x, rng.randf() * s.y)
+		var sz: float = s.y * (0.006 + rng.randf() * 0.012)
+		var col: Color = sh["fleck"] if rng.randf() > 0.25 else sh["vein"]
+		col.a = 0.25 + rng.randf() * 0.45
+		draw_rect(Rect2(p, Vector2(sz, sz)), col, true)
+	for i in range(5):
+		var p2 := Vector2(rng.randf() * s.x, rng.randf() * s.y)
+		Palette.emissive(self, Rect2(p2, Vector2(s.y * 0.016, s.y * 0.014)),
+			sh["vein"], 0.5)
+
+
 func _draw() -> void:
 	match kind:
 		"icon": _draw_icon(size, true)
@@ -34,16 +76,7 @@ func _draw() -> void:
 func _draw_icon(s: Vector2, opaque: bool) -> void:
 	var font: Font = ThemeDB.fallback_font
 	if opaque:
-		draw_rect(Rect2(Vector2.ZERO, s), Palette.BG, true)
-		# Heat banked into the bottom of the square: the icon should read as
-		# "underground and hot" before anything else registers.
-		var bands: int = 18
-		for i in range(bands):
-			var t: float = float(i) / float(bands)
-			var c: Color = Palette.HEAT_HOT.lerp(Palette.HEAT_WARM, t)
-			c.a = 0.22 * (1.0 - t)
-			var h: float = s.y * (1.0 - t) * 0.82
-			draw_rect(Rect2(0.0, s.y - h, s.x, h), c, true)
+		_shaft(s, 14, 0.42)
 
 	# Three tiles and nothing else.
 	#
@@ -77,13 +110,7 @@ func _draw_feature(s: Vector2) -> void:
 	var font: Font = ThemeDB.fallback_font
 	draw_rect(Rect2(Vector2.ZERO, s), Palette.BG, true)
 
-	var bands: int = 22
-	for i in range(bands):
-		var t: float = float(i) / float(bands)
-		var c: Color = Palette.HEAT_HOT.lerp(Palette.HEAT_WARM, t)
-		c.a = 0.11 * (1.0 - t)
-		var h: float = s.y * (1.0 - t) * 0.7
-		draw_rect(Rect2(0.0, s.y - h, s.x, h), c, true)
+	_shaft(s, 16, 0.30)
 
 	# Words on the left, board on the right, and the two do not touch. The
 	# first draft let a five-tile row run under the tagline and neither was

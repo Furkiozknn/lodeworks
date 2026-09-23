@@ -472,3 +472,69 @@ func test_every_stratum_field_is_applied_somewhere() -> void:
 		"quota is applied by the run")
 	runner.check(applied.contains("blocked_cells"),
 		"cramped is applied by the board")
+
+
+## --- the visual system ------------------------------------------------------
+
+func test_every_machine_has_a_body_a_light_and_a_build() -> void:
+	# The art is code, so a machine that was added to `MachineDB` without
+	# being given a look is a compile-time-clean silhouette-less grey box.
+	# This is the check that catches it.
+	for id: String in MachineDB.ORDER:
+		runner.check(Palette.MACHINE_COLOR.has(id), "no body colour: " + id)
+		runner.check(Palette.MACHINE_LIGHT.has(id), "no light colour: " + id)
+		runner.check(Palette.MACHINE_GLYPH.has(id), "no glyph: " + id)
+		runner.check(Palette.MACHINE_FAMILY.has(id), "no family: " + id)
+		var art: String = _read("res://scripts/ui/machine_art.gd")
+		runner.check(art.contains('"%s":' % id),
+			"%s has no build in MachineArt, so it draws as a plain box" % id)
+
+
+func test_the_readability_check_exists_and_is_wired_up() -> void:
+	# The user-facing failure this whole visual system risks is "prettier and
+	# now I cannot tell the machines apart", so the check for it has to be
+	# something CI runs rather than something somebody remembers to look at.
+	runner.check(FileAccess.file_exists("res://tools/readability.gd"),
+		"the strip renderer has to exist")
+	runner.check(FileAccess.file_exists("res://tools/check-readability.py"),
+		"and the comparison")
+	var ci: String = _read("res://.github/workflows/ci.yml")
+	runner.check(ci.contains("check-readability.py"),
+		"and CI has to run it, or it is decoration")
+	var probe: String = _read("res://tools/readability.gd")
+	runner.check(probe.contains("44"),
+		"the floor size has to be the small phone, not a comfortable one")
+
+
+func test_machine_light_colours_are_distinct() -> void:
+	# From across the board the emissive core is the only thing visible, so
+	# two machines sharing a light colour are two machines that look the same
+	# at a glance however different their bodies are.
+	var seen: Array = []
+	for id: String in MachineDB.ORDER:
+		var c: Color = Palette.machine_light(id)
+		for other: Color in seen:
+			var d: float = absf(c.r - other.r) + absf(c.g - other.g) \
+				+ absf(c.b - other.b)
+			runner.gt(d, 0.12,
+				"%s shares its light signature with another machine" % id)
+		seen.append(c)
+
+
+func test_the_shaft_changes_with_depth() -> void:
+	# Descending has to look like going somewhere. Four bands, and the rock at
+	# the bottom must not be the rock at the top.
+	var top: Dictionary = Palette.shaft(0)
+	var bottom: Dictionary = Palette.shaft(22)
+	var a: Color = top["rock"]
+	var b: Color = bottom["rock"]
+	runner.gt(absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b), 0.10,
+		"stratum 22 looks like stratum 0")
+	runner.near(float(top["ember"]), 0.0, 0.001,
+		"the surface does not glow on its own")
+	runner.gt(float(bottom["ember"]), 0.5,
+		"the abyssal band does")
+	for d: int in [0, 5, 12, 20, 40]:
+		var s: Dictionary = Palette.shaft(d)
+		runner.check(s.has("rock") and s.has("fleck") and s.has("vein"),
+			"depth %d has no description" % d)

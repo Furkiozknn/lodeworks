@@ -70,6 +70,9 @@ var _origin: Vector2 = Vector2.ZERO
 var _flash: Dictionary = {}
 var _motes: Array = []
 var _rock_seed: int = -1
+## The rock, mineral and vein colours for the stratum being drawn. Resolved
+## once per frame rather than once per tile.
+var _shaft: Dictionary = {}
 var _rock: PackedFloat32Array = PackedFloat32Array()
 var _anim: float = 0.0
 
@@ -255,26 +258,55 @@ func _draw() -> void:
 	var font: Font = ThemeDB.fallback_font
 	var cs: float = _cell_size
 	_ensure_rock()
+	_shaft = Palette.shaft(Sim.depth)
 
+	# ---------------------------------------------------------------------
+	# Drawn in passes, and the reason is draw calls rather than tidiness.
+	#
+	# Godot's compatibility renderer batches consecutive rectangles and breaks
+	# the batch for every texture switch. A glyph is a texture. Drawing each
+	# machine as body-then-glyph-then-body-then-glyph therefore cost seventy
+	# batch breaks; drawing every body, then every glyph, costs one. That is
+	# what pays for machines built out of fifteen lit faces instead of three
+	# flat ones.
+	# ---------------------------------------------------------------------
+
+	# Pass 1: the ground. Rock, platforms, heat.
 	for cell in range(Grid.W * Grid.H):
 		var r: Rect2 = cell_rect(cell)
 		if blocked.has(cell):
 			_draw_rubble(r, cs)
 			continue
-		var id: String = Sim.grid.machine_at(cell)
-		if id == "":
-			_draw_empty(r, cell, cs, font)
+		if Sim.grid.machine_at(cell) == "":
+			_draw_empty(r, cell, cs)
 		else:
-			_draw_cell_base(r, cell, id, cs)
+			_draw_cell_base(r, cell, Sim.grid.machine_at(cell), cs)
 
-	# Machines on top of every base, so a neighbour's heat wash never paints
-	# over a silhouette.
+	# Pass 2: the machines themselves, on top of every base, so a neighbour's
+	# heat wash never paints over a silhouette.
 	for cell in range(Grid.W * Grid.H):
 		if blocked.has(cell):
 			continue
 		var id: String = Sim.grid.machine_at(cell)
 		if id != "":
-			_draw_machine(cell_rect(cell), cell, id, font, cs)
+			_draw_machine(cell_rect(cell), cell, id, cs)
+
+	# Pass 3: the readouts. Duty, progress, status, upgrade notches, output.
+	for cell in range(Grid.W * Grid.H):
+		if blocked.has(cell) or Sim.grid.machine_at(cell) == "":
+			continue
+		_draw_readouts(cell_rect(cell), cell, cs)
+
+	# Pass 4: everything made of text, in one batch.
+	if cs > 24.0:
+		for cell in range(Grid.W * Grid.H):
+			if blocked.has(cell):
+				continue
+			var id2: String = Sim.grid.machine_at(cell)
+			if id2 != "":
+				MachineArt.glyph(self, cell_rect(cell), id2, font, cs)
+	if overlay == Overlay.HEAT and cs > 34.0:
+		_draw_heat_numbers(font, cs, blocked)
 
 	_draw_motes(cs)
 
@@ -289,6 +321,27 @@ func _draw() -> void:
 
 	if _dragging and _press_cell >= 0:
 		_draw_drag_ghost(font, cs)
+
+
+## Heat as a number as well as a colour, for every tile that has something to
+## say. A few tenths decide whether a tile runs at 100% or 62%, and a colour
+## ramp cannot express that to someone who is colourblind or to anyone working
+## out how much coolant they actually need.
+func _draw_heat_numbers(font: Font, cs: float, blocked: Dictionary) -> void:
+	for cell in range(Grid.W * Grid.H):
+		if blocked.has(cell):
+			continue
+		var r: Rect2 = cell_rect(cell)
+		if Sim.grid.machine_at(cell) == "":
+			var h: float = Sim.grid.heat_at(cell)
+			# Only where it is not simply the stratum's own ambient level.
+			# Printing the same number on forty identical tiles is forty
+			# pieces of noise hiding the two that matter.
+			if absf(h - Sim.grid.ambient_heat) > 0.05:
+				_num(font, r, "%.1f" % h, Palette.TEXT_DIM, cs, 0.5, true)
+		else:
+			_num(font, r, "%+.1f" % Sim.sim.heat_delta_at(cell), Palette.TEXT,
+				cs, 0.44, true)
 
 
 ## Empty rock. Speckled from a per-stratum seed so depth 9 does not look like
@@ -308,41 +361,66 @@ func _ensure_rock() -> void:
 		_rock[i * 3 + 2] = rng.randf()
 
 
-func _draw_empty(r: Rect2, cell: int, cs: float, font: Font) -> void:
+func _draw_empty(r: Rect2, cell: int, cs: float) -> void:
 	var heat: float = Sim.grid.heat_at(cell)
-	# A weak tint on empty rock. At depth, ambient heat alone would otherwise
-	# flood the whole board one colour and the map would stop telling the
-	# player anything about their own machines.
-	# Weak, and weaker than under a machine. Ambient heat at depth applies to
-	# every empty tile equally, so painting it at full strength says nothing
-	# and costs the board its contrast.
 	# Rock colour shifts with depth as well as with heat, so a player who has
 	# descended nine times can see that they are somewhere else. A label
 	# saying "Stratum 9" is not the same as the ground looking different.
-	var tone: float = clampf(float(Sim.depth) / 24.0, 0.0, 1.0)
-	var rock: Color = Palette.CELL.lerp(Palette.rock_deep(), tone)
-	var base: Color = rock.lerp(Palette.heat_color(heat), 0.20)
-	draw_rect(r, base, true)
+	#
+	# The heat tint is weak, and weaker than under a machine. Ambient heat at
+	# depth applies to every empty tile equally, so painting it at full
+	# strength says nothing and costs the board its contrast.
+	var sh: Dictionary = _shaft
+	# A light heat tint, and lighter than it used to be. Ambient heat at depth
+	# applies to every empty tile equally, so a strong wash turns the whole
+	# board one shade of brown -- which is exactly the state in which the map
+	# stops carrying information and starts looking like mud.
+	var base: Color = (sh["rock"] as Color).lerp(Palette.heat_color(heat), 0.12)
+	# Per-tile tonal variation, from the same per-stratum seed as the flecks.
+	# Seventy identical squares read as a spreadsheet; seventy slightly
+	# different ones read as ground.
+	base = base.lerp(base.lightened(0.12), _rock[cell * 3 + 2])
 
-	# Two ore specks, deterministic per cell and per stratum.
+	# An empty tile is a shallow pit rather than a square of colour: a dark
+	# seam, a floor, and a lit lip along the top edge where the key light
+	# reaches in. Three rectangles, and the grid stops looking like a table.
+	var seam: float = maxf(cs * 0.035, 1.0)
+	draw_rect(r, base.darkened(0.42), true)
+	draw_rect(Rect2(r.position.x + seam, r.position.y + seam,
+		r.size.x - seam * 2.0, r.size.y - seam * 2.0), base, true)
+	var lip: Color = base.lerp(Palette.KEY_TINT, 0.16)
+	lip.a = 0.42
+	draw_rect(Rect2(r.position.x + seam, r.position.y + seam,
+		r.size.x - seam * 2.0, seam), lip, true)
+
+	# Ore specks, deterministic per cell and per stratum. Warmer and brighter
+	# with depth: the rock is richer down there and it should look it.
 	var a: float = _rock[cell * 3]
 	var b: float = _rock[cell * 3 + 1]
 	var c: float = _rock[cell * 3 + 2]
-	var fleck: Color = base.lerp(Palette.TEXT_FAINT, 0.18 + c * 0.22)
+	var fleck: Color = base.lerp(sh["fleck"], 0.22 + c * 0.34)
 	var s1: float = cs * (0.05 + c * 0.05)
 	draw_rect(Rect2(r.position + Vector2(r.size.x * a, r.size.y * b),
 		Vector2(s1, s1)), fleck, true)
 	draw_rect(Rect2(r.position + Vector2(r.size.x * b * 0.8 + cs * 0.1,
 		r.size.y * c * 0.8), Vector2(s1 * 0.6, s1 * 0.6)), fleck, true)
+	# A vein of something in the rock, on about one tile in ten, and brighter
+	# the deeper the shaft goes. By the abyssal band the ground itself is a
+	# light source, which is most of what makes depth feel like somewhere.
+	var ember: float = float(sh["ember"])
+	if c > 0.90:
+		Palette.emissive(self, Rect2(r.position
+			+ Vector2(r.size.x * 0.42, r.size.y * 0.40),
+			Vector2(cs * 0.11, cs * 0.09)), sh["vein"], 0.30 + ember * 0.75)
+	elif ember > 0.35 and b > 0.86:
+		# A hairline crack, lit from underneath.
+		var crack: Color = (sh["vein"] as Color)
+		crack.a = 0.16 + ember * 0.30
+		draw_rect(Rect2(r.position.x + r.size.x * a * 0.5 + cs * 0.12,
+			r.position.y + r.size.y * 0.66, cs * (0.18 + b * 0.30),
+			maxf(cs * 0.022, 1.0)), crack, true)
 
-	draw_rect(r, Palette.LINE, false, 1.0)
-
-	if overlay == Overlay.HEAT and cs > 34.0:
-		# Absolute heat on empty rock, but only where it is not simply the
-		# stratum's own ambient level. Printing the same number on forty
-		# identical tiles is forty pieces of noise hiding the two that matter.
-		if absf(heat - Sim.grid.ambient_heat) > 0.05:
-			_num(font, r, "%.1f" % heat, Palette.TEXT_DIM, cs, 0.5)
+	if overlay == Overlay.HEAT:
 		return
 
 	# An armed palette entry marks where it could land -- but only on tiles
@@ -354,11 +432,20 @@ func _draw_empty(r: Rect2, cell: int, cs: float, font: Font) -> void:
 	# frontier, so the first placement is unconstrained.
 	if arm_id != "" and Sim.can_afford(arm_id) and not Sim.is_blocked(cell) \
 			and (Sim.grid.cells.is_empty() or _touches_machine(cell)):
-		var ghost: Color = Palette.machine_color(arm_id)
-		ghost.a = 0.34
-		var g: float = cs * 0.16
-		draw_rect(Rect2(r.position + (r.size - Vector2(g, g)) * 0.5,
-			Vector2(g, g)), ghost, true)
+		# A small hollow marker, not a lit block. The first version used the
+		# machine's own emissive colour and put twenty glowing orange squares
+		# on the board, which read as twenty machines rather than as twenty
+		# places a machine could go.
+		var ghost: Color = Palette.machine_light(arm_id)
+		ghost.a = 0.42
+		var g: float = cs * 0.15
+		var gr := Rect2(r.position + (r.size - Vector2(g, g)) * 0.5,
+			Vector2(g, g))
+		var t: float = maxf(cs * 0.018, 1.0)
+		draw_rect(Rect2(gr.position.x, gr.position.y, g, t), ghost, true)
+		draw_rect(Rect2(gr.position.x, gr.position.y + g - t, g, t), ghost, true)
+		draw_rect(Rect2(gr.position.x, gr.position.y, t, g), ghost, true)
+		draw_rect(Rect2(gr.position.x + g - t, gr.position.y, t, g), ghost, true)
 
 
 func _touches_machine(cell: int) -> bool:
@@ -379,8 +466,8 @@ func _draw_rubble(r: Rect2, cs: float) -> void:
 			Vector2(b, b * 0.7)), Palette.LINE, true)
 
 
-## The cell under the machine: heat, either as the absolute field or as this
-## machine's own thermal error.
+## The platform a machine stands on: heat, either as the absolute field or as
+## this machine's own thermal error, bevelled so the tile reads as ground.
 func _draw_cell_base(r: Rect2, cell: int, id: String, cs: float) -> void:
 	var base: Color
 	if overlay == Overlay.HEAT:
@@ -392,36 +479,74 @@ func _draw_cell_base(r: Rect2, cell: int, id: String, cs: float) -> void:
 		# high everywhere, and a full-strength wash under every machine turns
 		# the whole board one shade of brown -- which is exactly the state in
 		# which the map stops carrying information.
-		base = Palette.CELL.lerp(Palette.heat_color(Sim.grid.heat_at(cell)), 0.62)
-	draw_rect(r, base, true)
-	draw_rect(r, Palette.LINE, false, 1.0)
+		base = Palette.CELL.lerp(Palette.heat_color(Sim.grid.heat_at(cell)), 0.55)
+	MachineArt.platform(self, r, cs, base)
 
 
-func _draw_machine(r: Rect2, cell: int, id: String, font: Font, cs: float) -> void:
-	var col: Color = Palette.machine_color(id)
+## The machine: a lit solid standing on its platform, built by `MachineArt`
+## from the live state of the tile.
+##
+## Everything that changes here changes because the simulation changed, and
+## each channel is redundant with a second one, so nothing depends on colour
+## vision alone:
+##
+##   working    the moving part moves, the core is bright, the bar sweeps
+##   starved    the body goes dull AND the pip becomes a tall thin bar
+##   blocked    the body goes dull AND the pip becomes a wide flat bar
+##   too hot    the core burns harder AND the pip loses its top corner
+##   too cold   the core turns blue AND the pip loses its bottom corner
+##   upgraded   the machine has visibly more parts on it
+func _draw_machine(r: Rect2, cell: int, id: String, cs: float) -> void:
 	var flash: float = float(_flash.get(cell, 0.0))
 	var st: int = Sim.sim.status_of(cell)
 	var eff: float = Sim.sim.heat_efficiency_at(cell)
 	var thermal: bool = eff < Simulation.THERMAL_WARNING
 	var delta: float = Sim.sim.heat_delta_at(cell)
+	var running: bool = st == Simulation.Status.RUNNING
+	var stalled: bool = st == Simulation.Status.STARVED \
+		or st == Simulation.Status.BLOCKED
 
-	var body: Color = col.lerp(Color.WHITE, flash * 0.35)
-	# A stalled machine goes dull. Losing its colour is a second, redundant
-	# channel for the same fact the status pip carries, which is what makes it
-	# readable without colour vision.
-	if st == Simulation.Status.STARVED or st == Simulation.Status.BLOCKED:
-		body = body.lerp(Palette.CELL, 0.42)
-	body.a = 0.94
+	# How hard the core is lit. A working machine glows; a stalled one is
+	# nearly dark; an overheating one burns. This is the thing that is legible
+	# from the far side of the board when the glyph is four pixels tall.
+	var glow: float = 1.0
+	if stalled:
+		glow = 0.22
+	elif st == Simulation.Status.IDLE or st == Simulation.Status.EMPTY:
+		glow = 0.45
+	elif thermal:
+		glow = 1.45 if delta > 0.0 else 0.85
+	glow += flash * 0.8
 
-	MachineArt.silhouette(self, r, cs, Palette.family_of(id), body, flash)
+	var inset: float = cs * (1.0 - MachineArt.FOOT) * 0.5
+	MachineArt.build(self, r.grow(-inset), cs, id, {
+		"tier": Sim.upgrade_marks(),
+		"phase": Sim.sim.progress_of(cell),
+		"running": running,
+		"glow": glow,
+		"cold": thermal and delta < 0.0,
+	})
 
-	var glyph: String = Palette.machine_glyph(id)
-	var gsize: int = int(cs * 0.40)
-	var ts: Vector2 = font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, gsize)
-	draw_string(font, r.position + Vector2(
-			(r.size.x - ts.x) * 0.5,
-			(r.size.y + ts.y * 0.62) * 0.5),
-		glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, gsize, Palette.BG)
+	# An overheating machine vents. Two pale blocks rising off the top edge,
+	# so "this one is cooking" is visible without reading a number or knowing
+	# which colour means what.
+	if thermal and delta > 0.0 and cs > 30.0:
+		var t: float = fposmod(_anim * 0.8 + float(cell) * 0.17, 1.0)
+		var puff: Color = Palette.ST_HOT.lerp(Color.WHITE, 0.45)
+		puff.a = (1.0 - t) * 0.45
+		var w: float = cs * (0.12 + t * 0.14)
+		draw_rect(Rect2(r.position.x + r.size.x * 0.58,
+			r.position.y + cs * 0.06 - t * cs * 0.22, w, w * 0.7), puff, true)
+
+
+## The readouts, drawn after every machine so they land in one batch and never
+## disappear under a neighbour's glow.
+func _draw_readouts(r: Rect2, cell: int, cs: float) -> void:
+	var id: String = Sim.grid.machine_at(cell)
+	var st: int = Sim.sim.status_of(cell)
+	var eff: float = Sim.sim.heat_efficiency_at(cell)
+	var thermal: bool = eff < Simulation.THERMAL_WARNING
+	var delta: float = Sim.sim.heat_delta_at(cell)
 
 	# What it makes, top-left. "Which building produces which item" is the
 	# question players in this genre ask most often and the one a machine
@@ -429,8 +554,10 @@ func _draw_machine(r: Rect2, cell: int, id: String, font: Font, cs: float) -> vo
 	var out_res: int = Palette.output_res(id)
 	if out_res >= 0:
 		var chip: float = cs * 0.13
-		draw_rect(Rect2(r.position + Vector2(cs * 0.06, cs * 0.06),
-			Vector2(chip, chip)), Palette.res_color(out_res), true)
+		var cr := Rect2(r.position + Vector2(cs * 0.055, cs * 0.055),
+			Vector2(chip, chip))
+		draw_rect(cr.grow(maxf(cs * 0.016, 1.0)), Palette.BG, true)
+		draw_rect(cr, Palette.res_color(out_res), true)
 
 	_draw_status_pip(r, cs, st, thermal, delta)
 
@@ -441,7 +568,7 @@ func _draw_machine(r: Rect2, cell: int, id: String, font: Font, cs: float) -> vo
 		var mw: float = cs * 0.075
 		for k in range(marks):
 			draw_rect(Rect2(r.position.x + cs * 0.06 + float(k) * (mw + cs * 0.03),
-				r.position.y + r.size.y - cs * 0.15, mw, cs * 0.05),
+				r.position.y + r.size.y - cs * 0.16, mw, cs * 0.045),
 				Palette.CORE, true)
 
 	# Duty cycle down the left edge: how often this tile is actually working,
@@ -450,7 +577,7 @@ func _draw_machine(r: Rect2, cell: int, id: String, font: Font, cs: float) -> vo
 	var up: float = Sim.sim.uptime_of(cell)
 	var w: float = maxf(cs * 0.045, 2.0)
 	var h: float = (r.size.y - cs * 0.12) * up
-	draw_rect(Rect2(r.position.x + cs * 0.02,
+	draw_rect(Rect2(r.position.x + cs * 0.025,
 		r.position.y + r.size.y - cs * 0.06 - h, w, h),
 		Palette.efficiency_color(eff), true)
 
@@ -461,20 +588,12 @@ func _draw_machine(r: Rect2, cell: int, id: String, font: Font, cs: float) -> vo
 	var bh: float = maxf(cs * 0.05, 2.0)
 	var bx: float = r.position.x + cs * 0.1
 	var bw: float = r.size.x - cs * 0.2
-	draw_rect(Rect2(bx, r.position.y + r.size.y - bh - cs * 0.05, bw, bh),
-		Palette.BG.lerp(Palette.LINE, 0.6), true)
-	draw_rect(Rect2(bx, r.position.y + r.size.y - bh - cs * 0.05, bw * prog, bh),
-		Palette.ACCENT if st == Simulation.Status.RUNNING else Palette.ST_IDLE,
-		true)
-
-	if overlay == Overlay.HEAT and cs > 34.0:
-		# The number, not only the colour. A few tenths of heat decide whether
-		# a tile is at 100% or 62%, and a colour ramp cannot express that to
-		# someone who is colourblind or to anyone trying to work out how much
-		# coolant they actually need.
-		# Under the glyph, not over it: the number is the second thing read,
-		# after "what is this".
-		_num(font, r, "%+.1f" % delta, Palette.TEXT, cs, 0.74)
+	var by: float = r.position.y + r.size.y - bh - cs * 0.045
+	draw_rect(Rect2(bx, by, bw, bh), Palette.BG.lerp(Palette.LINE, 0.6), true)
+	if prog > 0.001:
+		var fill: Color = Palette.machine_light(id) \
+			if st == Simulation.Status.RUNNING else Palette.ST_IDLE
+		draw_rect(Rect2(bx, by, bw * prog, bh), fill, true)
 
 
 ## Four states, each a different SHAPE as well as a different colour, so the
@@ -514,15 +633,22 @@ func _draw_status_pip(r: Rect2, cs: float, st: int, thermal: bool,
 func _draw_motes(cs: float) -> void:
 	if _motes.is_empty():
 		return
-	var s: float = maxf(cs * 0.13, 3.0)
+	# Material in transit, drawn as a lit packet rather than a flat square.
+	# This is the single clearest signal that the factory is working: on a
+	# busy board dozens of these are crossing gaps every second, and the eye
+	# reads "flow" long before it reads a credits-per-second number.
+	var s: float = maxf(cs * 0.15, 3.0)
 	for m: Dictionary in _motes:
-		var t: float = float(m["t"])
+		var t: float = clampf(float(m["t"]), 0.0, 1.0)
 		var a: Vector2 = cell_center(int(m["from"]))
 		var b: Vector2 = cell_center(int(m["to"]))
-		var p: Vector2 = a.lerp(b, clampf(t, 0.0, 1.0))
+		# Eased so it leaves quickly and arrives softly, which reads as a
+		# thing being handed over rather than a dot sliding on a rail.
+		var p: Vector2 = a.lerp(b, t * t * (3.0 - 2.0 * t))
 		var col: Color = Palette.res_color(int(m["res"]))
-		col.a = 1.0 - t * t
-		draw_rect(Rect2(p - Vector2(s, s) * 0.5, Vector2(s, s)), col, true)
+		var fade: float = 1.0 - t * t
+		Palette.emissive(self, Rect2(p - Vector2(s, s) * 0.5, Vector2(s, s)),
+			col, fade * 0.85)
 
 
 ## What this placement would do, shown while the finger is still down.
@@ -600,12 +726,19 @@ func _draw_service_preview(font: Font, cs: float, cell: int,
 
 
 func _num(font: Font, r: Rect2, text: String, col: Color, cs: float,
-		vfrac: float) -> void:
+		vfrac: float, backing: bool = false) -> void:
 	var fs: int = maxi(int(cs * 0.24), 9)
 	var ts: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
-	draw_string(font, r.position + Vector2((r.size.x - ts.x) * 0.5,
-		r.size.y * vfrac + ts.y * 0.36), text,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	var p: Vector2 = r.position + Vector2((r.size.x - ts.x) * 0.5,
+		r.size.y * vfrac + ts.y * 0.36)
+	if backing:
+		# A number printed straight onto a lit machine body is unreadable, and
+		# the heat overlay exists precisely so somebody can read numbers.
+		var pad: Color = Palette.BG
+		pad.a = 0.78
+		draw_rect(Rect2(p.x - cs * 0.05, p.y - ts.y * 0.82,
+			ts.x + cs * 0.10, ts.y * 1.02), pad, true)
+	draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
 ## A slow breathing outline. Fast enough to catch the eye, slow enough not to

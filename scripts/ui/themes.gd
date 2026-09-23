@@ -46,8 +46,8 @@ const THEMES := {
 			"lab": "a780ff", "duplicator": "ff8fd0", "condenser": "6fd6e8",
 		},
 		"resources": ["8a7f72", "b79b76", "cfd6df", "8fb4d6", "d9c56a"],
-		"rock_deep": "241a1c",
-		"heat": ["1a2430", "6b4a2a", "a33a1f"],
+		"rock_deep": "2a1c26",
+		"heat": ["1a2430", "7a4a24", "c2401c"],
 	},
 	# Everything machined from brass and copper, the rock gone ochre. Warmer
 	# overall, so the thermal blues read harder against it.

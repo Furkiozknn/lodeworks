@@ -115,6 +115,37 @@ jobs:
           name: screenshots
           path: ~/.local/share/godot/app_userdata/Lodeworks/shots/
 
+  readability:
+    name: readability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -sSL -o godot.zip "$url"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+      - run: sudo apt-get update && sudo apt-get install -y xvfb python3-pil
+      - name: Import project
+        run: ./godot --headless --path . --import
+
+      # Renders all twelve machines at the three cell sizes a phone board
+      # actually produces and fails if any two of them have become the same
+      # picture -- in colour, and again desaturated. A visual pass that makes
+      # the game prettier and less playable fails here rather than in a store
+      # review.
+      - name: Render machine strips
+        run: |
+          xvfb-run -a ./godot --path . --rendering-driver opengl3 \
+            tools/readability.tscn
+      - name: Check every machine is distinguishable
+        run: |
+          python3 tools/check-readability.py \
+            ~/.local/share/godot/app_userdata/Lodeworks/readability
+
   smoke:
     name: ui smoke
     runs-on: ubuntu-latest
