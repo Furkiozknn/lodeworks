@@ -31,12 +31,14 @@ const PANEL_FADE := 0.14
 const M := 14.0
 const TOP_H := 78.0
 const BOTTOM_H := 124.0
-const ACTION_W := 92.0
-const TOOL_W := 88.0
+const ACTION_W := 100.0
+const TOOL_W := 96.0
 const DESCEND_W := 236.0
-## Android's 48dp touch floor, in canvas units on the reference phone (1080 px
-## tall at 420 dpi: 720 canvas units = 1080 px = 411 dp, so 48 dp = 84 units).
-const MIN_TOUCH := 84.0
+## Android's 48dp touch floor, in canvas units, on the phone where a canvas
+## unit is smallest: a 16:9 1080p phone at 420 dpi, whose canvas grows to
+## 1440x810, so one unit is 1080/810 px = 0.51 dp and 48 dp is 95 units.
+## tools/layout_check.tscn measures every key against it.
+const MIN_TOUCH := 96.0
 
 var iso_view: IsoView
 var _hud: Control
@@ -241,7 +243,7 @@ func _build() -> void:
 	_undo_btn.add_theme_color_override("font_color", Palette.TEXT)
 	_undo_btn.visible = false
 	_undo_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_undo_btn.custom_minimum_size = Vector2(132, MIN_TOUCH * 0.75)
+	_undo_btn.custom_minimum_size = Vector2(140, MIN_TOUCH)
 	_undo_btn.pressed.connect(_do_undo)
 	_hud.add_child(_undo_btn)
 
@@ -435,7 +437,7 @@ func _build_resources() -> Control:
 	_lbl_cores = _label("0", 22, Palette.CORE)
 	row.add_child(_pill("cores", _lbl_cores))
 	var menu := _button("", Palette.PANEL_HI)
-	menu.custom_minimum_size = Vector2(MIN_TOUCH * 0.9, MIN_TOUCH * 0.9)
+	menu.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	menu.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var ic := _icon_rect("settings", 50)
 	ic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -723,7 +725,7 @@ func _build_sheet() -> void:
 
 	var close := _button("✕", Palette.PANEL)
 	close.add_theme_color_override("font_color", Palette.TEXT)
-	close.custom_minimum_size = Vector2(60, 60)
+	close.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	close.size_flags_horizontal = Control.SIZE_SHRINK_END
 	close.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	close.pressed.connect(_close_sheet)

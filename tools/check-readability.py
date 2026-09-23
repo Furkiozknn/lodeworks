@@ -43,7 +43,7 @@ def main():
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     failures, checked = [], 0
     for strip in sorted(root.glob("strip_*.png")):
-        px = int(strip.stem.split("_")[1])
+        px = strip.stem.split("_", 1)[1]
         for mode, floor in (("colour", FLOOR_COLOUR), ("grey", FLOOR_GREY)):
             ts = tiles(strip, len(ORDER))
             if mode == "grey":
@@ -59,7 +59,7 @@ def main():
                         failures.append(
                             f"{px}px {mode}: {ORDER[i]} and {ORDER[j]} differ "
                             f"by only {d:.1f} (floor {floor})")
-            print(f"   {px:>3}px {mode:<6} closest pair "
+            print(f"   {px:>10} {mode:<6} closest pair "
                   f"{worst_pair[0]}/{worst_pair[1]} at {worst:.1f}")
     print(f"   {checked} pair comparisons")
     if failures:

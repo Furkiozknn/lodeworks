@@ -2,7 +2,7 @@ extends Node
 
 ## Boots the real game, opens the diagnostics screen, and captures it.
 ##
-##   xvfb-run -a godot --path . --resolution 720x1440 \
+##   xvfb-run -a godot --path . --resolution 1440x720 \
 ##       --rendering-driver opengl3 tools/smoke.tscn
 ##
 ## The unit tests never build a Control, so a UI that fails to instantiate

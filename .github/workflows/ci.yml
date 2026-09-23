@@ -44,6 +44,24 @@ jobs:
       - name: Self test
         run: ./godot --headless --path . --script res://tools/selftest_cli.gd
 
+      # The main screen, laid out on eleven screen shapes and three safe
+      # areas: nothing overlaps, nothing leaves the safe area, every key
+      # clears the 48dp floor on the phones it is enforced on, and the board
+      # is fully visible between the panels. Godot can exit 0 with a script
+      # error, so the verdict line is what is checked.
+      - name: Landscape layout
+        run: |
+          timeout 300 ./godot --headless --path . tools/layout_check.tscn | tee layout-check.txt
+          grep -q "=== layout check passed" layout-check.txt
+
+      # Repo, package and estimated VRAM for every picture, and every picture
+      # traced to a recorded generation. Fails over 40 MB or on an unsourced
+      # file.
+      - name: Art budget
+        run: |
+          sudo apt-get install -y -qq python3-pil
+          python3 tools/asset_budget.py --md art-budget.md
+
       - name: Balance diagnostics
         run: ./godot --headless --path . --script res://tools/diagnose.gd
 
@@ -87,7 +105,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: play-readiness
-          path: play-readiness.txt
+          path: |
+            play-readiness.txt
+            layout-check.txt
+            art-budget.md
 
   screenshots:
     name: screenshots render
@@ -105,15 +126,26 @@ jobs:
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
       - run: ./godot --headless --path . --import
       # Rendering the store screenshots from the running game is also the only
-      # automated check that the UI still draws at all.
+      # automated check that the UI still draws at all. Landscape, at the
+      # 1920x1080 Play asks for.
       - name: Render
         run: |
-          xvfb-run -a ./godot --path . --resolution 720x1440 \
+          xvfb-run -a ./godot --path . --resolution 1920x1080 \
             --rendering-driver opengl3 tools/shots.tscn
+      # The four screens the visual audit compares (docs/AUDIT.md), from
+      # the same build: main, zoomed, whole world, one machine close up.
+      - name: Render the audit screens
+        run: |
+          LODEWORKS_CAPTURE=audit xvfb-run -a ./godot --path . \
+            --resolution 1440x720 --rendering-driver opengl3 tools/shots.tscn \
+            | tee audit.txt
+          grep -q "wrote the audit screens" audit.txt
       - uses: actions/upload-artifact@v4
         with:
           name: screenshots
-          path: ~/.local/share/godot/app_userdata/Lodeworks/shots/
+          path: |
+            ~/.local/share/godot/app_userdata/Lodeworks/shots/
+            ~/.local/share/godot/app_userdata/Lodeworks/audit/
 
   readability:
     name: readability
@@ -149,6 +181,12 @@ jobs:
   smoke:
     name: ui smoke
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The phone shapes, a desktop landscape window, and the two portrait
+        # windows the game must still come up in without breaking.
+        resolution: [1440x720, 1920x1080, 2400x1080, 1280x720, 720x1440, 360x720]
     steps:
       - uses: actions/checkout@v4
       - name: Fetch Godot ${{ env.GODOT_VERSION }}
@@ -167,11 +205,11 @@ jobs:
       # is not a black rectangle.
       - name: Boot the game and open the self test
         run: |
-          xvfb-run -a ./godot --path . --resolution 720x1440 \
+          xvfb-run -a ./godot --path . --resolution ${{ matrix.resolution }} \
             --rendering-driver opengl3 tools/smoke.tscn
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-screens
+          name: smoke-screens-${{ matrix.resolution }}
           path: ~/.local/share/godot/app_userdata/Lodeworks/smoke/
           if-no-files-found: warn

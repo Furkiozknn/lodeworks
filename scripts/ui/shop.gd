@@ -11,7 +11,7 @@ extends Control
 ##     player's real number, not a marketing one. Underneath, in plain credits,
 ##     what that difference is worth at this player's own measured rate.
 ##   * The palettes draw themselves: a strip of real machine tiles, through
-##     `MachineArt.tile()`, in each theme's actual colours. Tapping one shows
+##     sprites, from each theme's own sheet. Tapping one shows
 ##     it on the board behind. What you see is exactly the file you get.
 ##
 ## And the rules it is built to refuse. There is no countdown, no "was/now",
@@ -83,7 +83,7 @@ class OfflineBars extends Control:
 
 ## A strip of real machine tiles in one theme's colours. This is the product.
 class ThemeStrip extends Control:
-	const TILE := 46.0
+	const TILE := 62.0
 	const SHOWN: Array[String] = ["drill", "smelter", "boiler", "vault", "lab"]
 
 	var theme_id: String = Themes.DEFAULT
@@ -94,6 +94,7 @@ class ThemeStrip extends Control:
 	func _init() -> void:
 		custom_minimum_size = Vector2(0, TILE + 34.0)
 		mouse_filter = Control.MOUSE_FILTER_STOP
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 
 	func _gui_input(e: InputEvent) -> void:
 		if e is InputEventScreenTouch and (e as InputEventScreenTouch).pressed:
@@ -113,17 +114,14 @@ class ThemeStrip extends Control:
 			Themes.rock_deep(theme_id), 0.85), true)
 		draw_rect(Rect2(0, 0, size.x, size.y), frame, false, 2.0 if selected else 1.0)
 
-		# Drawn through the theme by swapping the active palette for the
-		# duration of the strip and putting it straight back -- the tiles are
-		# the game's own, so a swatch cannot flatter a theme the board will
-		# not deliver.
-		var prev: String = Palette.theme()
-		Palette.set_theme(theme_id)
+		# Drawn from the palette's own sprite sheet -- the pictures the board
+		# will use -- so a swatch cannot flatter a theme the board will not
+		# deliver.
+		var sheet: Dictionary = IsoArt.sheet(IsoArt.sheet_name(theme_id, 0))
 		var x: float = 8.0
 		for id: String in SHOWN:
-			MachineArt.tile(self, Rect2(x, 6.0, TILE, TILE), id, font, 0.0)
+			IsoArt.draw_machine_fit(self, Rect2(x, 4.0, TILE, TILE), id, sheet)
 			x += TILE + 5.0
-		Palette.set_theme(prev)
 		if locked:
 			# Dimmed as well as labelled. A single faint word is not enough to
 			# carry "you do not have this" on a phone in daylight.

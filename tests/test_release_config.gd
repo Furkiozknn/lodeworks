@@ -180,9 +180,10 @@ func test_the_renderer_is_the_one_that_reaches_the_most_devices() -> void:
 	runner.eq(String(ProjectSettings.get_setting(
 		"rendering/renderer/rendering_method.mobile", "")), "gl_compatibility",
 		"the mobile renderer choice is a device-reach decision")
+	# Sensor landscape: either way up, never portrait.
 	runner.eq(int(ProjectSettings.get_setting(
-		"display/window/handheld/orientation", -1)), 1,
-		"the game is portrait-locked")
+		"display/window/handheld/orientation", -1)), 4,
+		"the game is landscape-locked")
 
 
 func test_the_ci_workflows_reference_things_that_exist() -> void:

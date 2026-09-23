@@ -27,8 +27,7 @@ var anchor := Vector2(1920, 1015)
 var parallax := 0.82
 
 var zoom_max := 1.6
-## However far out the painting would allow, never so far that the board is
-## a thumbnail. The painting's own limit usually binds first.
+## Never so far out that the board is a thumbnail.
 var zoom_floor := 0.42
 
 var center := Vector2(1920, 1015)
@@ -50,13 +49,19 @@ const FLING_DECAY := 5.5
 const FLING_STOP := 4.0
 
 
+## The far layer's scale: zoom^parallax, but never smaller than what covers
+## the screen. The near layer can zoom out past that point (a tall portrait
+## window needs it); the painting simply stops shrinking.
 func bg_zoom(z: float) -> float:
-	return pow(z, parallax)
+	return maxf(pow(z, parallax), cover_zoom())
+
+
+func cover_zoom() -> float:
+	return maxf(viewport.x / bg_size.x, viewport.y / bg_size.y)
 
 
 func min_zoom() -> float:
-	var need: float = maxf(viewport.x / bg_size.x, viewport.y / bg_size.y)
-	return maxf(zoom_floor, pow(need, 1.0 / parallax))
+	return zoom_floor
 
 
 func clamp_zoom(z: float) -> float:

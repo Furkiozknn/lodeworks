@@ -4,8 +4,7 @@ extends Control
 ##
 ## Every Codex page shows one of these instead of a paragraph. It is not a
 ## picture of a factory: it is a `Simulation` with a real `Grid`, ticking, with
-## the same tile drawing, the same status lights and the same heat wash the
-## real board uses. Put a Boiler next to a Smelter on a Codex page and the
+## the same machine sprites and the same status colours the real board uses. Put a Boiler next to a Smelter on a Codex page and the
 ## Smelter's status pip goes green and its progress bar speeds up, because that
 ## is what happens.
 ##
@@ -20,6 +19,7 @@ var _sim: Simulation
 var _cells: Array = []
 var _label_res: bool = true
 var _accum: float = 0.0
+var _sheet: Dictionary = {}
 
 
 ## `layout` is [[x, y, machine_id], ...] in a small local coordinate space.
@@ -30,6 +30,8 @@ func setup(layout: Array, ambient: float = 0.0) -> void:
 	for e: Array in layout:
 		_grid.place(Grid.idx(int(e[0]), int(e[1])), String(e[2]))
 	_sim = Simulation.new(_grid, 1234)
+	_sheet = IsoArt.sheet(IsoArt.sheet_name(Palette.theme(), 0))
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	# Warm it so the page opens on a settled board rather than on a cold one
 	# that looks broken for its first second.
 	_sim.run_ticks(200)
@@ -60,14 +62,19 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if _grid == null:
 		return
-	var font: Font = ThemeDB.fallback_font
 	for e: Array in _cells:
 		var x: int = int(e[0])
 		var y: int = int(e[1])
 		var i: int = Grid.idx(x, y)
 		var r := Rect2(MARGIN + float(x) * CELL, MARGIN + float(y) * CELL,
 			CELL - 4.0, CELL - 4.0)
-		MachineArt.tile(self, r, String(e[2]), font, _grid.heat_at(i))
+		# The floor slab, warmed by the cell's heat, and the machine standing
+		# on it -- the same sprite as on the board.
+		draw_rect(r, Color("5b4b3f").lerp(Palette.heat_color(_grid.heat_at(i)), 0.25), true)
+		draw_rect(r, Color(0, 0, 0, 0.35), false, 1.5)
+		var running: bool = _sim.status_of(i) == Simulation.Status.RUNNING
+		var mod := Color.WHITE if running else Color(0.7, 0.7, 0.75)
+		IsoArt.draw_machine_fit(self, r.grow(-2.0), String(e[2]), _sheet, mod)
 		# The same status light as the real board, for the same reason.
 		var st: int = _sim.status_of(i)
 		var eff: float = _sim.heat_efficiency_at(i)

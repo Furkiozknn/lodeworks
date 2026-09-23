@@ -13,15 +13,19 @@ extends Node
 ## that only works for people with normal colour vision is a board that does
 ## not work.
 ##
+## The machines are the board's sprites, drawn from the same sheets and at
+## the sizes a cell actually reaches on a phone: 44 px is a 720p phone at the
+## furthest zoom, 110 px a 1080p phone at the default one. Two sheets are
+## checked: the free palette, and Slate -- the grey plant, which is the one
+## most likely to turn two machines into the same picture.
+##
 ## Rendered through a SubViewport with its own pixel size, because the project
-## stretches `canvas_items` from a 720x1440 base and would otherwise scale the
+## stretches `canvas_items` from a 1440x720 base and would otherwise scale the
 ## strip by whatever the window happened to imply.
 
 const OUT := "user://readability"
-## A 7-wide board on a 360dp phone gives about 44 logical pixels a cell, so
-## that is the floor. 96 is a large modern phone. The check that matters is
-## the small one.
-const SIZES := [44, 64, 96]
+const SIZES := [44, 72, 110]
+const SHEETS := ["shaft", "slate"]
 
 var _vp: SubViewport
 var _strip: Control
@@ -39,17 +43,19 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	for px: int in SIZES:
-		_vp.size = Vector2i(px * MachineDB.ORDER.size(), px)
-		_strip.set("cell", float(px))
-		_strip.queue_redraw()
-		await get_tree().process_frame
-		await get_tree().process_frame
-		await RenderingServer.frame_post_draw
-		var img: Image = _vp.get_texture().get_image()
-		img.convert(Image.FORMAT_RGB8)
-		img.save_png("%s/strip_%d.png" % [OUT, px])
-		print("   %d px strip" % px)
+	for sheet: String in SHEETS:
+		for px: int in SIZES:
+			_vp.size = Vector2i(px * MachineDB.ORDER.size(), px)
+			_strip.set("cell", float(px))
+			_strip.set("sheet", sheet)
+			_strip.queue_redraw()
+			await get_tree().process_frame
+			await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			var img: Image = _vp.get_texture().get_image()
+			img.convert(Image.FORMAT_RGB8)
+			img.save_png("%s/strip_%s_%d.png" % [OUT, sheet, px])
+			print("   %s %d px strip" % [sheet, px])
 	print("readability strips written to %s"
 		% ProjectSettings.globalize_path(OUT))
 	get_tree().quit(0)
@@ -61,11 +67,15 @@ func _run() -> void:
 ## same thing.
 class _Strip extends Control:
 	var cell: float = 96.0
+	var sheet: String = "shaft"
+
+	func _init() -> void:
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 
 	func _draw() -> void:
-		var font: Font = ThemeDB.fallback_font
-		draw_rect(Rect2(Vector2.ZERO, size), Palette.BG, true)
+		# The floor colour the machines stand on, not the UI background.
+		draw_rect(Rect2(Vector2.ZERO, size), Color("7a6656"), true)
+		var info: Dictionary = IsoArt.sheet(sheet)
 		for i in range(MachineDB.ORDER.size()):
 			var id: String = String(MachineDB.ORDER[i])
-			MachineArt.tile(self, Rect2(float(i) * cell, 0.0, cell, cell),
-				id, font, 1.2, {"glow": 1.0, "tier": 1})
+			IsoArt.draw_machine_fit(self, Rect2(float(i) * cell, 0.0, cell, cell), id, info)
