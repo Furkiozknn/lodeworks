@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -sSL -o godot.zip "$url"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          ./godot --headless --version
+
+      - name: Import project
+        run: ./godot --headless --path . --import
+
+      # The suite covers the balance as well as the code: if a change makes the
+      # first quota unreachable or walls the curve out at stratum 20, this is
+      # where it is caught, not in reviews.
+      - name: Run tests
+        run: ./godot --headless --path . --script res://tests/test_runner.gd
+
+      - name: Balance diagnostics
+        run: ./godot --headless --path . --script res://tools/diagnose.gd
+
+  screenshots:
+    name: screenshots render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -sSL -o godot.zip "$url"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+      - run: ./godot --headless --path . --import
+      # Rendering the store screenshots from the running game is also the only
+      # automated check that the UI still draws at all.
+      - name: Render
+        run: |
+          xvfb-run -a ./godot --path . --resolution 720x1440 \
+            --rendering-driver opengl3 tools/shots.tscn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: ~/.local/share/godot/app_userdata/Lodeworks/shots/

@@ -1,0 +1,8 @@
+.godot/
+build/
+export_presets.cfg.bak
+*.tmp
+# .import files are build artefacts; Godot regenerates them
+*.import
+android/
+addons/
