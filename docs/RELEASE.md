@@ -174,7 +174,11 @@ claims with the evidence next to each one.
 | The project exports an installable APK and an uploadable AAB | **not yet verified here** | the export needs the Android SDK, JDK 17 and Google's Maven repos, none of which the development container can reach. The `android` workflow is written to do it on a runner; the first green run is the evidence |
 | A rewarded ad plays | **NOT VERIFIED** | no AdMob account, no ad unit ids, no device. Until the self test's Ad plugin row reads `loaded` on hardware and an ad has actually paid out, monetization is not working |
 | `foremans_licence` is purchasable | **NOT VERIFIED** | no Play Console product exists. Billing returns nothing for an app Play has never seen, so this cannot even be attempted before a first upload |
-| Performance on a phone | **UNKNOWN** | never run on hardware. The self test measures it in one tap; nobody has tapped it |
+| Performance on a phone | **UNKNOWN** | never run on hardware. The self test measures frame time, input-to-frame latency, draw calls, shader stalls and memory in one tap; nobody has tapped it |
+| The board explains itself | **verified in a render** | `tools/smoke.tscn` boots the real game under xvfb, opens the settings panel and the self-test screen, and fails if what came up is a black rectangle |
+| The store assets meet Play's specs | **verified** | `tools/check-store-assets.py` checks every dimension, colour type and count against the published spec and runs at the end of every asset build |
+| Haptics | **UNKNOWN** | `Input.vibrate_handheld` needs a device. The `VIBRATE` permission is now in the export preset — without it Godot 4.4 was reported to crash on Android |
+| Sound | **verified as generated, UNKNOWN as heard** | every sound is synthesised at startup and the test suite asserts all twelve exist; nobody has heard them through a phone speaker |
 
 The MVP ships **one** ad placement — doubling offline earnings — out of the
 three that are written. It is the only one where the player knows the exact
@@ -214,10 +218,35 @@ Nothing below can be automated, and nothing below has been done.
 10. **Trademark and store-name availability** for "Lodeworks" in the categories
     and territories you care about. Not checked.
 
-## 8. Known gaps in the build itself
+## 8. The store listing
 
-- **No sound.** Not a single audio file. The design does not depend on it, but
-  a silent idle game reads as unfinished to some reviewers.
+Every asset is generated from the running game by `tools/store-assets.sh` and
+checked against Google's published specs by `tools/check-store-assets.py`.
+What that check found the first time it ran is in
+[`store/listing.md`](../store/listing.md); the short version is that the
+listing was out of spec in four ways that were invisible to the eye — 32-bit
+screenshots below the 1080px floor, no feature graphic at all, no tablet
+screenshots, and seven tags where five is the maximum.
+
+| asset | state |
+|---|---|
+| App icon 512x512, 192, adaptive foreground | generated, no alpha, no self-rounded corners |
+| Feature graphic 1024x500 | generated — previously missing, which blocks publication outright |
+| Phone screenshots | 8 at 1080x1920, 24-bit, with alt text |
+| Tablet screenshots | 8 at 1620x2880 |
+| Preview video | `store/preview.mp4`, 13 s of captured gameplay — **needs a human to upload it to YouTube** |
+| Title, descriptions, tags | rewritten and within limits |
+
+## 9. Known gaps in the build itself
+
+- **The deep end of the production chain does not pay for itself.** Measured,
+  not suspected: hand-built long chains score near the bottom of the layout
+  table while dense shallow boards win by up to nine times, which makes the
+  Press, Assembler, Lab and Condenser content an optimising player will not
+  build. [`docs/BALANCE.md`](BALANCE.md) has the numbers and the three things
+  the next balance pass should try. Deliberately not fixed here, because every
+  available fix invalidates the measured playability results the balance tests
+  encode.
 - **No ad or billing plugin has ever been fetched.** `tools/install-plugins.sh`
   resolves both from the GitHub release API at build time; it has not been run,
   because the development container cannot reach that API. The versions in the
@@ -232,3 +261,7 @@ Nothing below can be automated, and nothing below has been done.
 - **No emulator run either.** An emulator would catch a packaging failure but
   tells you nothing about thermals, touch latency or battery, which are the
   three things a real device is needed for.
+- **No music.** There is a synthesised factory ambience; there is no score. A
+  procedural one is a day's work and was not the highest-value day available.
+- **The preview video is not uploaded.** Play takes a YouTube URL, and a
+  YouTube account is a human step.

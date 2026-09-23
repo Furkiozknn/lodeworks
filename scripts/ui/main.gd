@@ -34,11 +34,18 @@ var _lbl_cores: Label
 var _lbl_depth: Label
 var _lbl_quota: Label
 var _lbl_mods: Label
+var _lbl_problems: Button
+var _btn_heat: Button
 var _btn_descend: Button
+var _sheet: PanelContainer
+var _sheet_body: VBoxContainer
+var _sheet_title: Label
 var _palette_buttons: Dictionary = {}
 
 var _armed: String = ""
 var _toast_time: float = 0.0
+var _shown_credits: float = 0.0
+var _problem_cursor: int = 0
 
 
 func _ready() -> void:
@@ -52,11 +59,21 @@ func _ready() -> void:
 	Ads.reward_granted.connect(_on_reward)
 	Ads.reward_failed.connect(_on_reward_failed)
 	Store.purchase_completed.connect(func(_p): _toast_msg("Foreman's Licence active. Thank you."); _refresh())
+	SelfTest.note_launch()
 	Sim.start()
 	_rebuild_palette()
+	_shown_credits = Sim.credits
 	_refresh()
 	_refresh_hint()
 	get_tree().auto_accept_quit = false
+
+	# An idle game is left running. Uncapped frames on a phone is a warm
+	# pocket and a flat battery for a board that changes ten times a second,
+	# so the cap is set here rather than left to whatever the device does.
+	Engine.max_fps = 60
+	Juice.sound_enabled = bool(Sim.settings.get("sound", true))
+	Juice.haptics_enabled = bool(Sim.settings.get("haptics", true))
+	Juice.start_ambient()
 
 
 func _notification(what: int) -> void:
@@ -64,6 +81,12 @@ func _notification(what: int) -> void:
 	# reliable moment; waiting for a quit notification loses the session.
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		Save.save_game(Sim)
+		SelfTest.note_pause()
+		# Nothing of this game should keep making noise in a pocket.
+		Juice.stop_ambient()
+	elif what == NOTIFICATION_APPLICATION_RESUMED:
+		SelfTest.note_resume()
+		Juice.start_ambient()
 	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
 		Save.save_game(Sim)
 		Analytics.end_session(Sim.depth)
@@ -111,6 +134,8 @@ func _build() -> void:
 
 	root.add_child(_build_palette())
 	root.add_child(_build_actions())
+
+	_build_sheet()
 
 	_overlay = Control.new()
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -232,8 +257,99 @@ func _build_stratum_bar() -> Control:
 	_lbl_mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_lbl_mods)
 
+	# The one line that says what is wrong with the board, and the one button
+	# that explains why. Between them these answer the question every factory
+	# game struggles with -- "which machine is the problem" -- without the
+	# player having to inspect tiles one at a time.
+	var tools := HBoxContainer.new()
+	tools.add_theme_constant_override("separation", 8)
+
+	_lbl_problems = Button.new()
+	_lbl_problems.flat = true
+	_lbl_problems.text = ""
+	_lbl_problems.add_theme_font_size_override("font_size", 16)
+	_lbl_problems.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lbl_problems.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_lbl_problems.custom_minimum_size = Vector2(0, 40)
+	_lbl_problems.pressed.connect(_cycle_problem)
+	tools.add_child(_lbl_problems)
+
+	_btn_heat = Button.new()
+	_btn_heat.text = "Heat"
+	_btn_heat.toggle_mode = true
+	_btn_heat.add_theme_font_size_override("font_size", 16)
+	_btn_heat.custom_minimum_size = Vector2(88, 40)
+	_btn_heat.toggled.connect(func(on: bool):
+		grid_view.set_overlay(GridView.Overlay.HEAT if on else GridView.Overlay.NONE)
+		Juice.tap())
+	tools.add_child(_btn_heat)
+
+	col.add_child(tools)
+
 	_stratum_bar = p
 	return p
+
+
+## The detail sheet lives at the BOTTOM of the screen and is not modal.
+##
+## A popover next to the tapped tile would sit under the thumb that is
+## pointing at it, which is the most common complaint about inspecting things
+## in mobile builds of this genre. Anchoring it to the bottom edge keeps the
+## board visible and leaves the player free to tap another tile and watch the
+## sheet follow -- comparing two machines is the thing they are actually doing.
+func _build_sheet() -> void:
+	_sheet = _panel(Palette.PANEL_HI)
+	_sheet.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_sheet.offset_left = Palette.PAD
+	_sheet.offset_right = -Palette.PAD
+	_sheet.offset_top = -280
+	_sheet.offset_bottom = -Palette.PAD
+	_sheet.visible = false
+	add_child(_sheet)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	_sheet.add_child(col)
+
+	var head := HBoxContainer.new()
+	_sheet_title = _label("", 22, Palette.TEXT)
+	_sheet_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(_sheet_title)
+	var close := Button.new()
+	close.text = "✕"
+	close.flat = true
+	close.custom_minimum_size = Vector2(48, 48)
+	close.add_theme_font_size_override("font_size", 20)
+	close.pressed.connect(_close_sheet)
+	head.add_child(close)
+	col.add_child(head)
+
+	_sheet_body = VBoxContainer.new()
+	_sheet_body.add_theme_constant_override("separation", 3)
+	col.add_child(_sheet_body)
+
+
+func _close_sheet() -> void:
+	_sheet.visible = false
+	grid_view.selected_cell = -1
+	grid_view.queue_redraw()
+
+
+## Step through whatever is wrong, worst first. One button, one tap per
+## problem, selection lands on the tile -- which is as close as a board this
+## size needs to get to a diagnostics tool.
+func _cycle_problem() -> void:
+	var cells: Array[int] = Sim.sim.problem_cells()
+	if cells.is_empty():
+		_toast_msg("Nothing is stalled or overheating.")
+		return
+	_problem_cursor = (_problem_cursor + 1) % cells.size()
+	var cell: int = cells[_problem_cursor]
+	grid_view.selected_cell = cell
+	grid_view.pulse(cell)
+	grid_view.queue_redraw()
+	_show_cell_info(cell)
+	Juice.tap()
 
 
 func _build_palette() -> Control:
@@ -294,6 +410,7 @@ func _make_palette_button(id: String) -> Control:
 ## --- interaction -----------------------------------------------------------
 
 func _arm(id: String) -> void:
+	Juice.tap()
 	_armed = "" if _armed == id else id
 	grid_view.arm_id = _armed
 	for k: String in _palette_buttons:
@@ -303,17 +420,22 @@ func _arm(id: String) -> void:
 
 func _on_cell_tapped(cell: int) -> void:
 	if Sim.is_blocked(cell):
+		Juice.reject()
 		_toast_msg("This part of the shaft has collapsed.")
 		return
 	if Sim.grid.is_empty(cell):
+		_close_sheet()
 		if _armed == "":
 			_toast_msg("Pick a machine below, then tap a tile.")
 			return
 		if not Sim.can_afford(_armed):
+			Juice.reject()
 			_toast_msg("Not enough credits for a %s." % MachineDB.get_machine(_armed)["name"])
 			return
 		if Sim.try_place(cell, _armed):
+			Juice.place()
 			grid_view.pulse(cell)
+			_shown_credits = Sim.credits
 			_refresh()
 			_refresh_hint()
 			if Sim.tutorial_step() < 5:
@@ -321,7 +443,10 @@ func _on_cell_tapped(cell: int) -> void:
 		return
 	grid_view.selected_cell = -1 if grid_view.selected_cell == cell else cell
 	if grid_view.selected_cell >= 0:
+		Juice.tap()
 		_show_cell_info(cell)
+	else:
+		_close_sheet()
 	grid_view.queue_redraw()
 
 
@@ -334,15 +459,22 @@ func _on_cell_long_pressed(cell: int) -> void:
 		"You get %s credits back." % Economy.fmt(refund),
 		"Remove", func():
 			Sim.sell(cell)
-			grid_view.selected_cell = -1
+			Juice.sell()
+			_close_sheet()
+			_shown_credits = Sim.credits
 			_refresh())
 
 
 func _on_descend() -> void:
 	if not Sim.can_descend():
+		Juice.reject()
 		_toast_msg("Reach %s credits to descend." % Economy.fmt(Sim.quota()))
 		return
 	if Sim.descend():
+		Juice.descend()
+		Juice.punch(_stratum_bar, 0.06, 0.30)
+		_close_sheet()
+		_shown_credits = Sim.credits
 		_toast_msg("Stratum %d." % Sim.depth)
 		_refresh_hint()
 
@@ -354,20 +486,29 @@ func _on_unlocked(ids: Array) -> void:
 	for id in ids:
 		names.append(String(MachineDB.get_machine(id)["name"]))
 	_rebuild_palette()
+	Juice.unlock()
 	_info("New machine unlocked", "\n".join(names) +
 		"\n\nIt is in the tray at the bottom. What it is next to matters more than how many you own.")
 
 
 func _on_collapsed(gained: int) -> void:
 	_rebuild_palette()
+	_close_sheet()
+	_shown_credits = Sim.credits
+	Juice.collapse()
+	# Framed as what is kept, never as what is lost, and never as a "reset".
+	# The genre's most cited progression failure is a prestige that reads as
+	# punishment, and the wording is half of that.
 	_info("The shaft collapses",
-		"You recovered %d Cores.\n\nThe board, your credits and your research are gone. The Cores and everything you bought with them are not." % gained)
+		"You brought up %d Cores.\n\nCores are the only thing that survives a collapse — and everything you spend them on survives with them. The next shaft goes deeper and faster than this one did." % gained)
 
 
 func _on_reward(placement: String) -> void:
 	match placement:
 		Ads.P_DOUBLE_OFFLINE:
 			var extra: float = Save.apply_offline_double(Sim)
+			Juice.reward()
+			_shown_credits = Sim.credits - extra
 			_toast_msg("+%s credits." % Economy.fmt(extra))
 			_refresh()
 		_:
@@ -390,7 +531,15 @@ func _on_reward_failed(_placement: String, reason: String) -> void:
 ## --- refresh ---------------------------------------------------------------
 
 func _refresh() -> void:
-	_lbl_credits.text = Economy.fmt(Sim.credits)
+	# The headline figure counts up rather than snapping. In a game whose
+	# whole feedback loop is a number going up, a number that jumps reads as
+	# a variable being assigned and a number that rolls reads as income.
+	if absf(Sim.credits - _shown_credits) > 0.5:
+		Juice.roll(_lbl_credits, _shown_credits, Sim.credits,
+			func(v: float) -> String: return Economy.fmt(v))
+		_shown_credits = Sim.credits
+	elif _lbl_credits.text == "":
+		_lbl_credits.text = Economy.fmt(Sim.credits)
 	_lbl_rate.text = "%s /s" % Economy.fmt(Sim.credits_per_sec)
 	_lbl_research.text = Economy.fmt(Sim.research)
 	_lbl_cores.text = str(Sim.cores)
@@ -409,6 +558,8 @@ func _refresh() -> void:
 		_lbl_mods.text = "\n".join(parts)
 		_lbl_mods.add_theme_color_override("font_color", Palette.WARN)
 
+	_refresh_problems()
+
 	_btn_descend.disabled = not Sim.can_descend()
 	for id: String in _palette_buttons:
 		var b: Button = _palette_buttons[id]
@@ -417,6 +568,26 @@ func _refresh() -> void:
 			Economy.fmt(Sim.cost_of(id))]
 		b.add_theme_color_override("font_color",
 			Palette.TEXT if Sim.can_afford(id) else Palette.TEXT_FAINT)
+
+
+## One line, counts only, in the order a player should deal with them:
+## starvation first because it stops production dead, then backpressure, then
+## heat, which only costs a percentage.
+func _refresh_problems() -> void:
+	var c: Dictionary = Sim.sim.problem_counts()
+	var parts: Array[String] = []
+	if int(c["starved"]) > 0:
+		parts.append("%d starved" % int(c["starved"]))
+	if int(c["blocked"]) > 0:
+		parts.append("%d backed up" % int(c["blocked"]))
+	if int(c["thermal"]) > 0:
+		parts.append("%d off temperature" % int(c["thermal"]))
+	if parts.is_empty():
+		_lbl_problems.text = "  Everything is running."
+		_lbl_problems.add_theme_color_override("font_color", Palette.TEXT_FAINT)
+	else:
+		_lbl_problems.text = "  " + "  ·  ".join(parts) + "   ›"
+		_lbl_problems.add_theme_color_override("font_color", Palette.WARN)
 
 
 ## --- onboarding ------------------------------------------------------------
@@ -536,22 +707,82 @@ func _toast_msg(text: String) -> void:
 
 func _show_cell_info(cell: int) -> void:
 	var id: String = Sim.grid.machine_at(cell)
+	if id == "":
+		_close_sheet()
+		return
 	var m: Dictionary = MachineDB.get_machine(id)
 	var heat: float = Sim.grid.heat_at(cell)
-	var eff: float = MachineDB.heat_efficiency(heat, float(m["heat_optimum"]),
-		float(m["heat_tolerance"]) + Sim.sim.tolerance_bonus)
+	var eff: float = Sim.sim.heat_efficiency_at(cell)
+	var delta: float = Sim.sim.heat_delta_at(cell)
 	var amp: float = Sim.grid.amplify_at(cell)
-	var lines: Array = [
-		String(m["desc"]),
-		"",
-		"Heat here      %.1f   (best at %.1f)" % [heat, float(m["heat_optimum"])],
-		"Running at     %d%%" % int(round(eff * 100.0)),
-		"Neighbour boost %.0f%%" % ((amp - 1.0) * 100.0),
-		"Cycles/sec     %.2f" % Sim.sim.effective_rate(cell),
-	]
-	var l := _label("\n".join(lines), 19, Palette.TEXT_DIM)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_open_overlay(String(m["name"]), l, [])
+	var st: int = Sim.sim.status_of(cell)
+
+	for c in _sheet_body.get_children():
+		c.queue_free()
+	_sheet_title.text = String(m["name"])
+
+	# The verdict first, in words, in the direction the player has to look.
+	# A colour on a tile says something is wrong; this says what to do.
+	var verdict: String
+	var verdict_col: Color
+	match st:
+		Simulation.Status.STARVED:
+			verdict = "Starved — it is not being fed. Look at what is UPSTREAM of it."
+			verdict_col = Palette.BAD
+		Simulation.Status.BLOCKED:
+			verdict = "Backed up — nothing is taking its output. Look DOWNSTREAM."
+			verdict_col = Palette.WARN
+		Simulation.Status.IDLE:
+			verdict = "Idle. Nothing for it to do."
+			verdict_col = Palette.TEXT_FAINT
+		Simulation.Status.PASSIVE:
+			verdict = "Working by standing there. It has no cycle of its own."
+			verdict_col = Palette.GOOD
+		_:
+			if eff < Simulation.THERMAL_WARNING:
+				verdict = "Running, but %s. It is giving up %d%% of its output." % [
+					"too hot" if delta > 0.0 else "too cold",
+					int(round((1.0 - eff) * 100.0))]
+				verdict_col = Palette.ST_HOT if delta > 0.0 else Palette.ST_COLD
+			else:
+				verdict = "Running well."
+				verdict_col = Palette.GOOD
+	var v := _label(verdict, 18, verdict_col)
+	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_sheet_body.add_child(v)
+
+	_sheet_body.add_child(_stat_row("Temperature",
+		"%.1f  (wants %.1f, %+.1f off)" % [heat, float(m["heat_optimum"]), delta]))
+	_sheet_body.add_child(_stat_row("Thermal output",
+		"%d%% of full speed" % int(round(eff * 100.0))))
+	# Duty cycle, not items per second. It is comparable between machine
+	# types, it needs no unit, and it answers what the player is asking:
+	# is this tile earning its square.
+	_sheet_body.add_child(_stat_row("Working",
+		"%d%% of the time" % int(round(Sim.sim.uptime_of(cell) * 100.0))))
+	if amp > 1.001:
+		_sheet_body.add_child(_stat_row("Neighbour boost",
+			"+%.0f%%" % ((amp - 1.0) * 100.0)))
+	# Labelled as a capability, not as output. A machine that is backed up can
+	# be quick and still be doing nothing, and printing one number next to the
+	# other without saying which is which is how a readout becomes a riddle.
+	_sheet_body.add_child(_stat_row("Cycle speed when fed",
+		"%.2f per second" % Sim.sim.effective_rate(cell)))
+
+	var d := _label(String(m["desc"]), 16, Palette.TEXT_FAINT)
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_sheet_body.add_child(d)
+
+	_sheet.visible = true
+
+
+func _stat_row(name: String, value: String) -> Control:
+	var row := HBoxContainer.new()
+	var a := _label(name, 17, Palette.TEXT_DIM)
+	a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(a)
+	row.add_child(_label(value, 17, Palette.TEXT))
+	return row
 
 
 func _show_research() -> void:
@@ -583,6 +814,7 @@ func _show_research() -> void:
 			b.disabled = not Sim.can_buy_upgrade(id)
 			b.pressed.connect(func():
 				if Sim.buy_upgrade(id):
+					Juice.upgrade()
 					_close_overlay()
 					_show_research()
 					_refresh())
@@ -673,12 +905,25 @@ func _show_settings() -> void:
 
 	col.add_child(HSeparator.new())
 
-	var sound := CheckBox.new()
-	sound.text = "Haptics"
-	sound.button_pressed = bool(Sim.settings.get("haptics", true))
-	sound.add_theme_font_size_override("font_size", 20)
-	sound.toggled.connect(func(on): Sim.settings["haptics"] = on; Save.save_game(Sim))
-	col.add_child(sound)
+	var snd := CheckBox.new()
+	snd.text = "Sound"
+	snd.button_pressed = bool(Sim.settings.get("sound", true))
+	snd.add_theme_font_size_override("font_size", 20)
+	snd.toggled.connect(func(on):
+		Sim.settings["sound"] = on
+		Juice.set_sound(on)
+		Save.save_game(Sim))
+	col.add_child(snd)
+
+	var haptics := CheckBox.new()
+	haptics.text = "Haptics"
+	haptics.button_pressed = bool(Sim.settings.get("haptics", true))
+	haptics.add_theme_font_size_override("font_size", 20)
+	haptics.toggled.connect(func(on):
+		Sim.settings["haptics"] = on
+		Juice.haptics_enabled = on
+		Save.save_game(Sim))
+	col.add_child(haptics)
 
 	var anon := CheckBox.new()
 	anon.text = "Anonymous gameplay statistics"

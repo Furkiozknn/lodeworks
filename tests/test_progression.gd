@@ -17,14 +17,14 @@ var runner: Object
 ## Every multi-input machine here has all of its inputs orthogonally adjacent,
 ## which on a four-neighbour grid is the actual puzzle the late game sets.
 const FULL_CHAIN := [
-	[0, 2, "drill"], [1, 2, "crusher"], [2, 2, "smelter"], [3, 2, "boiler"],
-	[4, 2, "smelter"], [5, 2, "crusher"], [6, 2, "drill"],
-	[0, 3, "drill"], [1, 3, "crusher"], [2, 3, "press"], [3, 3, "coolant"],
-	[4, 3, "press"], [5, 3, "crusher"], [6, 3, "drill"],
-	[0, 4, "drill"], [1, 4, "crusher"], [2, 4, "assembler"], [3, 4, "amplifier"],
-	[4, 4, "assembler"], [5, 4, "crusher"], [6, 4, "drill"],
-	[0, 5, "vault"], [1, 5, "vault"], [2, 5, "lab"], [3, 5, "amplifier"],
-	[4, 5, "lab"], [5, 5, "vault"], [6, 5, "vault"],
+	[0, 1, "drill"], [1, 1, "drill"], [2, 1, "drill"], [3, 1, "drill"],
+	[4, 1, "drill"], [5, 1, "drill"], [6, 1, "drill"],
+	[0, 2, "crusher"], [1, 2, "crusher"], [2, 2, "crusher"], [3, 2, "crusher"],
+	[4, 2, "crusher"], [5, 2, "crusher"], [6, 2, "crusher"],
+	[0, 3, "smelter"], [1, 3, "smelter"], [2, 3, "assembler"], [3, 3, "press"],
+	[4, 3, "smelter"], [5, 3, "smelter"], [6, 3, "smelter"],
+	[0, 4, "vault"], [1, 4, "vault"], [2, 4, "lab"], [3, 4, "vault"],
+	[4, 4, "vault"], [5, 4, "vault"], [6, 4, "vault"],
 ]
 
 

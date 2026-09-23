@@ -37,6 +37,60 @@ var last_credits: float = 0.0
 var last_research: float = 0.0
 var last_cycles: int = 0
 
+## --- per-cell status, for the board to draw --------------------------------
+##
+## None of this feeds back into production. It exists because the single
+## largest readability problem in a factory game is "which machine is the
+## problem", and the answer has to be visible on the board rather than derived
+## by the player.
+##
+## The three working states point in different directions along the chain:
+## STARVED means look upstream, BLOCKED means look downstream, HOT/COLD means
+## look at the neighbours. That is what makes a colour per cell enough to find
+## a bottleneck without any graph analysis.
+enum Status {
+	EMPTY,      ## nothing here
+	PASSIVE,    ## a Boiler or Coolant -- it works by existing, it has no cycle
+	IDLE,       ## it could run but has nothing to do
+	RUNNING,    ## producing
+	STARVED,    ## missing an input -- the problem is upstream
+	BLOCKED,    ## output buffer full -- the problem is downstream
+}
+
+## cell -> Status
+var status: Dictionary = {}
+## cell -> rolling duty cycle, 0..1. "How often is this thing actually
+## working" is a better throughput number than items per second: it is
+## comparable between machine types, it needs no units, and it answers the
+## question a player is actually asking.
+var uptime: Dictionary = {}
+## cell -> consecutive ticks in the same stalled state, for the hysteresis
+## described above.
+var _stall_run: Dictionary = {}
+## [[from_cell, to_cell, res], ...] for this tick only. The board animates a
+## dash along the shared edge, which is the only way an adjacency-fed factory
+## can show its material moving -- there are no belts to put items on.
+var last_transfers: Array = []
+## How much smoothing the duty cycle gets. Low enough to react within a second
+## or two, high enough not to strobe.
+const UPTIME_SMOOTHING := 0.08
+## Above this many recorded transfers in one tick the rest are dropped. The
+## board cannot animate more than a handful legibly anyway.
+const MAX_RECORDED_TRANSFERS := 40
+
+## A machine has to be stuck for this many consecutive ticks before the board
+## says so.
+##
+## Without it the board strobes. A Vault empties its input buffer on every
+## cycle, so for the tick immediately afterwards it is technically "starved";
+## a machine with a full output buffer is "blocked" for the one tick before
+## its neighbour pulls from it. Both are the system working normally, and
+## flagging them turns the status colour — the thing that is supposed to point
+## at the real problem — into noise. Four ticks is 0.4 s: long enough to
+## ignore the ordinary rhythm of the board, short enough that a genuinely
+## stalled machine lights up before the player has finished looking at it.
+const STALL_TICKS := 4
+
 ## Multipliers owned by the outer game (stratum richness, research tree).
 var speed_mult: float = 1.0
 var yield_mult: float = 1.0
@@ -55,6 +109,10 @@ func _init(g: Grid, seed_value: int = 12345) -> void:
 
 func reset_progress() -> void:
 	_progress.clear()
+	status.clear()
+	uptime.clear()
+	_stall_run.clear()
+	last_transfers.clear()
 
 
 func cap() -> int:
@@ -85,6 +143,7 @@ func effective_rate(i: int) -> float:
 ## --- phase 1 ---------------------------------------------------------------
 
 func _transfer() -> void:
+	last_transfers.clear()
 	for i: int in grid.cells:
 		var cell: Dictionary = grid.cells[i]
 		var m: Dictionary = MachineDB.get_machine(String(cell["id"]))
@@ -119,6 +178,8 @@ func _transfer() -> void:
 				if int(src_out[res]) <= 0:
 					src_out.erase(res)
 				cell["buf_in"][res] = int(cell["buf_in"].get(res, 0)) + moved
+				if last_transfers.size() < MAX_RECORDED_TRANSFERS:
+					last_transfers.append([n, i, res])
 
 
 ## --- phase 2 ---------------------------------------------------------------
@@ -138,10 +199,14 @@ func _work(dt: float) -> void:
 		# by existing. They have no cycle and must not burn progress.
 		if m["inputs"].is_empty() and m["outputs"].is_empty() \
 				and not tags.has("sink") and not tags.has("research"):
+			status[i] = Status.PASSIVE
+			uptime[i] = 1.0
 			continue
 
 		var rate: float = effective_rate(i)
 		if rate <= 0.0:
+			status[i] = Status.IDLE
+			_decay_uptime(i)
 			continue
 		var p: float = float(_progress.get(i, 0.0)) + rate * dt
 
@@ -151,13 +216,70 @@ func _work(dt: float) -> void:
 		var cycles: int = mini(int(p), 20)
 		if cycles <= 0:
 			_progress[i] = p
+			# Mid-cycle with nothing wrong is still working. Only classify it
+			# as stuck when the reason is visible right now, so a machine does
+			# not flicker red between two perfectly healthy cycles.
+			status[i] = _settle(i, _stall_reason(cell, m, tags, Status.RUNNING))
+			_bump_uptime(i, status[i] != Status.STARVED \
+				and status[i] != Status.BLOCKED)
 			continue
 		_progress[i] = p - float(cycles)
 
+		var ran: int = 0
+		var stopped: bool = false
 		for _c in range(cycles):
 			if not _run_cycle(i, cell, m, tags):
+				stopped = true
 				break
+			ran += 1
 			last_cycles += 1
+		if stopped:
+			status[i] = _settle(i, _stall_reason(cell, m, tags,
+				Status.RUNNING if ran > 0 else Status.IDLE))
+		else:
+			status[i] = _settle(i, Status.RUNNING)
+		_bump_uptime(i, ran > 0)
+
+
+## Why a cycle did not happen, expressed as the direction to look in.
+func _stall_reason(cell: Dictionary, m: Dictionary, tags: Array,
+		fallback: int) -> int:
+	var buf_in: Dictionary = cell["buf_in"]
+	if tags.has("sink"):
+		return Status.STARVED if buf_in.is_empty() else fallback
+	var inputs: Dictionary = m["inputs"]
+	if not inputs.is_empty() and not _has_inputs(buf_in, inputs):
+		return Status.STARVED
+	if not tags.has("research") and _buf_total(cell["buf_out"]) >= cap():
+		return Status.BLOCKED
+	return fallback
+
+
+## Hold a stalled state back until it has persisted. Returns what the board
+## should actually show.
+func _settle(i: int, proposed: int) -> int:
+	if proposed != Status.STARVED and proposed != Status.BLOCKED:
+		_stall_run.erase(i)
+		return proposed
+	var run: int = int(_stall_run.get(i, 0)) + 1
+	_stall_run[i] = run
+	if run < STALL_TICKS:
+		# Not yet convincing. Keep showing whatever it was, or RUNNING if this
+		# is the first the board has heard of this tile.
+		var prev: int = int(status.get(i, Status.RUNNING))
+		if prev == Status.STARVED or prev == Status.BLOCKED:
+			return prev
+		return Status.RUNNING
+	return proposed
+
+
+func _bump_uptime(i: int, working: bool) -> void:
+	var target: float = 1.0 if working else 0.0
+	uptime[i] = lerpf(float(uptime.get(i, target)), target, UPTIME_SMOOTHING)
+
+
+func _decay_uptime(i: int) -> void:
+	uptime[i] = lerpf(float(uptime.get(i, 0.0)), 0.0, UPTIME_SMOOTHING)
 
 
 func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
@@ -222,6 +344,108 @@ func _consume(buf: Dictionary, need: Dictionary) -> void:
 			buf[res] = left
 		else:
 			buf.erase(res)
+
+
+## --- what the board reads --------------------------------------------------
+
+func status_of(i: int) -> int:
+	if grid.is_empty(i):
+		return Status.EMPTY
+	return int(status.get(i, Status.IDLE))
+
+
+func uptime_of(i: int) -> float:
+	return clampf(float(uptime.get(i, 0.0)), 0.0, 1.0)
+
+
+## 0..1 through the current cycle, for the progress ring on the tile.
+func progress_of(i: int) -> float:
+	return clampf(float(_progress.get(i, 0.0)), 0.0, 1.0)
+
+
+## How well this cell's temperature suits the machine standing on it. 1.0 is
+## perfect; below that the machine is losing throughput to heat, which is the
+## one number this game is actually about.
+func heat_efficiency_at(i: int) -> float:
+	var id: String = grid.machine_at(i)
+	if id == "":
+		return 1.0
+	var m: Dictionary = MachineDB.get_machine(id)
+	return MachineDB.heat_efficiency(grid.heat_at(i),
+		float(m["heat_optimum"]),
+		float(m["heat_tolerance"]) + tolerance_bonus)
+
+
+## Signed distance from this machine's ideal temperature, in heat units.
+## Negative is too cold, positive too hot. Printed on the heat overlay,
+## because a colour alone is unreadable to a colourblind player and unusable
+## for anyone trying to work out how much coolant they actually need.
+func heat_delta_at(i: int) -> float:
+	var id: String = grid.machine_at(i)
+	if id == "":
+		return 0.0
+	var m: Dictionary = MachineDB.get_machine(id)
+	return grid.heat_at(i) - float(m["heat_optimum"])
+
+
+## A one-line count of what is actually wrong with the board right now.
+##
+## The status pip on a tile reports the instantaneous truth, which is useful
+## when you are looking at that tile. The headline count must not, because in
+## a chain running at full throughput every machine upstream of the slowest
+## one is output-blocked most of the time -- that is what "running at full
+## throughput" MEANS. Counting those would put "14 backed up" above a board
+## that is working perfectly, and a warning that fires on a healthy board is a
+## warning players learn to ignore.
+##
+## So the headline counts only tiles that are stalled AND barely working. A
+## machine blocked half the time but still cycling is a machine doing its job.
+func problem_counts() -> Dictionary:
+	var starved: int = 0
+	var blocked: int = 0
+	var thermal: int = 0
+	for i: int in grid.cells:
+		if not _is_severe(i):
+			if status_of(i) != Status.PASSIVE \
+					and heat_efficiency_at(i) < THERMAL_WARNING:
+				thermal += 1
+			continue
+		match status_of(i):
+			Status.STARVED: starved += 1
+			Status.BLOCKED: blocked += 1
+	return {"starved": starved, "blocked": blocked, "thermal": thermal}
+
+
+## Stalled and producing almost nothing, as opposed to stalled because the
+## tile downstream is simply the slower one.
+const SEVERE_UPTIME := 0.25
+
+func _is_severe(i: int) -> bool:
+	var st: int = status_of(i)
+	if st != Status.STARVED and st != Status.BLOCKED:
+		return false
+	return uptime_of(i) < SEVERE_UPTIME
+
+
+## Cells worth looking at, worst first, so a tap can cycle through them.
+func problem_cells() -> Array[int]:
+	var out: Array[int] = []
+	for i: int in grid.cells:
+		if _is_severe(i) and status_of(i) == Status.STARVED:
+			out.append(i)
+	for i: int in grid.cells:
+		if _is_severe(i) and status_of(i) == Status.BLOCKED:
+			out.append(i)
+	for i: int in grid.cells:
+		if not out.has(i) and status_of(i) != Status.PASSIVE \
+				and heat_efficiency_at(i) < THERMAL_WARNING:
+			out.append(i)
+	return out
+
+
+## Below this, a machine is losing enough throughput to heat that the board
+## should say so. 0.9 is roughly "you are giving up a tenth of this tile".
+const THERMAL_WARNING := 0.9
 
 
 ## --- public ----------------------------------------------------------------

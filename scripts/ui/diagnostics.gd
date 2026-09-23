@@ -30,9 +30,12 @@ var _input_to_frame_ms: float = -1.0
 
 var _list: VBoxContainer
 var _perf: Label
+var _counters: Label
 var _summary: Label
 var _probe: Button
+var _log: Label
 var _on_close: Callable
+var _pipelines_at_open: int = 0
 
 
 static func open_over(parent: Node, on_close: Callable = Callable()) -> Control:
@@ -45,9 +48,15 @@ static func open_over(parent: Node, on_close: Callable = Callable()) -> Control:
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_pipelines_at_open = int(Performance.get_monitor(
+		Performance.PIPELINE_COMPILATIONS_CANVAS))
 	_build()
 	run_checks()
 	start_sampling()
+
+
+func _exit_tree() -> void:
+	Ads.debug_set_break_on_device(false)
 
 
 func _build() -> void:
@@ -73,8 +82,25 @@ func _build() -> void:
 	_perf = _head("measuring frame time...", 19, Palette.TEXT_DIM)
 	col.add_child(_perf)
 
+	_counters = _head("", 15, Palette.TEXT_FAINT)
+	col.add_child(_counters)
+
 	_summary = _head("", 17, Palette.TEXT_FAINT)
 	col.add_child(_summary)
+
+	# The live checks that need a real device and a real account: an ad that
+	# actually plays, a product the store actually sells, a purchase that
+	# actually restores. None of these can be answered anywhere but here.
+	var live := HBoxContainer.new()
+	live.add_theme_constant_override("separation", 6)
+	live.add_child(_action("Play an ad", _try_ad))
+	live.add_child(_action("Check the store", _try_store))
+	live.add_child(_action("Restore", _try_restore))
+	live.add_child(_action("Break the SDK", _try_break))
+	col.add_child(live)
+
+	_log = _head("", 15, Palette.TEXT_DIM)
+	col.add_child(_log)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -123,6 +149,70 @@ func _head(text: String, size_px: int, col: Color) -> Label:
 	l.add_theme_color_override("font_color", col)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
+
+
+func _action(text: String, cb: Callable) -> Button:
+	var b := _btn(text)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.add_theme_font_size_override("font_size", 15)
+	b.pressed.connect(cb)
+	return b
+
+
+func _say(text: String) -> void:
+	_log.text = text
+
+
+## The real rewarded flow, on demand rather than by waiting for an offline
+## return. Reports what happened either way, because "nothing visible
+## happened" is the most common outcome of a misconfigured ad unit and the
+## hardest to diagnose from the game itself.
+func _try_ad() -> void:
+	var st: Dictionary = Ads.status()
+	if not bool(st["plugin_present"]):
+		_say("No ad plugin in this build. Install it and rebuild.")
+		return
+	if not bool(st["available"]):
+		_say("Plugin bound but no ad is loaded. Last error: %s"
+			% (String(st["last_error"]) if String(st["last_error"]) != "" else "none"))
+		return
+	_say("Requesting a rewarded ad...")
+	var placement: String = Ads.P_DOUBLE_OFFLINE
+	if not Ads.can_offer(placement):
+		_say("Refused: cooldown %.0fs, removed=%s"
+			% [Ads.cooldown_remaining(), str(Ads.ads_removed)])
+		return
+	if not Ads.show_rewarded(placement):
+		_say("show_rewarded refused. Last error: " + Ads.last_error)
+
+
+func _try_store() -> void:
+	var st: Dictionary = Store.status()
+	if not bool(st["plugin_present"]):
+		_say("No billing plugin in this build.")
+		return
+	Store.query_product_details()
+	_say("Asked the store about '%s'. Re-run the checks in a moment; the "
+		% String(st["product_id"]) + "Billing row will say whether it came back.")
+
+
+func _try_restore() -> void:
+	if not Store.is_available():
+		_say("No billing service to restore from.")
+		return
+	Store.restore()
+	_say("Restore requested. If this account owns the licence, the Billing "
+		+ "row will say so and ads will stop.")
+
+
+## Prove the game survives the SDK failing, on the device, rather than only in
+## the test suite. Flips the ad layer into its broken state and leaves it
+## there until the screen is closed.
+func _try_break() -> void:
+	Ads.debug_set_break_on_device(true)
+	run_checks()
+	_say("Ad layer forced into failure. The game should be completely "
+		+ "unaffected. Close and reopen this screen to restore it.")
 
 
 func _btn(text: String) -> Button:
@@ -180,6 +270,35 @@ func _process(delta: float) -> void:
 	if _sample_left <= 0.0:
 		_sampling = false
 	_perf.text = _perf_text()
+	_counters.text = _counter_text()
+
+
+## The renderer's own numbers, live. Draw calls are the one that matters on a
+## board of seventy tiles: they should stay flat while the board animates, and
+## a jump of seventy means something started drawing polygons.
+func _counter_text() -> String:
+	var vp: Viewport = get_viewport()
+	var calls: int = vp.get_render_info(Viewport.RENDER_INFO_TYPE_CANVAS,
+		Viewport.RENDER_INFO_DRAW_CALLS_IN_FRAME)
+	var items: int = vp.get_render_info(Viewport.RENDER_INFO_TYPE_CANVAS,
+		Viewport.RENDER_INFO_OBJECTS_IN_FRAME)
+	var pipe: int = int(Performance.get_monitor(
+		Performance.PIPELINE_COMPILATIONS_CANVAS)) - _pipelines_at_open
+	var nodes: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+	var tex: float = Performance.get_monitor(
+		Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0
+	var bits: Array[String] = [
+		"%d draw calls" % calls,
+		"%d items" % items,
+		"%d nodes" % nodes,
+		"%.1f MB textures" % tex,
+	]
+	if pipe > 0:
+		bits.append("%d shader compiles since opening — each one is a stutter" % pipe)
+	var info: Dictionary = OS.get_memory_info()
+	if int(info.get("available", -1)) > 0:
+		bits.append("%d MB free" % (int(info["available"]) / 1048576))
+	return "  ·  ".join(bits)
 
 
 func _on_probe_down() -> void:
@@ -214,6 +333,7 @@ func _perf_text() -> String:
 func report_text() -> String:
 	var body: String = SelfTest.as_text(_results)
 	var live: String = "\nlive frame timing: " + _perf_text()
+	live += "\nrenderer: " + _counter_text()
 	if _input_to_frame_ms >= 0.0:
 		live += "\ninput to frame: %.1f ms" % _input_to_frame_ms
 	else:

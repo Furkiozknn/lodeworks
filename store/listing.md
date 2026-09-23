@@ -1,26 +1,39 @@
-# Google Play store listing — draft
+# Google Play store listing
 
-Nothing here has been submitted. Character limits are Play's.
+Nothing here has been submitted. Character limits and asset specs are Google's,
+and every one of them is checked automatically by
+[`tools/check-store-assets.py`](../tools/check-store-assets.py), which
+`tools/store-assets.sh` runs after regenerating the artwork.
+
+The previous version of this file was out of spec in four ways nobody had
+noticed, because the images looked fine: the screenshots were 720×1440 32-bit
+PNGs (Play wants 24-bit, no alpha, and at least 1080px on the short side for a
+game to be eligible for its recommendation surfaces), there was no feature
+graphic at all (which blocks publication outright), there were no tablet
+screenshots, and it listed seven tags where the maximum is five.
 
 ---
 
 ## App name (30 max)
 
 ```
-Lodeworks: Idle Machine Grid
+Lodeworks: Idle Factory
 ```
-`28 characters.` A distinctive brand word plus the two search terms that
-actually describe the game. "Idle" is the single highest-value keyword for
-discovery in this genre and belongs in the name, not only the description.
+`23 characters.` The brand word plus the two terms people actually search.
+The previous name spent thirteen characters on "Machine Grid", which nobody
+searches for; "Idle" and "Factory" are the two words that describe this game
+and that a store search will match.
 
 **Alternative if "Lodeworks" turns out to be taken:** `Orecircuit: Idle Factory`
 
 ## Short description (80 max)
 
 ```
-Place machines. Heat feeds them. Rearrange the grid. Descend for richer rock.
+Idle factory puzzle. Machines feed their neighbours. Heat decides who wins.
 ```
-`77 characters.` Verbs, not adjectives. It says what your hands do.
+`74 characters.` Leads with the genre — the previous one led with verbs and
+never said what kind of game it was, which is the one thing a short
+description has to do.
 
 ## Full description (4000 max)
 
@@ -40,6 +53,17 @@ hot and fast. A press three tiles away chokes on the same heat and needs a
 coolant cell you would rather have spent on production. Two players with the
 same twelve machines will not build the same board.
 
+THE BOARD TELLS YOU WHAT IS WRONG
+Every tile carries a status light. Green is working. Amber means its output is
+backed up — the problem is downstream. Red means it is not being fed — the
+problem is upstream. Blue or orange means it is running at the wrong
+temperature and quietly losing output. One line above the board counts them,
+and tapping it walks you through them one at a time.
+
+Tap any machine for a plain-English verdict rather than a wall of numbers.
+Hold the heat button to see how far every tile is from the temperature it
+wants, as a number and not only as a colour.
+
 DESCEND
 Hit the quota and drop to the next stratum. Deeper rock is richer, hotter and
 stranger. Thermal vents, insulating clay that stops heat spreading at all,
@@ -49,16 +73,14 @@ generated from its depth, so the stratum 14 you are stuck on is the same
 stratum 14 everyone else is stuck on.
 
 COLLAPSE
-When you can go no deeper, collapse the shaft. You lose the board, the credits
-and the research. You keep Cores, and everything you have permanently
-researched with them. Then you go again — deeper, faster, and with machines you
-did not have last time.
+When you can go no deeper, collapse the shaft. You keep Cores, and everything
+you have permanently researched with them. Then you go again — deeper, faster,
+and with machines you did not have last time.
 
 WHILE YOU ARE AWAY
-The factory keeps running. You bank a share of your own measured rate for up to
-four hours, more once you have researched it. The game tells you the exact
-three numbers it used, because an idle game that fudges that number is training
-you to disbelieve every other number it prints.
+The factory keeps running. You bank a share of your own measured rate, and the
+game tells you the exact three numbers it used, because an idle game that
+fudges that number is training you to disbelieve every other number it prints.
 
 NO DARK PATTERNS
 • No interstitial ads. Not one. Every ad is a rewarded video you choose to
@@ -79,14 +101,19 @@ each one is next to, and that is a much larger number.
 ## Category and tags
 
 - Category: **Games → Simulation** (secondary fit: Puzzle)
-- Tags: idle, factory, incremental, simulation, puzzle, offline, management
+- Tags — **five, which is the maximum**: `idle`, `factory`, `incremental`,
+  `simulation`, `offline`
+  (dropped: "puzzle" and "management", the two with the least search intent
+  behind them for this game)
 - Content rating target: **everyone**, target audience **13+**
 - Contains ads: **yes** (rewarded only) · In-app purchases: **yes** (one item)
 
 ## ASO keyword set
 
-Ranked by how honestly the game answers the search. Chasing a term the game
-does not deliver costs an uninstall, and uninstalls cost ranking.
+Ranked by how honestly the game answers the search. Play does not publish
+search volume, so every "winnable" judgement below is reasoning from how
+crowded the results page looked, not a measurement — treat it as a hypothesis
+to test with a store listing experiment, not as a fact.
 
 **Primary** — idle game, idle factory, incremental game, factory builder,
 offline idle game, idle simulation
@@ -104,31 +131,70 @@ competitive, and this is not that game. The genre research was blunt on this:
 data scientists. The winnable strategy is a term nobody contests, not a term
 everybody does.
 
-## Screenshots
+---
 
-Five, generated from the running game by `tools/screenshot.gd` at 720×1440.
-Nothing is a mock-up; every board shown is one the simulation actually ran and
-the test suite verifies.
+## Assets
 
-| file | shows | caption |
+All generated from the running game by `tools/store-assets.sh`. Nothing is
+composited, painted or retouched, and every board shown is one the simulation
+actually ran.
+
+### Screenshots — `screenshots/`, 8 at 1080×1920, 24-bit PNG
+
+| file | shows | what it proves |
 |---|---|---|
-| `01_first_line.png` | the tutorial board, stratum 0 | "Three tiles and the numbers start moving." |
-| `02_heat.png` | boiler + coolant around a smelter | "Heat makes machines fast. Then it makes them choke." |
-| `03_full_board.png` | a complete chain at stratum 9 | "Ore to components to research, on one small grid." |
-| `04_research.png` | the permanent research tree | "Cores survive the collapse. Nothing else does." |
-| `05_offline.png` | the welcome-back panel | "It runs while you are gone, and shows its working." |
+| `01_line.png` | a full production line at stratum 9 | that the game has a mid-game worth reaching |
+| `02_heat.png` | the heat overlay, every tile labelled with its own error | the mechanic, as a number and not only a colour |
+| `03_bottleneck.png` | a board with a starved machine and a backed-up one, counted above the board | the readability feature no competitor in this genre ships by default |
+| `04_place.png` | a boiler mid-placement, each neighbour showing what it would gain or lose | the decision the whole game is made of |
+| `05_detail.png` | the detail sheet, naming the fault and the direction to look | that the game explains itself in words |
+| `06_research.png` | the permanent research tree | that there is something to keep |
+| `07_offline.png` | the welcome-back panel with its three numbers | that the offline maths is shown, not asserted |
+| `08_first_line.png` | the first three machines with the tutorial line | the first minute |
 
-## Feature graphic (1024×500)
+Alt text for each, under Play's 140-character limit, is generated alongside
+them in `screenshots/alt-text.tsv`.
 
-Not produced. The three-panel screenshot composite is the obvious source;
-needs a title treatment over it. **Outstanding.**
+**Caption note:** a caption reading "NO ADS" would sit directly beside Play's
+own "Contains ads" label on the listing and reads as a contradiction. The
+wording used everywhere is **"no interstitials"**, which is both accurate and
+the thing players in this genre complain about.
 
-## Trailer
+### Tablet screenshots — `screenshots-tablet/`, 8 at 1620×2880
 
-Not produced. Lowest priority: Play does not require one, and for an idle game
-a 15-second capture of a board being rearranged and the rate changing would do
-more than an edited trailer. `tools/screenshot.gd` already drives the game
-programmatically and is the natural place to add frame capture for a GIF.
+Play wants at least four large-screen shots for the tablet and Chromebook
+surfaces. Same eight boards, rendered at a tablet resolution — which is also
+the only automated check that the layout survives a different screen size.
+
+### Icon — `brand/icon-512.png`, 512×512, and the 192 and adaptive foreground
+
+Three machines and the material passing between them. No wordmark: text at
+48dp is a smear. **No rounded corners and no shadow** — Play masks the icon to
+a 30% radius and adds its own, so an icon that rounds itself arrives
+double-rounded and reads as inset and small in a search grid.
+
+The first attempt put the chain inside a 3×3 block of rock, which is truer to
+the board and unreadable at icon size; it is kept in the commit history as the
+reason the current one is three tiles.
+
+### Feature graphic — `brand/feature-1024x500.png`
+
+**Mandatory**, and previously missing entirely — a listing cannot publish
+without one. For games it is also the primary visual in Play's search results
+and recommendation rows, which is why it carries the name and the one sentence
+that says what the game is rather than a screenshot nobody could read at that
+size.
+
+### Preview video — `preview.mp4` (and `preview.gif`)
+
+13 seconds of captured gameplay, vertical, no edit and no voiceover. Play's
+requirements: a YouTube URL, public or unlisted, ads off, not age-restricted,
+embeddable; the first 30 seconds autoplay muted; core gameplay has to be on
+screen inside the first 10 seconds, and at least 80% of it has to be
+representative of the app.
+
+This one opens on a working board precisely because of that rule. It is
+**not** uploaded — that needs a YouTube account, which is a human step.
 
 ## What this listing deliberately does not claim
 
@@ -136,3 +202,7 @@ No player counts, no review quotes, no "millions of downloads", no awards, no
 "#1" anything. There is nothing to cite, and a store listing that claims what
 the app cannot show is both a rejection risk and the setup for the one-star
 review that follows.
+
+The previous version of this file asserted that "uninstalls cost ranking".
+That is widely believed and Google does not document it, so it has been
+removed rather than repeated.

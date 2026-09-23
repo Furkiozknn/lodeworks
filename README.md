@@ -11,6 +11,35 @@ except the things only a human with a bank account can do.
 
 ---
 
+## What the board tells you
+
+The single hardest thing in a factory game is finding out which machine is the
+problem. The convention this board uses is the one Factorio players install a
+third-party mod to get, because two of its colours point in **opposite
+directions along the chain**:
+
+| | |
+|---|---|
+| green square | working |
+| amber bar | output backed up — the problem is **downstream** |
+| red bar | missing an input — the problem is **upstream** |
+| orange or blue notch | running at the wrong temperature, and losing output for it |
+
+Each state is a different shape as well as a different colour, so the board
+still works without colour vision. One line above the grid counts what is
+wrong; tapping it walks through the culprits. Tapping a machine opens a sheet
+at the *bottom* of the screen — never a popover under the thumb that is
+pointing at the tile — which says in words what is wrong and which way to
+look.
+
+The heat button relabels every tile with how far it is from the temperature it
+personally wants, as a signed number. Every machine in this game wants a
+different temperature, so an absolute heat map answers the wrong question.
+
+None of this was invented here. It came out of
+[four sourced investigations](docs/research/) into what the genre's leaders
+actually ship and what their players actually complain about.
+
 ## The loop
 
 A 7×10 grid. Machines have inputs and outputs and feed **whatever is
@@ -40,6 +69,20 @@ Resonant*, and the layout that was right for one is wrong for the other.
 That is the production argument for this design: **one more modifier is one row
 of data and a large multiple of gameplay.** A match-3 gets one more level.
 
+## No art files, no audio files
+
+There is not one bitmap and not one sound file in this project. The board, the
+UI, the app icon and the feature graphic are all drawn by the same code; every
+sound effect and the factory ambience are synthesised from arithmetic at
+startup, a few milliseconds of sine partials and filtered noise.
+
+That is a production decision before it is an aesthetic one. A solo developer's
+scarcest resource is art, and the second scarcest is the patience to keep
+twelve machines looking like each other. Here a new machine is a row in a
+table, a colour and a silhouette family — and the store artwork picks it up
+without anyone exporting anything. It also means there is no licence to check
+and nothing to clear before shipping.
+
 ## Monetisation, designed in rather than bolted on
 
 - **Rewarded video only. No interstitials, anywhere.** Every ad is opt-in and
@@ -62,9 +105,12 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 720x1440                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 97 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 105 tests
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
 godot --headless --path . --script res://tools/diagnose.gd        # per-tile balance dump
+godot --headless --path . --script res://tools/layout_lab.gd      # score the reference layouts
+godot --headless --path . --script res://tools/layout_search.gd   # hill-climb for a better board
+GODOT=$(which godot) tools/store-assets.sh                        # regenerate every store asset
 ```
 
 For a phone: the `android` workflow builds an installable APK on every push —
@@ -89,17 +135,28 @@ at real tick rate and asserts against wall-clock seconds:
 - a complete ore → component → research chain fits on the board and runs
 - the curve has not walled out by stratum 20
 
+`tests/test_performance.gd` is the one that would have caught the fourth. It
+asserts the tick budget, the save budget, that the project still ships no
+bitmaps and no audio files, and — after
+[a measurement that said otherwise](docs/BALANCE.md) — that no more than a
+third of the reference board is sitting idle.
+
 `tests/test_monetization.gd` is the other one worth reading: it asserts that
 ads and the purchase cannot touch credits, research or cores, that a bound but
 broken ad SDK leaves the game fully playable, that a hand-edited entitlement
 file cannot invent a product, and that the analytics vocabulary is exactly the
 thirteen events that were decided on and not one more.
 
-Three real balance bugs were found by these and fixed: depth added no yield at
+Four real balance bugs were found by these and fixed: depth added no yield at
 all (`richness` was computed and never applied), the late-game chain deadlocked
-because multi-input machines could not be fed on a four-neighbour grid, and the
+because multi-input machines could not be fed on a four-neighbour grid, the
 throughput measurement window was short enough to rank two identical layouts
-differently.
+differently, and — found by the per-tile duty-cycle readout added for the
+board to draw — **the reference layout the project had been showing off had
+thirteen of its twenty-eight machines permanently stalled**. The replacement
+earns nine times as much from the same tile count.
+[`docs/BALANCE.md`](docs/BALANCE.md) has the measurements, and the finding that
+is *not* fixed.
 
 ## Layout
 
@@ -110,10 +167,12 @@ scripts/sim/      the one autoload that owns live state
 scripts/services/ save, analytics, ads, IAP, and the device self test — each
                   degrades to a no-op when its native plugin is absent, so the
                   game always runs and always tests
-scripts/ui/       drawn with _draw(); there is not one bitmap in the project
-tests/            97 tests, no framework dependency
-tools/            screenshots, balance diagnostics, the self test CLI, the
-                  plugin installer and the Android build script
+scripts/ui/       drawn with _draw(); there is not one bitmap in the project,
+                  and MachineArt is the single place a machine is drawn -- the
+                  board, the icon and the feature graphic all call it
+tests/            105 tests, no framework dependency
+tools/            store assets, balance scoring, layout search, the self test
+                  CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs
                   there because it is the only place with an Android SDK
 store/            listing copy, icon, screenshots generated from the real game

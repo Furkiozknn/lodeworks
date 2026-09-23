@@ -20,6 +20,7 @@ Save="*res://scripts/services/save_service.gd"
 Analytics="*res://scripts/services/analytics.gd"
 Ads="*res://scripts/services/ads.gd"
 Store="*res://scripts/services/store.gd"
+Juice="*res://scripts/services/juice.gd"
 
 [display]
 

@@ -345,7 +345,23 @@ func debug_grant(placement: String) -> void:
 func debug_set_broken(broken: bool) -> void:
 	if not OS.is_debug_build():
 		return
+	set_broken(broken)
+
+
+## The same switch, available in a release build, because the diagnostics
+## screen on a real phone is the only place the claim "the game is fine when
+## the ad SDK dies" can actually be demonstrated. It is reachable only from
+## that screen, it never grants anything, and it resets when the screen
+## closes -- the worst a player can do with it is turn their own ads off.
+func set_broken(broken: bool) -> void:
 	_fake_broken = broken
 	if broken:
 		_set_available(false)
 		last_error = "simulated_broken_sdk"
+	else:
+		last_error = ""
+		_load_next()
+
+
+func debug_set_break_on_device(broken: bool) -> void:
+	set_broken(broken)

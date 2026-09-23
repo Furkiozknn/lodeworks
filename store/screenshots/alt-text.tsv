@@ -1,0 +1,8 @@
+01_line.png	A full production line on the seven by ten grid, machines feeding their neighbours.
+02_heat.png	The heat overlay, showing how far each machine is from the temperature it wants.
+03_bottleneck.png	Two machines flagged as starved and backed up, with a count above the board.
+04_place.png	Placing a boiler, previewing the heat it will add to each neighbour.
+05_detail.png	The detail sheet for a smelter, naming what is wrong and which way to look.
+06_research.png	The permanent research tree, bought with Cores.
+07_offline.png	The welcome back panel, showing the three numbers the offline payout was made from.
+08_first_line.png	The first three machines, with the tutorial line above the board.

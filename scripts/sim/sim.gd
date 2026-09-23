@@ -13,9 +13,19 @@ signal collapsed(cores_gained: int)
 signal offline_earnings(report: Dictionary)
 
 const AUTOSAVE_SECONDS := 20.0
-## Measured throughput is smoothed so the header number does not jitter with
-## every cycle. Idle players stare at this number; it has to feel steady.
-const RATE_SMOOTHING := 0.12
+
+## The headline rate is a plain average over a fixed window, not an
+## exponential smoothing of the per-tick value.
+##
+## This system is bursty by construction: a Vault sells a whole buffer in one
+## tick and nothing on the next, so the instantaneous rate swings by a factor
+## of several every tenth of a second. An exponential filter over that still
+## wanders — the same board was measured showing 35/s, 81/s and 141/s on three
+## consecutive captures — and a headline figure that disagrees with itself is
+## the single fastest way to teach a player not to trust any number the game
+## prints. Summing three seconds of actual production and dividing is boring,
+## honest, and steady.
+const RATE_WINDOW := 3.0
 
 var grid: Grid
 var sim: Simulation
@@ -37,6 +47,9 @@ var settings: Dictionary = {"sound": true, "haptics": true}
 var credits_per_sec: float = 0.0
 var research_per_sec: float = 0.0
 
+var _rate_accum_credits: float = 0.0
+var _rate_accum_research: float = 0.0
+var _rate_elapsed: float = 0.0
 var _tick_accum: float = 0.0
 var _save_accum: float = 0.0
 var _stratum: Dictionary = {}
@@ -94,12 +107,16 @@ func _process(delta: float) -> void:
 			# player, the tutorial failed, not the balance.
 			Analytics.track("first_production")
 		lifetime_credits += c
-		# Instantaneous rate, exponentially smoothed.
-		var inst_c: float = c / Simulation.TICK_DT
-		var inst_r: float = r / Simulation.TICK_DT
-		credits_per_sec = lerpf(credits_per_sec, inst_c, RATE_SMOOTHING)
-		research_per_sec = lerpf(research_per_sec, inst_r, RATE_SMOOTHING)
+		_rate_accum_credits += c
+		_rate_accum_research += r
+		_rate_elapsed += Simulation.TICK_DT
 		steps += 1
+	if _rate_elapsed >= RATE_WINDOW:
+		credits_per_sec = _rate_accum_credits / _rate_elapsed
+		research_per_sec = _rate_accum_research / _rate_elapsed
+		_rate_accum_credits = 0.0
+		_rate_accum_research = 0.0
+		_rate_elapsed = 0.0
 	if steps > 0:
 		stats_changed.emit()
 

@@ -29,14 +29,14 @@ const INFO := "info"
 ## A dense board, used as the CPU benchmark. Same shape as the layout the
 ## balance tests use, so the number here is comparable to the CI baseline.
 const BENCH_BOARD := [
-	[0, 2, "drill"], [1, 2, "crusher"], [2, 2, "smelter"], [3, 2, "boiler"],
-	[4, 2, "smelter"], [5, 2, "crusher"], [6, 2, "drill"],
-	[0, 3, "drill"], [1, 3, "crusher"], [2, 3, "press"], [3, 3, "coolant"],
-	[4, 3, "press"], [5, 3, "crusher"], [6, 3, "drill"],
-	[0, 4, "drill"], [1, 4, "crusher"], [2, 4, "assembler"], [3, 4, "amplifier"],
-	[4, 4, "assembler"], [5, 4, "crusher"], [6, 4, "drill"],
-	[0, 5, "vault"], [1, 5, "vault"], [2, 5, "lab"], [3, 5, "amplifier"],
-	[4, 5, "lab"], [5, 5, "vault"], [6, 5, "vault"],
+	[0, 1, "drill"], [1, 1, "drill"], [2, 1, "drill"], [3, 1, "drill"],
+	[4, 1, "drill"], [5, 1, "drill"], [6, 1, "drill"],
+	[0, 2, "crusher"], [1, 2, "crusher"], [2, 2, "crusher"], [3, 2, "crusher"],
+	[4, 2, "crusher"], [5, 2, "crusher"], [6, 2, "crusher"],
+	[0, 3, "smelter"], [1, 3, "smelter"], [2, 3, "assembler"], [3, 3, "press"],
+	[4, 3, "smelter"], [5, 3, "smelter"], [6, 3, "smelter"],
+	[0, 4, "vault"], [1, 4, "vault"], [2, 4, "lab"], [3, 4, "vault"],
+	[4, 4, "vault"], [5, 4, "vault"], [6, 4, "vault"],
 ]
 
 ## Ticks to time. At 10 Hz this is a simulated minute, long enough that the
@@ -59,11 +59,18 @@ static func run_all(state: Object = null) -> Array:
 	out.append(renderer_info())
 	out.append(screen_check())
 	out.append(safe_area_check())
+	out.append(scaling_check())
+	out.append(draw_budget())
+	out.append(shader_stall_check())
 	out.append(cpu_benchmark())
+	out.append(memory_check())
 	out.append(storage_check())
 	out.append(save_round_trip(state))
+	out.append(save_cost())
 	out.append(long_idle_check())
+	out.append(lifecycle_check())
 	out.append(economy_integrity())
+	out.append(audio_check())
 	out.append(ads_check())
 	out.append(store_check())
 	out.append(analytics_check())
@@ -176,6 +183,125 @@ static func safe_area_check() -> Dictionary:
 		return _r("safe_area", "Safe area", PASS,
 			"no cutout or gesture inset reported on this display")
 	return _r("safe_area", "Safe area", PASS, detail)
+
+
+## Everything the UI scales by. A phone that reports a content scale the
+## layout was not built for is how a board ends up half off the screen.
+static func scaling_check() -> Dictionary:
+	if _headless():
+		return _r("scaling", "UI scaling", UNKNOWN, "headless run")
+	var win: Vector2i = DisplayServer.window_get_size()
+	var base := Vector2i(
+		int(ProjectSettings.get_setting("display/window/size/viewport_width", 720)),
+		int(ProjectSettings.get_setting("display/window/size/viewport_height", 1440)))
+	var loop: MainLoop = Engine.get_main_loop()
+	var scale: float = 1.0
+	if loop is SceneTree:
+		var root: Window = (loop as SceneTree).root
+		scale = root.content_scale_factor
+		var vp: Vector2i = root.get_visible_rect().size
+		var detail: String = "%dx%d window, %dx%d canvas, base %dx%d, scale %.2f" % [
+			win.x, win.y, vp.x, vp.y, base.x, base.y, scale]
+		# The board is laid out to the shorter axis, so a canvas narrower than
+		# the design base is the case that would clip it.
+		if vp.x < base.x * 0.8:
+			return _r("scaling", "UI scaling", FAIL,
+				detail + " -- the canvas is much narrower than the layout was "
+				+ "designed against, so the board may be clipped")
+		return _r("scaling", "UI scaling", PASS, detail)
+	return _r("scaling", "UI scaling", UNKNOWN, "no scene tree")
+
+
+## What the board actually costs the renderer on this device.
+##
+## There is no published Godot figure for "how many 2D draw calls an Android
+## phone can afford", so this does not pretend there is one. What it checks is
+## the property the board was BUILT for: seventy cells drawn as batched
+## rectangles must collapse into a small number of batches. If that number
+## climbs, something has started drawing polygons -- a circle, an arc, an
+## antialiased line -- and each one of those breaks the batch.
+static func draw_budget() -> Dictionary:
+	if _headless():
+		return _r("draw", "Draw batching", UNKNOWN,
+			"headless run -- nothing was rendered")
+	var loop: MainLoop = Engine.get_main_loop()
+	if not (loop is SceneTree):
+		return _r("draw", "Draw batching", UNKNOWN, "no scene tree")
+	var vp: Viewport = (loop as SceneTree).root
+	var calls: int = vp.get_render_info(Viewport.RENDER_INFO_TYPE_CANVAS,
+		Viewport.RENDER_INFO_DRAW_CALLS_IN_FRAME)
+	var items: int = vp.get_render_info(Viewport.RENDER_INFO_TYPE_CANVAS,
+		Viewport.RENDER_INFO_OBJECTS_IN_FRAME)
+	var detail: String = "%d canvas draw calls, %d canvas items" % [calls, items]
+	if calls <= 0:
+		return _r("draw", "Draw batching", UNKNOWN,
+			"the renderer reported nothing this frame")
+	if calls > DRAW_CALL_BUDGET:
+		return _r("draw", "Draw batching", FAIL,
+			detail + " -- budget is %d" % DRAW_CALL_BUDGET)
+	return _r("draw", "Draw batching", PASS, detail)
+
+
+## Derived from measurement in this project, not from any Godot document.
+##
+## The full board plus the header, the stratum panel, the machine tray and the
+## action row measured **192 canvas draw calls** at 1080x1920 with every tile
+## occupied. The budget is set at roughly twice that: enough headroom for a
+## panel or two, tight enough that adding a polygon-based primitive to the
+## per-cell drawing -- a circle, an arc, an antialiased line -- fails the check
+## immediately, because seventy of them arrive at once.
+const DRAW_CALL_BUDGET := 400
+
+
+## Shader compilation after the game has started is a visible stutter.
+##
+## The compatibility renderer has no ubershaders and no pipeline
+## pre-compilation, so every material first drawn at runtime compiles at that
+## moment and drops frames. This counter is the only way to see it happening,
+## and on a build that ships no custom shaders it should never move.
+static func shader_stall_check() -> Dictionary:
+	if _headless():
+		return _r("shaders", "Shader stalls", UNKNOWN, "headless run")
+	var n: float = Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_CANVAS)
+	return _r("shaders", "Shader stalls", INFO,
+		"%d canvas pipelines compiled so far -- watch this while playing, any "
+		% int(n) + "increase is a stutter")
+
+
+## Memory, and whether it is growing.
+static func memory_check() -> Dictionary:
+	var bits: Array[String] = []
+	var info: Dictionary = OS.get_memory_info()
+	var phys: int = int(info.get("physical", -1))
+	var avail: int = int(info.get("available", -1))
+	if phys > 0:
+		bits.append("%d MB physical" % (phys / 1048576))
+	if avail > 0:
+		bits.append("%d MB available" % (avail / 1048576))
+	var nodes: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+	bits.append("%d nodes" % nodes)
+	var orphans: int = int(Performance.get_monitor(
+		Performance.OBJECT_ORPHAN_NODE_COUNT))
+	if OS.is_debug_build():
+		bits.append("%d orphaned" % orphans)
+		bits.append("%.1f MB static" % (Performance.get_monitor(
+			Performance.MEMORY_STATIC) / 1048576.0))
+	if not _headless():
+		bits.append("%.1f MB texture" % (Performance.get_monitor(
+			Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0))
+	var detail: String = ", ".join(bits)
+	if nodes <= 0:
+		# A `--script` entry point runs before the scene tree is populated, so
+		# every autoload's children are momentarily counted as orphans. That
+		# is startup order, not a leak, and calling it one would make the
+		# command-line self test fail on a healthy build every time.
+		return _r("memory", "Memory", UNKNOWN,
+			detail + " -- the scene tree is not up yet, so these are not "
+			+ "meaningful")
+	if OS.is_debug_build() and orphans > 0:
+		return _r("memory", "Memory", FAIL,
+			detail + " -- an orphaned node is a leak")
+	return _r("memory", "Memory", PASS, detail)
 
 
 ## --- the game's own cost ---------------------------------------------------
@@ -321,6 +447,127 @@ static func _run_board() -> Dictionary:
 		g.place(Grid.idx(int(e[0]), int(e[1])), String(e[2]))
 	var s := Simulation.new(g, 777)
 	return s.run_ticks(300)
+
+
+## Writing the save has to be quick. It happens on every pause, and a pause is
+## Android telling the app it is about to be killed -- a slow write there is a
+## lost session.
+static func save_cost(state: Object = null) -> Dictionary:
+	var save: Node = _svc("Save")
+	var st: Object = state
+	if st == null:
+		st = _svc("Sim")
+	if save == null or st == null or not st.has_method("to_dict"):
+		return _r("save_cost", "Save speed", UNKNOWN, "no live game state")
+	var t0: int = Time.get_ticks_usec()
+	for _i in range(5):
+		save.save_game(st)
+	var ms: float = float(Time.get_ticks_usec() - t0) / 5000.0
+	var detail: String = "%.2f ms per save" % ms
+	if ms > SAVE_BUDGET_MS:
+		return _r("save_cost", "Save speed", FAIL,
+			detail + " -- budget is %.0f ms" % SAVE_BUDGET_MS)
+	return _r("save_cost", "Save speed", PASS, detail)
+
+
+## Android gives an app a short, unspecified moment after onPause. Twenty
+## milliseconds is an arbitrary ceiling, chosen to be far enough under any
+## plausible allowance that the question never has to be asked again.
+const SAVE_BUDGET_MS := 20.0
+
+
+## --- app lifecycle ---------------------------------------------------------
+##
+## Launch, suspend, resume, relaunch. None of these can be tested from a build
+## server; all of them are things a phone does to an app unasked, and the only
+## way to know they were handled is to have recorded them when they happened.
+
+const LIFECYCLE_PATH := "user://lifecycle.json"
+
+
+static func _lifecycle() -> Dictionary:
+	if not FileAccess.file_exists(LIFECYCLE_PATH):
+		return {}
+	var f := FileAccess.open(LIFECYCLE_PATH, FileAccess.READ)
+	if f == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	return parsed if typeof(parsed) == TYPE_DICTIONARY else {}
+
+
+static func _write_lifecycle(d: Dictionary) -> void:
+	var f := FileAccess.open(LIFECYCLE_PATH, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(d))
+	f.close()
+
+
+static func note_launch() -> void:
+	var d: Dictionary = _lifecycle()
+	d["launches"] = int(d.get("launches", 0)) + 1
+	d["last_launch"] = int(Time.get_unix_time_from_system())
+	_write_lifecycle(d)
+
+
+static func note_pause() -> void:
+	var d: Dictionary = _lifecycle()
+	d["pauses"] = int(d.get("pauses", 0)) + 1
+	d["paused_at"] = int(Time.get_unix_time_from_system())
+	_write_lifecycle(d)
+
+
+static func note_resume() -> void:
+	var d: Dictionary = _lifecycle()
+	d["resumes"] = int(d.get("resumes", 0)) + 1
+	var away: int = int(Time.get_unix_time_from_system()) - int(d.get("paused_at", 0))
+	if int(d.get("paused_at", 0)) > 0 and away >= 0:
+		d["last_away"] = away
+		d["longest_away"] = maxi(int(d.get("longest_away", 0)), away)
+	_write_lifecycle(d)
+
+
+static func lifecycle_check() -> Dictionary:
+	var d: Dictionary = _lifecycle()
+	if d.is_empty():
+		return _r("lifecycle", "App lifecycle", UNKNOWN,
+			"nothing recorded yet -- background the app and come back")
+	var launches: int = int(d.get("launches", 0))
+	var pauses: int = int(d.get("pauses", 0))
+	var resumes: int = int(d.get("resumes", 0))
+	var detail: String = "%d launches, %d suspends, %d resumes" % [
+		launches, pauses, resumes]
+	if d.has("longest_away"):
+		detail += ", longest gap %s" % Economy.fmt_duration(
+			float(d["longest_away"]))
+	if pauses > 0 and resumes == 0:
+		return _r("lifecycle", "App lifecycle", FAIL,
+			detail + " -- the app was suspended but never saw a resume, so "
+			+ "anything restored on resume is not running")
+	return _r("lifecycle", "App lifecycle", PASS, detail)
+
+
+## Every sound this build can play. A generator that silently failed leaves a
+## game that is simply quiet, which is very hard to notice in testing.
+static func audio_check() -> Dictionary:
+	var j: Node = _svc("Juice")
+	if j == null:
+		return _r("audio", "Sound", UNKNOWN, "the audio service is not loaded")
+	var names: Array = j.sfx_names()
+	if names.size() < EXPECTED_SOUNDS:
+		return _r("audio", "Sound", FAIL,
+			"%d of %d sounds were generated: %s"
+			% [names.size(), EXPECTED_SOUNDS, ", ".join(names)])
+	var samples: int = j.total_samples()
+	return _r("audio", "Sound", PASS,
+		"%d sounds synthesised at startup, %d KB of samples, no audio files"
+		% [names.size(), samples * 2 / 1024])
+
+
+## Every entry in Juice's generator list. Written out so that deleting one is
+## a visible change here too.
+const EXPECTED_SOUNDS := 12
 
 
 ## --- the native plugins ----------------------------------------------------
