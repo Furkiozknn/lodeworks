@@ -2,8 +2,12 @@
 build/
 export_presets.cfg.bak
 *.tmp
-# .import files are build artefacts; Godot regenerates them
+# .import files are build artefacts; Godot regenerates them -- except for the
+# art, whose compression, mipmaps and filter are decisions, not defaults.
 *.import
+!assets/art/**/*.import
+# Raw generated sheets, if tools/art_build.py had to download them.
+.art_raw/
 android/
 # Native Android plugins are fetched by tools/install-plugins.sh, never
 # committed: large prebuilt AARs that update on Google's schedule, and the

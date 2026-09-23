@@ -1,0 +1,408 @@
+{
+ "tile": {
+  "w": 128,
+  "h": 64
+ },
+ "machines": {
+  "order": [
+   "drill",
+   "crusher",
+   "vault",
+   "smelter",
+   "boiler",
+   "coolant",
+   "press",
+   "assembler",
+   "amplifier",
+   "lab",
+   "duplicator",
+   "condenser"
+  ],
+  "sheets": {
+   "shaft": {
+    "cell": [
+     265,
+     280
+    ],
+    "anchor": [
+     132.5,
+     207.5
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/shaft.webp"
+   },
+   "shaft_up": {
+    "cell": [
+     313,
+     265
+    ],
+    "anchor": [
+     156.5,
+     196.6
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/shaft_up.webp"
+   },
+   "brass": {
+    "cell": [
+     327,
+     285
+    ],
+    "anchor": [
+     163.5,
+     213.2
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/brass.webp"
+   },
+   "brass_up": {
+    "cell": [
+     323,
+     277
+    ],
+    "anchor": [
+     161.5,
+     205.4
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/brass_up.webp"
+   },
+   "frost": {
+    "cell": [
+     326,
+     282
+    ],
+    "anchor": [
+     163.0,
+     210.1
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/frost.webp"
+   },
+   "frost_up": {
+    "cell": [
+     330,
+     272
+    ],
+    "anchor": [
+     165.0,
+     200.0
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/frost_up.webp"
+   },
+   "verdant": {
+    "cell": [
+     332,
+     286
+    ],
+    "anchor": [
+     166.0,
+     217.7
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/verdant.webp"
+   },
+   "verdant_up": {
+    "cell": [
+     328,
+     284
+    ],
+    "anchor": [
+     164.0,
+     212.1
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/verdant_up.webp"
+   },
+   "ember": {
+    "cell": [
+     327,
+     281
+    ],
+    "anchor": [
+     163.5,
+     212.9
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/ember.webp"
+   },
+   "ember_up": {
+    "cell": [
+     317,
+     272
+    ],
+    "anchor": [
+     158.5,
+     204.0
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/ember_up.webp"
+   },
+   "slate": {
+    "cell": [
+     325,
+     283
+    ],
+    "anchor": [
+     162.5,
+     211.2
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/slate.webp"
+   },
+   "slate_up": {
+    "cell": [
+     337,
+     275
+    ],
+    "anchor": [
+     168.5,
+     203.4
+    ],
+    "base_px": 224,
+    "cols": 4,
+    "rows": 3,
+    "file": "res://assets/art/machines/slate_up.webp"
+   }
+  }
+ },
+ "tiles": {
+  "file": "res://assets/art/tiles/floor.jpg",
+  "tile_px": 256,
+  "cols": 4,
+  "rows": 2,
+  "kinds": [
+   "plain",
+   "plain",
+   "plain",
+   "plain",
+   "plate",
+   "grate",
+   "crystal",
+   "cracked"
+  ]
+ },
+ "island": {
+  "file": "res://assets/art/world/island.webp",
+  "size": [
+   2048,
+   1673
+  ],
+  "top_center": [
+   1023.5,
+   377.8
+  ],
+  "top_half_w": 1023.5,
+  "top_half_h": 371.9
+ },
+ "world": {
+  "file": "res://assets/art/world/workings.jpg",
+  "size": [
+   3840,
+   2160
+  ],
+  "anchor": [
+   1920,
+   1015
+  ]
+ },
+ "foreman": {
+  "file": "res://assets/art/foreman/poses.webp",
+  "cell": [
+   252,
+   420
+  ],
+  "poses": [
+   "idle",
+   "point",
+   "cheer",
+   "jump",
+   "surprised"
+  ]
+ },
+ "icons": {
+  "file": "res://assets/art/ui/icons.webp",
+  "cell": [
+   128,
+   128
+  ],
+  "cols": 4,
+  "rows": 4,
+  "order": [
+   "credits",
+   "energy",
+   "descend",
+   "research",
+   "cores",
+   "heat",
+   "cold",
+   "upgrade",
+   "shop",
+   "settings",
+   "codex",
+   "star",
+   "lock",
+   "ad",
+   "ok",
+   "warning"
+  ]
+ },
+ "core": {
+  "cell": [
+   542,
+   563
+  ],
+  "anchor": [
+   271.0,
+   412.7
+  ],
+  "base_px": 520,
+  "cols": 1,
+  "rows": 1,
+  "file": "res://assets/art/world/core.webp"
+ },
+ "props": {
+  "cell": [
+   220,
+   278
+  ],
+  "anchor": [
+   110.0,
+   216.4
+  ],
+  "base_px": 200,
+  "cols": 4,
+  "rows": 2,
+  "file": "res://assets/art/world/props.webp",
+  "order": [
+   "crystal_purple",
+   "crystal_cyan",
+   "ore_vein",
+   "rubble",
+   "lamp",
+   "lock",
+   "crate",
+   "vent"
+  ]
+ },
+ "placement": {
+  "slab_cells": 12,
+  "board_offset": [
+   4,
+   1
+  ],
+  "core_cell": [
+   1,
+   1
+  ],
+  "core_size": 3,
+  "footprint": 0.76,
+  "parallax": 0.82,
+  "board_lift": 10,
+  "expansion": [
+   [
+    1,
+    4
+   ],
+   [
+    3,
+    10
+   ]
+  ],
+  "props": [
+   [
+    2,
+    4,
+    "lock"
+   ],
+   [
+    2,
+    8,
+    "lock"
+   ],
+   [
+    1,
+    6,
+    "crystal_purple"
+   ],
+   [
+    3,
+    9,
+    "crystal_cyan"
+   ],
+   [
+    1,
+    9,
+    "ore_vein"
+   ],
+   [
+    3,
+    6,
+    "rubble"
+   ],
+   [
+    2,
+    10,
+    "crate"
+   ],
+   [
+    0,
+    5,
+    "vent"
+   ],
+   [
+    0,
+    11,
+    "lamp"
+   ],
+   [
+    11,
+    0,
+    "lamp"
+   ],
+   [
+    11,
+    11,
+    "lamp"
+   ],
+   [
+    0,
+    2,
+    "crystal_cyan"
+   ],
+   [
+    11,
+    6,
+    "crystal_purple"
+   ],
+   [
+    6,
+    11,
+    "ore_vein"
+   ]
+  ]
+ }
+}

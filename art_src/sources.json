@@ -1,0 +1,359 @@
+{
+ "world": {
+  "file": "r3_world.png",
+  "job": "26c5cae1-ecd8-4fe8-8910-18996744a56c",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_193733_26c5cae1-ecd8-4fe8-8910-18996744a56c.png",
+  "date": "2026-09-23 19:37 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 4k",
+  "aspect": "16:9",
+  "background": null,
+  "refs": [
+   "8eb026fd-8111-4f16-b15d-5507b78a8960",
+   "d88ec924-4b9b-4e2b-aac2-3b7cc7df1923"
+  ],
+  "prompt": "Wide LANDSCAPE 16:9 background painting for a landscape mobile strategy game, in exactly the art style, colours, materials and warm light of the attached images (stylized 3D, chunky, toy-like, premium mobile game art), but WITHOUT any factory platform, WITHOUT any UI, text, logo, icons or characters. The camera is a high three-quarter view looking down at about 35 degrees, like an isometric city-builder camera rotated 45 degrees, so cliff tops, ledges, bridges and rails run diagonally across the image. The world: a vast underground canyon. The CENTRE of the image (the middle 45 percent of the width and the middle 55 percent of the height) is a deep, empty, misty chasm with nothing in it but soft blue-violet mist, faint light shafts and far-away rock pillars, because a floating rock island with a factory will be placed there later. All the rich detail surrounds that empty centre: on the left and right, big mossy cliffs of cool purple, navy and grey layered rock with green grass on their tops; glowing purple and cyan crystal clusters; several waterfalls pouring down into the chasm; small industrial buildings with warm lit windows, iron scaffolding, big brass and blue pipes, steam vents, hanging lanterns, mine rails with a few ore carts, glowing orange ore veins in the rock; stone and wooden bridges that end at the edge of the chasm; along the top edge, distant industrial towers, chimneys and castle-like factories on far cliffs with warm windows and a bright sky glow; along the bottom corners, closer ledges with crystals, rocks and small lanterns. Rich but calm, clearly readable depth: near things darker and larger, far things hazier. No people, no text.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/world/workings.jpg"
+  ]
+ },
+ "island": {
+  "file": "r2_island.png",
+  "job": "1fc56274-4695-442d-a4fd-231aaec37eba",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_182004_1fc56274-4695-442d-a4fd-231aaec37eba.png",
+  "date": "2026-09-23 18:20 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "d88ec924-4b9b-4e2b-aac2-3b7cc7df1923"
+  ],
+  "prompt": "Game asset on a fully transparent background: the underside of a floating rock island that carries a factory platform, in the art style of the attached image, seen from the same high isometric camera. Its top is completely flat and cut clean (a platform will sit on it) and forms a wide diamond shape; below it hangs a big chunky inverted rock mass of layered stylized rock strata in cool grey, purple and navy, with patches of green moss at the top edge, glowing purple and cyan crystal clusters growing out of the rock, two small waterfalls spilling off the edge and falling away, a few iron support beams and a hanging lantern, tapering downwards into wisps of mist. Stylized 3D mobile game art, no text.",
+  "session": "Cowork, 23 Sep 2026",
+  "used_for": [
+   "assets/art/world/island.webp"
+  ]
+ },
+ "tiles": {
+  "file": "r2_tiles.png",
+  "job": "5db56fbc-fde4-4e47-9944-998fa4a0bda8",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_182056_5db56fbc-fde4-4e47-9944-998fa4a0bda8.png",
+  "date": "2026-09-23 18:20 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": null,
+  "refs": [
+   "d88ec924-4b9b-4e2b-aac2-3b7cc7df1923"
+  ],
+  "prompt": "Texture sheet for a mobile game factory floor, matching the stone slab tiles of the platform in the attached image: 8 square floor tile textures in a 4 columns x 2 rows grid, each a perfect square seen EXACTLY from straight above (orthographic top-down, no perspective, no visible sides), all the same size, separated by thin black gaps, on a black background. Each square is one chunky stone slab: warm grey-brown flagstone with soft bevelled edges, a lighter top-left edge and darker bottom-right edge, subtle cracks and wear. Row 1: four plain slab variations. Row 2: one slab with a small riveted steel plate inlaid, one with an iron grate, one with a small glowing cyan crystal chip in a corner, one cracked with pebbles. Stylized painted game texture, soft even lighting, no text.",
+  "session": "Cowork, 23 Sep 2026",
+  "used_for": [
+   "assets/art/tiles/floor.jpg"
+  ]
+ },
+ "foreman": {
+  "file": "r2_foreman.png",
+  "job": "d6d82471-8605-47e9-ba9a-353d30632bd3",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_182005_d6d82471-8605-47e9-ba9a-353d30632bd3.png",
+  "date": "2026-09-23 18:20 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "21:9",
+  "background": "transparent",
+  "refs": [
+   "d88ec924-4b9b-4e2b-aac2-3b7cc7df1923"
+  ],
+  "prompt": "Character pose sheet on a fully transparent background: the friendly young miner foreman mascot of the mobile game LODEWORKS, in the character style of the miner in the attached image (cute but professional, big readable face with big eyes and a warm smile, orange-yellow hard hat with a headlamp, brown work shirt with rolled sleeves, tool belt, gloves, sturdy boots, strong clear silhouette, stylized 3D render) - an original character, not a copy. The same character shown 5 times in a row, full body, evenly spaced, not overlapping, identical design in every pose: 1 IDLE standing relaxed with a clipboard; 2 POINTING to the right with one arm; 3 THUMBS UP celebrating with a big grin; 4 EXCITED jumping with both fists up; 5 SURPRISED leaning back with wide eyes and hands up. No text, no background, no floor.",
+  "session": "Cowork, 23 Sep 2026",
+  "used_for": [
+   "assets/art/foreman/poses.webp"
+  ]
+ },
+ "machines_shaft": {
+  "file": "r2_machines.png",
+  "job": "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_182004_ab8dad11-4512-42d8-953c-cf12acc8e2a1.png",
+  "date": "2026-09-23 18:20 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "d88ec924-4b9b-4e2b-aac2-3b7cc7df1923",
+   "666825c0-20ef-4a49-a563-06ffce9b09ca"
+  ],
+  "prompt": "Game asset sprite sheet on a fully transparent background: 12 factory machines for the mobile game LODEWORKS in the art style of the machines on the board of the FIRST attached image (chunky, toy-like, stylized 3D, soft bevels, glossy painted metal, brass, glowing emissive cores, warm orange, gold, red, electric blue, cyan, green and purple), arranged in a clean 4 columns x 3 rows grid, each centred in its cell with generous space, nothing overlapping, no text, no floor, no shadow on the ground. Every machine is drawn from exactly the same TRUE ISOMETRIC camera (45 degree rotation, camera about 35 degrees above the ground), so that one corner of it points straight at the viewer and its left and right faces are equally visible, same scale for all. Every machine stands on its own identical square base plate of dark riveted metal with brass corner caps, which appears as a flat diamond (twice as wide as it is deep) under the machine and fills the same footprint in every cell. The second attached image shows what each machine does; redesign them in the first image's style. Row 1: EXTRACTOR drill rig biting into a rock with ore chunks and a spinning drill bit; CRUSHER with a hopper and toothed rollers; STORAGE vault piled with gold coins and ore; SMELTER furnace with molten metal pouring and fire. Row 2: BOILER fat red pressure tank with gauges and steam valve; COOLANT CELL glass tank of icy cyan liquid with frost; PRESS heavy piston press over a glowing plate; ASSEMBLER robot arm joining glowing parts with a blue holo screen. Row 3: AMPLIFIER copper coil tower with a yellow energy orb; LAB glass dome with a floating purple crystal and flasks; DUPLICATOR twin pods with a pink energy field; CONDENSER blue-cyan cooling unit with fins and cold blue light. Each machine has one distinct main colour, one glowing core in its own light colour and a moving part.",
+  "session": "Cowork, 23 Sep 2026",
+  "used_for": [
+   "assets/art/machines/shaft.webp"
+  ]
+ },
+ "machines_shaft_up": {
+  "file": "r2_machines_up.png",
+  "job": "d3220bb8-f2f3-479c-bc79-e11ca852887f",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_194414_d3220bb8-f2f3-479c-bc79-e11ca852887f.png",
+  "date": "2026-09-23 19:44 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "e33acdfb-a80f-4d86-98c2-2c8511e8492a"
+  ],
+  "prompt": "Redraw the FIRST attached isometric machine sprite sheet as its UPGRADED top tier, the way the SECOND attached sheet shows upgraded machines: keep EXACTLY the FIRST sheet's 12 machines with the same silhouettes, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, diamond-shaped base plates), the same scale and light, and the same main colours, but add polished gold trim and gold corner caps, larger and brighter glowing cores, a few extra small running lights, a thin glowing blue light strip along the front edges of the base plate and a small glowing purple faceted gem set into the front corner of each base plate. Every machine keeps its silhouette and its own core light colour. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/shaft_up.webp"
+  ]
+ },
+ "machines_brass": {
+  "file": "r2_machines_brass.png",
+  "job": "cf7b5284-8672-4e4e-998b-a70bd54fed0d",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_193733_cf7b5284-8672-4e4e-998b-a70bd54fed0d.png",
+  "date": "2026-09-23 19:37 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "0b407279-5575-4cea-b7eb-22a913366755"
+  ],
+  "prompt": "Redraw the FIRST attached sprite sheet in the BRASS WORKS colour theme, using the SECOND attached sheet only as the reference for that theme's materials and colours. Keep EXACTLY the FIRST sheet's 12 machines: the same silhouettes and parts, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, left and right faces equally visible), the same diamond-shaped riveted base plates with corner caps, the same scale and the same light direction. Change only materials and colours: polished brass, copper and warm amber lacquer, bronze rivets, ochre accents. Every machine keeps its own glowing core in its own light colour so the twelve stay easy to tell apart. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/brass.webp"
+  ]
+ },
+ "machines_brass_up": {
+  "file": "r2_machines_brass_up.png",
+  "job": "96ca53c9-9d57-4ab9-a927-f6deeb82234b",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_194101_96ca53c9-9d57-4ab9-a927-f6deeb82234b.png",
+  "date": "2026-09-23 19:41 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "cf7b5284-8672-4e4e-998b-a70bd54fed0d",
+   "e33acdfb-a80f-4d86-98c2-2c8511e8492a"
+  ],
+  "prompt": "Redraw the FIRST attached isometric machine sprite sheet (the Brass Works colour theme) as its UPGRADED top tier, the way the SECOND attached sheet shows upgraded machines: keep EXACTLY the FIRST sheet's 12 machines with the same silhouettes, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, diamond-shaped base plates), the same scale and light, and the same brass and copper materials, but add polished gold trim and gold corner caps, larger and brighter glowing cores, a few extra small running lights, a thin glowing blue light strip along the front edges of the base plate and a small glowing purple faceted gem set into the front corner of each base plate. Every machine keeps its silhouette and its own core light colour. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/brass_up.webp"
+  ]
+ },
+ "machines_frost": {
+  "file": "r2_machines_frost.png",
+  "job": "9c78ed1c-6fcf-4988-b092-85240b33efe0",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_193733_9c78ed1c-6fcf-4988-b092-85240b33efe0.png",
+  "date": "2026-09-23 19:37 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "8cd5e1e5-aae2-414c-8a9d-f6f8d7f62c99"
+  ],
+  "prompt": "Redraw the FIRST attached sprite sheet in the DEEP FROST colour theme, using the SECOND attached sheet only as the reference for that theme's materials and colours. Keep EXACTLY the FIRST sheet's 12 machines: the same silhouettes and parts, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, left and right faces equally visible), the same diamond-shaped riveted base plates with corner caps, the same scale and the same light direction. Change only materials and colours: white and pale-grey enamel plating, pale blue steel, clear blue ice and a little frost on edges. Every machine keeps its own glowing core in its own light colour so the twelve stay easy to tell apart. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/frost.webp"
+  ]
+ },
+ "machines_frost_up": {
+  "file": "r2_machines_frost_up.png",
+  "job": "37ead3d8-85e1-44ea-92ab-1ba21499cc82",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_194102_37ead3d8-85e1-44ea-92ab-1ba21499cc82.png",
+  "date": "2026-09-23 19:41 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "9c78ed1c-6fcf-4988-b092-85240b33efe0",
+   "e33acdfb-a80f-4d86-98c2-2c8511e8492a"
+  ],
+  "prompt": "Redraw the FIRST attached isometric machine sprite sheet (the Deep Frost colour theme) as its UPGRADED top tier, the way the SECOND attached sheet shows upgraded machines: keep EXACTLY the FIRST sheet's 12 machines with the same silhouettes, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, diamond-shaped base plates), the same scale and light, and the same white enamel, pale steel and ice materials, but add polished gold trim and gold corner caps, larger and brighter glowing cores, a few extra small running lights, a thin glowing blue light strip along the front edges of the base plate and a small glowing purple faceted gem set into the front corner of each base plate. Every machine keeps its silhouette and its own core light colour. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/frost_up.webp"
+  ]
+ },
+ "machines_verdant": {
+  "file": "r2_machines_verdant.png",
+  "job": "f9fb664e-a771-432f-9c73-02fa92f409f2",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_193733_f9fb664e-a771-432f-9c73-02fa92f409f2.png",
+  "date": "2026-09-23 19:37 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "fc8bed7d-a667-4791-9090-45d487126bbf"
+  ],
+  "prompt": "Redraw the FIRST attached sprite sheet in the VERDANT SEAM colour theme, using the SECOND attached sheet only as the reference for that theme's materials and colours. Keep EXACTLY the FIRST sheet's 12 machines: the same silhouettes and parts, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, left and right faces equally visible), the same diamond-shaped riveted base plates with corner caps, the same scale and the same light direction. Change only materials and colours: moss-green painted metal, jade and pale marble panels, a few small leaves and vines growing on the machines. Every machine keeps its own glowing core in its own light colour so the twelve stay easy to tell apart. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/verdant.webp"
+  ]
+ },
+ "machines_verdant_up": {
+  "file": "r2_machines_verdant_up.png",
+  "job": "3a3e8c70-2457-49e1-802d-9f41ce5d5dd5",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_194102_3a3e8c70-2457-49e1-802d-9f41ce5d5dd5.png",
+  "date": "2026-09-23 19:41 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "f9fb664e-a771-432f-9c73-02fa92f409f2",
+   "e33acdfb-a80f-4d86-98c2-2c8511e8492a"
+  ],
+  "prompt": "Redraw the FIRST attached isometric machine sprite sheet (the Verdant Seam colour theme) as its UPGRADED top tier, the way the SECOND attached sheet shows upgraded machines: keep EXACTLY the FIRST sheet's 12 machines with the same silhouettes, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, diamond-shaped base plates), the same scale and light, and the same moss-green, jade and marble materials with small leaves, but add polished gold trim and gold corner caps, larger and brighter glowing cores, a few extra small running lights, a thin glowing blue light strip along the front edges of the base plate and a small glowing purple faceted gem set into the front corner of each base plate. Every machine keeps its silhouette and its own core light colour. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/verdant_up.webp"
+  ]
+ },
+ "machines_ember": {
+  "file": "r2_machines_ember.png",
+  "job": "d2c6458d-ae5c-4f41-82af-6a9057bceef0",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_193733_d2c6458d-ae5c-4f41-82af-6a9057bceef0.png",
+  "date": "2026-09-23 19:37 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "5f874015-e05a-4d35-9a1e-1829fb67b087"
+  ],
+  "prompt": "Redraw the FIRST attached sprite sheet in the EMBER CUT colour theme, using the SECOND attached sheet only as the reference for that theme's materials and colours. Keep EXACTLY the FIRST sheet's 12 machines: the same silhouettes and parts, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, left and right faces equally visible), the same diamond-shaped riveted base plates with corner caps, the same scale and the same light direction. Change only materials and colours: dark basalt and blackened iron plating, deep red paint, glowing magma-orange seams and hot edges. Every machine keeps its own glowing core in its own light colour so the twelve stay easy to tell apart. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/ember.webp"
+  ]
+ },
+ "machines_ember_up": {
+  "file": "r2_machines_ember_up.png",
+  "job": "a90cabf0-9810-4582-a106-d8ac4f873a2d",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_194101_a90cabf0-9810-4582-a106-d8ac4f873a2d.png",
+  "date": "2026-09-23 19:41 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "d2c6458d-ae5c-4f41-82af-6a9057bceef0",
+   "e33acdfb-a80f-4d86-98c2-2c8511e8492a"
+  ],
+  "prompt": "Redraw the FIRST attached isometric machine sprite sheet (the Ember Cut colour theme) as its UPGRADED top tier, the way the SECOND attached sheet shows upgraded machines: keep EXACTLY the FIRST sheet's 12 machines with the same silhouettes, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, diamond-shaped base plates), the same scale and light, and the same basalt, blackened iron, deep red and magma materials, but add polished gold trim and gold corner caps, larger and brighter glowing cores, a few extra small running lights, a thin glowing blue light strip along the front edges of the base plate and a small glowing purple faceted gem set into the front corner of each base plate. Every machine keeps its silhouette and its own core light colour. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/ember_up.webp"
+  ]
+ },
+ "machines_slate": {
+  "file": "r2_machines_slate.png",
+  "job": "95a306f7-93d5-408c-9c89-201f100c2609",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_193733_95a306f7-93d5-408c-9c89-201f100c2609.png",
+  "date": "2026-09-23 19:37 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "91daca99-1cbb-492b-a469-c82c5d48bf6d"
+  ],
+  "prompt": "Redraw the FIRST attached sprite sheet in the SLATE colour theme: a grey plant with coloured cargo. Keep EXACTLY the FIRST sheet's 12 machines: the same silhouettes and parts, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, left and right faces equally visible), the same diamond-shaped riveted base plates with corner caps, the same scale and the same light direction. Change only materials and colours: all the machine bodies, frames and pipes in neutral slate grey, graphite and brushed steel with no coloured paint, but every machine keeps its own glowing core, liquid, crystal or cargo in its own bright colour, so the twelve stay easy to tell apart by shape and by that one light. The SECOND attached sheet is only a loose reference for a restyled set. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/slate.webp"
+  ]
+ },
+ "machines_slate_up": {
+  "file": "r2_machines_slate_up.png",
+  "job": "1a8b1b25-b5a7-4be4-9622-d4760b4090bc",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_194101_1a8b1b25-b5a7-4be4-9622-d4760b4090bc.png",
+  "date": "2026-09-23 19:41 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [
+   "95a306f7-93d5-408c-9c89-201f100c2609",
+   "e33acdfb-a80f-4d86-98c2-2c8511e8492a"
+  ],
+  "prompt": "Redraw the FIRST attached isometric machine sprite sheet (the Slate colour theme: grey plant, coloured cargo) as its UPGRADED top tier, the way the SECOND attached sheet shows upgraded machines: keep EXACTLY the FIRST sheet's 12 machines with the same silhouettes, the same 4 columns x 3 rows positions and order, the same TRUE ISOMETRIC camera (45 degree rotation, one corner pointing at the viewer, diamond-shaped base plates), the same scale and light, and the same neutral slate grey, graphite and brushed steel bodies, but add polished gold trim and gold corner caps, larger and brighter glowing cores, a few extra small running lights, a thin glowing blue light strip along the front edges of the base plate and a small glowing purple faceted gem set into the front corner of each base plate. Every machine keeps its silhouette and its own core light colour. Fully transparent background, each machine centred in its cell, nothing overlapping, no text, no floor, no shadow on the ground.",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "used_for": [
+   "assets/art/machines/slate_up.webp"
+  ]
+ },
+ "core": {
+  "model": "gpt_image_2_5 / flare",
+  "background": "transparent",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "file": "r3_core.png",
+  "job": "6e25a242-78f4-4abd-882a-d8a04bc7930c",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_195937_6e25a242-78f4-4abd-882a-d8a04bc7930c.png",
+  "date": "2026-09-23 19:59 UTC",
+  "quality": "high, 2k",
+  "aspect": "1:1",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "d88ec924-4b9b-4e2b-aac2-3b7cc7df1923"
+  ],
+  "prompt": "One game asset on a fully transparent background: the FACTORY CORE of the mobile game LODEWORKS, the heart of the player's underground factory, in exactly the art style, materials, light and TRUE ISOMETRIC camera of the machines in the FIRST attached sheet (45 degree rotation, camera about 35 degrees above the ground, one corner pointing at the viewer, left and right faces equally visible, light from the upper left). It stands on one big square base plate of dark riveted metal with brass corner caps that appears as a flat diamond exactly twice as wide as it is deep, three times the size of one machine's plate. On it: a chunky round reactor-foundry tower of polished brass, copper and dark iron, with a large glowing cyan-and-gold energy crystal floating in an open cage at its top, heavy riveted rings, glowing blue windows, small pipes and cables leading down to the four edges of the plate, a gentle column of light and a few sparks rising from the crystal. Proud, readable, landmark silhouette, taller than wide. Centred, nothing cut off, no text, no floor, no shadow on the ground.",
+  "used_for": [
+   "assets/art/world/core.webp"
+  ]
+ },
+ "props": {
+  "model": "gpt_image_2_5 / flare",
+  "background": "transparent",
+  "session": "Claude Code, 23 Sep 2026 (landscape iso round)",
+  "file": "r3_props.png",
+  "job": "7d44ccda-cd4e-4a56-b32f-361beb92476c",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_195922_7d44ccda-cd4e-4a56-b32f-361beb92476c.png",
+  "date": "2026-09-23 19:59 UTC",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "refs": [
+   "ab8dad11-4512-42d8-953c-cf12acc8e2a1",
+   "1fc56274-4695-442d-a4fd-231aaec37eba"
+  ],
+  "prompt": "Game asset sprite sheet on a fully transparent background for the mobile game LODEWORKS: 8 small environment props in a clean 4 columns x 2 rows grid, each centred in its cell with generous space, nothing overlapping, no text, no floor, no shadow on the ground. Exactly the art style, materials, colours and TRUE ISOMETRIC camera of the FIRST attached sheet (45 degree rotation, camera about 35 degrees above the ground, light from the upper left), and the rock, moss and crystal look of the SECOND attached image. Each prop sits on a small patch of the same grey-brown stone, sized to fit on one floor tile that appears as a diamond twice as wide as deep. Row 1: a cluster of glowing purple crystals; a cluster of glowing cyan crystals; a rock with glowing orange ore veins; a small pile of rubble and pebbles. Row 2: a lamp post of iron and brass with a warm glowing lantern; a locked barrier of two short iron posts joined by a heavy chain with a brass padlock; a wooden crate of ore with an iron band; a small brass steam vent with a soft white puff.",
+  "used_for": [
+   "assets/art/world/props.webp"
+  ]
+ },
+ "icons": {
+  "file": "icons.png",
+  "job": "1b8e8856-794c-49db-a5a6-cad41c51a242",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260923_164935_1b8e8856-794c-49db-a5a6-cad41c51a242.png",
+  "date": "2026-09-23 16:49 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "1:1",
+  "background": "transparent",
+  "refs": [
+   "666825c0-20ef-4a49-a563-06ffce9b09ca"
+  ],
+  "prompt": "Game UI icon sheet on a fully transparent background: 16 separate chunky glossy stylized 3D icons for a premium mobile game, in the rendering style of the attached machines, arranged in a 4 x 4 grid, each centred in its cell with space around it, all the same visual size, no text: 1 gold coin with an embossed star; 2 production rate: a golden gear with a lightning bolt; 3 depth: a steel pickaxe over a small down arrow; 4 research: a glowing blue round flask; 5 Core: a glowing purple faceted gem; 6 heat: an orange-red flame; 7 cold: an icy blue snowflake crystal; 8 upgrade: a green up arrow; 9 store: a small purple shopping bag with a gold star; 10 settings: a silver cog; 11 codex: a leather-bound book with a brass gear emblem; 12 a gold star; 13 a brass padlock; 14 a small TV screen with a play triangle; 15 a green checkmark in a round badge; 16 an orange warning triangle with an exclamation mark. Consistent key light from the upper left, thick soft bevels, rich saturated colours.",
+  "session": "Cowork, 23 Sep 2026",
+  "used_for": [
+   "assets/art/ui/icons.webp"
+  ]
+ }
+}
