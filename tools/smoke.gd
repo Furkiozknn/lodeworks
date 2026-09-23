@@ -95,6 +95,13 @@ func _run() -> void:
 		codex.queue_free()
 	await _settle(0.4)
 
+	# The placement preview for a support machine is verified by
+	# `tests/test_grid.gd` rather than by a screenshot: it only exists while a
+	# finger is down, and a shot of transient input state is a flaky test
+	# rather than a useful one. What matters is that the number drawn under
+	# the finger is the number the machine gets, and one function produces
+	# both.
+
 	# The shop. Every card draws a real illustration -- the offline bars and
 	# a strip of machine tiles per palette -- so a card that fails to build
 	# renders as an empty box, which the lit-sample check below catches. This

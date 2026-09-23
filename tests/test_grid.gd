@@ -242,3 +242,32 @@ func test_load_ignores_garbage() -> void:
 	var g := Grid.new()
 	g.from_dict({"cells": {"999999": "drill", "3": "not_a_machine", "-1": "vault"}})
 	runner.eq(g.cells.size(), 0, "out-of-range and unknown entries are dropped")
+
+
+func test_the_previewed_service_count_is_the_one_you_get() -> void:
+	# The placement preview draws "serves N" under the player's finger before
+	# the tile is bought. If that number could disagree with what the machine
+	# actually gets, the discovery it is meant to teach would be a lie.
+	var g := Grid.new()
+	var spot: int = Grid.idx(3, 3)
+	g.place(Grid.idx(2, 3), "drill")
+	g.place(Grid.idx(4, 3), "crusher")
+	g.place(Grid.idx(3, 2), "vault")
+	var previewed: int = g.serves_if_placed(spot)
+	runner.eq(previewed, 2,
+		"two working neighbours; the Vault has no rate to raise")
+	g.place(spot, "amplifier")
+	runner.eq(g.serves(spot), previewed,
+		"what the preview promised is what the machine got")
+	runner.near(g.serve_factor(spot), Grid.factor_for(previewed), 0.0001,
+		"and the multiplier it promised too")
+
+
+func test_the_preview_reads_zero_where_a_support_tile_is_wasted() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(2, 3), "vault")
+	g.place(Grid.idx(4, 3), "amplifier")
+	runner.eq(g.serves_if_placed(Grid.idx(3, 3)), 0,
+		"next to a Vault and another Amplifier is a wasted tile, and the "
+		+ "preview has to say so before the player spends the credits")
+	runner.near(Grid.factor_for(0), 0.0, 0.0001, "worth nothing")

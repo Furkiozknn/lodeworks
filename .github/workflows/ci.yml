@@ -53,6 +53,17 @@ jobs:
       - name: Layout scoreboard
         run: ./godot --headless --path . --script res://tools/layout_lab.gd
 
+      # The player journey from the first tap to the long game, and whether
+      # the modifier table actually changes which board is correct. Printed
+      # rather than asserted for the same reason as the scoreboard -- the
+      # bounds are in tests/test_gameplay.gd, the numbers behind them belong
+      # in front of whoever changes the rules.
+      - name: Player journey
+        run: ./godot --headless --path . --script res://tools/journey_lab.gd
+
+      - name: Strategy scoreboard
+        run: ./godot --headless --path . --script res://tools/strategy_lab.gd
+
       # Where a player would feel value, and what paying is actually worth
       # against not paying. Printed for the same reason as the scoreboard:
       # the parity ratio is asserted in tests/test_store.gd, but the numbers

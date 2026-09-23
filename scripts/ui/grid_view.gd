@@ -588,32 +588,15 @@ func _draw_placement_preview(font: Font, cs: float) -> void:
 ## watches "serves 1 (x1.0)" become "serves 4 (x2.5)" has been told the rule
 ## without being told the rule.
 func _draw_service_preview(font: Font, cs: float, cell: int,
-		m: Dictionary) -> void:
-	var occupied: bool = not Sim.grid.is_empty(cell)
-	var n: int = 0
-	if occupied:
-		n = Sim.grid.serves(cell)
-	else:
-		# The tile is empty, so count what a support machine standing here
-		# would serve. Same rule as `Grid.serves`, asked hypothetically.
-		for j in Sim.grid.neighbour_machines(cell):
-			var nm: Dictionary = MachineDB.get_machine(Sim.grid.machine_at(j))
-			if nm.is_empty():
-				continue
-			var tags: Array = nm.get("tags", [])
-			if tags.has("sink") or nm.has("amplify") or nm.has("duplicate_chance"):
-				continue
-			if (nm.get("outputs", {}) as Dictionary).is_empty() \
-					and not tags.has("research"):
-				continue
-			n += 1
-	var factor: float = 0.0 if n <= 0 else 1.0 + Grid.SERVE_BONUS * float(n - 1)
+		_m: Dictionary) -> void:
+	var n: int = Sim.grid.serves_if_placed(cell)
+	var factor: float = Grid.factor_for(n)
 	var r: Rect2 = cell_rect(cell)
 	var col: Color = Palette.GOOD if n >= 3 else (
 		Palette.WARN if n >= 1 else Palette.BAD)
 	if cs > 30.0:
 		_num(font, r, "serves %d" % n, col, cs, 0.26)
-		_num(font, r, "x%.1f" % factor, col, cs, 0.5)
+		_num(font, r, "x%.1f" % factor, col, cs, 0.52)
 
 
 func _num(font: Font, r: Rect2, text: String, col: Color, cs: float,

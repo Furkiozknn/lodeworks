@@ -261,11 +261,39 @@ func serves(i: int) -> int:
 	return n
 
 
-func serve_factor(i: int) -> float:
-	var n: int = serves(i)
+## What a support machine WOULD serve if one were placed on this tile.
+##
+## Same rule as `serves`, asked hypothetically, so the number the placement
+## preview draws under the player's finger and the number the machine gets
+## when they lift it are produced by one function and cannot disagree.
+func serves_if_placed(i: int) -> int:
+	if not is_empty(i):
+		return serves(i)
+	var n: int = 0
+	for j in neighbour_machines(i):
+		var m: Dictionary = MachineDB.get_machine(machine_at(j))
+		if m.is_empty():
+			continue
+		var tags: Array = m.get("tags", [])
+		if tags.has("sink") or m.has("amplify") or m.has("duplicate_chance"):
+			continue
+		if (m.get("outputs", {}) as Dictionary).is_empty() \
+				and not tags.has("research"):
+			continue
+		n += 1
+	return n
+
+
+## The multiplier a support tile gets for serving `n` machines, as a pure
+## function so the preview can ask about a tile that does not exist yet.
+static func factor_for(n: int) -> float:
 	if n <= 0:
 		return 0.0
 	return 1.0 + SERVE_BONUS * float(n - 1)
+
+
+func serve_factor(i: int) -> float:
+	return factor_for(serves(i))
 
 
 
