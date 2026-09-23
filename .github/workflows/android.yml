@@ -171,9 +171,16 @@ jobs:
             grep -E "classes.dex|lib/|assets/" build/apk-list.txt | sed -n 1,20p
             echo
             echo "--- badging ---"
-            "$ANDROID_SDK_ROOT"/build-tools/*/aapt2 dump badging "$apk" 2>/dev/null \
-              | grep -E "^package:|sdkVersion|targetSdkVersion|uses-permission|native-code" \
-              || echo "aapt2 not found on this runner"
+            # The runner carries several build-tools versions; the bare glob
+            # ran the first aapt2 with the others as its arguments.
+            aapt2="$(ls "$ANDROID_SDK_ROOT"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1 || true)"
+            if [ -n "$aapt2" ]; then
+              "$aapt2" dump badging "$apk" > build/badging.txt 2>&1 || true
+              grep -E "^package:|sdkVersion|targetSdkVersion|uses-permission|native-code" \
+                build/badging.txt || echo "aapt2 printed no badging"
+            else
+              echo "aapt2 not found on this runner"
+            fi
             echo
             echo "--- plugin lock ---"
             cat addons/PLUGINS.lock 2>/dev/null || echo "no plugins installed"
