@@ -94,8 +94,11 @@ fudges that number is training you to disbelieve every other number it prints.
 NO DARK PATTERNS
 • No interstitial ads. Not one. Every ad is a rewarded video you choose to
   watch, and every one of them adds something rather than removing a penalty.
-• One optional purchase that removes ads and adds convenience. It unlocks no
-  machine, no stratum and no upgrade. The whole game is reachable without it.
+• Two optional purchases, bought once, no subscription. One removes ads and
+  banks more while you are away; the other is six colour palettes. Neither
+  unlocks a machine, a stratum or an upgrade, and paying is worth exactly what
+  watching the optional ad is worth — the same thing, without the thirty
+  seconds. The whole game is reachable without either.
 • No energy bars, no timers to skip, no loot boxes, no daily-login guilt, no
   account, no ads for other games interrupting you mid-thought.
 
@@ -115,7 +118,8 @@ each one is next to, and that is a much larger number.
   (dropped: "puzzle" and "management", the two with the least search intent
   behind them for this game)
 - Content rating target: **everyone**, target audience **13+**
-- Contains ads: **yes** (rewarded only) · In-app purchases: **yes** (one item)
+- Contains ads: **yes** (rewarded only) · In-app purchases: **yes** (two
+  one-time items, US$1.99–3.99; no currency, no packs, no subscription)
 
 ## ASO keyword set
 

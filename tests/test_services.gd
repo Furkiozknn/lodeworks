@@ -185,13 +185,13 @@ func test_the_licence_removes_ads_entirely() -> void:
 
 func test_store_is_unavailable_without_a_plugin() -> void:
 	runner.check(not Store.is_available(), "no billing plugin in a test build")
-	runner.check(not Store.purchase(), "and purchasing must fail cleanly")
+	runner.check(not Store.purchase(Store.LICENCE), "and purchasing must fail cleanly")
 
 
 func test_no_price_is_hardcoded() -> void:
 	# The UI asks the platform for the localised price. A hardcoded one is
 	# wrong in most of the world and against store guidelines.
-	runner.eq(Store.price_text(), "",
+	runner.eq(Store.price_text(Store.LICENCE), "",
 		"with no store connected there must be no price to show")
 
 

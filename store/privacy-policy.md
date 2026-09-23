@@ -13,6 +13,7 @@ itself. Your saved game is a file on your device and nowhere else.
 ## What the game stores on your device
 
 - Your progress: the board, credits, research, Cores, depth and settings.
+- Which in-app purchases you own and which colour palette you chose.
 - A random identifier generated on first launch, used only to avoid
   double-counting the same install in anonymous statistics. It is not derived
   from anything about you or your device, and uninstalling deletes it.
@@ -51,12 +52,17 @@ change or withdraw that choice at any time from the game's settings, under
 **Ad privacy options**.
 
 Buying the Foreman's Licence removes all ads and, with them, the ad SDK's
-collection.
+collection entirely.
 
 ## Purchases
 
-The single in-app purchase is handled entirely by Google Play. Lodeworks never
-sees your payment details. It stores only whether the purchase is owned.
+The two in-app purchases are handled entirely by Google Play. Lodeworks never
+sees your payment details. It stores one true/false per product on your
+device, plus which colour palette you picked, and nothing else about the
+transaction.
+
+Both are one-time purchases. There is no subscription, no in-game currency and
+no randomised item.
 
 ## Children
 

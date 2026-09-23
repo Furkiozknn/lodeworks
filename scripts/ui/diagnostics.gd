@@ -212,8 +212,9 @@ func _try_store() -> void:
 		_say("No billing plugin in this build.")
 		return
 	Store.query_product_details()
-	_say("Asked the store about '%s'. Re-run the checks in a moment; the "
-		% String(st["product_id"]) + "Billing row will say whether it came back.")
+	_say("Asked the store about %s. Re-run the checks in a moment; the "
+		% ", ".join(MonetizationDB.all_store_ids())
+		+ "Billing row will say whether they came back.")
 
 
 func _try_restore() -> void:
@@ -221,8 +222,8 @@ func _try_restore() -> void:
 		_say("No billing service to restore from.")
 		return
 	Store.restore()
-	_say("Restore requested. If this account owns the licence, the Billing "
-		+ "row will say so and ads will stop.")
+	_say("Restore requested. Anything this account owns will appear on the "
+		+ "Billing row within a second or two.")
 
 
 ## Prove the game survives the SDK failing, on the device, rather than only in

@@ -320,7 +320,7 @@ func _draw_empty(r: Rect2, cell: int, cs: float, font: Font) -> void:
 	# descended nine times can see that they are somewhere else. A label
 	# saying "Stratum 9" is not the same as the ground looking different.
 	var tone: float = clampf(float(Sim.depth) / 24.0, 0.0, 1.0)
-	var rock: Color = Palette.CELL.lerp(Palette.ROCK_DEEP, tone)
+	var rock: Color = Palette.CELL.lerp(Palette.rock_deep(), tone)
 	var base: Color = rock.lerp(Palette.heat_color(heat), 0.20)
 	draw_rect(r, base, true)
 

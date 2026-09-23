@@ -89,6 +89,7 @@ static func run_all(state: Object = null) -> Array:
 	out.append(audio_check())
 	out.append(ads_check())
 	out.append(store_check())
+	out.append(purchase_paths_check())
 	out.append(analytics_check())
 	return out
 
@@ -781,16 +782,110 @@ static func store_check() -> Dictionary:
 	if not bool(st["plugin_present"]):
 		return _r("store", "Billing plugin", UNKNOWN,
 			"not installed in this build -- nothing can be purchased")
-	if bool(st["owned"]):
-		return _r("store", "Billing plugin", PASS, "licence owned on this account")
-	if not bool(st["product_confirmed"]):
-		return _r("store", "Billing plugin", FAIL,
-			"'%s' was not confirmed by the store -- %s"
-			% [String(st["product_id"]), String(st["last_error"])])
-	var price: String = String(st["price"])
+	var catalogue: Array = st.get("catalogue", [])
+	var confirmed: Array = st.get("confirmed", [])
+	var owned: Array = st.get("owned", [])
+	var pending: Array = st.get("pending", [])
+	var sandbox: String = " [SANDBOX IDS]" if bool(st.get("sandbox_ids", false)) else ""
+	if not pending.is_empty():
+		# Not a failure. A delayed payment instrument is a supported state and
+		# the device report should say so rather than calling it broken.
+		return _r("store", "Billing plugin", INFO,
+			"%d purchase(s) waiting on payment: %s%s"
+			% [pending.size(), ", ".join(pending), sandbox])
+	if confirmed.size() < catalogue.size():
+		var missing: Array = []
+		for k: String in catalogue:
+			if not confirmed.has(k) and not owned.has(k):
+				missing.append(k)
+		if not missing.is_empty():
+			return _r("store", "Billing plugin", FAIL,
+				"the store did not confirm %s -- %s%s"
+				% [", ".join(missing), String(st.get("last_error", "")), sandbox])
+	var bits: Array[String] = []
+	var prices: Dictionary = st.get("prices", {})
+	for k: String in catalogue:
+		if owned.has(k):
+			bits.append("%s owned" % k)
+		else:
+			bits.append("%s %s" % [k, String(prices.get(k, "no price"))])
 	return _r("store", "Billing plugin", PASS,
-		"'%s' is sellable here at %s" % [String(st["product_id"]),
-			price if price != "" else "a price the store did not name"])
+		"%s%s" % [", ".join(bits), sandbox])
+
+
+## Runs the purchase state machine on THIS device, in THIS build.
+##
+## `tests/test_store.gd` proves the same logic in CI, on x86-64, against a
+## headless Godot. This proves it in the binary that is actually installed on
+## the phone, which is a different compiler target, a different plugin set and
+## a different set of autoload timings -- and it is the only part of the
+## monetization that can be verified without a store account, so it is worth
+## having as a row on the device report rather than as an act of faith.
+##
+## It never touches the billing plugin and never charges anything: it feeds
+## `Store` the same record shapes a plugin delivers and checks what it does
+## with them, then puts the entitlement state back exactly as it found it.
+static func purchase_paths_check() -> Dictionary:
+	var store: Node = _svc("Store")
+	if store == null:
+		return _r("purchase", "Purchase logic", UNKNOWN,
+			"the store service is not loaded")
+	if not OS.is_debug_build():
+		# The hooks this needs are compiled out of a release build on purpose.
+		return _r("purchase", "Purchase logic", UNKNOWN,
+			"release build -- the injection hooks are debug-only, so this "
+			+ "check only runs on a debug APK")
+	var key: String = MonetizationDB.LICENCE
+	var id: String = MonetizationDB.store_id(key)
+	var before_owned: bool = store.call("owns", key)
+	var fails: Array[String] = []
+
+	store.call("debug_clear_state")
+
+	# 1. PENDING grants nothing and is not acknowledged.
+	store.call("debug_ingest", {"product_id": id, "purchase_state": 2,
+		"purchase_token": "selftest"})
+	if store.call("owns", key):
+		fails.append("a PENDING purchase granted the entitlement")
+	if not store.call("is_pending", key):
+		fails.append("a PENDING purchase was not recorded as pending")
+	if int(store.call("debug_ack_queue")) != 0:
+		fails.append("a PENDING purchase was acknowledged")
+
+	# 2. The transition to PURCHASED grants, once, and acknowledges.
+	store.call("debug_ingest", {"product_id": id, "purchase_state": 1,
+		"purchase_token": "selftest"})
+	if not store.call("owns", key):
+		fails.append("a cleared PENDING purchase did not grant")
+	if int(store.call("debug_ack_queue")) == 0:
+		fails.append("a completed purchase was not queued for acknowledgement")
+
+	# 3. Duplicate delivery is idempotent.
+	var again: bool = store.call("debug_ingest", {"product_id": id,
+		"purchase_state": 1, "purchase_token": "selftest"})
+	if again:
+		fails.append("a repeated delivery granted a second time")
+
+	# 4. An id this build does not sell grants nothing.
+	if store.call("debug_ingest", {"product_id": "infinite_credits",
+		"purchase_state": 1, "purchase_token": "x"}):
+		fails.append("an unknown product id was granted")
+
+	# 5. A cancel is silent and grants nothing.
+	store.call("debug_purchase_error", 1)
+	if String(store.get("last_player_message")) != "":
+		fails.append("a cancelled purchase nagged the player")
+
+	# Put it back the way it was.
+	store.call("debug_clear_state")
+	if before_owned:
+		store.call("debug_grant", key)
+
+	if not fails.is_empty():
+		return _r("purchase", "Purchase logic", FAIL, "; ".join(fails))
+	return _r("purchase", "Purchase logic", PASS,
+		"pending grants nothing, clearing grants once, duplicates are "
+		+ "idempotent, unknown ids are refused, a cancel is silent")
 
 
 static func analytics_check() -> Dictionary:

@@ -66,7 +66,17 @@ func _ready() -> void:
 	Sim.collapsed.connect(_on_collapsed)
 	Ads.reward_granted.connect(_on_reward)
 	Ads.reward_failed.connect(_on_reward_failed)
-	Store.purchase_completed.connect(func(_p): _toast_msg("Foreman's Licence active. Thank you."); _refresh())
+	Store.purchase_completed.connect(func(k):
+		_toast_msg("%s active. Thank you." % MonetizationDB.title_of(String(k)))
+		_refresh())
+	Store.purchase_pending.connect(func(_k):
+		# A delayed payment instrument. Nothing granted, nothing charged
+		# twice, and the player is told rather than left wondering.
+		_toast_msg("Waiting on your payment. It unlocks by itself."))
+	Store.theme_changed.connect(func(_id):
+		if grid_view != null:
+			grid_view.queue_redraw()
+		_refresh())
 	SelfTest.note_launch()
 	Sim.start()
 	_rebuild_palette()
@@ -95,6 +105,10 @@ func _notification(what: int) -> void:
 	elif what == NOTIFICATION_APPLICATION_RESUMED:
 		SelfTest.note_resume()
 		Juice.start_ambient()
+		# A pending purchase can clear, or a purchase can be made on another
+		# device, while this app is in the background. Play's guidance is to
+		# query purchases on resume, and this is the only place that happens.
+		Store.on_resume()
 	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
 		Save.save_game(Sim)
 		Analytics.end_session(Sim.depth)
@@ -999,6 +1013,32 @@ func _show_offline(report: Dictionary) -> void:
 			"color": Palette.GOOD,
 			"cb": func(): Ads.show_rewarded(Ads.P_DOUBLE_OFFLINE),
 		})
+
+	# The one offer that belongs here, and the reason it does: this panel has
+	# just printed the exact credits banked, the hours counted and the cap
+	# that limited them. The player is looking at the number before anything
+	# is offered, which is the only condition under which offering is honest.
+	# It is a line of text and a secondary button below the claim -- never a
+	# gate, never a modal of its own, and the panel closes without it.
+	if MonetizationDB.allowed_at(MonetizationDB.LICENCE, "offline_panel") \
+			and not Store.owns(MonetizationDB.LICENCE) \
+			and not Store.is_pending(MonetizationDB.LICENCE) \
+			and Store.can_purchase(MonetizationDB.LICENCE) \
+			and bool(report.get("capped", false)):
+		# Only when the cap actually bit. Offering more offline hours to
+		# somebody whose hours were not capped is selling them nothing.
+		body.add_child(HSeparator.new())
+		body.add_child(_wrap_label(
+			"The Foreman's Licence banks %.0f hours instead of %.0f, permanently, and removes ads."
+			% [Sim.offline_hours() + float(MonetizationDB.grant_value(
+				MonetizationDB.LICENCE, MonetizationDB.GRANT_OFFLINE_HOURS, 0.0)),
+				Sim.offline_hours()]))
+		actions.append({
+			"text": "Supply Office",
+			"color": Palette.PANEL_HI,
+			"cb": func(): _open_shop(),
+		})
+
 	_open_overlay("While you were away", body, actions)
 
 
@@ -1006,30 +1046,26 @@ func _show_settings() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 
-	if Store.has_licence():
-		col.add_child(_label("Foreman's Licence active", 21, Palette.GOOD))
-		col.add_child(_wrap_label("No ads, +%.0f offline hours, +%d blueprint slots. Thank you."
-			% [Store.LICENCE_OFFLINE_HOURS, Store.LICENCE_BLUEPRINT_SLOTS]))
+	# The shop is one line in settings and one offer on the offline panel, and
+	# it is reached from nowhere else. `MonetizationDB.PLACEMENTS` is the list
+	# and `FORBIDDEN_PLACEMENTS` is what this game refuses to have.
+	var owned: Array[String] = []
+	for k: String in MonetizationDB.keys():
+		if Store.owns(k):
+			owned.append(MonetizationDB.title_of(k))
+	var shop := _button("Supply Office", Palette.PANEL_HI)
+	shop.add_theme_color_override("font_color", Palette.TEXT)
+	shop.pressed.connect(func():
+		_close_overlay()
+		_open_shop())
+	col.add_child(shop)
+	if owned.is_empty():
+		col.add_child(_label(
+			"Two one-time purchases. Neither unlocks a machine, a stratum or an upgrade.",
+			15, Palette.TEXT_FAINT))
 	else:
-		col.add_child(_wrap_label(
-			"Foreman's Licence — one purchase, no subscription.\n\n• Removes every ad\n• +%.0f hours of offline banking\n• +%d blueprint slots\n\nIt unlocks no machines, no strata and no upgrades. Everything in the game is reachable without it."
-			% [Store.LICENCE_OFFLINE_HOURS, Store.LICENCE_BLUEPRINT_SLOTS]))
-		var buy := _button(
-			"Get the Licence" if Store.price_text() == "" else "Get it — %s" % Store.price_text(),
-			Palette.CORE)
-		# Drawn enabled only when the store has confirmed the product is
-		# actually sellable on this device. A buy button that fails is worse
-		# than no buy button, and "the code can call purchase()" is not the
-		# same claim as "this can be bought".
-		buy.disabled = not Store.can_purchase()
-		buy.pressed.connect(func(): Store.purchase())
-		col.add_child(buy)
-		if not Store.can_purchase():
-			col.add_child(_label(_store_reason(), 16, Palette.TEXT_FAINT))
-		var restore := _button("Restore purchase", Palette.PANEL_HI)
-		restore.add_theme_color_override("font_color", Palette.TEXT)
-		restore.pressed.connect(func(): Store.restore())
-		col.add_child(restore)
+		col.add_child(_label("Active: %s. Thank you." % ", ".join(owned), 15,
+			Palette.GOOD))
 
 	col.add_child(HSeparator.new())
 
@@ -1102,15 +1138,10 @@ func _show_settings() -> void:
 	_open_overlay("Lodeworks", col, [])
 
 
-## Why the buy button is not offered. Said plainly rather than left blank --
-## "unavailable" with no reason is how a real store outage gets mistaken for a
-## bug in the game.
-func _store_reason() -> String:
-	if not Store.is_available():
-		return "No billing service in this build."
-	if not Store.product_confirmed():
-		return "The store has not confirmed this product yet."
-	return "Not available right now."
+func _open_shop() -> void:
+	Juice.tap()
+	var sh: Control = (load("res://scripts/ui/shop.gd") as GDScript).new()
+	add_child(sh)
 
 
 func _open_codex() -> void:

@@ -1,6 +1,6 @@
 # What the competitors were actually doing
 
-Four investigations, run against primary sources in September 2026, that
+Five investigations, run against primary sources in September 2026, that
 decided what changed in this release. They are kept in the repository because
 the decisions they drove are not obvious from the code, and because the next
 person to argue for a change should have to argue with the evidence rather
@@ -12,6 +12,7 @@ than with a preference.
 | [`factory-readability.md`](factory-readability.md) | how a factory board shows machine state, material flow and bottlenecks; the three-state status convention and why two of its colours must point in opposite directions along the chain |
 | [`store-presentation.md`](store-presentation.md) | Google Play's current asset specs, what the genre leaders' store pages actually contain, and every place this listing was out of spec |
 | [`godot-mobile-perf.md`](godot-mobile-perf.md) | what costs frame time in Godot 2D on the compatibility renderer, the exact runtime counter API names, and the haptics and procedural-audio recipes |
+| [`monetization-2026.md`](monetization-2026.md) | what the idle games their own communities respect actually charge for, where the price band sits, and the Google Play Billing requirements that turned into three real fixes in the purchase client |
 
 Each document separates what a source says from what the author inferred, and
 marks **UNKNOWN** where something could not be verified rather than guessing.

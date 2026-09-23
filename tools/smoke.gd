@@ -95,6 +95,41 @@ func _run() -> void:
 		codex.queue_free()
 	await _settle(0.4)
 
+	# The shop. Every card draws a real illustration -- the offline bars and
+	# a strip of machine tiles per palette -- so a card that fails to build
+	# renders as an empty box, which the lit-sample check below catches. This
+	# screen is also the one place a bug is somebody's money, so it gets
+	# opened twice: once unowned, once owned, because "already bought" is a
+	# completely different set of branches.
+	var store0: Node = get_tree().root.get_node_or_null("Store")
+	if store0 != null:
+		# A previous run's entitlement file would otherwise make the "unowned"
+		# pass draw the owned screen, which is how a broken buy button hides.
+		store0.call("debug_revoke")
+	for owned: bool in [false, true]:
+		var store: Node = get_tree().root.get_node_or_null("Store")
+		if owned and store != null:
+			store.call("debug_grant", MonetizationDB.LICENCE)
+			store.call("debug_grant", MonetizationDB.THEMES)
+			store.call("select_theme", "ember")
+		_main.call("_open_shop")
+		await _settle(1.2)
+		var shop: Node = null
+		for c in _main.get_children():
+			if c.get_script() != null and String(c.get_script().resource_path).ends_with("shop.gd"):
+				shop = c
+				break
+		if shop == null:
+			_failures.append("the shop did not instantiate (owned=%s)" % str(owned))
+		else:
+			await _shot("05_shop_owned" if owned else "05_shop")
+			shop.queue_free()
+		await _settle(0.4)
+	var store_after: Node = get_tree().root.get_node_or_null("Store")
+	if store_after != null:
+		store_after.call("debug_revoke")
+	await _settle(0.4)
+
 	# The diagnostics screen itself: instantiated, run, and rendered.
 	_main.call("_open_diagnostics")
 	await _settle(2.0)

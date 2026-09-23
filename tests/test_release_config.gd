@@ -279,3 +279,155 @@ func test_the_ci_document_names_the_one_manual_step() -> void:
 		"the push script must refuse to overwrite an existing history")
 	runner.check(not push.contains("--force"),
 		"and must never offer a force push")
+
+
+## --- monetization is data, not code ----------------------------------------
+##
+## The requirement is "no prices or product ids scattered through the code".
+## That is only true if something checks, because it is exactly the kind of
+## thing a hurried fix breaks: one hardcoded id in a UI file and the sandbox
+## build starts charging against the live SKU.
+
+func _gd_files(dir: String, out: Array) -> void:
+	var d := DirAccess.open(dir)
+	if d == null:
+		return
+	for f: String in d.get_files():
+		if f.ends_with(".gd"):
+			out.append(dir.path_join(f))
+	for sub: String in d.get_directories():
+		_gd_files(dir.path_join(sub), out)
+
+
+func test_no_product_id_appears_outside_the_catalogue() -> void:
+	var ids: Array[String] = []
+	for key: String in MonetizationDB.keys():
+		var p: Dictionary = MonetizationDB.product(key)
+		for field: String in ["store_id", "sandbox_id"]:
+			var id: String = String(p.get(field, ""))
+			if id != "":
+				ids.append(id)
+	runner.gt(float(ids.size()), 0.0, "there are ids to look for")
+	var files: Array = []
+	_gd_files("res://scripts", files)
+	_gd_files("res://tools", files)
+	for path: String in files:
+		if path.ends_with("monetization_db.gd"):
+			continue
+		var text: String = _read(path)
+		for id: String in ids:
+			runner.check(not text.contains('"%s"' % id),
+				"%s hardcodes the product id '%s' -- it belongs only in "
+				% [path, id] + "MonetizationDB")
+
+
+func test_no_price_is_written_down_anywhere_in_the_game() -> void:
+	# A currency symbol in a .gd file is either a hardcoded price or a format
+	# string that will produce one. Both are wrong: the platform's localised
+	# string is the only price a player may be shown.
+	var files: Array = []
+	_gd_files("res://scripts", files)
+	for path: String in files:
+		# The catalogue is the one exemption, and a narrow one: it records a
+		# suggested tier in dollars so the reasoning sits beside the product
+		# it belongs to. That figure is console paperwork and is never
+		# rendered -- the next test is what holds that line.
+		if path.ends_with("monetization_db.gd"):
+			continue
+		var text: String = _read(path)
+		for symbol: String in ["$", "€", "£", "USD", "EUR"]:
+			runner.check(not text.contains(symbol),
+				"%s contains '%s' -- prices come from the store, never from "
+				% [path, symbol] + "the code")
+
+
+func test_the_suggested_tier_never_reaches_the_game() -> void:
+	# The catalogue carries a tier so the reasoning lives next to the product,
+	# but it is console paperwork and must never be rendered.
+	var files: Array = []
+	_gd_files("res://scripts", files)
+	for path: String in files:
+		if path.ends_with("monetization_db.gd"):
+			continue
+		runner.check(not _read(path).contains("suggested_tier"),
+			"%s reads the suggested price tier -- that figure is for the Play "
+			% path + "Console, not for a player")
+	# And inside the catalogue it must not leak into anything player-facing.
+	# Checked by behaviour rather than by counting occurrences, so refactoring
+	# the file cannot break the test and renaming the key cannot dodge it.
+	for key: String in MonetizationDB.keys():
+		var tier: String = "%.2f" % float(MonetizationDB.product(key)
+			.get("suggested_tier_usd", 0.0))
+		var copy: String = MonetizationDB.console_description(key) \
+			+ MonetizationDB.title_of(key) + MonetizationDB.headline_of(key) \
+			+ MonetizationDB.footnote_of(key) \
+			+ " ".join(MonetizationDB.bullets_of(key))
+		runner.check(not copy.contains(tier),
+			"the suggested tier for %s leaked into copy somebody reads" % key)
+
+
+func test_the_ad_placement_rules_are_data() -> void:
+	var ads: String = _read("res://scripts/services/ads.gd")
+	runner.check(ads.contains("MVP_PLACEMENTS"),
+		"which placements ship is a list, not an if")
+	runner.check(MonetizationDB.AD_PLACEMENTS.has(MonetizationDB.AD_DOUBLE_OFFLINE),
+		"the shipped placement is described in the catalogue too")
+	for p: String in MonetizationDB.AD_PLACEMENTS:
+		var d: Dictionary = MonetizationDB.AD_PLACEMENTS[p]
+		runner.check(d.has("reward"), "an ad placement must say what it pays")
+		runner.check(d.has("multiplier"), "and by how much")
+
+
+## --- the publishing paperwork ----------------------------------------------
+
+func test_the_play_document_and_the_readiness_tool_exist() -> void:
+	runner.check(FileAccess.file_exists("res://tools/play_readiness.gd"),
+		"the readiness report has to be runnable, not a claim in a document")
+	var doc: String = _read("res://docs/PLAY.md")
+	runner.gt(float(doc.length()), 2000.0, "docs/PLAY.md exists")
+	runner.check(doc.contains("tools/play_readiness.gd"),
+		"and points at the tool that generates its numbers")
+	for product: String in MonetizationDB.keys():
+		runner.check(doc.contains(MonetizationDB.store_id(product)),
+			"docs/PLAY.md must name every product to create: " + product)
+	for unknown: String in ["No APK or AAB has ever been produced",
+			"CI has never run", "Nothing has run on a real Android device",
+			"No purchase has ever been made"]:
+		runner.check(doc.contains(unknown),
+			"the publishing document must keep stating what is NOT verified: "
+			+ unknown)
+
+
+func test_the_data_safety_answers_match_the_code() -> void:
+	var ds: String = _read("res://store/data-safety.md")
+	runner.gt(float(ds.length()), 500.0, "store/data-safety.md exists")
+	runner.check(ds.contains("GENERATED"),
+		"it must say it is generated, so nobody hand-edits it")
+	for e: String in Analytics.ALLOWED:
+		runner.check(ds.contains("`%s`" % e),
+			"the Data safety answers omit the event '%s' the code sends" % e)
+	for key: String in MonetizationDB.keys():
+		runner.check(ds.contains(MonetizationDB.store_id(key)),
+			"the Data safety answers omit the product " + key)
+
+
+func test_the_listing_describes_the_products_that_exist() -> void:
+	var listing: String = _read("res://store/listing.md")
+	runner.check(listing.contains("Two optional purchases"),
+		"the store description must match the catalogue's size")
+	var policy: String = _read("res://store/privacy-policy.md")
+	runner.check(policy.contains("two in-app purchases"),
+		"and so must the privacy policy")
+	runner.check(policy.contains("no randomised item"),
+		"the policy should say plainly that there are no loot boxes")
+
+
+func test_the_research_behind_the_catalogue_is_in_the_repository() -> void:
+	var r: String = _read("res://docs/research/monetization-2026.md")
+	runner.gt(float(r.length()), 3000.0, "the research document exists")
+	runner.check(r.contains("UNVERIFIED"),
+		"it must mark what could not be checked rather than rounding it up")
+	runner.check(r.contains("developer.android.com/google/play/billing"),
+		"and cite Play's own billing documentation for the rules it implements")
+	runner.check(_read("res://docs/research/README.md").contains(
+		"monetization-2026.md"), "the index should list it")

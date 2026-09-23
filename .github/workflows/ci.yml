@@ -53,6 +53,31 @@ jobs:
       - name: Layout scoreboard
         run: ./godot --headless --path . --script res://tools/layout_lab.gd
 
+      # Where a player would feel value, and what paying is actually worth
+      # against not paying. Printed for the same reason as the scoreboard:
+      # the parity ratio is asserted in tests/test_store.gd, but the numbers
+      # behind it should be in front of whoever changes the economy.
+      - name: Monetization measurements
+        run: ./godot --headless --path . --script res://tools/money_lab.gd
+
+      # Regenerates store/data-safety.md from the code's own allowlists and
+      # reports every Play submission requirement as done, manual or unknown.
+      # The git check is the point: if the generated form no longer matches
+      # the code, somebody changed what the app collects without changing what
+      # the store page says it collects.
+      - name: Play readiness
+        run: |
+          ./godot --headless --path . --script res://tools/play_readiness.gd \
+            | tee play-readiness.txt
+          git diff --exit-code -- store/data-safety.md
+
+      - name: Upload readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: play-readiness
+          path: play-readiness.txt
+
   screenshots:
     name: screenshots render
     runs-on: ubuntu-latest

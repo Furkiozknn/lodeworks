@@ -136,24 +136,32 @@ twenty, do — run it again afterwards and report both. Battery is the one thing
 the game cannot measure about itself: check Android Settings → Battery → app
 usage after an hour of play, and again after a night backgrounded.
 
-## 4. The monetization pass, which needs accounts
+## 4. The monetization pass
 
-None of this can be done without the accounts in §5, and until every line
-below is ticked the honest description is **"written, not verified"**.
+The first row is automated and runs on any debug build with no accounts at
+all. Everything after it needs the accounts in §5, and until those lines are
+ticked the honest description is **"written, not verified"**.
 
 | id | do this | passes when |
 |---|---|---|
+| `purchase` | open the self test | the `purchase` row is **PASS**. It runs the purchase state machine inside the installed binary: a PENDING purchase grants nothing and is not acknowledged, clearing it grants exactly once and queues the acknowledgement, a repeated delivery grants nothing, an unknown product id is refused, and a cancel says nothing to the player. No store, no charge, no account |
 | `ad_load` | open the self test | the `ads` row says `loaded`. AdMob's own test ad unit counts and does not risk the account |
 | `ad_play` | tap **Play an ad** | a real rewarded video plays to the end |
 | `ad_reward` | close for an hour, return, take the offline double | the credits gained are exactly twice the base payout, once — the second attempt pays nothing |
 | `ad_fail` | turn on airplane mode, tap **Play an ad** | the game says the ad did not play, nothing is lost, and **nothing about the board changes** |
 | `sdk_dead` | tap **Break the SDK** | the ad layer reports its simulated failure and the game carries on completely unaffected. Play for a minute to be sure |
-| `store_product` | tap **Check the store** | the `store` row names `foremans_licence` and a **real localised price**, which means the product exists, is active, and the app has been uploaded to a track at least once |
-| `purchase` | buy it with a licensed tester account | the purchase completes, ads stop immediately, and the offline hours and blueprint slots go up |
+| `store_product` | tap **Check the store** | the `store` row names **both** `foremans_licence` and `foundry_themes` with a **real localised price** for each, which means the products exist, are active, and the app has been uploaded to a track at least once |
+| `shop_screen` | ☰ → **Supply Office** | both cards draw their illustration — the offline bars for the Licence, six palette strips for the colours — and each buy button shows the store's own price, not the word "Buy" |
+| `purchase` `_licence` | buy the Licence with a license tester account | the purchase completes, ads stop immediately, the offline hours go up, and the card redraws as owned with the bars relabelled |
+| `purchase` `_themes` | buy the palettes | all six unlock, tapping one changes the board behind the shop, and the choice survives a restart |
+| `pending_ok` | buy with **Slow test card, approves after a few minutes** | the shop says "Waiting on your payment", **grants nothing**, and then unlocks by itself a few minutes later with no second charge |
+| `pending_fail` | buy with **Slow test card, declines after a few minutes** | the same waiting state, and then it quietly goes away having granted nothing |
 | `acknowledge` | wait three days without touching it | the purchase is **not** refunded. Google voids an unacknowledged purchase after three days, and the code acknowledges on receipt — this is the check that it really does |
-| `restore` | uninstall, reinstall, tap **Restore** | the licence comes back and ads stay off |
-| `duplicate` | try to buy it again | the game reports it as already owned and no second charge is attempted |
-| `purchase_fail` | cancel the Play dialog partway | the game reports a failed purchase, grants nothing, and stays playable |
+| `restore` | uninstall, reinstall, tap **Restore** | both products come back, ads stay off, and the chosen palette comes back with them |
+| `duplicate` | try to buy something you own | the game reports it as already owned and no second charge is attempted |
+| `purchase_fail` | cancel the Play dialog partway | the game grants nothing, says **nothing at all** about the cancel, and stays playable |
+| `no_network` | airplane mode, then try to buy | the buy button is not offered, and the reason given names Google Play rather than blaming the game |
+| `economy` | with everything bought | the `economy` row still says the licensed and unlicensed simulations are identical. This is the pay-to-win check, and it runs on the device |
 
 ## 5. What cannot be done without you
 
@@ -167,9 +175,12 @@ below is ticked the honest description is **"written, not verified"**.
 4. **A business address or P.O. box** for the EU DSA trader declaration,
    unless you are willing to publish a home address.
 5. **An AdMob account** and the app and ad-unit ids it issues.
-6. **A Play Console in-app product** with the id `foremans_licence`, active,
-   with the app uploaded to a track — billing returns nothing for an app Play
-   has never seen.
+6. **Two Play Console in-app products**, `foremans_licence` and
+   `foundry_themes`, both one-time and Active, with the app uploaded to a
+   track — billing returns nothing for an app Play has never seen. The ids,
+   titles and descriptions are generated: run
+   `godot --headless --path . --script res://tools/play_readiness.gd` and copy
+   them rather than retyping. See [`PLAY.md`](PLAY.md).
 7. **A privacy policy at a public URL**, and the preview video uploaded to
    YouTube.
 8. **12 testers for 14 continuous days** on a closed track.

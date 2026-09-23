@@ -44,7 +44,7 @@ func _run(ticks: int) -> Dictionary:
 
 func test_owning_the_licence_changes_no_economy_number() -> void:
 	var free: Dictionary = _run(400)
-	Store.debug_grant()
+	Store.debug_grant(Store.LICENCE)
 	runner.check(Store.has_licence(), "the test needs the licence granted")
 	var paid: Dictionary = _run(400)
 	runner.near(float(paid["credits"]), float(free["credits"]), 0.0001,
@@ -66,10 +66,13 @@ func test_the_licence_grants_only_convenience() -> void:
 	# be these three things, so that "does it add power" has a short answer.
 	runner.near(Store.bonus_offline_hours(), 0.0, 0.001, "nothing before purchase")
 	runner.eq(Store.bonus_blueprint_slots(), 0, "no slots before purchase")
-	Store.debug_grant()
-	runner.near(Store.bonus_offline_hours(), Store.LICENCE_OFFLINE_HOURS, 0.001,
-		"offline hours")
-	runner.eq(Store.bonus_blueprint_slots(), Store.LICENCE_BLUEPRINT_SLOTS, "slots")
+	Store.debug_grant(Store.LICENCE)
+	runner.near(Store.bonus_offline_hours(),
+		float(MonetizationDB.grant_value(Store.LICENCE,
+			MonetizationDB.GRANT_OFFLINE_HOURS, 0.0)), 0.001, "offline hours")
+	runner.eq(Store.bonus_blueprint_slots(),
+		int(MonetizationDB.grant_value(Store.LICENCE,
+			MonetizationDB.GRANT_BLUEPRINT_SLOTS, 0)), "slots")
 	runner.check(Ads.ads_removed, "and ads stop existing")
 
 
@@ -84,8 +87,11 @@ func test_a_tampered_entitlement_file_cannot_invent_a_product() -> void:
 		"all_strata": true,
 	}))
 	f.close()
-	Store._owned.clear()
+	Store.debug_clear_state()
 	Store._load_owned()
+	# An unsigned legacy file is still read (an install from before the
+	# checksum existed is somebody's real purchase), but only for keys this
+	# build sells.
 	runner.check(Store.owns(Store.LICENCE), "the real product is honoured")
 	runner.check(not Store.owns("infinite_credits"),
 		"a product this build does not sell cannot be owned")
@@ -152,23 +158,26 @@ func test_the_watchdog_is_longer_than_a_real_ad() -> void:
 ## --- purchases -------------------------------------------------------------
 
 func test_nothing_is_purchasable_without_a_confirmed_product() -> void:
-	runner.check(not Store.can_purchase(),
-		"with no billing plugin there is nothing to buy")
-	runner.check(not Store.product_confirmed(),
-		"and the product has certainly not been confirmed by a store")
-	runner.check(not Store.purchase(), "so purchase() must fail cleanly")
+	for key: String in MonetizationDB.keys():
+		runner.check(not Store.can_purchase(key),
+			"with no billing plugin there is nothing to buy: " + key)
+		runner.check(not Store.product_confirmed(key),
+			"and the store has certainly not confirmed " + key)
+		runner.check(not Store.purchase(key), "so purchase() must fail cleanly")
 
 
 func test_no_price_is_ever_composed_locally() -> void:
-	runner.eq(Store.price_text(), "",
-		"a price that did not come from the platform must not exist")
+	for key: String in MonetizationDB.keys():
+		runner.eq(Store.price_text(key), "",
+			"a price that did not come from the platform must not exist: " + key)
 
 
 func test_the_purchase_flow_reports_its_own_state_honestly() -> void:
 	var st: Dictionary = Store.status()
 	runner.check(not bool(st["plugin_present"]), "no plugin in a test build")
-	runner.eq(String(st["product_id"]), Store.LICENCE, "one product, named")
-	runner.check(not bool(st["product_confirmed"]),
+	runner.eq((st["catalogue"] as Array).size(), MonetizationDB.ORDER.size(),
+		"status names the whole catalogue")
+	runner.eq((st["confirmed"] as Array).size(), 0,
 		"status must not claim a product the store never confirmed")
 
 

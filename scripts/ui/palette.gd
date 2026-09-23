@@ -167,7 +167,40 @@ const RADIUS := 10.0
 const PAD := 12.0
 
 
+## --- the active palette -----------------------------------------------------
+##
+## A theme may change three things: what the machines are painted, what the
+## cargo chips are painted, and what the rock and its heat ramp look like. It
+## may change nothing else, and this is the whole surface through which it can
+## try.
+##
+## The constants above stay exactly where they are and keep their meanings.
+## Status colours in particular are NOT themeable -- amber means "look
+## downstream" and red means "look upstream", and a palette that repainted
+## them would be selling somebody a board that is harder to read. Panels, text
+## and the accent are not themeable either, so contrast holds whatever is
+## selected.
+##
+## Nothing in the simulation can see any of this: `Grid` and `Simulation` are
+## node-free RefCounted that never import this file, so the theme is not on the
+## path between a board and its credits. `tests/test_store.gd` asserts that by
+## running the same board under every theme and comparing the output.
+
+static var _theme: String = Themes.DEFAULT
+
+
+static func set_theme(id: String) -> void:
+	_theme = id if Themes.exists(id) else Themes.DEFAULT
+
+
+static func theme() -> String:
+	return _theme
+
+
 static func machine_color(id: String) -> Color:
+	var c: Variant = Themes.machine_colors(_theme).get(id, null)
+	if c != null:
+		return c
 	return MACHINE_COLOR.get(id, Color("8fa5bd"))
 
 
@@ -180,6 +213,9 @@ static func family_of(id: String) -> int:
 
 
 static func res_color(res: int) -> Color:
+	var arr: Array = Themes.resource_colors(_theme)
+	if res >= 0 and res < arr.size():
+		return arr[res]
 	return RES_COLOR.get(res, Color("8fa5bd"))
 
 
@@ -202,12 +238,22 @@ static func output_res(id: String) -> int:
 ## Heat to colour, absolute. The knee at 3.0 is where most machines start to
 ## be unhappy, so it is also where the colour starts to shout.
 static func heat_color(heat: float) -> Color:
+	var ramp: Array = Themes.heat_ramp(_theme)
+	var cold: Color = ramp[0] if ramp.size() > 0 else HEAT_COLD
+	var warm: Color = ramp[1] if ramp.size() > 1 else HEAT_WARM
+	var hot: Color = ramp[2] if ramp.size() > 2 else HEAT_HOT
 	var h: float = maxf(heat, 0.0)
 	if h <= 0.05:
-		return HEAT_COLD
+		return cold
 	if h <= 3.0:
-		return HEAT_COLD.lerp(HEAT_WARM, h / 3.0)
-	return HEAT_WARM.lerp(HEAT_HOT, clampf((h - 3.0) / 5.0, 0.0, 1.0))
+		return cold.lerp(warm, h / 3.0)
+	return warm.lerp(hot, clampf((h - 3.0) / 5.0, 0.0, 1.0))
+
+
+## The colour the empty rock tends towards at the bottom of the shaft, for the
+## selected theme.
+static func rock_deep() -> Color:
+	return Themes.rock_deep(_theme)
 
 
 ## Heat error to colour, relative to what this particular machine wants.
