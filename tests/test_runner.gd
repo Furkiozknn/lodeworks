@@ -126,6 +126,12 @@ func gte(a: float, b: float, msg: String = "") -> void:
 		_fail(_current, "%s  expected %.4f >= %.4f" % [msg, a, b])
 
 
+func lte(a: float, b: float, msg: String = "") -> void:
+	_asserts += 1
+	if not (a <= b):
+		_fail(_current, "%s  expected %.4f <= %.4f" % [msg, a, b])
+
+
 func lt(a: float, b: float, msg: String = "") -> void:
 	_asserts += 1
 	if not (a < b):

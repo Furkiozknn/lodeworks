@@ -11,6 +11,25 @@ except the things only a human with a bank account can do.
 
 ---
 
+## Learning it
+
+Nothing is explained that can be shown instead.
+
+The first chapter is eight steps long, each one a single line and a pulsing
+outline on the tiles where the answer is. It teaches placing, adjacency, the
+first income, moving, refining, heat, the quota and the first descent — by
+having you do them, in the real game, on your real board. Then it stops. There
+are no further tutorial windows; new machines and new strata are for
+discovering.
+
+The **Codex** is there if you want it, behind a `?` in the header. Every page
+is a title, one line of what to look at, two sentences, and a **two-to-five
+tile board that is actually running** — a real `Simulation` with the same
+tiles, the same status lights and the same heat wash as the game. Put a Boiler
+next to a Smelter on a Codex page and the Smelter's pip goes green and its
+progress bar speeds up, because that is what happens. A help page that
+describes a rule can be wrong; a help page that runs the rule cannot.
+
 ## What the board tells you
 
 The single hardest thing in a factory game is finding out which machine is the
@@ -69,6 +88,35 @@ Resonant*, and the layout that was right for one is wrong for the other.
 That is the production argument for this design: **one more modifier is one row
 of data and a large multiple of gameplay.** A match-3 gets one more level.
 
+## Why depth is worth it
+
+It was not, and that was measured rather than suspected. Under the original
+recipes every refining step consumed **two** of the thing below it, while a
+machine is fed only by the four cells it touches — so the supply tree branched
+faster than the space to attach it, and a chain deeper than three steps could
+not be fed at all. The Press, Assembler, Lab and Condenser were content an
+optimising player would never build.
+
+Five economic models were written and run against seven board archetypes at
+three depths ([`tools/econ_lab.gd`](tools/econ_lab.gd); all five are still in
+the source). The one that shipped changes a rule, not a number: from the
+Smelter upwards each step takes **one** of the thing below it, the value ladder
+is flattened to match, and the deep machines run warm so a long chain has to
+be cooled and the cooling costs tiles.
+
+The result is deliberately close, not dominant:
+
+| depth | best board | margin |
+|---|---|---|
+| 3 | a full chain | 328/s against shallow's 324/s |
+| 9 | a full chain | 592/s against shallow's 588/s |
+| 16 | raw ore | Cramped takes thirty tiles; no long chain fits |
+
+Near parity on credits — and a monopoly on Research, because Research comes
+from a Lab and a Lab only eats Components. So the question is not "which board
+earns more" but "credits now, or upgrades that outlast the shaft", and the
+stratum decides which board is even buildable.
+
 ## No art files, no audio files
 
 There is not one bitmap and not one sound file in this project. The board, the
@@ -105,11 +153,12 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 720x1440                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 105 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 122 tests
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
 godot --headless --path . --script res://tools/diagnose.gd        # per-tile balance dump
 godot --headless --path . --script res://tools/layout_lab.gd      # score the reference layouts
 godot --headless --path . --script res://tools/layout_search.gd   # hill-climb for a better board
+godot --headless --path . --script res://tools/econ_lab.gd        # compare economic models
 GODOT=$(which godot) tools/store-assets.sh                        # regenerate every store asset
 ```
 
@@ -147,7 +196,7 @@ broken ad SDK leaves the game fully playable, that a hand-edited entitlement
 file cannot invent a product, and that the analytics vocabulary is exactly the
 thirteen events that were decided on and not one more.
 
-Four real balance bugs were found by these and fixed: depth added no yield at
+Seven real balance bugs were found by these and fixed: depth added no yield at
 all (`richness` was computed and never applied), the late-game chain deadlocked
 because multi-input machines could not be fed on a four-neighbour grid, the
 throughput measurement window was short enough to rank two identical layouts
@@ -155,8 +204,26 @@ differently, and — found by the per-tile duty-cycle readout added for the
 board to draw — **the reference layout the project had been showing off had
 thirteen of its twenty-eight machines permanently stalled**. The replacement
 earns nine times as much from the same tile count.
-[`docs/BALANCE.md`](docs/BALANCE.md) has the measurements, and the finding that
-is *not* fixed.
+Then two more, both found by instruments built for something else — which is
+the argument for building them. The **duty-cycle readout was measuring intent
+rather than work**, reporting 99% for a machine completing barely half the
+cycles its supply allowed, which made every dead-tile figure in the balance
+tools wrong. And **a producer handed its entire output to whichever consumer
+the cell dictionary visited first**, so one Crusher feeding three identical
+Smelters produced duty cycles of 96%, 73% and 0% — three tiles, identically
+connected, doing completely different amounts of work, with nothing on screen
+that could explain it, because there was nothing to explain. Material now
+moves by a round-robin push. Dead tiles on shallow boards fell from
+twenty-one to zero.
+
+And one in the headline number itself: the credits-per-second readout averages
+over a three-second window and **kept publishing that window after the board
+had changed**, so for three seconds after any placement — and right through a
+collapse, on an empty board — it reported the rate of a factory that no longer
+existed. It was found because a store screenshot of the six-machine starter
+board was captured reading 600 credits a second against an actual 2.4.
+
+[`docs/BALANCE.md`](docs/BALANCE.md) has every measurement.
 
 ## Layout
 
@@ -170,7 +237,7 @@ scripts/services/ save, analytics, ads, IAP, and the device self test — each
 scripts/ui/       drawn with _draw(); there is not one bitmap in the project,
                   and MachineArt is the single place a machine is drawn -- the
                   board, the icon and the feature graphic all call it
-tests/            105 tests, no framework dependency
+tests/            122 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs

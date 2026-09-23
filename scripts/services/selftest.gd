@@ -29,14 +29,24 @@ const INFO := "info"
 ## A dense board, used as the CPU benchmark. Same shape as the layout the
 ## balance tests use, so the number here is comparable to the CI baseline.
 const BENCH_BOARD := [
-	[0, 1, "drill"], [1, 1, "drill"], [2, 1, "drill"], [3, 1, "drill"],
-	[4, 1, "drill"], [5, 1, "drill"], [6, 1, "drill"],
-	[0, 2, "crusher"], [1, 2, "crusher"], [2, 2, "crusher"], [3, 2, "crusher"],
-	[4, 2, "crusher"], [5, 2, "crusher"], [6, 2, "crusher"],
-	[0, 3, "smelter"], [1, 3, "smelter"], [2, 3, "assembler"], [3, 3, "press"],
-	[4, 3, "smelter"], [5, 3, "smelter"], [6, 3, "smelter"],
-	[0, 4, "vault"], [1, 4, "vault"], [2, 4, "lab"], [3, 4, "vault"],
-	[4, 4, "vault"], [5, 4, "vault"], [6, 4, "vault"],
+	[0, 0, "drill"], [1, 0, "drill"], [2, 0, "drill"], [3, 0, "drill"],
+	[4, 0, "drill"], [5, 0, "drill"], [6, 0, "drill"],
+	[0, 1, "crusher"], [1, 1, "crusher"], [2, 1, "crusher"], [3, 1, "crusher"],
+	[4, 1, "crusher"], [5, 1, "crusher"], [6, 1, "crusher"],
+	[0, 2, "vault"], [1, 2, "smelter"], [2, 2, "smelter"], [3, 2, "smelter"],
+	[4, 2, "smelter"], [5, 2, "smelter"], [6, 2, "vault"],
+	[0, 3, "vault"], [1, 3, "press"], [2, 3, "press"], [3, 3, "press"],
+	[4, 3, "press"], [5, 3, "press"], [6, 3, "vault"],
+	[0, 4, "vault"], [1, 4, "vault"], [2, 4, "assembler"], [3, 4, "assembler"],
+	[4, 4, "assembler"], [5, 4, "vault"], [6, 4, "vault"],
+	[1, 5, "vault"], [2, 5, "vault"], [3, 5, "lab"], [4, 5, "vault"],
+	[5, 5, "vault"],
+	[0, 6, "drill"], [1, 6, "drill"], [2, 6, "drill"], [3, 6, "drill"],
+	[4, 6, "drill"], [5, 6, "drill"], [6, 6, "drill"],
+	[0, 7, "crusher"], [1, 7, "crusher"], [2, 7, "crusher"], [3, 7, "crusher"],
+	[4, 7, "crusher"], [5, 7, "crusher"], [6, 7, "crusher"],
+	[0, 8, "vault"], [1, 8, "vault"], [2, 8, "vault"], [3, 8, "vault"],
+	[4, 8, "vault"], [5, 8, "vault"], [6, 8, "vault"],
 ]
 
 ## Ticks to time. At 10 Hz this is a simulated minute, long enough that the
@@ -567,7 +577,7 @@ static func audio_check() -> Dictionary:
 
 ## Every entry in Juice's generator list. Written out so that deleting one is
 ## a visible change here too.
-const EXPECTED_SOUNDS := 12
+const EXPECTED_SOUNDS := 14
 
 
 ## --- the native plugins ----------------------------------------------------

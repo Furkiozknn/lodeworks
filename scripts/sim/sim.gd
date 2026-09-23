@@ -56,6 +56,12 @@ var _stratum: Dictionary = {}
 var _mult: Dictionary = {}
 var _started: bool = false
 var _tutorial_step: int = 0
+## Two things the tutorial has to know that the board cannot tell it: whether
+## the player has ever moved a machine, and whether they have ever looked at
+## the heat overlay. Both are lessons about the interface rather than about
+## the factory, so both are counted here rather than inferred.
+var tutorial_moves: int = 0
+var tutorial_saw_heat: bool = false
 
 
 func _ready() -> void:
@@ -111,7 +117,7 @@ func _process(delta: float) -> void:
 		_rate_accum_research += r
 		_rate_elapsed += Simulation.TICK_DT
 		steps += 1
-	if _rate_elapsed >= RATE_WINDOW:
+	if _rate_elapsed >= RATE_WINDOW and _started:
 		credits_per_sec = _rate_accum_credits / _rate_elapsed
 		research_per_sec = _rate_accum_research / _rate_elapsed
 		_rate_accum_credits = 0.0
@@ -183,6 +189,7 @@ func move_machine(from_cell: int, to_cell: int) -> bool:
 	sim.reset_progress()
 	_recompute()
 	stats_changed.emit()
+	tutorial_moves += 1
 	return true
 
 
@@ -208,6 +215,7 @@ func descend() -> bool:
 	for id in unlocked:
 		if not before.has(id):
 			gained.append(id)
+	_reset_rate_window(true)
 	depth_changed.emit(depth)
 	if not gained.is_empty():
 		machines_unlocked.emit(gained)
@@ -243,8 +251,7 @@ func collapse() -> int:
 	lifetime_credits = 0.0
 	depth = 0
 	max_depth = 0
-	credits_per_sec = 0.0
-	research_per_sec = 0.0
+	_reset_rate_window(true)
 	_recompute()
 	collapsed.emit(gained)
 	stats_changed.emit()
@@ -287,6 +294,24 @@ func buy_upgrade(id: String) -> bool:
 
 ## --- derived state ---------------------------------------------------------
 
+## Throw away the part-measured window.
+##
+## Called whenever the board changes, because the moment it does the number
+## being accumulated stops describing anything. Without this the header kept
+## averaging the OLD board into the new one for up to three seconds -- most
+## visibly right after a collapse, where an empty board was measured showing
+## the rate of the factory that had just been given up. A store screenshot of
+## the six-machine starter board was captured reading 600 credits a second
+## against an actual 2.4, which is how this was found.
+func _reset_rate_window(and_display: bool = false) -> void:
+	_rate_accum_credits = 0.0
+	_rate_accum_research = 0.0
+	_rate_elapsed = 0.0
+	if and_display:
+		credits_per_sec = 0.0
+		research_per_sec = 0.0
+
+
 func _recompute() -> void:
 	if grid == null:
 		grid = Grid.new()
@@ -311,6 +336,7 @@ func _recompute() -> void:
 	for id in newly:
 		if not unlocked.has(id):
 			unlocked.append(id)
+	_reset_rate_window()
 
 
 func stratum() -> Dictionary:
@@ -321,6 +347,24 @@ func mult() -> Dictionary:
 	return _mult
 
 
+## How upgraded the factory is, as 0..3 notches.
+##
+## An upgrade that only moves a number in a menu is an upgrade the player has
+## to take on trust. This puts it on every machine on the board, so buying one
+## visibly changes the thing it bought.
+func upgrade_marks() -> int:
+	var total: int = 0
+	for id: String in upgrade_levels:
+		total += int(upgrade_levels[id])
+	if total <= 0:
+		return 0
+	if total <= 2:
+		return 1
+	if total <= 6:
+		return 2
+	return 3
+
+
 func blueprint_slots() -> int:
 	var base: int = int(float(_mult.get("blueprints", 1.0)))
 	return base + Store.bonus_blueprint_slots()
@@ -329,6 +373,38 @@ func blueprint_slots() -> int:
 func offline_hours() -> float:
 	return float(_mult.get("offline_hours", Economy.OFFLINE_BASE_HOURS)) \
 		+ Store.bonus_offline_hours()
+
+
+## --- undo ------------------------------------------------------------------
+##
+## A 7x10 grid on a phone puts a 48dp target under a thumb, and the two
+## actions that cost something -- placing and selling -- are one tap and one
+## hold away from each other. Removing is already behind a confirmation;
+## placing cannot be, because placing is the entire game and a dialog every
+## time would make it unbearable. So placing is instantly reversible instead,
+## at exactly the price that was paid rather than at the 75% resale value.
+
+func undo_place(cell: int, price: float) -> bool:
+	if grid.is_empty(cell):
+		return false
+	grid.remove(cell)
+	credits += price
+	sim.reset_progress()
+	_recompute()
+	stats_changed.emit()
+	return true
+
+
+func undo_sell(cell: int, id: String, refunded: float) -> bool:
+	if not grid.is_empty(cell) or not is_unlocked(id):
+		return false
+	if not grid.place(cell, id):
+		return false
+	credits -= refunded
+	sim.reset_progress()
+	_recompute()
+	stats_changed.emit()
+	return true
 
 
 ## --- tutorial --------------------------------------------------------------
@@ -344,8 +420,15 @@ func advance_tutorial() -> void:
 	Save.save_game(self)
 
 
+## The step the player is on, and whether they have already done it. Called
+## every time the board changes, so it has to be cheap -- it is, because every
+## check is a scan of the placed machines and there are at most seventy.
+func tutorial_satisfied() -> bool:
+	return Tutorial.satisfied(_tutorial_step, self)
+
+
 func tutorial_done() -> bool:
-	return _tutorial_step >= 5
+	return Tutorial.is_done(_tutorial_step)
 
 
 ## --- persistence -----------------------------------------------------------
@@ -369,6 +452,8 @@ func to_dict() -> Dictionary:
 		"grid": grid.to_dict(),
 		"settings": settings,
 		"tutorial": _tutorial_step,
+		"tutorial_moves": tutorial_moves,
+		"tutorial_saw_heat": tutorial_saw_heat,
 		"rate": credits_per_sec,
 		"research_rate": research_per_sec,
 		"saved_at": Time.get_unix_time_from_system(),
@@ -387,6 +472,8 @@ func from_dict(d: Dictionary) -> void:
 	blueprints = d.get("blueprints", [])
 	settings = d.get("settings", {"sound": true, "haptics": true})
 	_tutorial_step = int(d.get("tutorial", 0))
+	tutorial_moves = int(d.get("tutorial_moves", 0))
+	tutorial_saw_heat = bool(d.get("tutorial_saw_heat", false))
 	credits_per_sec = float(d.get("rate", 0.0))
 	research_per_sec = float(d.get("research_rate", 0.0))
 	grid.from_dict(d.get("grid", {}))

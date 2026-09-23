@@ -26,6 +26,9 @@ const PANEL_HI := Color("1d2430")
 const LINE := Color("2a3441")
 const CELL := Color("141a22")
 const CELL_BLOCKED := Color("0b0e12")
+## The colour the empty rock tends towards at the bottom of the shaft. Warmer
+## and redder, so depth is visible in the ground rather than only in a label.
+const ROCK_DEEP := Color("241a1c")
 
 const TEXT := Color("e6edf5")
 const TEXT_DIM := Color("8b9bb0")

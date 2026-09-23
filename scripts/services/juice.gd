@@ -147,6 +147,20 @@ func _generate() -> void:
 			f = 1046.5
 		return sin(t * TAU * f) * exp(-fposmod(p * 4.0, 1.0) * 6.0) * 0.26)
 
+	# A machine going out of temperature. Two notes a semitone apart, which is
+	# the interval everyone hears as "something is wrong" without it being an
+	# alarm. Throttled hard at the call site: heat drifts, and a sound every
+	# time a tile crossed a threshold would be constant.
+	_sfx["heat_warning"] = _bake(0.30, func(t: float, p: float) -> float:
+		var a: float = sin(t * TAU * 330.0) * exp(-p * 5.0)
+		var b: float = sin(maxf(t - 0.09, 0.0) * TAU * 311.13) * exp(-p * 4.0)
+		return (a + b) * 0.16)
+
+	# A placement that cannot happen. Shorter and duller than `reject`, so a
+	# mis-tap on rubble does not sound like a failure.
+	_sfx["blocked"] = _bake(0.07, func(t: float, p: float) -> float:
+		return _tri(t * 96.0) * exp(-p * 16.0) * 0.22)
+
 	# The factory itself. A four-second loop of low hum and breath, quiet
 	# enough to be noticed only when it stops.
 	var hum := _bake(4.0, func(t: float, _p: float) -> float:
@@ -299,6 +313,20 @@ func sell() -> void:
 func reject() -> void:
 	play("reject")
 	_buzz(45, 0.8)
+
+
+## A tap that could never have worked -- rubble, an occupied tile. Quieter
+## than a refusal the player might have expected to succeed.
+func blocked() -> void:
+	play("blocked")
+	_buzz(20, 0.4)
+
+
+## Something on the board has drifted out of its temperature band. Rate
+## limited to once every twenty seconds: heat moves continuously, and a game
+## that chirps every time a tile crosses a line gets muted.
+func heat_warning() -> void:
+	play("heat_warning", 1.0, 20.0)
 
 
 func income() -> void:

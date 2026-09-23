@@ -59,11 +59,39 @@ enum Status {
 
 ## cell -> Status
 var status: Dictionary = {}
-## cell -> rolling duty cycle, 0..1. "How often is this thing actually
-## working" is a better throughput number than items per second: it is
-## comparable between machine types, it needs no units, and it answers the
-## question a player is actually asking.
+## cell -> duty cycle, 0..1: cycles this machine actually completed, over the
+## cycles it could have completed at its current speed.
+##
+## "How often is this thing actually working" is a better throughput number
+## than items per second: it is comparable between machine types, it needs no
+## units, and it answers the question a player is asking.
+##
+## It has to be measured over a WINDOW rather than per tick. A machine running
+## at 0.9 cycles a second completes a cycle on roughly one tick in eleven even
+## when it is perfectly fed, so "did it finish something this tick" answers the
+## wrong question in both directions: the first version of this counted a
+## machine that was merely mid-cycle as 100% working, and reported 99% for a
+## Smelter that was in fact completing barely half the cycles its supply would
+## allow. Every dead-tile measurement in the balance tools rests on this
+## number, so it is worth the two accumulators.
 var uptime: Dictionary = {}
+## cell -> cycles completed since the window opened
+var _cycles_window: Dictionary = {}
+## cell -> cycles that could have been completed in the same span
+var _expected_window: Dictionary = {}
+var _window_ticks: int = 0
+## cell -> which neighbour gets served first this tick. Advanced every tick so
+## a producer with several equal consumers splits its output evenly.
+var _rotor: Dictionary = {}
+## Six seconds, then blended with the previous window.
+##
+## A window is quantised by whole cycles: at roughly one cycle a second, a
+## three-second window catches two or three, and the reading swung between 36%
+## and 73% on a board that was doing exactly the same thing throughout. Six
+## seconds halves that, and the blend takes out the rest without hiding a real
+## change for more than a few seconds.
+const UPTIME_WINDOW := 60
+const UPTIME_BLEND := 0.6
 ## cell -> consecutive ticks in the same stalled state, for the hysteresis
 ## described above.
 var _stall_run: Dictionary = {}
@@ -71,9 +99,6 @@ var _stall_run: Dictionary = {}
 ## dash along the shared edge, which is the only way an adjacency-fed factory
 ## can show its material moving -- there are no belts to put items on.
 var last_transfers: Array = []
-## How much smoothing the duty cycle gets. Low enough to react within a second
-## or two, high enough not to strobe.
-const UPTIME_SMOOTHING := 0.08
 ## Above this many recorded transfers in one tick the rest are dropped. The
 ## board cannot animate more than a handful legibly anyway.
 const MAX_RECORDED_TRANSFERS := 40
@@ -111,6 +136,10 @@ func reset_progress() -> void:
 	_progress.clear()
 	status.clear()
 	uptime.clear()
+	_cycles_window.clear()
+	_expected_window.clear()
+	_window_ticks = 0
+	_rotor.clear()
 	_stall_run.clear()
 	last_transfers.clear()
 
@@ -142,44 +171,82 @@ func effective_rate(i: int) -> float:
 
 ## --- phase 1 ---------------------------------------------------------------
 
+## Machines hand what they have made to the neighbours that want it.
+##
+## This is a PUSH, and it used to be a pull. The difference is not cosmetic.
+##
+## Pulling meant each consumer took as much as it could from each neighbour in
+## whatever order the cell dictionary happened to store them, so a producer's
+## entire output went to whichever consumer was visited first. Measured on one
+## Crusher feeding three identical Smelters: 96%, 73% and 0% duty. Three tiles,
+## identically connected, doing completely different amounts of work, with
+## nothing on screen that could explain it — because there was nothing to
+## explain, it was dictionary order.
+##
+## A factory the player cannot reason about is worse than one that is merely
+## slow, so a producer now deals its output out one unit at a time, round
+## robin, starting one place further along on every tick. Three equal
+## neighbours get a third each. The totals are identical; what changes is that
+## the board becomes predictable.
 func _transfer() -> void:
 	last_transfers.clear()
-	for i: int in grid.cells:
-		var cell: Dictionary = grid.cells[i]
-		var m: Dictionary = MachineDB.get_machine(String(cell["id"]))
-		var inputs: Dictionary = m["inputs"]
-		var tags: Array = m["tags"]
-
-		if inputs.is_empty() and not tags.has("sink") and not tags.has("research"):
+	for src_cell: int in grid.cells:
+		var src: Dictionary = grid.cells[src_cell]
+		var src_out: Dictionary = src["buf_out"]
+		if src_out.is_empty():
 			continue
-
-		for n in grid.neighbour_machines(i):
-			var src: Dictionary = grid.cells[n]
-			var src_out: Dictionary = src["buf_out"]
-			if src_out.is_empty():
+		for res: int in src_out.keys():
+			var avail: int = int(src_out[res])
+			if avail <= 0:
 				continue
-			for res: int in src_out.keys():
-				var want: bool
-				if tags.has("sink"):
-					# A Vault takes anything; that is the point of a Vault.
-					want = true
-				else:
-					want = inputs.has(res) and int(cell["buf_in"].get(res, 0)) < cap()
-				if not want:
+			var takers: Array[int] = _takers(src_cell, res)
+			if takers.is_empty():
+				continue
+			var start: int = int(_rotor.get(src_cell, 0)) % takers.size()
+			var moved_total: int = 0
+			var k: int = 0
+			# One unit at a time so that a single item cannot all land in the
+			# same place twice running.
+			while moved_total < avail and k < takers.size() * cap():
+				var t: int = takers[(start + k) % takers.size()]
+				k += 1
+				var dst: Dictionary = grid.cells[t]
+				var buf_in: Dictionary = dst["buf_in"]
+				if int(buf_in.get(res, 0)) >= cap():
 					continue
-				var avail: int = int(src_out[res])
-				if avail <= 0:
-					continue
-				var room: int = cap() - int(cell["buf_in"].get(res, 0))
-				var moved: int = mini(avail, maxi(room, 0))
-				if moved <= 0:
-					continue
-				src_out[res] = avail - moved
-				if int(src_out[res]) <= 0:
-					src_out.erase(res)
-				cell["buf_in"][res] = int(cell["buf_in"].get(res, 0)) + moved
+				buf_in[res] = int(buf_in.get(res, 0)) + 1
+				moved_total += 1
 				if last_transfers.size() < MAX_RECORDED_TRANSFERS:
-					last_transfers.append([n, i, res])
+					last_transfers.append([src_cell, t, res])
+			if moved_total > 0:
+				var left: int = avail - moved_total
+				if left > 0:
+					src_out[res] = left
+				else:
+					src_out.erase(res)
+	# Advance every producer's turn, so the tile that was served first this
+	# tick is served last on the next one.
+	for src_cell: int in grid.cells:
+		_rotor[src_cell] = int(_rotor.get(src_cell, 0)) + 1
+
+
+## The neighbours of `source` that would accept `res` right now, in board
+## order so the rotation is deterministic and a replay is a replay.
+func _takers(source: int, res: int) -> Array[int]:
+	var out: Array[int] = []
+	for other in grid.neighbour_machines(source):
+		var c: Dictionary = grid.cells[other]
+		var m: Dictionary = MachineDB.get_machine(String(c["id"]))
+		var tags: Array = m["tags"]
+		if tags.has("sink"):
+			# A Vault takes anything; that is the point of a Vault.
+			out.append(other)
+			continue
+		var inputs: Dictionary = m["inputs"]
+		if inputs.has(res) and int(c["buf_in"].get(res, 0)) < cap():
+			out.append(other)
+	out.sort()
+	return out
 
 
 ## --- phase 2 ---------------------------------------------------------------
@@ -206,7 +273,7 @@ func _work(dt: float) -> void:
 		var rate: float = effective_rate(i)
 		if rate <= 0.0:
 			status[i] = Status.IDLE
-			_decay_uptime(i)
+			_record(i, 0, 0.0)
 			continue
 		var p: float = float(_progress.get(i, 0.0)) + rate * dt
 
@@ -220,8 +287,7 @@ func _work(dt: float) -> void:
 			# as stuck when the reason is visible right now, so a machine does
 			# not flicker red between two perfectly healthy cycles.
 			status[i] = _settle(i, _stall_reason(cell, m, tags, Status.RUNNING))
-			_bump_uptime(i, status[i] != Status.STARVED \
-				and status[i] != Status.BLOCKED)
+			_record(i, 0, rate * dt)
 			continue
 		_progress[i] = p - float(cycles)
 
@@ -238,7 +304,7 @@ func _work(dt: float) -> void:
 				Status.RUNNING if ran > 0 else Status.IDLE))
 		else:
 			status[i] = _settle(i, Status.RUNNING)
-		_bump_uptime(i, ran > 0)
+		_record(i, ran, rate * dt)
 
 
 ## Why a cycle did not happen, expressed as the direction to look in.
@@ -273,13 +339,23 @@ func _settle(i: int, proposed: int) -> int:
 	return proposed
 
 
-func _bump_uptime(i: int, working: bool) -> void:
-	var target: float = 1.0 if working else 0.0
-	uptime[i] = lerpf(float(uptime.get(i, target)), target, UPTIME_SMOOTHING)
+func _record(i: int, completed: int, could_have: float) -> void:
+	_cycles_window[i] = float(_cycles_window.get(i, 0.0)) + float(completed)
+	_expected_window[i] = float(_expected_window.get(i, 0.0)) + maxf(could_have, 0.0)
 
 
-func _decay_uptime(i: int) -> void:
-	uptime[i] = lerpf(float(uptime.get(i, 0.0)), 0.0, UPTIME_SMOOTHING)
+## Close the measurement window and publish a duty cycle for every machine.
+func _close_window() -> void:
+	for i: int in _expected_window:
+		var expected: float = float(_expected_window[i])
+		if expected <= 0.0001:
+			uptime[i] = 0.0
+			continue
+		var measured: float = clampf(
+			float(_cycles_window.get(i, 0.0)) / expected, 0.0, 1.0)
+		uptime[i] = lerpf(float(uptime.get(i, measured)), measured, UPTIME_BLEND)
+	_cycles_window.clear()
+	_expected_window.clear()
 
 
 func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
@@ -291,7 +367,7 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 			return false
 		for res: int in buf_in.keys():
 			var n: int = int(buf_in[res])
-			last_credits += float(MachineDB.RES_VALUE[res]) * float(n) * value_mult
+			last_credits += MachineDB.value_of(res) * float(n) * value_mult
 		buf_in.clear()
 		return true
 
@@ -453,6 +529,10 @@ const THERMAL_WARNING := 0.9
 func tick(dt: float = TICK_DT) -> Dictionary:
 	_transfer()
 	_work(dt)
+	_window_ticks += 1
+	if _window_ticks >= UPTIME_WINDOW:
+		_window_ticks = 0
+		_close_window()
 	return {"credits": last_credits, "research": last_research, "cycles": last_cycles}
 
 

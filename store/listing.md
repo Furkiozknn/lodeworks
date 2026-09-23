@@ -53,6 +53,15 @@ hot and fast. A press three tiles away chokes on the same heat and needs a
 coolant cell you would rather have spent on production. Two players with the
 same twelve machines will not build the same board.
 
+LEARNING IT
+The first chapter is eight steps, each one line and a pulsing outline on the
+tiles where the answer is. Place, connect, earn, move, refine, heat, quota,
+descend — done in the real game, on your board. Then it stops.
+
+The Codex is there if you want it. Every page is a two-to-five tile board that
+is actually running, not a diagram: put a Boiler beside a Smelter on the page
+and the Smelter speeds up, because that is what happens.
+
 THE BOARD TELLS YOU WHAT IS WRONG
 Every tile carries a status light. Green is working. Amber means its output is
 backed up — the problem is downstream. Red means it is not being fed — the
@@ -150,7 +159,7 @@ actually ran.
 | `05_detail.png` | the detail sheet, naming the fault and the direction to look | that the game explains itself in words |
 | `06_research.png` | the permanent research tree | that there is something to keep |
 | `07_offline.png` | the welcome-back panel with its three numbers | that the offline maths is shown, not asserted |
-| `08_first_line.png` | the first three machines with the tutorial line | the first minute |
+| `08_first_line.png` | the first machines, the tutorial's one line, and the tiles it is pointing at | the first minute, with nothing to read |
 
 Alt text for each, under Play's 140-character limit, is generated alongside
 them in `screenshots/alt-text.tsv`.

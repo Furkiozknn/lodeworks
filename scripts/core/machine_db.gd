@@ -91,7 +91,7 @@ const MACHINES := {
 	},
 	"smelter": {
 		"name": "Smelter",
-		"desc": "Two gravel into one ingot, and it genuinely wants to be hot. Build it a furnace. Then build the furnace a coolant loop.",
+		"desc": "Wants to be hot, and says so. Build it a furnace. Then build the furnace a coolant loop.",
 		"cost": 120.0,
 		"cost_growth": 1.18,
 		"inputs": {Res.GRAVEL: 2},
@@ -133,7 +133,7 @@ const MACHINES := {
 	},
 	"press": {
 		"name": "Press",
-		"desc": "Two ingots into one plate. Hates heat, and by now your board is full of it.",
+		"desc": "Squeezes ingots flat. Runs hot doing it and cannot take much in return, which is the whole problem with building deep.",
 		"cost": 420.0,
 		"cost_growth": 1.19,
 		"inputs": {Res.INGOT: 2},
@@ -147,7 +147,7 @@ const MACHINES := {
 	},
 	"assembler": {
 		"name": "Assembler",
-		"desc": "A plate and two gravel into one component. Wants two different inputs, so it wants to sit at a junction.",
+		"desc": "The end of the chain, and the hottest thing on the board. A component is worth more than everything that went into it -- if you can keep this cool enough to make one.",
 		"cost": 1400.0,
 		"cost_growth": 1.20,
 		"inputs": {Res.PLATE: 1, Res.GRAVEL: 2},
@@ -225,18 +225,177 @@ const ORDER := ["drill", "crusher", "vault", "smelter", "boiler", "coolant",
 	"press", "assembler", "amplifier", "lab", "duplicator", "condenser"]
 
 
+## --- economic models -------------------------------------------------------
+##
+## `MACHINES` above is the base recipe table. A model is a set of overrides on
+## top of it, applied at load and then frozen.
+##
+## This exists because of a measurement, not a preference. With the base
+## recipes, hand-built long production chains scored at the BOTTOM of the
+## layout table while dense shallow boards won by up to nine times — which
+## made the Press, Assembler, Lab and Condenser content that an optimising
+## player would never build, and made "descend for a deeper chain" a promise
+## the arithmetic did not keep.
+##
+## The cause is structural rather than numeric. A machine is fed only by the
+## four cells it touches, and one of those is usually its own output, leaving
+## three. When every refining step consumes TWO of the thing below it, the
+## supply tree branches by two at every level while the space to attach it
+## branches by three — so a chain deeper than about three steps cannot be fed
+## at all, no matter how valuable its product is.
+##
+## So the models here are rule changes, not buffs, and which one ships was
+## decided by running all of them through `tools/econ_lab.gd` against the same
+## set of board archetypes. Keeping them all in the source means the next
+## person to argue about the economy can re-run the comparison instead of
+## arguing.
+
+const MODELS := {
+	# The original. Kept so the comparison can always be re-run.
+	"base": {},
+
+	# One input per cycle from the Smelter upwards, so a single adjacent
+	# supplier is enough, and the value ladder flattened to match — with 1:1
+	# conversions the old ladder would have made a five-tile chain worth
+	# ninety-five times a drill.
+	"linear": {
+		"values": [1.0, 2.4, 5.4, 11.5, 24.0],
+		"smelter": {"inputs": {Res.GRAVEL: 1}, "rate": 0.9},
+		"press": {"inputs": {Res.INGOT: 1}, "rate": 0.8},
+		"assembler": {"inputs": {Res.PLATE: 1}, "rate": 0.7},
+		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+	},
+
+	# Between the two: the deep machines run warm, so a long chain has to be
+	# cooled, but not so hot that building one stops being worth it.
+	"linear_warm": {
+		"values": [1.0, 2.4, 5.4, 11.5, 24.0],
+		"smelter": {"inputs": {Res.GRAVEL: 1}, "rate": 0.9},
+		"press": {"inputs": {Res.INGOT: 1}, "rate": 0.8, "heat_out": 1.1},
+		"assembler": {"inputs": {Res.PLATE: 1}, "rate": 0.7, "heat_out": 1.5},
+		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+	},
+
+	# The same again, but the deep machines run hot AND cannot take much heat.
+	# Measured to over-correct: it put the long chain back below a shallow
+	# board, which is the problem this whole exercise started from. Kept so
+	# the comparison can be re-run.
+	"linear_hot": {
+		"values": [1.0, 2.4, 5.6, 12.5, 28.0],
+		"smelter": {"inputs": {Res.GRAVEL: 1}, "rate": 0.9},
+		"press": {"inputs": {Res.INGOT: 1}, "rate": 0.8,
+			"heat_out": 1.6, "heat_tolerance": 2.0},
+		"assembler": {"inputs": {Res.PLATE: 1}, "rate": 0.7,
+			"heat_out": 2.2, "heat_optimum": 1.5, "heat_tolerance": 3.2},
+		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+	},
+
+	# Ore stays cheap and plentiful — two ore into one gravel is the step that
+	# teaches the ratio, and Drills are the one machine there is always room
+	# for. Everything above it is one-for-one.
+	"hybrid": {
+		"values": [1.0, 3.0, 7.0, 15.0, 32.0],
+		"press": {"inputs": {Res.INGOT: 1}, "rate": 0.8},
+		"assembler": {"inputs": {Res.PLATE: 1, Res.GRAVEL: 1}, "rate": 0.7},
+		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+	},
+}
+
+## The model this build ships. Changed only with a measurement behind it.
+const ACTIVE_MODEL := "linear_warm"
+
+static var _active: Dictionary = {}
+static var _active_values: Dictionary = {}
+static var _active_name: String = ""
+
+
+static func _build(model_name: String) -> void:
+	var model: Dictionary = MODELS.get(model_name, {})
+	var out: Dictionary = {}
+	for id: String in MACHINES:
+		var base: Dictionary = (MACHINES[id] as Dictionary).duplicate(true)
+		var over: Variant = model.get(id, null)
+		if typeof(over) == TYPE_DICTIONARY:
+			for k: String in (over as Dictionary):
+				base[k] = (over as Dictionary)[k]
+		out[id] = base
+	_active = out
+	_active_values = RES_VALUE.duplicate()
+	var vals: Variant = model.get("values", null)
+	if typeof(vals) == TYPE_ARRAY:
+		for i in range((vals as Array).size()):
+			_active_values[i] = float((vals as Array)[i])
+	_active_name = model_name
+
+
+## Switch models. Used by `tools/econ_lab.gd` to compare them and by the tests
+## that assert the shipped one is the shipped one. Anything holding a
+## Dictionary returned by `get_machine` before the switch keeps the old one,
+## which is why this rebuilds rather than mutating in place.
+static func use_model(model_name: String) -> void:
+	if not MODELS.has(model_name):
+		push_error("unknown economic model: " + model_name)
+		return
+	_build(model_name)
+
+
+static func model_name() -> String:
+	if _active_name == "":
+		_build(ACTIVE_MODEL)
+	return _active_name
+
+
 static func get_machine(id: String) -> Dictionary:
-	return MACHINES.get(id, {})
+	if _active.is_empty():
+		_build(ACTIVE_MODEL)
+	return _active.get(id, {})
+
+
+## What a unit of each resource sells for under the active model.
+static func value_of(res: int) -> float:
+	if _active_values.is_empty():
+		_build(ACTIVE_MODEL)
+	return float(_active_values.get(res, 0.0))
 
 
 static func exists(id: String) -> bool:
 	return MACHINES.has(id)
 
 
+## "2 Ore -> 1 Gravel", built from the active model rather than written down.
+##
+## Hand-written recipe text is how a game ends up lying to its player: the
+## table changes, the sentence does not, and the sentence is what they read.
+## The flavour line in each machine's `desc` is allowed to be prose; this is
+## the part that has to be true.
+static func recipe_text(id: String) -> String:
+	var m: Dictionary = get_machine(id)
+	if m.is_empty():
+		return ""
+	var tags: Array = m.get("tags", [])
+	if tags.has("sink"):
+		return "Sells anything a neighbour hands it"
+	var ins: Array[String] = []
+	for res: int in (m.get("inputs", {}) as Dictionary):
+		ins.append("%d %s" % [int(m["inputs"][res]), String(RES_NAME[res])])
+	var outs: Array[String] = []
+	for res: int in (m.get("outputs", {}) as Dictionary):
+		outs.append("%d %s" % [int(m["outputs"][res]), String(RES_NAME[res])])
+	if tags.has("research"):
+		outs.append("Research")
+	if ins.is_empty() and outs.is_empty():
+		return "Changes what its neighbours do"
+	if ins.is_empty():
+		return "→ " + " + ".join(outs)
+	if outs.is_empty():
+		return " + ".join(ins) + " → nothing"
+	return " + ".join(ins) + " → " + " + ".join(outs)
+
+
 static func unlocked_at(depth: int) -> Array[String]:
 	var out: Array[String] = []
 	for id in ORDER:
-		if int(MACHINES[id]["unlock_depth"]) <= depth:
+		if int(get_machine(id)["unlock_depth"]) <= depth:
 			out.append(id)
 	return out
 
@@ -245,7 +404,7 @@ static func unlocked_at(depth: int) -> Array[String]:
 ## optimal board is one machine type repeated, and the grid stops being a
 ## decision.
 static func cost_for(id: String, owned: int) -> float:
-	var m: Dictionary = MACHINES.get(id, {})
+	var m: Dictionary = get_machine(id)
 	if m.is_empty():
 		return INF
 	return float(m["cost"]) * pow(float(m["cost_growth"]), float(owned))

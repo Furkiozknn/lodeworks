@@ -46,12 +46,20 @@ var _armed: String = ""
 var _toast_time: float = 0.0
 var _shown_credits: float = 0.0
 var _problem_cursor: int = 0
+var _undo: Array = []
+var _undo_btn: Button
+var _undo_time: float = 0.0
+var _pulsing: Control = null
+var _pulse_t: float = 0.0
+var _research_nudged: bool = false
+var _last_thermal: int = 0
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build()
 	Sim.stats_changed.connect(_refresh)
+	Sim.stats_changed.connect(_tutorial_watch)
 	Sim.depth_changed.connect(func(_d): _rebuild_palette(); _refresh())
 	Sim.machines_unlocked.connect(_on_unlocked)
 	Sim.offline_earnings.connect(_show_offline)
@@ -94,6 +102,15 @@ func _notification(what: int) -> void:
 
 
 func _process(delta: float) -> void:
+	if _undo_time > 0.0:
+		_undo_time -= delta
+		if _undo_time <= 0.0:
+			_undo_btn.visible = false
+			_undo.clear()
+	if _pulsing != null and is_instance_valid(_pulsing):
+		_pulse_t += delta
+		var k: float = 0.5 + 0.5 * sin(_pulse_t * 4.0)
+		_pulsing.modulate = Color.WHITE.lerp(Palette.ACCENT, k * 0.85)
 	if _toast_time > 0.0:
 		_toast_time -= delta
 		_toast.visible = _toast_time > 0.0
@@ -130,6 +147,10 @@ func _build() -> void:
 	grid_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	grid_view.cell_tapped.connect(_on_cell_tapped)
 	grid_view.cell_long_pressed.connect(_on_cell_long_pressed)
+	grid_view.machine_moved.connect(func(from_cell: int, to_cell: int):
+		_push_undo({"kind": "move", "cell": to_cell, "from": from_cell})
+		_maybe_advance_tutorial()
+		_refresh())
 	root.add_child(grid_view)
 
 	root.add_child(_build_palette())
@@ -141,6 +162,22 @@ func _build() -> void:
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_overlay.visible = false
 	add_child(_overlay)
+
+	# The standard mobile pattern: the thing that just happened, and one tap to
+	# take it back, for a few seconds. Cheaper than a confirmation on every
+	# placement and far cheaper than a mis-tap the player cannot reverse.
+	_undo_btn = Button.new()
+	_undo_btn.text = "Undo"
+	_undo_btn.visible = false
+	_undo_btn.custom_minimum_size = Vector2(120, 52)
+	_undo_btn.add_theme_font_size_override("font_size", 19)
+	_undo_btn.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_undo_btn.offset_left = -60
+	_undo_btn.offset_right = 60
+	_undo_btn.offset_top = -132
+	_undo_btn.offset_bottom = -80
+	_undo_btn.pressed.connect(_do_undo)
+	add_child(_undo_btn)
 
 	_toast = _label("", 22, Palette.TEXT)
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -233,6 +270,15 @@ func _build_header() -> Control:
 	menu.custom_minimum_size = Vector2(56, 56)
 	menu.add_theme_color_override("font_color", Palette.TEXT_DIM)
 	menu.pressed.connect(_show_settings)
+
+	# The Codex sits in the header rather than behind the menu because its
+	# whole job is to be reachable at the moment a player is confused, and a
+	# player who is confused does not go looking through settings.
+	var codex := _button("?", Palette.PANEL_HI)
+	codex.add_theme_color_override("font_color", Palette.TEXT_DIM)
+	codex.custom_minimum_size = Vector2(56, 56)
+	codex.pressed.connect(_open_codex)
+	row.add_child(codex)
 	row.add_child(menu)
 
 	_header = p
@@ -281,6 +327,9 @@ func _build_stratum_bar() -> Control:
 	_btn_heat.custom_minimum_size = Vector2(88, 40)
 	_btn_heat.toggled.connect(func(on: bool):
 		grid_view.set_overlay(GridView.Overlay.HEAT if on else GridView.Overlay.NONE)
+		if on:
+			Sim.tutorial_saw_heat = true
+			_maybe_advance_tutorial()
 		Juice.tap())
 	tools.add_child(_btn_heat)
 
@@ -397,7 +446,8 @@ func _make_palette_button(id: String) -> Control:
 	var b := Button.new()
 	b.custom_minimum_size = Vector2(104, 96)
 	b.toggle_mode = true
-	b.tooltip_text = "%s\n%s" % [m["name"], m["desc"]]
+	b.tooltip_text = "%s\n%s\n%s" % [m["name"],
+		MachineDB.recipe_text(id), m["desc"]]
 	b.add_theme_font_size_override("font_size", 15)
 	b.text = "%s\n%s\n%s" % [Palette.machine_glyph(id), m["name"],
 		Economy.fmt(Sim.cost_of(id))]
@@ -420,7 +470,7 @@ func _arm(id: String) -> void:
 
 func _on_cell_tapped(cell: int) -> void:
 	if Sim.is_blocked(cell):
-		Juice.reject()
+		Juice.blocked()
 		_toast_msg("This part of the shaft has collapsed.")
 		return
 	if Sim.grid.is_empty(cell):
@@ -432,14 +482,15 @@ func _on_cell_tapped(cell: int) -> void:
 			Juice.reject()
 			_toast_msg("Not enough credits for a %s." % MachineDB.get_machine(_armed)["name"])
 			return
+		var price: float = Sim.cost_of(_armed)
 		if Sim.try_place(cell, _armed):
 			Juice.place()
 			grid_view.pulse(cell)
+			_push_undo({"kind": "place", "cell": cell, "id": _armed,
+				"price": price})
 			_shown_credits = Sim.credits
 			_refresh()
-			_refresh_hint()
-			if Sim.tutorial_step() < 5:
-				_maybe_advance_tutorial()
+			_maybe_advance_tutorial()
 		return
 	grid_view.selected_cell = -1 if grid_view.selected_cell == cell else cell
 	if grid_view.selected_cell >= 0:
@@ -459,6 +510,8 @@ func _on_cell_long_pressed(cell: int) -> void:
 		"You get %s credits back." % Economy.fmt(refund),
 		"Remove", func():
 			Sim.sell(cell)
+			_push_undo({"kind": "sell", "cell": cell, "id": id,
+				"refund": refund})
 			Juice.sell()
 			_close_sheet()
 			_shown_credits = Sim.credits
@@ -471,6 +524,8 @@ func _on_descend() -> void:
 		_toast_msg("Reach %s credits to descend." % Economy.fmt(Sim.quota()))
 		return
 	if Sim.descend():
+		_undo.clear()
+		_maybe_advance_tutorial()
 		Juice.descend()
 		Juice.punch(_stratum_bar, 0.06, 0.30)
 		_close_sheet()
@@ -570,11 +625,64 @@ func _refresh() -> void:
 			Palette.TEXT if Sim.can_afford(id) else Palette.TEXT_FAINT)
 
 
+## --- undo ------------------------------------------------------------------
+
+## How long the offer stands. Long enough to notice a mistake, short enough
+## that the button is not part of the furniture.
+const UNDO_SECONDS := 6.0
+
+
+func _push_undo(entry: Dictionary) -> void:
+	_undo = [entry]
+	_undo_btn.visible = true
+	_undo_time = UNDO_SECONDS
+
+
+func _do_undo() -> void:
+	if _undo.is_empty():
+		return
+	var e: Dictionary = _undo.pop_back()
+	_undo_btn.visible = false
+	_undo_time = 0.0
+	var ok: bool = false
+	match String(e["kind"]):
+		"place":
+			ok = Sim.undo_place(int(e["cell"]), float(e["price"]))
+		"sell":
+			ok = Sim.undo_sell(int(e["cell"]), String(e["id"]), float(e["refund"]))
+		"move":
+			ok = Sim.move_machine(int(e["cell"]), int(e["from"]))
+	if ok:
+		Juice.lift()
+		_close_sheet()
+		_shown_credits = Sim.credits
+		_refresh()
+	else:
+		Juice.reject()
+		_toast_msg("That cannot be undone now.")
+
+
+## The two tutorial steps that complete by waiting rather than by tapping --
+## seeing the first credits arrive, and reaching the quota -- are checked here
+## rather than polled, because both are things the simulation announces.
+func _tutorial_watch() -> void:
+	if not Tutorial.is_done(Sim.tutorial_step()) and Sim.tutorial_satisfied():
+		_maybe_advance_tutorial()
+	if not _research_nudged and Sim.research > 0.0:
+		_research_nudged = true
+		_toast_msg(Tutorial.RESEARCH_NUDGE)
+
+
 ## One line, counts only, in the order a player should deal with them:
 ## starvation first because it stops production dead, then backpressure, then
 ## heat, which only costs a percentage.
 func _refresh_problems() -> void:
 	var c: Dictionary = Sim.sim.problem_counts()
+	# Heard once when it starts, not every frame it continues. Juice throttles
+	# the sound itself; this only fires on the transition.
+	if int(c["thermal"]) > _last_thermal and int(c["thermal"]) > 0:
+		Juice.heat_warning()
+	_last_thermal = int(c["thermal"])
 	var parts: Array[String] = []
 	if int(c["starved"]) > 0:
 		parts.append("%d starved" % int(c["starved"]))
@@ -592,43 +700,57 @@ func _refresh_problems() -> void:
 
 ## --- onboarding ------------------------------------------------------------
 ##
-## Five steps, each of which is a thing the player does rather than a thing
-## they are told. No modal wall of text, no "tap here" hand: a single line
-## above the board that changes when the board changes.
-
-const TUTORIAL_LINES := [
-	"Tap DRILL below, then tap a tile. A drill pulls ore out of the rock.",
-	"Now place a VAULT touching the drill. A vault sells whatever its neighbours hand it.",
-	"Add a CRUSHER between them. Refined material sells for much more than raw ore.",
-	"Drag a machine to move it — moving is always free. Hold one down to remove it.",
-	"Reach the quota and DESCEND. Every stratum is richer, hotter and stranger than the last.",
-]
-
+## One line at a time, a pulsing outline where the answer is, and nothing that
+## has to be dismissed. The steps live in `Tutorial` as data; this only draws
+## them and asks, after every change to the board, whether the player has done
+## the thing yet.
 
 func _refresh_hint() -> void:
 	var step: int = Sim.tutorial_step()
-	if step >= TUTORIAL_LINES.size():
+	if Tutorial.is_done(step):
 		_hint.visible = false
+		grid_view.highlight_cells = []
+		_pulse_control("")
+		grid_view.queue_redraw()
 		return
 	_hint.visible = true
-	_hint.text = TUTORIAL_LINES[step]
+	_hint.text = Tutorial.line_for(step)
+	grid_view.highlight_cells = Tutorial.highlight(step, Sim)
+	_pulse_control(Tutorial.highlight_control(step))
+	# Arming the suggested machine for them removes a tap and a guess. They
+	# can still pick anything else; nothing here is modal.
+	var arm: String = Tutorial.arm_for(step)
+	if arm != "" and _armed != arm and Sim.is_unlocked(arm):
+		_armed = arm
+		grid_view.arm_id = arm
+		for k: String in _palette_buttons:
+			_palette_buttons[k].button_pressed = (k == arm)
+	grid_view.queue_redraw()
 
 
+## Some steps have their answer on a button rather than on the board.
+func _pulse_control(which: String) -> void:
+	var target: Control = null
+	match which:
+		"heat_button": target = _btn_heat
+		"descend_button": target = _btn_descend
+	for c: Control in [_btn_heat, _btn_descend]:
+		if c == null:
+			continue
+		c.modulate = Color.WHITE
+	_pulsing = target
+
+
+## Called after anything that could have completed the current step.
 func _maybe_advance_tutorial() -> void:
-	var step: int = Sim.tutorial_step()
-	var has_drill: bool = Sim.grid.count_of("drill") > 0
-	var has_vault: bool = Sim.grid.count_of("vault") > 0
-	var has_crusher: bool = Sim.grid.count_of("crusher") > 0
-	var advance: bool = false
-	match step:
-		0: advance = has_drill
-		1: advance = has_vault
-		2: advance = has_crusher
-		3: advance = has_crusher and has_vault and has_drill
-		_: advance = false
-	if advance:
+	var guard: int = 0
+	while not Tutorial.is_done(Sim.tutorial_step()) \
+			and Sim.tutorial_satisfied() and guard < Tutorial.count():
+		guard += 1
 		Sim.advance_tutorial()
-		_refresh_hint()
+		# A step completing is a small win and should feel like one.
+		Juice.tap()
+	_refresh_hint()
 
 
 ## --- overlays --------------------------------------------------------------
@@ -768,6 +890,12 @@ func _show_cell_info(cell: int) -> void:
 	# other without saying which is which is how a readout becomes a riddle.
 	_sheet_body.add_child(_stat_row("Cycle speed when fed",
 		"%.2f per second" % Sim.sim.effective_rate(cell)))
+
+	# The recipe, rendered from the table rather than written down, so the
+	# sheet cannot describe a machine the simulation does not have.
+	var recipe: String = MachineDB.recipe_text(id)
+	if recipe != "":
+		_sheet_body.add_child(_stat_row("Recipe", recipe))
 
 	var d := _label(String(m["desc"]), 16, Palette.TEXT_FAINT)
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -949,6 +1077,18 @@ func _show_settings() -> void:
 
 	col.add_child(HSeparator.new())
 
+	var codex_btn := _button("Codex", Palette.PANEL_HI)
+	codex_btn.add_theme_color_override("font_color", Palette.TEXT)
+	codex_btn.pressed.connect(func():
+		_close_overlay()
+		_open_codex())
+	col.add_child(codex_btn)
+	col.add_child(_label(
+		"Short pages with small boards that are actually running.",
+		15, Palette.TEXT_FAINT))
+
+	col.add_child(HSeparator.new())
+
 	var diag := _button("Run device self test", Palette.PANEL_HI)
 	diag.add_theme_color_override("font_color", Palette.TEXT)
 	diag.pressed.connect(func():
@@ -971,6 +1111,12 @@ func _store_reason() -> String:
 	if not Store.product_confirmed():
 		return "The store has not confirmed this product yet."
 	return "Not available right now."
+
+
+func _open_codex() -> void:
+	Juice.tap()
+	var c: Control = (load("res://scripts/ui/codex.gd") as GDScript).new()
+	add_child(c)
 
 
 func _open_diagnostics() -> void:

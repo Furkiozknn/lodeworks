@@ -157,7 +157,21 @@ func _press(cell: int, arm: String) -> void:
 func _apply_build(kind: String) -> void:
 	Sim.grid.clear()
 	Sim.sim.reset_progress()
+	# Every field reset, every time.
+	#
+	# The shots run in one process, and leaving research, Cores and upgrade
+	# levels behind from the previous build produced a "first three machines"
+	# screenshot showing 823 Research, 14 Cores and 527 credits a second. That
+	# is a store listing claiming something the app does not do at that point,
+	# which is both a Play policy problem and a lie to whoever installs it.
 	Sim.credits = 0.0
+	Sim.research = 0.0
+	Sim.cores = 0
+	Sim.lifetime_credits = 0.0
+	Sim.collapses = 0
+	Sim.upgrade_levels = {}
+	Sim.tutorial_moves = 0
+	Sim.tutorial_saw_heat = false
 	match kind:
 		"starter":
 			Sim.depth = 0
@@ -201,14 +215,24 @@ func _apply_build(kind: String) -> void:
 			# Exactly the layout tests/test_progression.gd verifies end to end,
 			# so the screenshot cannot show a board that does not work.
 			_place([
-				[0, 1, "drill"], [1, 1, "drill"], [2, 1, "drill"], [3, 1, "drill"],
-				[4, 1, "drill"], [5, 1, "drill"], [6, 1, "drill"],
-				[0, 2, "crusher"], [1, 2, "crusher"], [2, 2, "crusher"], [3, 2, "crusher"],
-				[4, 2, "crusher"], [5, 2, "crusher"], [6, 2, "crusher"],
-				[0, 3, "smelter"], [1, 3, "smelter"], [2, 3, "assembler"], [3, 3, "press"],
-				[4, 3, "smelter"], [5, 3, "smelter"], [6, 3, "smelter"],
-				[0, 4, "vault"], [1, 4, "vault"], [2, 4, "lab"], [3, 4, "vault"],
-				[4, 4, "vault"], [5, 4, "vault"], [6, 4, "vault"],
+				[0, 0, "drill"], [1, 0, "drill"], [2, 0, "drill"], [3, 0, "drill"],
+				[4, 0, "drill"], [5, 0, "drill"], [6, 0, "drill"],
+				[0, 1, "crusher"], [1, 1, "crusher"], [2, 1, "crusher"], [3, 1, "crusher"],
+				[4, 1, "crusher"], [5, 1, "crusher"], [6, 1, "crusher"],
+				[0, 2, "vault"], [1, 2, "smelter"], [2, 2, "smelter"], [3, 2, "smelter"],
+				[4, 2, "smelter"], [5, 2, "smelter"], [6, 2, "vault"],
+				[0, 3, "vault"], [1, 3, "press"], [2, 3, "press"], [3, 3, "press"],
+				[4, 3, "press"], [5, 3, "press"], [6, 3, "vault"],
+				[0, 4, "vault"], [1, 4, "vault"], [2, 4, "assembler"], [3, 4, "assembler"],
+				[4, 4, "assembler"], [5, 4, "vault"], [6, 4, "vault"],
+				[1, 5, "vault"], [2, 5, "vault"], [3, 5, "lab"], [4, 5, "vault"],
+				[5, 5, "vault"],
+				[0, 6, "drill"], [1, 6, "drill"], [2, 6, "drill"], [3, 6, "drill"],
+				[4, 6, "drill"], [5, 6, "drill"], [6, 6, "drill"],
+				[0, 7, "crusher"], [1, 7, "crusher"], [2, 7, "crusher"], [3, 7, "crusher"],
+				[4, 7, "crusher"], [5, 7, "crusher"], [6, 7, "crusher"],
+				[0, 8, "vault"], [1, 8, "vault"], [2, 8, "vault"], [3, 8, "vault"],
+				[4, 8, "vault"], [5, 8, "vault"], [6, 8, "vault"],
 			])
 	Sim.unlocked.clear()
 	# The tutorial banner belongs on a first-run board, not on a deep one.

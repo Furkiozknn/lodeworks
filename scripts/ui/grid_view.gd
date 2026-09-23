@@ -52,6 +52,9 @@ const MAX_MOTES := 14
 enum Overlay { NONE, HEAT }
 
 var selected_cell: int = -1
+## Tiles the tutorial is pointing at. Pulsing an outline where the answer is
+## replaces a sentence explaining where, and costs the player no reading.
+var highlight_cells: Array[int] = []
 ## Set by the parent; the machine the palette has armed, or "".
 var arm_id: String = ""
 var overlay: int = Overlay.NONE
@@ -98,6 +101,8 @@ func _collect_motes() -> void:
 
 func _process(delta: float) -> void:
 	_anim += delta
+	if not highlight_cells.is_empty():
+		queue_redraw()
 	if _press_cell >= 0 and not _dragging and not _long_fired:
 		_press_time += delta
 		if _press_time >= LONG_PRESS_SECONDS:
@@ -269,6 +274,9 @@ func _draw() -> void:
 
 	_draw_motes(cs)
 
+	if not highlight_cells.is_empty():
+		_draw_highlights(cs)
+
 	if _press_cell >= 0 and not _dragging:
 		_draw_placement_preview(font, cs)
 
@@ -304,7 +312,12 @@ func _draw_empty(r: Rect2, cell: int, cs: float, font: Font) -> void:
 	# Weak, and weaker than under a machine. Ambient heat at depth applies to
 	# every empty tile equally, so painting it at full strength says nothing
 	# and costs the board its contrast.
-	var base: Color = Palette.CELL.lerp(Palette.heat_color(heat), 0.20)
+	# Rock colour shifts with depth as well as with heat, so a player who has
+	# descended nine times can see that they are somewhere else. A label
+	# saying "Stratum 9" is not the same as the ground looking different.
+	var tone: float = clampf(float(Sim.depth) / 24.0, 0.0, 1.0)
+	var rock: Color = Palette.CELL.lerp(Palette.ROCK_DEEP, tone)
+	var base: Color = rock.lerp(Palette.heat_color(heat), 0.20)
 	draw_rect(r, base, true)
 
 	# Two ore specks, deterministic per cell and per stratum.
@@ -328,15 +341,27 @@ func _draw_empty(r: Rect2, cell: int, cs: float, font: Font) -> void:
 			_num(font, r, "%.1f" % heat, Palette.TEXT_DIM, cs, 0.5)
 		return
 
-	# An armed palette entry marks where it could land. A small pip rather
-	# than a filled cell: filling every empty tile with the machine's colour
-	# washes the whole board and buries the heat field underneath it.
-	if arm_id != "" and Sim.can_afford(arm_id) and not Sim.is_blocked(cell):
+	# An armed palette entry marks where it could land -- but only on tiles
+	# where landing there would connect to something.
+	#
+	# Marking every empty tile put sixty pips on the board and taught nothing;
+	# marking the frontier answers the question the player is actually asking,
+	# which is "where would this reach". On an empty board every tile is the
+	# frontier, so the first placement is unconstrained.
+	if arm_id != "" and Sim.can_afford(arm_id) and not Sim.is_blocked(cell) \
+			and (Sim.grid.cells.is_empty() or _touches_machine(cell)):
 		var ghost: Color = Palette.machine_color(arm_id)
 		ghost.a = 0.34
 		var g: float = cs * 0.16
 		draw_rect(Rect2(r.position + (r.size - Vector2(g, g)) * 0.5,
 			Vector2(g, g)), ghost, true)
+
+
+func _touches_machine(cell: int) -> bool:
+	for n in Sim.grid.neighbours(cell):
+		if not Sim.grid.is_empty(n):
+			return true
+	return false
 
 
 func _draw_rubble(r: Rect2, cs: float) -> void:
@@ -404,6 +429,16 @@ func _draw_machine(r: Rect2, cell: int, id: String, font: Font, cs: float) -> vo
 			Vector2(chip, chip)), Palette.res_color(out_res), true)
 
 	_draw_status_pip(r, cs, st, thermal, delta)
+
+	# Research, on the machines it bought. Three notches at most: the point is
+	# "this factory is better than it was", not a readout.
+	var marks: int = Sim.upgrade_marks()
+	if marks > 0 and cs > 26.0:
+		var mw: float = cs * 0.075
+		for k in range(marks):
+			draw_rect(Rect2(r.position.x + cs * 0.06 + float(k) * (mw + cs * 0.03),
+				r.position.y + r.size.y - cs * 0.15, mw, cs * 0.05),
+				Palette.CORE, true)
 
 	# Duty cycle down the left edge: how often this tile is actually working,
 	# which is comparable between machine types in a way that items-per-second
@@ -539,6 +574,19 @@ func _num(font: Font, r: Rect2, text: String, col: Color, cs: float,
 	draw_string(font, r.position + Vector2((r.size.x - ts.x) * 0.5,
 		r.size.y * vfrac + ts.y * 0.36), text,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+
+
+## A slow breathing outline. Fast enough to catch the eye, slow enough not to
+## be the most urgent thing on a screen that also has a factory on it.
+func _draw_highlights(cs: float) -> void:
+	var pulse: float = 0.5 + 0.5 * sin(_anim * 3.4)
+	var col: Color = Palette.ACCENT
+	col.a = 0.35 + 0.45 * pulse
+	var w: float = 2.0 + 1.6 * pulse
+	for cell in highlight_cells:
+		if cell < 0 or cell >= Grid.W * Grid.H:
+			continue
+		draw_rect(cell_rect(cell).grow(1.0 + pulse * 2.0), col, false, w)
 
 
 func _draw_selection(r: Rect2, cs: float) -> void:

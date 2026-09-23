@@ -46,7 +46,16 @@ static func open_over(parent: Node, on_close: Callable = Callable()) -> Control:
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Anchors AND offsets, plus an explicit size.
+	#
+	# A Control added to a plain Control parent after that parent has already
+	# been laid out never gets a resize notification, so anchors alone leave
+	# it at zero by zero -- it exists, its methods work, and it draws nothing.
+	# That is exactly how this screen passed a smoke test for two releases
+	# while rendering as an invisible rectangle over the board.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if get_parent() is Control:
+		size = (get_parent() as Control).size
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_pipelines_at_open = int(Performance.get_monitor(
 		Performance.PIPELINE_COMPILATIONS_CANVAS))

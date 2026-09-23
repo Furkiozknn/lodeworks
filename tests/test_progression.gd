@@ -17,14 +17,24 @@ var runner: Object
 ## Every multi-input machine here has all of its inputs orthogonally adjacent,
 ## which on a four-neighbour grid is the actual puzzle the late game sets.
 const FULL_CHAIN := [
-	[0, 1, "drill"], [1, 1, "drill"], [2, 1, "drill"], [3, 1, "drill"],
-	[4, 1, "drill"], [5, 1, "drill"], [6, 1, "drill"],
-	[0, 2, "crusher"], [1, 2, "crusher"], [2, 2, "crusher"], [3, 2, "crusher"],
-	[4, 2, "crusher"], [5, 2, "crusher"], [6, 2, "crusher"],
-	[0, 3, "smelter"], [1, 3, "smelter"], [2, 3, "assembler"], [3, 3, "press"],
-	[4, 3, "smelter"], [5, 3, "smelter"], [6, 3, "smelter"],
-	[0, 4, "vault"], [1, 4, "vault"], [2, 4, "lab"], [3, 4, "vault"],
-	[4, 4, "vault"], [5, 4, "vault"], [6, 4, "vault"],
+	[0, 0, "drill"], [1, 0, "drill"], [2, 0, "drill"], [3, 0, "drill"],
+	[4, 0, "drill"], [5, 0, "drill"], [6, 0, "drill"],
+	[0, 1, "crusher"], [1, 1, "crusher"], [2, 1, "crusher"], [3, 1, "crusher"],
+	[4, 1, "crusher"], [5, 1, "crusher"], [6, 1, "crusher"],
+	[0, 2, "vault"], [1, 2, "smelter"], [2, 2, "smelter"], [3, 2, "smelter"],
+	[4, 2, "smelter"], [5, 2, "smelter"], [6, 2, "vault"],
+	[0, 3, "vault"], [1, 3, "press"], [2, 3, "press"], [3, 3, "press"],
+	[4, 3, "press"], [5, 3, "press"], [6, 3, "vault"],
+	[0, 4, "vault"], [1, 4, "vault"], [2, 4, "assembler"], [3, 4, "assembler"],
+	[4, 4, "assembler"], [5, 4, "vault"], [6, 4, "vault"],
+	[1, 5, "vault"], [2, 5, "vault"], [3, 5, "lab"], [4, 5, "vault"],
+	[5, 5, "vault"],
+	[0, 6, "drill"], [1, 6, "drill"], [2, 6, "drill"], [3, 6, "drill"],
+	[4, 6, "drill"], [5, 6, "drill"], [6, 6, "drill"],
+	[0, 7, "crusher"], [1, 7, "crusher"], [2, 7, "crusher"], [3, 7, "crusher"],
+	[4, 7, "crusher"], [5, 7, "crusher"], [6, 7, "crusher"],
+	[0, 8, "vault"], [1, 8, "vault"], [2, 8, "vault"], [3, 8, "vault"],
+	[4, 8, "vault"], [5, 8, "vault"], [6, 8, "vault"],
 ]
 
 
@@ -109,18 +119,44 @@ func test_a_better_layout_beats_a_bigger_one() -> void:
 
 
 func test_heat_only_helps_the_actual_bottleneck() -> void:
-	# Measured while building this: a boiler next to a smelter that is ALREADY
-	# starved does nothing at all, because the constraint is upstream. That is
-	# correct and it is the lesson the game is teaching -- so the test asserts
-	# it rather than pretending heat is a free multiplier.
+	# Heat is not a free multiplier, and this is the lesson the game is built
+	# to teach: making a machine faster does nothing when the thing limiting
+	# it is what arrives, not what it can process.
+	#
+	# Three Smelters share one Crusher fed by one Drill, so every Smelter is
+	# badly under-supplied. A Boiler on one of them raises what that Smelter
+	# COULD do and cannot raise what it is given.
+	#
+	# Asserted as a relative change and as a duty cycle rather than against a
+	# fixed credits figure, so that re-balancing the economy cannot silently
+	# turn this from a design guarantee into a snapshot of one afternoon.
 	var starved := [
-		[2, 3, "drill"], [3, 3, "crusher"], [4, 3, "smelter"], [5, 3, "vault"],
+		[2, 3, "drill"], [3, 3, "crusher"],
+		[3, 2, "smelter"], [4, 2, "vault"],
+		[4, 3, "smelter"], [5, 3, "vault"],
+		[3, 4, "smelter"], [4, 4, "vault"],
 	]
-	var cold := _board(starved, 3)
-	var hot := _board(starved + [[4, 2, "boiler"]], 3)
-	runner.near(float(hot.measure()["credits_per_sec"]),
-		float(cold.measure()["credits_per_sec"]), 0.5,
-		"heating a starved machine should change nothing meaningful")
+	# On the first stratum, where the rock is poor and one Drill really is one
+	# Drill. Deeper strata multiply every stage at once, which hides the
+	# shortage this test is about.
+	var cold := _board(starved, 0)
+	var hot := _board(starved + [[3, 1, "boiler"]], 0)
+	var a: float = float(cold.measure()["credits_per_sec"])
+	var b: float = float(hot.measure()["credits_per_sec"])
+
+	# The Smelter really is starved in both boards, which is what makes the
+	# rest of the assertion mean anything.
+	cold.run_ticks(600)
+	hot.run_ticks(600)
+	var cell: int = Grid.idx(3, 2)
+	runner.lt(cold.uptime_of(cell), 0.5,
+		"the fixture only tests what it claims if the smelter is under-supplied")
+	runner.lt(hot.uptime_of(cell), 0.6,
+		"and heating it must not have solved the supply problem")
+	runner.gt(a, 0.0, "the board earns something")
+	runner.lt(absf(b - a) / a, 0.12,
+		"a boiler on a starved machine must not move the board's output "
+		+ "(%.2f vs %.2f)" % [b, a])
 
 
 func test_heat_management_is_worth_real_money_when_it_is_the_bottleneck() -> void:

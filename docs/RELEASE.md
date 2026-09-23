@@ -175,6 +175,10 @@ claims with the evidence next to each one.
 | A rewarded ad plays | **NOT VERIFIED** | no AdMob account, no ad unit ids, no device. Until the self test's Ad plugin row reads `loaded` on hardware and an ad has actually paid out, monetization is not working |
 | `foremans_licence` is purchasable | **NOT VERIFIED** | no Play Console product exists. Billing returns nothing for an app Play has never seen, so this cannot even be attempted before a first upload |
 | Performance on a phone | **UNKNOWN** | never run on hardware. The self test measures frame time, input-to-frame latency, draw calls, shader stalls and memory in one tap; nobody has tapped it |
+| The tutorial teaches by pointing at tiles, not by explaining | **verified** | `tests/test_gameplay.gd` walks all eight steps against the live game using the same calls the UI makes, and asserts every line fits one phone line |
+| Every Codex page runs a real simulation | **verified** | each page's board is placed and ticked in the test suite; a page where nothing happens fails |
+| A producer splits its output fairly | **verified** | `test_a_producer_splits_its_output_between_equal_neighbours` — it did not before, and two identical tiles read 96% and 0% |
+| A placement can be taken back at the price paid | **verified** | `test_undoing_a_placement_returns_exactly_what_it_cost` |
 | The board explains itself | **verified in a render** | `tools/smoke.tscn` boots the real game under xvfb, opens the settings panel and the self-test screen, and fails if what came up is a black rectangle |
 | The store assets meet Play's specs | **verified** | `tools/check-store-assets.py` checks every dimension, colour type and count against the published spec and runs at the end of every asset build |
 | Haptics | **UNKNOWN** | `Input.vibrate_handheld` needs a device. The `VIBRATE` permission is now in the export preset — without it Godot 4.4 was reported to crash on Android |
@@ -239,14 +243,12 @@ screenshots, and seven tags where five is the maximum.
 
 ## 9. Known gaps in the build itself
 
-- **The deep end of the production chain does not pay for itself.** Measured,
-  not suspected: hand-built long chains score near the bottom of the layout
-  table while dense shallow boards win by up to nine times, which makes the
-  Press, Assembler, Lab and Condenser content an optimising player will not
-  build. [`docs/BALANCE.md`](BALANCE.md) has the numbers and the three things
-  the next balance pass should try. Deliberately not fixed here, because every
-  available fix invalidates the measured playability results the balance tests
-  encode.
+- **Fixed since the previous release: the deep end of the chain now pays for
+  itself.** Five economic models were compared against seven board archetypes
+  at three depths; the one that shipped changes a rule rather than a number.
+  A full chain is now within a percent or two of a shallow board on credits
+  and holds a monopoly on Research. [`docs/BALANCE.md`](BALANCE.md) has the
+  table, and the two mechanics bugs the exercise turned up.
 - **No ad or billing plugin has ever been fetched.** `tools/install-plugins.sh`
   resolves both from the GitHub release API at build time; it has not been run,
   because the development container cannot reach that API. The versions in the
@@ -261,7 +263,14 @@ screenshots, and seven tags where five is the maximum.
 - **No emulator run either.** An emulator would catch a packaging failure but
   tells you nothing about thermals, touch latency or battery, which are the
   three things a real device is needed for.
-- **No music.** There is a synthesised factory ambience; there is no score. A
-  procedural one is a day's work and was not the highest-value day available.
+- **No music.** There is a synthesised factory ambience and fourteen effects;
+  there is no score. A procedural one is a day's work and was not the
+  highest-value day available.
+- **The tutorial has no upgrade step**, although the brief asked for one.
+  Research comes from a Lab, a Lab eats Components, and a Component needs a
+  five-machine chain that costs more than a first session earns. The only way
+  to force it into chapter one would be to hand out free Research, which would
+  make the first number the game shows a lie. Instead the nudge fires once,
+  later, the first time a player actually has some.
 - **The preview video is not uploaded.** Play takes a YouTube URL, and a
   YouTube account is a human step.

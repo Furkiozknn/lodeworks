@@ -36,6 +36,23 @@ to the Drills. Every machine in the top two rows was blocked.
         v v l v v v v      vaults, one lab
 ```
 
+**Superseded in the following round.** Once one-for-one recipes made a long
+chain feedable, the reference board became a tapered full chain with a shallow
+deck under it — 601.7 credits/s and 0.97 research/s from 61 machines with 12
+dead, the highest working share (66%) of any board measured:
+
+```
+        d d d d d d d
+        c c c c c c c
+        v s s s s s v      vaults on the shoulders, so the edges never back up
+        v p p p p p v
+        v v a a a v v
+        . v v l v v .
+        d d d d d d d      a second, shallower deck under it
+        c c c c c c c
+        v v v v v v v
+```
+
 | layout | credits/s | research/s | machines | dead | working |
 |---|---|---|---|---|---|
 | **deck_a (adopted)** | **445.9** | **0.97** | 28 | **3** | 61% |
@@ -55,50 +72,91 @@ someone who is trying to learn the game.
 fails if more than a third of the reference board is idle, so this cannot
 quietly come back.
 
-## The finding that is not fixed
+## The finding that WAS fixed, in the round after
 
-**Hand-built clean chains lose badly to dense mixed boards, and the deep end of
-the production chain does not pay for the space it needs.**
+**Hand-built clean chains lost badly to dense shallow boards, and the deep end
+of the production chain did not pay for the space it needed.** Measured, in
+the previous round, and left unfixed on purpose because every available fix
+invalidated the playability results the balance tests encode.
 
-`tools/layout_search.gd` hill-climbs from four different starting points. Its
-best result was **1,136 credits/s** from a board that looks like machine soup —
-two and a half times the best hand-designed layout, and twenty-three times the
-old reference board. Meanwhile every carefully built long chain
-(`component_farm`, `fed_ladder`, `amplified`) placed near the bottom of the
-table.
+It is fixed now, and the fix is a rule rather than a number.
 
-The arithmetic explains it. Each refining step multiplies value by roughly 1.2
-to 1.5 per cycle after the rate penalty, but it costs a tile, and — because
-machines are fed only by the four cells they touch — a long chain has to be
-laid out in a line, where every link is limited by the single neighbour
-supplying it. Breadth beats depth, and the Press, Assembler, Lab and
-Condenser end up as content that a player who is optimising will not build.
+### Why it was broken
 
-This is a real design problem: it makes four of the twelve machines decorative,
-and the game's stated progression — deeper rock, deeper chain — does not
-survive contact with a calculator.
+A machine is fed only by the four cells it touches, and one of those is
+usually its own output, leaving three. Under the original recipes every
+refining step consumed **two** of the thing below it, so the supply tree
+branched by two at every level while the space to attach it branched by
+three. A chain deeper than about three steps could not be fed at all, no
+matter how valuable its product was. Nothing was wrong with the values; the
+geometry was wrong.
 
-It is **not** fixed in this release, deliberately. Fixing it means changing
-`RES_VALUE`, the input counts or the rates, and every one of those invalidates
-the measured playability results the balance tests encode — the first quota
-landing inside a first session, the curve not walling out by stratum 20, heat
-management paying for itself when heat is the bottleneck. That is a balance
-pass with its own verification, not a line changed on the way past.
+### What was tried
 
-What the next pass should try, in the order the measurements suggest:
+`tools/econ_lab.gd` runs every model in `MachineDB.MODELS` against seven board
+archetypes at three depths. All of them are still in the source so the
+comparison can be re-run.
 
-1. **Cut the input counts on the deep machines.** The Press wanting two Ingots
-   and the Assembler wanting a Plate plus two Gravel are what make the deep
-   chain impossible to feed through four neighbours. One input each would make
-   depth viable without touching a single value.
-2. **Let a machine pull from a neighbour's neighbour at reduced rate**, or give
-   one machine a "conveys" tag. This is the least invasive way to break the
-   adjacency ceiling, and it is a new interaction rather than a number change.
-3. **Re-run `layout_lab.gd` and `layout_search.gd` after either change.** The
-   number to watch is not the best score but the *spread*: if independent
-   searches keep landing on very different boards within a few percent of each
-   other, the placement puzzle is doing its job. If one board dominates, the
-   game has a solved answer and no puzzle.
+| model | rule change | best deep board vs best shallow |
+|---|---|---|
+| `base` | the original | **0.00x** — the deep archetypes produced nothing at all |
+| `hybrid` | one input above the Press only | **0.00x** — the Assembler still needed two, and still starved |
+| `linear` | one input from the Smelter up, values flattened | 1.06x |
+| `linear_hot` | the same, plus hot deep machines with tight tolerance | 0.68x — over-corrected, depth back below shallow |
+| **`linear_warm` (shipped)** | one input from the Smelter up, deep machines run warm | **0.99x** |
+
+### What shipped
+
+`linear_warm`. From the Smelter upwards each step takes one of the thing below
+it, so a single adjacent supplier is enough; the value ladder is flattened to
+match, because with one-for-one conversions the old ladder would have made a
+five-tile chain worth ninety-five times a Drill; and the Press and Assembler
+run warm, so a long chain has to be cooled and the cooling costs tiles.
+
+Measured at the three depths, with the archetypes in `econ_lab.gd`:
+
+| depth | best board | what wins there |
+|---|---|---|
+| 3 | deep_columns, 328/s | a full chain, narrowly over shallow's 324/s |
+| 9 | deep_double, 592/s | a full chain, narrowly over shallow's 588/s |
+| 16 | raw, 266/s | Cramped takes thirty of the seventy tiles; no long chain fits |
+
+Near-parity on credits at every depth, and a **monopoly on Research**: the
+deep archetypes produce 1.88-2.00 research per second and the shallow ones
+produce exactly none, because Research comes from a Lab and a Lab only eats
+Components. So the choice is not "which board earns more" but "do I want
+credits now or permanent upgrades", and the stratum modifiers decide which
+board is even buildable.
+
+That is the design target this whole exercise was for, and
+`tests/test_gameplay.gd` holds all three halves of it: a long chain must be
+within reach of a shallow board, it must not make the shallow board pointless,
+and no single board shape may win at every depth.
+
+## Two mechanics bugs found on the way
+
+Both were found by instruments built for something else, which is the argument
+for building them.
+
+**The duty cycle was measuring intent, not work.** The first version asked
+"did this machine finish something this tick", and a machine running at 0.9
+cycles a second finishes something on one tick in eleven even when perfectly
+fed — so a machine merely mid-cycle counted as 100% working. It reported 99%
+for a Smelter completing barely half the cycles its supply allowed. Every
+dead-tile figure in the balance tools rested on that number. It now measures
+completed cycles against the cycles the machine's current speed would allow,
+over a six-second window, blended with the previous one.
+
+**A producer gave everything to whichever consumer was visited first.**
+Material moved by a pull, and consumers pulled in cell-dictionary order, so
+one Crusher feeding three identical Smelters produced duty cycles of 96%, 73%
+and 0%. Three tiles, identically connected, doing completely different amounts
+of work, with nothing on screen that could explain it — because there was
+nothing to explain, it was dictionary order. Transfer is now a push: a
+producer deals its output out one unit at a time, round robin, starting one
+place further along on every tick. The totals are identical. What changed is
+that the board became something a player can reason about — and across the
+archetype table, dead tiles on shallow boards fell from twenty-one to zero.
 
 ## A caveat on the search tool
 
