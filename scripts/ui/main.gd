@@ -1404,6 +1404,8 @@ func _open_overlay(title: String, body: Control, actions: Array,
 	var h: float = minf(size.y - 48.0 - _safe.y - _safe.w, 700.0)
 	card.position = Vector2((size.x - w) * 0.5, (size.y - h) * 0.5)
 	card.size = Vector2(w, h)
+	# Shown once it has been fitted to what it holds (`_fit_overlay`).
+	card.modulate.a = 0.0
 	_overlay.add_child(card)
 
 	var col := VBoxContainer.new()
@@ -1435,14 +1437,19 @@ func _open_overlay(title: String, body: Control, actions: Array,
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(body)
 	col.add_child(scroll)
+	_fit_overlay.call_deferred(card, body, h)
 
 	if actions.is_empty():
 		return
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 12)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_child(row)
 	for a: Dictionary in actions:
 		var b := _button(String(a["text"]), a.get("color", Palette.PANEL_HI))
+		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		b.custom_minimum_size = Vector2(minf(360.0, w * 0.45), MIN_TOUCH)
+		b.add_theme_font_size_override("font_size", 26)
 		if a.has("disabled"):
 			b.disabled = bool(a["disabled"])
 		var cb: Variant = a.get("cb")
@@ -1451,6 +1458,22 @@ func _open_overlay(title: String, body: Control, actions: Array,
 			if cb is Callable:
 				cb.call())
 		row.add_child(b)
+
+
+## A card as tall as what it holds, up to the screen's height: a panel with
+## three pictures in it should not be a screen of empty panel. Measured
+## after the containers have laid it out, and only then shown.
+func _fit_overlay(card: Control, body: Control, max_h: float) -> void:
+	for i in range(2):
+		await get_tree().process_frame
+	if not is_instance_valid(card) or not is_instance_valid(body) 			or not card.is_inside_tree():
+		return
+	var scroll: Control = body.get_parent() as Control
+	var chrome: float = card.size.y - scroll.size.y
+	var want: float = clampf(chrome + body.get_combined_minimum_size().y, 220.0, max_h)
+	card.size.y = want
+	card.position.y = (size.y - want) * 0.5
+	card.create_tween().tween_property(card, "modulate:a", 1.0, 0.12)
 
 
 func _info(title: String, text: String) -> void:
@@ -1787,32 +1810,125 @@ func _pip(lit: bool) -> Control:
 	return d
 
 
+## The collapse, as a card: this shaft traded for Cores, big, and what the
+## trade takes and leaves as pictures -- crossed out or ticked. Locked, it
+## is the Core behind a lock and the strata still to go down.
 func _show_collapse() -> void:
-	var gained: int = Sim.pending_cores()
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 16)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 18)
+	body.alignment = BoxContainer.ALIGNMENT_CENTER
+	var need: int = Economy.COLLAPSE_MIN_DEPTH
 	if not Economy.can_collapse(Sim.max_depth):
-		# Locked: the stratum it opens at.
-		row.add_child(_icon_rect("lock", 96))
-		row.add_child(_icon_rect("descend", 72))
-		row.add_child(_label("%d" % Economy.COLLAPSE_MIN_DEPTH, 48, Palette.TEXT))
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 28)
+		row.add_child(_locked_picture(_core_picture(200.0), 200.0))
+		# The strata still to go down: one key-sized step each, lit once
+		# passed.
+		var steps_col := VBoxContainer.new()
+		steps_col.alignment = BoxContainer.ALIGNMENT_CENTER
+		steps_col.add_theme_constant_override("separation", 10)
+		var steps := HBoxContainer.new()
+		steps.add_theme_constant_override("separation", 10)
+		for d in range(1, need + 1):
+			var st := _icon_rect("descend", 84)
+			if d > Sim.max_depth:
+				st.modulate = Color(0.45, 0.47, 0.52, 0.7)
+			steps.add_child(st)
+		steps_col.add_child(steps)
+		var count := _label("%d / %d" % [mini(Sim.max_depth, need), need], 34, Palette.TEXT)
+		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		steps_col.add_child(count)
+		row.add_child(steps_col)
 		row.add_child(_help_button("Collapse", func() -> String:
-			return ("Collapsing the shaft converts everything you have built into Cores, which "
-				+ "survive into the next run.\n\nYou need to reach stratum %d first. You are "
-				+ "at %d.") % [Economy.COLLAPSE_MIN_DEPTH, Sim.max_depth]))
-		_open_overlay("Collapse", row, [])
+			return ("Collapsing the shaft turns everything you have built into Cores, and "
+				+ "Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You "
+				+ "have reached %d.") % [need, Sim.max_depth]))
+		body.add_child(row)
+		body.set_meta("state", "locked")
+		_open_overlay("Collapse", body, [], 1000.0)
 		return
-	row.add_child(_icon_rect("cores", 110))
-	row.add_child(_label("+%d" % gained, 56, Palette.CORE))
-	row.add_child(_help_button("Collapse the shaft", func() -> String:
-		return ("You recover %d Cores.\n\nGone: the board, your credits, your research, "
-			+ "your depth.\nKept: Cores, everything you have researched permanently, and your "
-			+ "blueprints.\n\nDeeper runs and larger lifetime earnings both raise the payout, "
-			+ "with diminishing returns on earnings -- so pushing one more stratum is usually "
-			+ "worth more than grinding one more hour.") % gained))
-	_open_overlay("Collapse", row,
-		[{"text": "Collapse", "color": Palette.CORE, "cb": func(): Sim.collapse()}])
+
+	var gained: int = Sim.pending_cores()
+	# The trade: this shaft, for Cores.
+	var trade := HBoxContainer.new()
+	trade.alignment = BoxContainer.ALIGNMENT_CENTER
+	trade.add_theme_constant_override("separation", 22)
+	trade.add_child(_core_picture(190.0))
+	trade.add_child(Chips.Arrow.new(80.0))
+	trade.add_child(_icon_rect("cores", 140))
+	trade.add_child(_label("+%d" % gained, 72, Palette.CORE))
+	trade.add_child(_help_button("Collapse the shaft", func() -> String:
+		return ("You get %d Cores.\n\nGone: the machines, your credits, your research "
+			+ "points and your depth.\nKept: your Cores and every upgrade you have "
+			+ "researched.\n\nGoing deeper and earning more both raise the Cores. One more "
+			+ "stratum is usually worth more than one more hour at this one.") % gained))
+	body.add_child(trade)
+
+	# What goes, crossed out; what stays, ticked.
+	var fate := HBoxContainer.new()
+	fate.alignment = BoxContainer.ALIGNMENT_CENTER
+	fate.add_theme_constant_override("separation", 56)
+	var gone := HBoxContainer.new()
+	gone.add_theme_constant_override("separation", 12)
+	for pic: Control in [MachineSprite.new("drill", 76.0), _icon_rect("credits", 76),
+			_icon_rect("research", 76), _icon_rect("descend", 76)]:
+		gone.add_child(_fated(pic, 76.0, false))
+	fate.add_child(gone)
+	var kept := HBoxContainer.new()
+	kept.add_theme_constant_override("separation", 12)
+	for pic: Control in [_icon_rect("cores", 76), _icon_rect("upgrade", 76)]:
+		kept.add_child(_fated(pic, 76.0, true))
+	fate.add_child(kept)
+	body.add_child(fate)
+	body.set_meta("state", "ready" if Sim.can_collapse() else "empty")
+	_open_overlay("Collapse", body,
+		[{"text": "Collapse", "color": Palette.CORE, "disabled": not Sim.can_collapse(),
+			"cb": func(): Sim.collapse()}], 1000.0)
+
+
+## A picture greyed, with a lock in its corner: not yet.
+func _locked_picture(pic: Control, px: float) -> Control:
+	var box := Control.new()
+	box.custom_minimum_size = Vector2(px, px)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pic.modulate = Color(0.5, 0.52, 0.58, 0.8)
+	box.add_child(pic)
+	var k: float = px * 0.48
+	var lock := _icon_rect("lock", k)
+	lock.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	lock.offset_left = -k
+	lock.offset_top = -k
+	lock.offset_right = 0.0
+	lock.offset_bottom = 0.0
+	box.add_child(lock)
+	return box
+
+
+## A picture marked with its fate in a trade: crossed out if it goes, a tick
+## in the corner if it stays.
+func _fated(pic: Control, px: float, stays: bool) -> Control:
+	var box := Control.new()
+	box.custom_minimum_size = Vector2(px, px)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.add_child(pic)
+	if stays:
+		var k: float = px * 0.46
+		var tick := _icon_rect("ok", k)
+		tick.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		tick.offset_left = -k
+		tick.offset_top = -k
+		tick.offset_right = 0.0
+		tick.offset_bottom = 0.0
+		box.add_child(tick)
+	else:
+		pic.modulate = Color(0.62, 0.62, 0.66, 0.85)
+		var x := Chips.Strike.new()
+		x.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		box.add_child(x)
+	return box
 
 
 func _wrap_label(text: String) -> Label:

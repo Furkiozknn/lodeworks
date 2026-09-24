@@ -109,6 +109,23 @@ func _run() -> void:
 	_main.call("_close_overlay")
 	await _settle(0.3)
 
+	# Collapse: a card whose state is the Sim's -- locked before the stratum
+	# it opens at, and a Collapse key that works only when there is
+	# something to collapse for.
+	_main.call("_show_collapse")
+	await _settle(0.6)
+	await _shot("09_collapse")
+	var want_c: String = "locked" if not Economy.can_collapse(Sim.max_depth) 		else ("ready" if Sim.can_collapse() else "empty")
+	var got_c: String = ""
+	for n: Node in _main.find_children("*", "VBoxContainer", true, false):
+		if n.has_meta("state") and (n as Control).is_visible_in_tree():
+			got_c = String(n.get_meta("state"))
+	if got_c != want_c:
+		_failures.append("the collapse card shows '%s', the Sim says '%s'" % [got_c, want_c])
+	print("  collapse: %s" % got_c)
+	_main.call("_close_overlay")
+	await _settle(0.3)
+
 	# The Codex. Every page on it runs a real simulation, so a page that
 	# fails to build is a page that renders as an empty box -- which is
 	# exactly what the lit-sample check below catches.

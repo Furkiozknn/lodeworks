@@ -652,7 +652,8 @@ against the simulation.
 
 **Every panel.** The title row carries a close key in the corner, 96
 units square. The word "Close" at the bottom is gone. Every "?" key is 96
-units, the 48 dp floor.
+units, the 48 dp floor, and so is a panel's action key. A panel is as tall
+as what it holds, up to the screen, instead of always 700 units.
 
 **Research** (`ui_research.png`) is a grid of cards, three to a row on a
 landscape phone. It drops to two where three would not fit 330-unit
@@ -686,6 +687,19 @@ Drafting Table sells blueprint slots. No screen in the game saves or
 loads a blueprint. The slots exist in the simulation and the store, and
 nothing uses them. This pass did not remove the line, because that is an
 economy decision. It is listed as open under "What is still UNKNOWN".
+
+**Collapse** (`ui_collapse.png`, `ui_collapse_locked.png`) is one card.
+- **Open**, it shows the trade: the Core, an arrow, and the Cores it pays,
+  big. Under that, what goes is crossed out: the machines, credits,
+  research points and depth. What stays is ticked: the Cores and the
+  researched upgrades. That is exactly what `Sim.collapse` resets and keeps.
+- **Locked**, it shows the Core grey behind a lock, and one Descend step
+  for each stratum up to the one it opens at, lit as they are passed.
+- **The Collapse key** is disabled when there is nothing to collapse for
+  (`Sim.can_collapse`). Before, it could be pressed and did nothing.
+
+The smoke test checks the card's state against the Sim. The mechanics did
+not change.
 
 ### The 12-point comparison with the reference
 

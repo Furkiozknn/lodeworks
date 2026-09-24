@@ -48,6 +48,19 @@ class Arrow extends Control:
 			c + Vector2(0.0, -h * 0.24), c + Vector2(0.0, h * 0.24)]), Palette.TEXT_DIM)
 
 
+## A red cross over whatever it is laid on: "this goes".
+class Strike extends Control:
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size).grow(-minf(size.x, size.y) * 0.1)
+		var w: float = maxf(minf(size.x, size.y) * 0.1, 3.0)
+		var c := Color(Palette.BAD, 0.92)
+		draw_line(r.position, r.end, c, w, true)
+		draw_line(Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), c, w, true)
+
+
 ## A bar that fills to `value` (0..1), with a notch at `target` when there is
 ## one -- where a machine's temperature wants to be.
 class Gauge extends Control:

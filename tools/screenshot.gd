@@ -477,6 +477,7 @@ func _run_first() -> void:
 ## board whose numbers put every state of the panel on screen at once.
 ##   ui_research  a line finished, lines to buy, lines short of research and
 ##                lines that need Cores first
+##   ui_collapse, ui_collapse_locked  the trade, and the locked card
 func _run_ui() -> void:
 	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
 	_apply_build("hero")
@@ -489,6 +490,18 @@ func _run_ui() -> void:
 	await _settle(0.8)
 	await _audit_shot("ui_research")
 	_main.call("_close_overlay")
+	# Collapse, open (the hero board is at stratum 7) and still locked.
+	_main.call("_show_collapse")
+	await _settle(0.6)
+	await _audit_shot("ui_collapse")
+	_main.call("_close_overlay")
+	var keep_depth: int = Sim.max_depth
+	Sim.max_depth = 1
+	_main.call("_show_collapse")
+	await _settle(0.6)
+	await _audit_shot("ui_collapse_locked")
+	_main.call("_close_overlay")
+	Sim.max_depth = keep_depth
 	print("wrote the panel screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 
