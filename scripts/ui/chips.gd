@@ -61,6 +61,42 @@ class Strike extends Control:
 		draw_line(Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), c, w, true)
 
 
+## A fat arrow pointing down at the next thing to tap, bobbing: the first
+## minutes' "here". Drawn, so it needs no art and scales to any screen.
+class Pointer extends Control:
+	var bob: bool = true
+	var _t: float = 0.0
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(60, 76)
+		size = custom_minimum_size
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _process(delta: float) -> void:
+		if visible:
+			_t += delta
+			queue_redraw()
+
+	func _draw() -> void:
+		var w: float = size.x
+		var h: float = size.y
+		var y: float = (0.5 - 0.5 * cos(_t * TAU * 1.2)) * h * 0.16 if bob else h * 0.08
+		var pts := PackedVector2Array([
+			Vector2(w * 0.32, y), Vector2(w * 0.68, y), Vector2(w * 0.68, y + h * 0.42),
+			Vector2(w * 0.96, y + h * 0.42), Vector2(w * 0.5, y + h * 0.84),
+			Vector2(w * 0.04, y + h * 0.42), Vector2(w * 0.32, y + h * 0.42)])
+		var shadow := PackedVector2Array()
+		for p in pts:
+			shadow.append(p + Vector2(3, 5))
+		draw_colored_polygon(shadow, Color(0, 0, 0, 0.35))
+		draw_colored_polygon(pts, Palette.CORE)
+		var ring := pts.duplicate()
+		ring.append(pts[0])
+		draw_polyline(ring, Color(0.25, 0.16, 0.05), 3.0, true)
+		draw_line(Vector2(w * 0.42, y + h * 0.06), Vector2(w * 0.42, y + h * 0.4),
+			Color(1, 1, 1, 0.55), 3.0)
+
+
 ## An on/off switch as a phone draws one: a pill, green with the knob to the
 ## right when on.
 class Switch extends Control:

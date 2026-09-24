@@ -645,6 +645,17 @@ hour (`LODEWORKS_JOURNEY=first`) and the `first` screenshots:
 Nothing in it blocked the first descent, so the opening was not rebuilt.
 The pace after it is not right, and is the Descend item below.
 
+**One thing was added to it: an arrow.** A fat yellow arrow bobs over the
+next thing to tap. It points at the dark Core first. During a tutorial
+step about the board, it points at one lit tile, the one beside the Core's
+right-hand corner, clear of the Foreman and the toasts. For the heat and
+descend steps, it points at the key. It goes away when the tutorial ends
+or a panel opens. "Reduce motion" stops the bob. The move step's line
+says "Tap the Vault", but it lit every machine, so it now lights the Vault
+(`test_every_tutorial_step_is_satisfied_by_doing_the_thing`). The `first`
+screenshots place their machines where the arrow points, as a player
+would.
+
 ### The panels, shown before they are read
 
 The rule for this pass: the player should see a panel before reading it.

@@ -450,8 +450,9 @@ func _run_first() -> void:
 		_main.call("_on_core_tapped")
 	await _settle(1.5)
 	await _audit_shot("first_02_core")
-	var spots: Array[int] = Tutorial.highlight(Sim.tutorial_step(), Sim)
-	if not spots.is_empty() and Sim.try_place(spots[0], "drill"):
+	# Where the tutorial's arrow points, as a new player would follow it.
+	var spots: Array[int] = [int(_main.call("pointer_cell"))]
+	if spots[0] >= 0 and Sim.try_place(spots[0], "drill"):
 		for n: int in Sim.grid.neighbours(spots[0]):
 			if Sim.grid.is_empty(n) and not Sim.is_blocked(n) and Sim.try_place(n, "vault"):
 				break

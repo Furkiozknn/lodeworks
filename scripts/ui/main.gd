@@ -116,6 +116,7 @@ var _undo: Array = []
 var _undo_btn: Button
 var _undo_time: float = 0.0
 var _pulsing: Control = null
+var _pointer: Chips.Pointer
 var _pulse_t: float = 0.0
 var _research_nudged: bool = false
 var _last_thermal: int = 0
@@ -229,6 +230,47 @@ func _process(delta: float) -> void:
 	if _btn_zoom != null:
 		_btn_zoom.text = "−" if iso_view.cam.zoom > iso_view.default_zoom() * 1.15 else "+"
 	_swell_alarm(delta)
+	_place_pointer()
+
+
+## The lit tile the arrow picks while a tutorial step is about the board:
+## the one nearest the Core's right-hand corner, clear of the Foreman on the
+## left and the toasts along the bottom middle. -1 when nothing is lit.
+func pointer_cell() -> int:
+	var best: int = -1
+	var best_d: float = INF
+	var corner: Vector2 = Iso.cell_center(Grid.idx(BuildArea.CORE.end.x, BuildArea.CORE.position.y))
+	for c: int in iso_view.highlight_cells:
+		var d: float = Iso.cell_center(c).distance_squared_to(corner)
+		if d < best_d:
+			best_d = d
+			best = c
+	return best
+
+
+## Where the arrow points, in the order a new player needs it: the dark Core;
+## a key the current step is about (Heat, Descend); or, while the step is
+## about the board, a lit tile beside the Core. Nothing once the
+## tutorial is done, or while a panel is open.
+func _place_pointer() -> void:
+	if _pointer == null or iso_view == null:
+		return
+	var at := Vector2.INF
+	var tutoring: bool = not Tutorial.is_done(Sim.tutorial_step())
+	if not Sim.core_online:
+		var r: Rect2 = iso_view.core_rect()
+		at = iso_view.cam.world_to_screen(r.get_center() - Vector2(0, r.size.y * 0.06))
+		at = iso_view.get_global_transform() * at
+	elif tutoring and _pulsing != null and is_instance_valid(_pulsing) 			and _pulsing.is_visible_in_tree():
+		var gr: Rect2 = _pulsing.get_global_rect()
+		at = Vector2(gr.get_center().x, gr.position.y + 4.0)
+	elif tutoring and pointer_cell() >= 0:
+		at = iso_view.get_global_transform() * iso_view.cam.world_to_screen(
+			Iso.cell_center(pointer_cell()) - Vector2(0, Iso.TH * 0.25))
+	_pointer.visible = at != Vector2.INF and not _overlay.visible
+	if _pointer.visible:
+		_pointer.bob = not bool(Sim.settings.get("reduce_motion", false))
+		_pointer.global_position = at - Vector2(_pointer.size.x * 0.5, _pointer.size.y)
 
 
 ## The Problems key's swell: its speed and size from the problem count, a
@@ -344,6 +386,11 @@ func _build() -> void:
 	_toast.visible = false
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(_toast)
+
+	# The first minutes' "here": an arrow over the next thing to tap.
+	_pointer = Chips.Pointer.new()
+	_pointer.visible = false
+	_hud.add_child(_pointer)
 
 	_overlay = Control.new()
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)

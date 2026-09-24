@@ -211,8 +211,14 @@ static func highlight(index: int, state: Node) -> Array[int]:
 				if near_drill and near_vault:
 					out.append(i)
 		"owned":
+			# The line names the Vault, so the Vault is what lights; any
+			# machine if there is no Vault to point at.
 			for i: int in grid.cells:
-				out.append(i)
+				if grid.machine_at(i) == "vault":
+					out.append(i)
+			if out.is_empty():
+				for i: int in grid.cells:
+					out.append(i)
 	return out
 
 

@@ -245,6 +245,9 @@ func test_every_tutorial_step_is_satisfied_by_doing_the_thing() -> void:
 	Sim.lifetime_credits = 5.0
 	runner.check(Tutorial.satisfied(2, Sim), "credits arriving finishes step 3")
 
+	# The line says "Tap the Vault", so the Vault is what lights.
+	runner.eq(Tutorial.highlight(3, Sim), [Grid.idx(19, 22)] as Array[int],
+		"the move step lights the Vault it names, not the Drill")
 	runner.check(not Tutorial.satisfied(3, Sim), "nothing has been moved")
 	Sim.move_machine(Grid.idx(19, 22), Grid.idx(19, 23))
 	runner.check(Tutorial.satisfied(3, Sim), "moving the vault finishes step 4")
