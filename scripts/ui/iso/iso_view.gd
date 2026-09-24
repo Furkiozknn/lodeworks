@@ -1192,9 +1192,18 @@ func _draw_machine(ci: CanvasItem, cell: int, id: String) -> void:
 	mod.a = 1.0
 	# The breath: a percent of height on the cycle, and only while working.
 	var squash: float = 1.0
+	var jolt := Vector2.ZERO
 	if running:
 		squash = 1.0 + 0.012 * sin(Sim.sim.progress_of(cell) * TAU)
-	_draw_sprite(ci, id, Iso.cell_center(cell), mod, squash)
+		match id:
+			"drill":
+				# The bit is biting: a fine, fast shudder.
+				jolt = Vector2(sin(_anim * 41.0 + float(cell)),
+					cos(_anim * 37.0 + float(cell) * 2.0)) * 0.9
+			"crusher", "press":
+				# The stamp at the end of every cycle, in time with production.
+				squash *= 1.0 - 0.035 * sin(_stamp(cell) * PI)
+	_draw_sprite(ci, id, Iso.cell_center(cell) + jolt, mod, squash)
 
 
 
@@ -1289,6 +1298,87 @@ func _draw_glow() -> void:
 	seams.flush(ci)
 
 
+## Each running machine doing its own job where it can be seen doing it:
+## dust off a drill's bit, chips from a stamp, sparks out of a melt, cold mist
+## off coolant, coins while a vault has something to sell, a welding flicker,
+## a lab's pulse. Light only, so it all goes in this additive layer and
+## batches with the rest of it; timed from the machine's own cycle, so what
+## moves is what is producing; and only close enough to be seen -- zoomed
+## out, a factory is its glow.
+const WORK_LOD := 0.55
+
+func _draw_work(ci: CanvasItem, g: Texture2D) -> void:
+	if cam.zoom < WORK_LOD:
+		return
+	for cell: int in Sim.grid.cells:
+		if Sim.sim.status_of(cell) != Simulation.Status.RUNNING:
+			continue
+		var id: String = Sim.grid.machine_at(cell)
+		var c: Vector2 = Iso.cell_center(cell)
+		var off: float = float(cell) * 0.731
+		match id:
+			"drill":
+				for k in range(3):
+					var t: float = fposmod(_anim * 1.1 + float(k) / 3.0 + off, 1.0)
+					var p: Vector2 = c + Vector2((float(k) - 1.0) * 14.0
+						+ sin(t * 6.0 + off) * 5.0, 8.0 - t * 22.0)
+					_mote(ci, g, p, 5.0 + t * 7.0, Color(0.95, 0.80, 0.60, 0.24 * sin(t * PI)))
+			"crusher", "press":
+				var hit: float = _stamp(cell)
+				if hit > 0.0:
+					for k in range(5):
+						var a: float = TAU * float(k) / 5.0 + off
+						var p: Vector2 = c - Vector2(0, 6) \
+							+ Vector2(cos(a) * 30.0, sin(a) * 13.0) * hit
+						_mote(ci, g, p, 4.5, Color(1.0, 0.70, 0.35, 0.55 * (1.0 - hit)))
+			"smelter":
+				for k in range(3):
+					var t: float = fposmod(_anim * 0.9 + float(k) / 3.0 + off, 1.0)
+					var p: Vector2 = c - Vector2(0, 38) + Vector2(sin(t * 9.0 + float(k) * 2.0)
+						* 10.0, -t * 46.0)
+					_mote(ci, g, p, 3.5, Color(1.0, 0.60, 0.20, 0.85 * (1.0 - t)))
+			"coolant":
+				for k in range(3):
+					var t: float = fposmod(_anim * 0.45 + float(k) / 3.0 + off, 1.0)
+					var p: Vector2 = c + Vector2((float(k) - 1.0) * 20.0 + t * 8.0, -16.0 + t * 20.0)
+					_mote(ci, g, p, 9.0 + t * 8.0, Color(0.55, 0.85, 1.0, 0.22 * sin(t * PI)))
+			"vault":
+				if not _receiving(cell):
+					continue
+				for k in range(2):
+					var t: float = fposmod(_anim * 0.8 + float(k) * 0.5 + off, 1.0)
+					var p: Vector2 = c - Vector2(0, 50) + Vector2((float(k) - 0.5) * 16.0,
+						-t * 30.0)
+					_mote(ci, g, p, 5.0, Color(1.0, 0.85, 0.30, 0.9 * sin(t * PI)))
+			"assembler":
+				var f: float = maxf(sin(_anim * 23.0 + off) * sin(_anim * 7.0 + off), 0.0)
+				_mote(ci, g, c - Vector2(6, 54), 10.0 + 8.0 * f,
+					Color(0.70, 0.95, 1.0, 0.45 * f))
+			"lab", "amplifier", "duplicator", "condenser":
+				var pl: float = 0.5 + 0.5 * sin(_anim * 3.0 + off)
+				var col: Color = Palette.machine_light(id)
+				col.a = 0.18 + 0.20 * pl
+				_mote(ci, g, c - Vector2(0, 56), 16.0 + 8.0 * pl, col)
+
+
+## A soft round of light at `p`.
+func _mote(ci: CanvasItem, g: Texture2D, p: Vector2, r: float, col: Color) -> void:
+	ci.draw_texture_rect(g, Rect2(p - Vector2(r, r), Vector2(r, r) * 2.0), false, col)
+
+
+## 0..1 through the last seventh of a stamping machine's cycle, 0 otherwise.
+func _stamp(cell: int) -> float:
+	return clampf((Sim.sim.progress_of(cell) - 0.86) / 0.14, 0.0, 1.0)
+
+
+## Is material crossing into `cell` right now?
+func _receiving(cell: int) -> bool:
+	for n in Sim.grid.neighbours(cell):
+		if _flow.has("%d-%d" % [mini(cell, n), maxi(cell, n)]):
+			return true
+	return false
+
+
 ## The things that make the place feel lived in, all light and all cheap:
 ## steam off the machines that run hot by nature, embers off the ones that
 ## are overheating, the crystals and lamps breathing, the Core's crystal, and
@@ -1297,6 +1387,7 @@ func _draw_glow() -> void:
 const STEAMERS := ["smelter", "boiler", "press", "condenser"]
 
 func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
+	_draw_work(ci, g)
 	for cell: int in Sim.grid.cells:
 		var id: String = Sim.grid.machine_at(cell)
 		var st: int = Sim.sim.status_of(cell)

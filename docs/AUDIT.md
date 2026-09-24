@@ -371,6 +371,35 @@ floor the layout check enforces.
 The whole-board figure depends on how many machines the tray holds. It is
 measured at stratum 0.
 
+### Machines at work
+
+A running machine used to have one movement, a 1.2% breath. Each type now
+shows its own job:
+
+| machine | what it does on screen |
+|---|---|
+| Drill | shudders, kicks up rock dust at its bit |
+| Crusher, Press | stamp: a 3.5% squash at the end of every cycle, with chips flying out |
+| Smelter | throws sparks out of the melt |
+| Coolant | cold mist sinks off the tank |
+| Vault | coins rise while material is arriving to be sold |
+| Assembler | a welding flicker |
+| Lab, Amplifier, Duplicator, Condenser | a pulse in the machine's own light colour |
+
+How it is built:
+- **Timed from the simulation.** A stamp lands when the machine's cycle
+  completes, and a vault's coins only rise while a pipe into it is carrying
+  something.
+- **Light only.** Every effect is drawn in the additive layer, from the one
+  glow texture, so it batches with the light already there. Draw calls
+  stayed at 126 on the reference board.
+- **A zoom threshold.** Below zoom 0.55 nothing is drawn but the glow: from
+  far out, a factory is its lights.
+
+Cost on the desktop probe: idle frame p50 9.35 to 9.82 ms, pan and zoom
+within 0.5 ms. A still screenshot cannot show any of this. Seeing it takes
+running the game.
+
 ### Touch: a tap takes the machine it is on
 
 A machine's picture stands well above its own tile: the upper half covers
