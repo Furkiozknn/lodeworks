@@ -101,7 +101,9 @@ const CORE_LINE := "Tap the FACTORY CORE to bring it online."
 
 ## Fires once, the first time the player has Research to spend. Not part of
 ## the chapter, and not repeated.
-const RESEARCH_NUDGE := "You have Research. Spend it — it is the only thing a collapse does not take."
+## What Research buys outlasts a collapse; Research left unspent does not
+## (`Sim.collapse` zeroes it), and Cores survive too -- so "spend it".
+const RESEARCH_NUDGE := "You have Research. Spend it: what it buys stays, even after a collapse."
 
 
 static func count() -> int:

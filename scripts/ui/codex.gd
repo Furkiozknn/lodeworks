@@ -112,8 +112,8 @@ const PAGES := [
 	},
 	{
 		"id": "research",
-		"title": "Research lasts",
-		"short": "A Lab turns parts into research. Research stays after a collapse.",
+		"title": "Research buys what lasts",
+		"short": "A Lab turns parts into research. What it buys stays after a collapse.",
 		"unlock": 4,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
 			[3, 0, "press"], [4, 0, "assembler"], [5, 0, "lab"]],
