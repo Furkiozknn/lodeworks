@@ -178,10 +178,7 @@ func _ready() -> void:
 	# An idle game is left running. Uncapped frames on a phone is a warm
 	# pocket and a flat battery for a board that changes ten times a second,
 	# so the cap is set here rather than left to whatever the device does.
-	Engine.max_fps = 60
-	Juice.sound_enabled = bool(Sim.settings.get("sound", true))
-	Juice.haptics_enabled = bool(Sim.settings.get("haptics", true))
-	Juice.start_ambient()
+	_apply_settings()
 
 
 func _notification(what: int) -> void:
@@ -216,6 +213,8 @@ func _process(delta: float) -> void:
 	if _pulsing != null and is_instance_valid(_pulsing):
 		_pulse_t += delta
 		var k: float = 0.5 + 0.5 * sin(_pulse_t * 4.0)
+		if bool(Sim.settings.get("reduce_motion", false)):
+			k = 0.7
 		_pulsing.modulate = Color.WHITE.lerp(Palette.ACCENT, k * 0.85)
 	if _toast_time > 0.0:
 		_toast_time -= delta
@@ -2110,102 +2109,276 @@ func _show_offline(report: Dictionary) -> void:
 	_open_overlay("Welcome back", body, actions)
 
 
-func _show_settings() -> void:
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
-
-	# The shop is one line in settings and one offer on the offline panel, and
-	# it is reached from nowhere else. `MonetizationDB.PLACEMENTS` is the list
-	# and `FORBIDDEN_PLACEMENTS` is what this game refuses to have.
-	var owned: Array[String] = []
-	for k: String in MonetizationDB.keys():
-		if Store.owns(k):
-			owned.append(MonetizationDB.title_of(k))
-	var shop := _button("Supply Office", Palette.PANEL_HI)
-	shop.add_theme_color_override("font_color", Palette.TEXT)
-	shop.pressed.connect(func():
-		_close_overlay()
-		_open_shop())
-	col.add_child(shop)
-	if owned.is_empty():
-		col.add_child(_label(
-			"Two one-time purchases. Neither unlocks a machine, a stratum or an upgrade.",
-			15, Palette.TEXT_FAINT))
+## Every setting, applied from `Sim.settings` in one place: at start, and
+## after any change. Each one does something the player can see or hear;
+## there is no switch here for a system the game does not have.
+func _apply_settings() -> void:
+	var st: Dictionary = Sim.settings
+	# An idle game is left running. Uncapped frames on a phone is a warm
+	# pocket and a flat battery for a board that changes ten times a second;
+	# the battery saver halves it again.
+	Engine.max_fps = 30 if bool(st.get("battery_saver", false)) else 60
+	Juice.sound_enabled = bool(st.get("sound", true))
+	Juice.ambient_enabled = bool(st.get("ambient", true))
+	Juice.haptics_enabled = bool(st.get("haptics", true))
+	var vol: int = clampi(int(st.get("volume", VOLUME_STEPS)), 0, VOLUME_STEPS)
+	AudioServer.set_bus_mute(0, vol == 0)
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(float(vol) / float(VOLUME_STEPS), 0.001)))
+	if Juice.sound_enabled and Juice.ambient_enabled:
+		Juice.start_ambient()
 	else:
-		col.add_child(_label("Active: %s. Thank you." % ", ".join(owned), 15,
-			Palette.GOOD))
+		Juice.stop_ambient()
+	if iso_view != null:
+		iso_view.effects = bool(st.get("effects", true))
+		iso_view.calm_motion = bool(st.get("reduce_motion", false))
+	if _btn_zoom != null:
+		_show_what_matters()
 
-	col.add_child(HSeparator.new())
 
-	var snd := CheckBox.new()
-	snd.text = "Sound"
-	snd.button_pressed = bool(Sim.settings.get("sound", true))
-	snd.add_theme_font_size_override("font_size", 20)
-	snd.toggled.connect(func(on):
-		Sim.settings["sound"] = on
-		Juice.set_sound(on)
-		Save.save_game(Sim))
-	col.add_child(snd)
+## Settings, in five groups down the left and the switches for the chosen
+## one on the right -- the landscape layout every phone game uses. A row is
+## one key the size of a thumb: its sign, a few words, and its switch.
+const SETTINGS_TABS := [
+	{"id": "game", "name": "Game", "icon": "star"},
+	{"id": "audio", "name": "Audio", "glyph": "speaker"},
+	{"id": "graphics", "name": "Graphics", "glyph": "screen"},
+	{"id": "controls", "name": "Controls", "glyph": "hand"},
+	{"id": "access", "name": "Accessibility", "glyph": "person"},
+]
+const VOLUME_STEPS := 5
+var _settings_tab: String = "game"
+var _settings_page: VBoxContainer
+var _settings_keys: Array[Button] = []
 
-	var haptics := CheckBox.new()
-	haptics.text = "Haptics"
-	haptics.button_pressed = bool(Sim.settings.get("haptics", true))
-	haptics.add_theme_font_size_override("font_size", 20)
-	haptics.toggled.connect(func(on):
-		Sim.settings["haptics"] = on
-		Juice.haptics_enabled = on
-		Save.save_game(Sim))
-	col.add_child(haptics)
 
-	var anon := CheckBox.new()
-	anon.text = "Anonymous gameplay statistics"
-	anon.button_pressed = Analytics.enabled
-	anon.add_theme_font_size_override("font_size", 20)
-	anon.toggled.connect(func(on): Analytics.set_enabled(on))
-	col.add_child(anon)
-	var an := _label(
-		"No account, no advertising ID, no personal data. %d event types only: sessions, depth reached, tutorial and first-production milestones, ads watched and purchases."
-		% Analytics.ALLOWED.size(),
-		15, Palette.TEXT_FAINT)
-	an.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(an)
+func _show_settings() -> void:
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 18)
+	body.custom_minimum_size = Vector2(0, 530)
+	var rail := VBoxContainer.new()
+	rail.add_theme_constant_override("separation", 8)
+	rail.custom_minimum_size = Vector2(250, 0)
+	_settings_keys.clear()
+	for t: Dictionary in SETTINGS_TABS:
+		var k := _button("", Palette.PANEL_HI)
+		k.toggle_mode = true
+		k.custom_minimum_size = Vector2(250, 92)
+		k.size_flags_horizontal = Control.SIZE_FILL
+		k.set_meta("tab", String(t["id"]))
+		var sb: StyleBoxFlat = (k.get_theme_stylebox("pressed") as StyleBoxFlat).duplicate()
+		sb.bg_color = Palette.PANEL_HI.lerp(Palette.ACCENT, 0.3)
+		sb.border_color = Palette.ACCENT
+		sb.set_border_width_all(3)
+		k.add_theme_stylebox_override("pressed", sb)
+		var row := HBoxContainer.new()
+		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		row.offset_left = 14
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sign: Control = _icon_rect(String(t["icon"]), 52) if t.has("icon") \
+			else Chips.Glyph.new(String(t["glyph"]), 52.0)
+		sign.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(sign)
+		var nm := _label(String(t["name"]), 22, Palette.TEXT)
+		nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		nm.size_flags_vertical = Control.SIZE_FILL
+		row.add_child(nm)
+		k.add_child(row)
+		var id: String = String(t["id"])
+		k.pressed.connect(func():
+			Juice.tap()
+			_settings_tab = id
+			_fill_settings_page())
+		_settings_keys.append(k)
+		rail.add_child(k)
+	var ver := _label("Lodeworks %s" % String(ProjectSettings.get_setting(
+		"application/config/version", "")), 15, Palette.TEXT_FAINT)
+	ver.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	ver.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	rail.add_child(ver)
+	body.add_child(rail)
 
-	# GDPR requires consent to be withdrawable, not just grantable. The ad
-	# SDK owns that form; this is the entry point into it, and it is the step
-	# most implementations leave out.
-	if Ads.is_plugin_present():
-		var privacy := _button("Ad privacy options", Palette.PANEL_HI)
-		privacy.add_theme_color_override("font_color", Palette.TEXT)
-		privacy.pressed.connect(func():
-			if not Ads.show_privacy_options():
-				_toast_msg("The ad SDK did not offer a privacy form."))
-		col.add_child(privacy)
+	_settings_page = VBoxContainer.new()
+	_settings_page.add_theme_constant_override("separation", 10)
+	_settings_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(_settings_page)
+	_fill_settings_page()
+	_open_overlay("Settings", body, [], 1120.0)
 
-	col.add_child(HSeparator.new())
 
-	var codex_btn := _button("Codex", Palette.PANEL_HI)
-	codex_btn.add_theme_color_override("font_color", Palette.TEXT)
-	codex_btn.pressed.connect(func():
-		_close_overlay()
-		_open_codex())
-	col.add_child(codex_btn)
-	col.add_child(_label(
-		"Short pages with small boards that are actually running.",
-		15, Palette.TEXT_FAINT))
+func _fill_settings_page() -> void:
+	for k: Button in _settings_keys:
+		k.set_pressed_no_signal(String(k.get_meta("tab")) == _settings_tab)
+	for c in _settings_page.get_children():
+		_settings_page.remove_child(c)
+		c.queue_free()
+	var page := _settings_page
+	match _settings_tab:
+		"game":
+			page.add_child(_setting_action(_icon_rect("codex", 52), "Codex",
+				"Every machine, and how the factory works", func():
+					_close_overlay()
+					_open_codex()))
+			var owned: Array[String] = []
+			for key: String in MonetizationDB.keys():
+				if Store.owns(key):
+					owned.append(MonetizationDB.title_of(key))
+			# The shop is one row in settings and one offer on the offline
+			# panel, and it is reached from nowhere else.
+			# `MonetizationDB.PLACEMENTS` is the list and
+			# `FORBIDDEN_PLACEMENTS` is what this game refuses to have.
+			page.add_child(_setting_action(_icon_rect("shop", 52), "Supply Office",
+				"Two one-time purchases" if owned.is_empty() else "Active: " + ", ".join(owned),
+				func():
+					_close_overlay()
+					_open_shop()))
+			var stats := _setting_switch(_icon_rect("research", 52), "Anonymous statistics",
+				"No account, no ad ID, nothing personal", Analytics.enabled, func(on: bool):
+					Analytics.set_enabled(on))
+			page.add_child(stats)
+			# GDPR requires consent to be withdrawable, not just grantable. The
+			# ad SDK owns that form; this is the entry point into it.
+			if Ads.is_plugin_present():
+				page.add_child(_setting_action(_icon_rect("ad", 52), "Ad privacy",
+					"The ad network's consent form", func():
+						if not Ads.show_privacy_options():
+							_toast_msg("The ad SDK did not offer a privacy form.")))
+			page.add_child(_setting_action(_icon_rect("ok", 52), "Device self test",
+				"Frame time, screen, save and plugins", func():
+					_close_overlay()
+					_open_diagnostics()))
+		"audio":
+			page.add_child(_setting_switch(Chips.Glyph.new("speaker", 52.0), "Sounds",
+				"Taps, machines, descents", bool(Sim.settings.get("sound", true)),
+				func(on: bool): _set_setting("sound", on)))
+			page.add_child(_setting_switch(Chips.Glyph.new("wave", 52.0), "Ambience",
+				"The hum of the shaft", bool(Sim.settings.get("ambient", true)),
+				func(on: bool): _set_setting("ambient", on)))
+			page.add_child(_volume_row())
+		"graphics":
+			page.add_child(_setting_switch(Chips.Glyph.new("sparkle", 52.0), "Machine effects",
+				"Dust, sparks, steam and coins", bool(Sim.settings.get("effects", true)),
+				func(on: bool): _set_setting("effects", on)))
+			page.add_child(_setting_switch(Chips.Glyph.new("battery", 52.0), "Battery saver",
+				"30 frames a second instead of 60", bool(Sim.settings.get("battery_saver", false)),
+				func(on: bool): _set_setting("battery_saver", on)))
+		"controls":
+			page.add_child(_setting_switch(Chips.Glyph.new("vibrate", 52.0), "Vibration",
+				"A small buzz when you build", bool(Sim.settings.get("haptics", true)),
+				func(on: bool): _set_setting("haptics", on)))
+		"access":
+			page.add_child(_setting_switch(Chips.Glyph.new("zoom", 52.0), "Zoom key",
+				"A zoom key, for playing without pinching",
+				bool(Sim.settings.get("zoom_key", false)),
+				func(on: bool): _set_setting("zoom_key", on)))
+			page.add_child(_setting_switch(Chips.Glyph.new("motion", 52.0), "Reduce motion",
+				"No swelling, flickering or plunging",
+				bool(Sim.settings.get("reduce_motion", false)),
+				func(on: bool): _set_setting("reduce_motion", on)))
 
-	col.add_child(HSeparator.new())
 
-	var diag := _button("Run device self test", Palette.PANEL_HI)
-	diag.add_theme_color_override("font_color", Palette.TEXT)
-	diag.pressed.connect(func():
-		_close_overlay()
-		_open_diagnostics())
-	col.add_child(diag)
-	col.add_child(_label(
-		"Frame time, screen shape, save integrity and plugin status, measured on this device.",
-		15, Palette.TEXT_FAINT))
+func _set_setting(key: String, value: Variant) -> void:
+	Sim.settings[key] = value
+	_apply_settings()
+	Save.save_game(Sim)
 
-	_open_overlay("Lodeworks", col, [])
+
+## A row that switches something on or off: the whole row is the key.
+func _setting_switch(sign: Control, title: String, sub: String, value: bool,
+		changed: Callable) -> Button:
+	var b := _setting_row(sign, title, sub)
+	b.toggle_mode = true
+	b.set_pressed_no_signal(value)
+	b.set_meta("setting", title)
+	var sw := Chips.Switch.new(value)
+	sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	(b.get_child(0) as HBoxContainer).add_child(sw)
+	b.toggled.connect(func(on: bool):
+		Juice.tap()
+		sw.on = on
+		sw.queue_redraw()
+		changed.call(on))
+	return b
+
+
+## A row that opens something.
+func _setting_action(sign: Control, title: String, sub: String, cb: Callable) -> Button:
+	var b := _setting_row(sign, title, sub)
+	var go := _label("›", 40, Palette.TEXT_DIM)
+	go.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	(b.get_child(0) as HBoxContainer).add_child(go)
+	b.pressed.connect(func():
+		Juice.tap()
+		cb.call())
+	return b
+
+
+func _setting_row(sign: Control, title: String, sub: String) -> Button:
+	var b := _button("", Palette.PANEL_HI)
+	b.custom_minimum_size = Vector2(0, MIN_TOUCH)
+	# A toggled row looks like any other; the switch shows the state.
+	b.add_theme_stylebox_override("pressed", b.get_theme_stylebox("normal"))
+	var row := HBoxContainer.new()
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 16
+	row.offset_right = -16
+	row.add_theme_constant_override("separation", 14)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sign.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(sign)
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.alignment = BoxContainer.ALIGNMENT_CENTER
+	words.add_theme_constant_override("separation", 0)
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.add_child(_label(title, 22, Palette.TEXT))
+	if sub != "":
+		words.add_child(_label(sub, 15, Palette.TEXT_DIM))
+	row.add_child(words)
+	b.add_child(row)
+	return b
+
+
+## Volume in five steps, with a key either side: a slider's grabber is too
+## small for a thumb.
+func _volume_row() -> Control:
+	var b := _setting_row(Chips.Glyph.new("speaker", 52.0), "Volume", "")
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row: HBoxContainer = b.get_child(0) as HBoxContainer
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	var bars := HBoxContainer.new()
+	bars.add_theme_constant_override("separation", 6)
+	bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var draw_bars := func() -> void:
+		var v: int = clampi(int(Sim.settings.get("volume", VOLUME_STEPS)), 0, VOLUME_STEPS)
+		for i in range(bars.get_child_count()):
+			(bars.get_child(i) as ColorRect).color = Palette.ACCENT if i < v else Color(Palette.BG, 0.9)
+	for i in range(VOLUME_STEPS):
+		var bar := ColorRect.new()
+		bar.custom_minimum_size = Vector2(18, 20 + 6 * i)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_END
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bars.add_child(bar)
+	draw_bars.call()
+	for step: int in [-1, 1]:
+		var k := _button("-" if step < 0 else "+", Palette.PANEL)
+		k.add_theme_color_override("font_color", Palette.TEXT)
+		k.add_theme_font_size_override("font_size", 34)
+		k.custom_minimum_size = Vector2(MIN_TOUCH, 80)
+		k.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		k.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		k.set_meta("volume_step", step)
+		k.pressed.connect(func():
+			var v: int = clampi(int(Sim.settings.get("volume", VOLUME_STEPS)) + step, 0, VOLUME_STEPS)
+			_set_setting("volume", v)
+			draw_bars.call()
+			Juice.tap())
+		if step < 0:
+			row.add_child(k)
+			row.add_child(bars)
+		else:
+			row.add_child(k)
+	return b
 
 
 func _open_shop() -> void:

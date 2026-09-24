@@ -897,6 +897,41 @@ after:
 The difference is inside the run-to-run spread. "Reduce motion" in
 Settings stills both the swell and the flicker, and keeps the light.
 
+### Settings
+
+Settings was one column: the shop, sound, haptics, statistics, ad privacy,
+a Codex button and the self test. It is now a landscape panel, with five
+groups down the left and the chosen group's rows on the right
+(`ui_settings_*.png`). A row is one key, 96 units tall, with its sign, a
+few words and its switch.
+
+| group | rows |
+|---|---|
+| Game | Codex, Supply Office, anonymous statistics, ad privacy (only when the ad plugin is present), device self test |
+| Audio | sounds, ambience, volume in five steps with a key either side |
+| Graphics | machine effects, battery saver |
+| Controls | vibration |
+| Accessibility | zoom key, reduce motion |
+
+Every row changes something real, applied in one place
+(`main._apply_settings`):
+- **Ambience** is its own switch now. It is the shaft's hum, which used
+  to go on and off with the sounds.
+- **Volume** is the master bus, and 0 mutes it.
+- **Machine effects** turns off the dust, sparks, steam and coins round
+  working machines. That is the light layer's heaviest part.
+- **Battery saver** caps the game at 30 frames a second instead of 60.
+- **Zoom key** brings back the key taken off the right edge.
+- **Reduce motion** stills the Problems key's swell, the flame key's
+  flicker, the tutorial's pulse and the plunge on descending. The lights
+  and colours stay.
+
+The smoke test flips six of these switches and checks that each one
+changes what it names, and that flipping it back restores it. Things the
+brief listed but the game does not have got no row: music, notifications,
+language, an account or cloud save, and camera sensitivity. The version
+number sits under the groups.
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock

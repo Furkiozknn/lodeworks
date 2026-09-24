@@ -122,6 +122,11 @@ var _glide_pending: bool = false
 ## for it, so the player sees the ground grow instead of it happening behind
 ## the "new machine" card a descent usually brings.
 var hold_effects: bool = false
+## Settings: the dust, sparks, steam and coins round working machines.
+var effects: bool = true
+## Settings: "Reduce motion" -- no plunge on descending; the colour still
+## changes.
+var calm_motion: bool = false
 ## 1 the moment the Core comes online, falling to 0.
 var _core_flash: float = 0.0
 var _tiles: Texture2D
@@ -181,7 +186,7 @@ func _ready() -> void:
 	Sim.stats_changed.connect(_on_stats)
 	Sim.depth_changed.connect(func(d: int):
 		_band_target = band_tint(d)
-		if d > 0:
+		if d > 0 and not calm_motion:
 			_dive = 1.0
 			_dive_seconds = dive_seconds(d)
 		# A bigger yard: the new ground lights up, and the view glides out to
@@ -1562,6 +1567,8 @@ func _receiving(cell: int) -> bool:
 const STEAMERS := ["smelter", "boiler", "press", "condenser"]
 
 func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
+	if not effects:
+		return
 	_draw_work(ci, g)
 	for cell: int in Sim.grid.cells:
 		var id: String = Sim.grid.machine_at(cell)

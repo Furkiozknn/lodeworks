@@ -35,6 +35,8 @@ const MASTER_DB := -9.0
 
 var sound_enabled: bool = true
 var haptics_enabled: bool = true
+## The machine hum under everything, apart from the sounds of what you do.
+var ambient_enabled: bool = true
 
 var _sfx: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []
@@ -255,7 +257,7 @@ func play(name: String, pitch: float = 1.0, min_gap: float = 0.0) -> void:
 
 
 func start_ambient() -> void:
-	if not sound_enabled or _ambient == null:
+	if not sound_enabled or not ambient_enabled or _ambient == null:
 		return
 	_generate()
 	if _ambient.playing:

@@ -75,6 +75,35 @@ func _run() -> void:
 	_main.call("_show_settings")
 	await _settle(0.6)
 	await _shot("02_settings")
+	# Every switch in Settings does what it says: flipped, the thing it
+	# names changes; flipped back, it is as it was.
+	var checks: Array = [
+		["graphics", "Machine effects", func() -> bool: return bool(_main.get("iso_view").get("effects"))],
+		["graphics", "Battery saver", func() -> bool: return Engine.max_fps == 30],
+		["access", "Zoom key", func() -> bool: return bool((_main.get("_btn_zoom") as Control).visible)],
+		["access", "Reduce motion", func() -> bool: return bool(_main.get("iso_view").get("calm_motion"))],
+		["audio", "Ambience", func() -> bool: return bool(Juice.ambient_enabled)],
+		["controls", "Vibration", func() -> bool: return bool(Juice.haptics_enabled)],
+	]
+	for c: Array in checks:
+		_main.set("_settings_tab", String(c[0]))
+		_main.call("_fill_settings_page")
+		await _settle(0.1)
+		var row: Button = null
+		for n: Node in _main.find_children("*", "Button", true, false):
+			if n.has_meta("setting") and String(n.get_meta("setting")) == String(c[1]) 					and not n.is_queued_for_deletion():
+				row = n as Button
+		if row == null:
+			_failures.append("settings has no '%s' switch" % c[1])
+			continue
+		var before: bool = (c[2] as Callable).call()
+		row.button_pressed = not row.button_pressed
+		var after: bool = (c[2] as Callable).call()
+		row.button_pressed = not row.button_pressed
+		var back: bool = (c[2] as Callable).call()
+		if after == before or back != before:
+			_failures.append("the '%s' switch does not change what it names" % c[1])
+	print("  settings: %d switches checked" % checks.size())
 	_main.call("_close_overlay")
 	await _settle(0.3)
 

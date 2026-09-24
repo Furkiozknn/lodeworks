@@ -61,6 +61,109 @@ class Strike extends Control:
 		draw_line(Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), c, w, true)
 
 
+## An on/off switch as a phone draws one: a pill, green with the knob to the
+## right when on.
+class Switch extends Control:
+	var on: bool = false
+
+	func _init(value: bool) -> void:
+		on = value
+		custom_minimum_size = Vector2(88, 46)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var h: float = size.y
+		var w: float = size.x
+		var col: Color = Palette.GOOD if on else Color(Palette.BG, 0.9)
+		var r: float = h * 0.5
+		draw_circle(Vector2(r, r), r, col)
+		draw_circle(Vector2(w - r, r), r, col)
+		draw_rect(Rect2(r, 0, w - 2.0 * r, h), col, true)
+		var knob := Vector2(w - r if on else r, r)
+		draw_circle(knob + Vector2(0, 2), r - 5.0, Color(0, 0, 0, 0.3))
+		draw_circle(knob, r - 5.0, Palette.TEXT)
+
+
+## A sign drawn in lines, for the few things the icon sheet has no picture of:
+## "speaker", "wave", "screen", "sparkle", "battery", "hand", "vibrate",
+## "person", "zoom", "motion".
+class Glyph extends Control:
+	var kind: String = ""
+	var col := Palette.TEXT
+
+	func _init(what: String, px: float) -> void:
+		kind = what
+		custom_minimum_size = Vector2(px, px)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _p(x: float, y: float) -> Vector2:
+		var s: float = minf(size.x, size.y)
+		return (size - Vector2(s, s)) * 0.5 + Vector2(x, y) * s
+
+	func _draw() -> void:
+		var s: float = minf(size.x, size.y)
+		var w: float = maxf(s * 0.07, 2.0)
+		var acc := Palette.ACCENT
+		match kind:
+			"speaker":
+				draw_colored_polygon(PackedVector2Array([_p(0.16, 0.38), _p(0.32, 0.38),
+					_p(0.52, 0.2), _p(0.52, 0.8), _p(0.32, 0.62), _p(0.16, 0.62)]), col)
+				draw_arc(_p(0.52, 0.5), s * 0.16, -0.8, 0.8, 12, acc, w, true)
+				draw_arc(_p(0.52, 0.5), s * 0.3, -0.8, 0.8, 16, acc, w, true)
+			"wave":
+				for k in range(3):
+					var pts := PackedVector2Array()
+					for i in range(17):
+						var x: float = 0.12 + 0.76 * float(i) / 16.0
+						pts.append(_p(x, 0.3 + 0.2 * float(k) + 0.06 * sin(x * 14.0 + float(k))))
+					draw_polyline(pts, acc if k == 1 else col, w, true)
+			"screen":
+				draw_rect(Rect2(_p(0.12, 0.2), Vector2(s * 0.76, s * 0.5)), col, false, w)
+				draw_rect(Rect2(_p(0.2, 0.28), Vector2(s * 0.6, s * 0.34)), Color(acc, 0.5), true)
+				draw_line(_p(0.5, 0.7), _p(0.5, 0.8), col, w)
+				draw_line(_p(0.34, 0.82), _p(0.66, 0.82), col, w)
+			"sparkle":
+				for c: Array in [[0.4, 0.5, 0.3], [0.72, 0.28, 0.16], [0.74, 0.72, 0.12]]:
+					var o: Vector2 = _p(float(c[0]), float(c[1]))
+					var r: float = s * float(c[2])
+					draw_colored_polygon(PackedVector2Array([o + Vector2(0, -r), o + Vector2(r * 0.25, -r * 0.25),
+						o + Vector2(r, 0), o + Vector2(r * 0.25, r * 0.25), o + Vector2(0, r),
+						o + Vector2(-r * 0.25, r * 0.25), o + Vector2(-r, 0), o + Vector2(-r * 0.25, -r * 0.25)]),
+						Palette.CORE)
+			"battery":
+				draw_rect(Rect2(_p(0.14, 0.3), Vector2(s * 0.64, s * 0.4)), col, false, w)
+				draw_rect(Rect2(_p(0.78, 0.42), Vector2(s * 0.08, s * 0.16)), col, true)
+				draw_rect(Rect2(_p(0.2, 0.36), Vector2(s * 0.3, s * 0.28)), Palette.GOOD, true)
+			"hand":
+				draw_circle(_p(0.5, 0.5), s * 0.11, acc)
+				draw_arc(_p(0.5, 0.5), s * 0.24, 0.0, TAU, 28, col, w, true)
+				draw_arc(_p(0.5, 0.5), s * 0.38, -2.4, -0.7, 16, Color(col, 0.6), w, true)
+			"vibrate":
+				draw_rect(Rect2(_p(0.36, 0.18), Vector2(s * 0.28, s * 0.64)), col, false, w)
+				for side in [-1.0, 1.0]:
+					var x0: float = 0.5 + side * 0.24
+					var x1: float = 0.5 + side * 0.34
+					draw_polyline(PackedVector2Array([_p(x0, 0.3), _p(x1, 0.4), _p(x0, 0.5),
+						_p(x1, 0.6), _p(x0, 0.7)]), acc, w, true)
+			"person":
+				draw_arc(_p(0.5, 0.5), s * 0.42, 0.0, TAU, 32, col, w, true)
+				draw_circle(_p(0.5, 0.28), s * 0.07, acc)
+				draw_line(_p(0.28, 0.42), _p(0.72, 0.42), acc, w)
+				draw_line(_p(0.5, 0.42), _p(0.5, 0.6), acc, w)
+				draw_line(_p(0.5, 0.6), _p(0.38, 0.78), acc, w)
+				draw_line(_p(0.5, 0.6), _p(0.62, 0.78), acc, w)
+			"zoom":
+				draw_arc(_p(0.42, 0.42), s * 0.24, 0.0, TAU, 28, col, w, true)
+				draw_line(_p(0.6, 0.6), _p(0.84, 0.84), col, w * 1.6)
+				draw_line(_p(0.3, 0.42), _p(0.54, 0.42), acc, w)
+				draw_line(_p(0.42, 0.3), _p(0.42, 0.54), acc, w)
+			"motion":
+				draw_circle(_p(0.66, 0.5), s * 0.16, acc)
+				for k in range(3):
+					var y: float = 0.36 + 0.14 * float(k)
+					draw_line(_p(0.14, y), _p(0.44, y), Color(col, 0.5 + 0.25 * float(k % 2)), w)
+
+
 ## A bar that fills to `value` (0..1), with a notch at `target` when there is
 ## one -- where a machine's temperature wants to be.
 class Gauge extends Control:

@@ -479,6 +479,7 @@ func _run_first() -> void:
 ##                lines that need Cores first
 ##   ui_collapse, ui_collapse_locked  the trade, and the locked card
 ##   ui_codex_makers, ui_codex_boosters, ui_codex_rules  the Codex
+##   ui_settings_*   Settings, one shot per group
 ##   ui_band_banner  a new band's name as a descent reaches it
 func _run_ui() -> void:
 	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
@@ -520,6 +521,16 @@ func _run_ui() -> void:
 			await _audit_shot(String(t[1]))
 		cx.queue_free()
 		await _settle(0.2)
+	# Settings, one shot per group.
+	_main.call("_show_settings")
+	await _settle(0.6)
+	for tab: String in ["game", "audio", "graphics", "controls", "access"]:
+		_main.set("_settings_tab", tab)
+		_main.call("_fill_settings_page")
+		await _settle(0.3)
+		await _audit_shot("ui_settings_" + tab)
+	_main.call("_close_overlay")
+	await _settle(0.2)
 	# A new band's name across the world, as a descent into the Workings
 	# shows it.
 	_main.call("_band_banner", 1)
