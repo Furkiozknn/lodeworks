@@ -571,6 +571,50 @@ On a phone, that read uses Godot's GLES3 framebuffer readback. It has not
 run on a device. If it returned nothing, the pick would fall back to the
 tile rule, which is also tested.
 
+### The panels, shown before they are read
+
+The rule for this pass: the player should see a panel before reading it.
+Each panel below was rebuilt on it. `LODEWORKS_CAPTURE=ui` renders them
+into the audit folder, and the smoke test opens each one and checks it
+against the simulation.
+
+**Every panel.** The title row carries a close key in the corner, 96
+units square. The word "Close" at the bottom is gone. Every "?" key is 96
+units, the 48 dp floor.
+
+**Research** (`ui_research.png`) is a grid of cards, three to a row on a
+landscape phone. It drops to two where three would not fit 330-unit
+cards. Each card shows these things:
+- **A picture of what the line acts on**, with a sign of what it does in
+  the corner. For example, a Vault with a coin, a Lab with a flask, or the
+  Core with a Core crystal.
+- **The name and one short line**, such as "Every machine works faster".
+  The full sentence is behind the "?".
+- **Pips for the level**, and the count.
+- **The price on the key that buys it.** A number the player cannot pay
+  yet is red.
+
+Each card has one of four states, set from the simulation. The smoke test
+checks each card's state against `Sim.can_buy_upgrade`.
+
+| state | how it looks |
+|---|---|
+| can be bought | violet edge, lit key |
+| short of research | plain edge, dim key, the missing number red |
+| needs Cores first | the picture grey, with a lock over it |
+| finished | gold edge, a tick and MAX |
+
+What there is to spend sits beside the title, as the same two pictures.
+
+Deeper Bore's sentence was wrong. It said only machines that produce from
+nothing yield more, but the multiplier is on every machine's output
+(`Simulation.yield_mult`). The sentence now says so.
+
+Drafting Table sells blueprint slots. No screen in the game saves or
+loads a blueprint. The slots exist in the simulation and the store, and
+nothing uses them. This pass did not remove the line, because that is an
+economy decision. It is listed as open under "What is still UNKNOWN".
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock
@@ -675,6 +719,10 @@ Updated 24 September 2026, after the landscape round:
   input-latency and touch figure is UNKNOWN.
 - No purchase has ever been made in a real store, and no ad has ever been
   served.
+- Drafting Table (research) and the Licence's extra blueprint slots sell
+  something no screen uses: there is no way to save or load a blueprint.
+  Either the blueprint screen gets built or the line comes out. That is the
+  owner's decision.
 
 Everything in this document was measured in the headless simulation, which is
 the same code the game runs, on hardware that is not a phone.

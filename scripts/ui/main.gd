@@ -87,6 +87,8 @@ var _sheet_body: VBoxContainer
 var _sheet_stats: VBoxContainer
 var _sheet_title: Label
 var _sheet_art: Control
+## The open overlay's scroller, so a panel rebuilt in place keeps its place.
+var _overlay_scroll: ScrollContainer
 var _sheet_status: Control
 ## The words behind the detail sheet's "?".
 var _sheet_help: String = ""
@@ -784,13 +786,13 @@ func _help_button(title: String, text: Callable) -> Button:
 	var b := _button("?", Palette.PANEL)
 	b.add_theme_color_override("font_color", Palette.ACCENT)
 	b.add_theme_font_size_override("font_size", 32)
-	b.custom_minimum_size = Vector2(76, 76)
+	b.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var sb: StyleBox = b.get_theme_stylebox(state)
 		if sb is StyleBoxFlat:
-			(sb as StyleBoxFlat).set_corner_radius_all(38)
+			(sb as StyleBoxFlat).set_corner_radius_all(int(MIN_TOUCH / 2.0))
 	b.pressed.connect(func():
 		Juice.tap()
 		var t: String = String(text.call())
@@ -1383,7 +1385,8 @@ func _tell_yard_news() -> void:
 ## A centred card over a dimmed world. Sized from the screen, and its body
 ## scrolls, because a landscape phone is 720 units tall and some of these
 ## (research, the offline report) are longer than that.
-func _open_overlay(title: String, body: Control, actions: Array) -> void:
+func _open_overlay(title: String, body: Control, actions: Array,
+		max_w: float = 820.0, head_extra: Control = null) -> void:
 	_close_overlay()
 	_overlay.visible = true
 	iso_view.hold_effects = true
@@ -1397,7 +1400,7 @@ func _open_overlay(title: String, body: Control, actions: Array) -> void:
 	_overlay.add_child(dim)
 
 	var card := _panel(Palette.PANEL, 0.97)
-	var w: float = minf(820.0, size.x - 80.0)
+	var w: float = minf(max_w, size.x - 64.0)
 	var h: float = minf(size.y - 48.0 - _safe.y - _safe.w, 700.0)
 	card.position = Vector2((size.x - w) * 0.5, (size.y - h) * 0.5)
 	card.size = Vector2(w, h)
@@ -1406,17 +1409,38 @@ func _open_overlay(title: String, body: Control, actions: Array) -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	card.add_child(col)
-	col.add_child(_label(title, 28, Palette.TEXT))
+	# The title, and a close key in the corner where every phone puts one.
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	var title_lbl := _label(title, 30, Palette.TEXT)
+	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	head.add_child(title_lbl)
+	if head_extra != null:
+		head_extra.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(head_extra)
+	var close := _button("✕", Palette.PANEL_HI)
+	close.add_theme_color_override("font_color", Palette.TEXT)
+	close.add_theme_font_size_override("font_size", 30)
+	close.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
+	close.size_flags_horizontal = Control.SIZE_SHRINK_END
+	close.pressed.connect(_close_overlay)
+	head.add_child(close)
+	col.add_child(head)
 
 	var scroll := ScrollContainer.new()
+	_overlay_scroll = scroll
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(body)
 	col.add_child(scroll)
 
+	if actions.is_empty():
+		return
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
+	col.add_child(row)
 	for a: Dictionary in actions:
 		var b := _button(String(a["text"]), a.get("color", Palette.PANEL_HI))
 		if a.has("disabled"):
@@ -1427,11 +1451,6 @@ func _open_overlay(title: String, body: Control, actions: Array) -> void:
 			if cb is Callable:
 				cb.call())
 		row.add_child(b)
-	var close := _button("Close", Palette.PANEL_HI)
-	close.add_theme_color_override("font_color", Palette.TEXT)
-	close.pressed.connect(_close_overlay)
-	row.add_child(close)
-	col.add_child(row)
 
 
 func _info(title: String, text: String) -> void:
@@ -1553,75 +1572,216 @@ func _stat_row(name: String, value: String) -> Control:
 	return row
 
 
-## Which picture each research line is drawn with.
-const RESEARCH_ICONS := {
-	"throughput_1": "upgrade", "yield_1": "energy", "value_1": "credits",
-	"research_1": "research", "heat_tolerance": "heat", "offline_cap": "star",
-	"offline_rate": "star", "core_yield": "cores", "blueprint_slots": "codex",
+## What each research line is drawn as: the thing it acts on (a machine, the
+## Core, the Foreman who keeps the night shift, or an icon), and the sign of
+## what it does to it in the corner.
+const RESEARCH_ART := {
+	"throughput_1": ["crusher", "energy"],
+	"yield_1": ["drill", "upgrade"],
+	"value_1": ["vault", "credits"],
+	"research_1": ["lab", "research"],
+	"heat_tolerance": ["smelter", "heat"],
+	"offline_cap": ["@foreman", "star"],
+	"offline_rate": ["@foreman", "energy"],
+	"core_yield": ["@core", "cores"],
+	"blueprint_slots": ["@icon:codex", "upgrade"],
 }
+## The research grid's columns: three side by side on a landscape phone, two
+## where the screen is too narrow for three to keep their pictures big.
+const RESEARCH_COLUMNS := 3
+const RESEARCH_CARD_MIN_W := 330.0
 
 
 func _show_research() -> void:
+	# What there is to spend, as the same pictures the prices use, beside the
+	# title.
+	var wallet := HBoxContainer.new()
+	wallet.add_theme_constant_override("separation", 8)
+	wallet.add_child(_icon_rect("research", 40))
+	wallet.add_child(_label(Economy.fmt(Sim.research), 26, Palette.RESEARCH))
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(18, 0)
+	wallet.add_child(gap)
+	wallet.add_child(_icon_rect("cores", 40))
+	wallet.add_child(_label(str(Sim.cores), 26, Palette.CORE))
+	var gap2 := Control.new()
+	gap2.custom_minimum_size = Vector2(12, 0)
+	wallet.add_child(gap2)
+
+	var w: float = minf(1240.0, size.x - 64.0)
+	var grid := GridContainer.new()
+	grid.columns = RESEARCH_COLUMNS if w >= RESEARCH_CARD_MIN_W * RESEARCH_COLUMNS + 60.0 else 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	for id: String in Economy.TREE_ORDER:
+		grid.add_child(_research_card(id))
+	_open_overlay("Research", grid, [], 1240.0, wallet)
+
+
+## One research line as a card: its picture big, a short name, a line a
+## child can read, how far along it is, and its price on the key that buys
+## it. A card that can be bought is lit round the edge; a finished one is
+## gold; one that needs Cores first is grey with a lock on its picture.
+func _research_card(id: String) -> Control:
+	var u: Dictionary = Economy.RESEARCH_TREE[id]
+	var lvl: int = Sim.upgrade_level(id)
+	var top: int = int(u["max"])
+	var maxed: bool = lvl >= top
+	var c: Dictionary = Economy.upgrade_cost(id, lvl)
+	var can: bool = Sim.can_buy_upgrade(id)
+	var locked: bool = not maxed and Sim.cores < int(c["cores"])
+
+	var card := _panel(Palette.PANEL_HI, 0.96)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size = Vector2(RESEARCH_CARD_MIN_W, 0)
+	var sb: StyleBoxFlat = card.get_theme_stylebox("panel")
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	if maxed:
+		sb.border_color = Palette.CORE
+		sb.set_border_width_all(3)
+	elif can:
+		sb.border_color = Palette.RESEARCH
+		sb.set_border_width_all(3)
+		sb.bg_color = Color(Palette.PANEL_HI.lerp(Palette.RESEARCH, 0.12), 0.96)
+	card.set_meta("research_id", id)
+	card.set_meta("state", "max" if maxed else ("ready" if can else ("locked" if locked else "short")))
+
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
+	card.add_child(col)
 
-	for id in Economy.TREE_ORDER:
-		var u: Dictionary = Economy.RESEARCH_TREE[id]
-		var lvl: int = Sim.upgrade_level(id)
-		var maxed: bool = lvl >= int(u["max"])
-		var c: Dictionary = Economy.upgrade_cost(id, lvl)
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 12)
+	top_row.add_child(_research_art(id, 124.0, locked))
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.add_theme_constant_override("separation", 4)
+	var name_lbl := _label(String(u["name"]), 21, Palette.TEXT)
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(name_lbl)
+	var short_lbl := _label(String(u.get("short", "")), 17, Palette.TEXT_DIM)
+	short_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(short_lbl)
+	# How far along: one pip a level, and the count.
+	var pips := HBoxContainer.new()
+	pips.add_theme_constant_override("separation", 4)
+	for k in range(top):
+		pips.add_child(_pip(k < lvl))
+	var count := _label("%d/%d" % [lvl, top], 16, Palette.TEXT_FAINT)
+	pips.add_child(count)
+	words.add_child(pips)
+	top_row.add_child(words)
+	col.add_child(top_row)
 
-		var row := _panel(Palette.PANEL_HI)
-		var rc := HBoxContainer.new()
-		rc.add_theme_constant_override("separation", 14)
-		row.add_child(rc)
-		rc.add_child(_icon_rect(String(RESEARCH_ICONS.get(id, "upgrade")), 56))
-		# How far along: one pip a level.
-		var pips := HBoxContainer.new()
-		pips.add_theme_constant_override("separation", 5)
-		pips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		for k in range(int(u["max"])):
-			pips.add_child(_pip(k < lvl))
-		rc.add_child(pips)
-		rc.add_child(_help_button(String(u["name"]), func() -> String:
-			return String(u["desc"])))
+	var bottom := HBoxContainer.new()
+	bottom.add_theme_constant_override("separation", 8)
+	if maxed:
+		var done := HBoxContainer.new()
+		done.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		done.alignment = BoxContainer.ALIGNMENT_CENTER
+		done.custom_minimum_size = Vector2(0, MIN_TOUCH)
+		done.add_theme_constant_override("separation", 8)
+		done.add_child(_icon_rect("ok", 52))
+		done.add_child(_label("MAX", 26, Palette.CORE))
+		bottom.add_child(done)
+	else:
+		# The price as pictures and numbers on the key that buys it. What is
+		# missing is red, so a short card says what to go and get.
+		var b := _button("", Palette.RESEARCH)
+		b.custom_minimum_size = Vector2(0, MIN_TOUCH)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var price := HBoxContainer.new()
+		price.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		price.alignment = BoxContainer.ALIGNMENT_CENTER
+		price.add_theme_constant_override("separation", 6)
+		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ok_col: Color = Palette.BG if can else Palette.TEXT
+		price.add_child(_icon_rect("research", 42))
+		price.add_child(_label(Economy.fmt(float(c["research"])), 24,
+			ok_col if Sim.research >= float(c["research"]) else Palette.BAD))
+		if int(c["cores"]) > 0:
+			price.add_child(_icon_rect("cores", 38))
+			price.add_child(_label(str(int(c["cores"])), 24,
+				ok_col if Sim.cores >= int(c["cores"]) else Palette.BAD))
+		b.add_child(price)
+		b.disabled = not can
+		b.pressed.connect(func():
+			if Sim.buy_upgrade(id):
+				Juice.upgrade()
+				var keep: int = _overlay_scroll.scroll_vertical if _overlay_scroll != null else 0
+				_show_research()
+				_refresh()
+				await get_tree().process_frame
+				if _overlay_scroll != null:
+					_overlay_scroll.scroll_vertical = keep)
+		bottom.add_child(b)
+	var help := _help_button(String(u["name"]), func() -> String:
+		var t: String = String(u["desc"])
+		if locked:
+			t += "\n\nThis one also costs Cores. You get Cores when you collapse the shaft."
+		return t)
+	help.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
+	bottom.add_child(help)
+	col.add_child(bottom)
+	return card
 
-		if maxed:
-			rc.add_child(_icon_rect("ok", 56))
-		else:
-			# The price as pictures and numbers on the key itself.
-			var b := _button("", Palette.RESEARCH)
-			b.size_flags_horizontal = Control.SIZE_SHRINK_END
-			b.custom_minimum_size = Vector2(230, 76)
-			var price := HBoxContainer.new()
-			price.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			price.alignment = BoxContainer.ALIGNMENT_CENTER
-			price.add_theme_constant_override("separation", 6)
-			price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			price.add_child(_icon_rect("research", 40))
-			price.add_child(_label(Economy.fmt(float(c["research"])), 22, Palette.BG))
-			if int(c["cores"]) > 0:
-				price.add_child(_icon_rect("cores", 36))
-				price.add_child(_label(str(int(c["cores"])), 22, Palette.BG))
-			b.add_child(price)
-			b.disabled = not Sim.can_buy_upgrade(id)
-			b.pressed.connect(func():
-				if Sim.buy_upgrade(id):
-					Juice.upgrade()
-					_close_overlay()
-					_show_research()
-					_refresh())
-			rc.add_child(b)
-		col.add_child(row)
 
-	_open_overlay("Research", col, [])
+## A research line's picture: what it acts on, big, with the sign of what it
+## does in the corner -- or greyed, with a lock, while it needs Cores first.
+func _research_art(id: String, px: float, locked: bool) -> Control:
+	var art: Array = RESEARCH_ART.get(id, ["@icon:upgrade", "upgrade"])
+	var subject: String = String(art[0])
+	var box := Control.new()
+	box.custom_minimum_size = Vector2(px, px)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pic: Control
+	if subject == "@foreman":
+		pic = Foreman.Badge.new(Foreman.Pose.IDLE, px)
+	elif subject == "@core":
+		pic = _core_picture(px)
+	elif subject.begins_with("@icon:"):
+		pic = _icon_rect(subject.substr(6), px * 0.86)
+	else:
+		pic = MachineSprite.new(subject, px)
+	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.add_child(pic)
+	var sign_name: String = "lock" if locked else String(art[1])
+	var k: float = px * (0.56 if locked else 0.46)
+	var badge := _icon_rect(sign_name, k)
+	badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	badge.offset_left = -k
+	badge.offset_top = -k
+	badge.offset_right = 0.0
+	badge.offset_bottom = 0.0
+	box.add_child(badge)
+	if locked:
+		pic.modulate = Color(0.5, 0.52, 0.58, 0.8)
+	return box
+
+
+## The Factory Core's picture, for panels that talk about it.
+func _core_picture(px: float) -> TextureRect:
+	var info: Dictionary = IsoArt.layout().get("core", {})
+	var a := AtlasTexture.new()
+	a.atlas = IsoArt.texture(String(info.get("file", "")))
+	a.region = IsoArt.region(info, 0)
+	var t := TextureRect.new()
+	t.texture = a
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.custom_minimum_size = Vector2(px, px)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
 
 
 ## One level of a research line: lit if bought.
 func _pip(lit: bool) -> Control:
 	var d := ColorRect.new()
-	d.custom_minimum_size = Vector2(22, 22)
+	d.custom_minimum_size = Vector2(18, 18)
+	d.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	d.color = Palette.RESEARCH if lit else Color(Palette.BG, 0.9)
 	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return d

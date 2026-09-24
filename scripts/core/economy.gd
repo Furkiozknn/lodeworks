@@ -24,6 +24,7 @@ const COLLAPSE_MIN_DEPTH := 3
 const RESEARCH_TREE := {
 	"throughput_1": {
 		"name": "Tighter Tolerances",
+		"short": "Every machine works faster.",
 		"desc": "All machines run 15% faster.",
 		"cost_research": 40.0,
 		"cost_cores": 0,
@@ -34,7 +35,8 @@ const RESEARCH_TREE := {
 	},
 	"yield_1": {
 		"name": "Deeper Bore",
-		"desc": "Machines that produce from nothing yield 20% more.",
+		"short": "Every machine makes more.",
+		"desc": "Every machine makes 20% more of whatever it makes.",
 		"cost_research": 65.0,
 		"cost_cores": 0,
 		"max": 6,
@@ -44,6 +46,7 @@ const RESEARCH_TREE := {
 	},
 	"value_1": {
 		"name": "Refinery Contracts",
+		"short": "Everything sells for more.",
 		"desc": "Everything sells for 18% more.",
 		"cost_research": 90.0,
 		"cost_cores": 0,
@@ -54,6 +57,7 @@ const RESEARCH_TREE := {
 	},
 	"research_1": {
 		"name": "Field Notes",
+		"short": "Labs make more research.",
 		"desc": "Labs produce 25% more research.",
 		"cost_research": 120.0,
 		"cost_cores": 0,
@@ -64,6 +68,7 @@ const RESEARCH_TREE := {
 	},
 	"heat_tolerance": {
 		"name": "Ceramic Lining",
+		"short": "Machines can take more heat.",
 		"desc": "Every machine tolerates 0.6 more heat before it chokes.",
 		"cost_research": 150.0,
 		"cost_cores": 3,
@@ -74,6 +79,7 @@ const RESEARCH_TREE := {
 	},
 	"offline_cap": {
 		"name": "Night Shift",
+		"short": "The shaft works longer while you are away.",
 		"desc": "Offline production banks 2 more hours.",
 		"cost_research": 200.0,
 		"cost_cores": 3,
@@ -84,6 +90,7 @@ const RESEARCH_TREE := {
 	},
 	"offline_rate": {
 		"name": "Standing Orders",
+		"short": "The shaft works harder while you are away.",
 		"desc": "Offline production runs at 12% more of your live rate.",
 		"cost_research": 260.0,
 		"cost_cores": 6,
@@ -94,6 +101,7 @@ const RESEARCH_TREE := {
 	},
 	"core_yield": {
 		"name": "Seismic Survey",
+		"short": "A collapse gives more Cores.",
 		"desc": "A collapse yields 25% more Cores. Compounds with every run.",
 		"cost_research": 400.0,
 		"cost_cores": 9,
@@ -104,6 +112,7 @@ const RESEARCH_TREE := {
 	},
 	"blueprint_slots": {
 		"name": "Drafting Table",
+		"short": "One more saved layout.",
 		"desc": "One more blueprint slot for saved layouts.",
 		"cost_research": 180.0,
 		"cost_cores": 3,

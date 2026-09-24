@@ -83,6 +83,10 @@ func _run() -> void:
 		await _run_first()
 		get_tree().quit()
 		return
+	if OS.get_environment("LODEWORKS_CAPTURE") == "ui":
+		await _run_ui()
+		get_tree().quit()
+		return
 	for s: Dictionary in SHOTS:
 		_apply_build(String(s["build"]))
 		_set_overlay(bool(s.get("overlay", false)))
@@ -467,6 +471,25 @@ func _run_first() -> void:
 	await _audit_shot("first_04_yard_grows")
 	await _settle(2.5)
 	await _audit_shot("first_05_bigger_yard")
+
+
+## The panels, one shot each, into the audit folder. Each is opened on a
+## board whose numbers put every state of the panel on screen at once.
+##   ui_research  a line finished, lines to buy, lines short of research and
+##                lines that need Cores first
+func _run_ui() -> void:
+	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
+	_apply_build("hero")
+	_main.call("_close_overlay")
+	Sim.upgrade_levels = {"throughput_1": 8, "yield_1": 3, "value_1": 1}
+	Sim.research = 400.0
+	Sim.cores = 2
+	await _settle(1.0)
+	_main.call("_show_research")
+	await _settle(0.8)
+	await _audit_shot("ui_research")
+	_main.call("_close_overlay")
+	print("wrote the panel screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 
 func _audit_shot(name: String) -> void:

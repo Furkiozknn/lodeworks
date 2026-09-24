@@ -78,6 +78,37 @@ func _run() -> void:
 	_main.call("_close_overlay")
 	await _settle(0.3)
 
+	# Research: a grid of picture cards, three to a row on a landscape
+	# phone, one per line of the tree, each showing the state the Sim says it
+	# is in -- a card that looked buyable and was not would be a lie.
+	_main.call("_show_research")
+	await _settle(0.6)
+	await _shot("08_research")
+	var grids: Array[Node] = _main.find_children("*", "GridContainer", true, false)
+	var cards: GridContainer = null
+	for g: Node in grids:
+		if g.is_visible_in_tree() and g.get_child_count() > 0 				and (g.get_child(0) as Node).has_meta("research_id"):
+			cards = g as GridContainer
+	if cards == null:
+		_failures.append("the research panel has no card grid")
+	else:
+		if cards.get_child_count() != Economy.TREE_ORDER.size():
+			_failures.append("research shows %d cards for %d lines"
+				% [cards.get_child_count(), Economy.TREE_ORDER.size()])
+		if _main.size.x >= 1400.0 and cards.columns != 3:
+			_failures.append("research is %d columns on a landscape phone, not 3" % cards.columns)
+		for card: Node in cards.get_children():
+			var id: String = String(card.get_meta("research_id"))
+			var st: String = String(card.get_meta("state"))
+			var want: String = "max" if Sim.upgrade_level(id) >= int(Economy.RESEARCH_TREE[id]["max"]) 				else ("ready" if Sim.can_buy_upgrade(id) else "")
+			if want != "" and st != want:
+				_failures.append("research card %s shows %s, the Sim says %s" % [id, st, want])
+			if want == "" and st in ["max", "ready"]:
+				_failures.append("research card %s shows %s but cannot be bought" % [id, st])
+		print("  research: %d cards, %d columns" % [cards.get_child_count(), cards.columns])
+	_main.call("_close_overlay")
+	await _settle(0.3)
+
 	# The Codex. Every page on it runs a real simulation, so a page that
 	# fails to build is a page that renders as an empty box -- which is
 	# exactly what the lit-sample check below catches.
