@@ -668,6 +668,15 @@ says "Tap the Vault", but it lit every machine, so it now lights the Vault
 screenshots place their machines where the arrow points, as a player
 would.
 
+Two tutorial lines told the player something untrue:
+- **"Tap DRILL below, then tap a lit tile"** was wrong because the Drill
+  is already armed for them. Tapping its key un-arms it, so doing what the
+  line said broke the step. It is now "Tap a lit tile by the Core to build
+  a DRILL."
+- **"Reach the quota at the top right"** pointed at the wrong corner. The
+  quota bar is on the stratum card, top left. It is now "Build more until
+  the bar at the top left is full."
+
 ### The panels, shown before they are read
 
 The rule for this pass: the player should see a panel before reading it.

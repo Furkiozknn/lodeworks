@@ -42,7 +42,9 @@ extends RefCounted
 const STEPS := [
 	{
 		"id": "place_drill",
-		"line": "Tap DRILL below, then tap a lit tile by the Core.",
+		# The Drill is already armed (`arm`): telling the player to tap it
+		# would have them un-arm it.
+		"line": "Tap a lit tile by the Core to build a DRILL.",
 		"arm": "drill",
 		"highlight": "yard",
 	},
@@ -78,7 +80,8 @@ const STEPS := [
 	},
 	{
 		"id": "reach_quota",
-		"line": "Fill the yard and reach the quota at the top right.",
+		# The quota is the bar on the stratum card, top left.
+		"line": "Build more until the bar at the top left is full.",
 		"arm": "",
 		"highlight": "none",
 	},
