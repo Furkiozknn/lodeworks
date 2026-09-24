@@ -232,6 +232,48 @@ Cost: none measured. Idle p50 / p95 / p99 10.8 / 14.9 / 16.9 ms, panning
 a 60 s soak 12.7 / 18.4 / 22.4 ms with memory flat (45.1 -> 45.1 MB) --
 same machine and GPU as the table above; a phone: **UNKNOWN**.
 
+### Touch: a tap takes the machine it is on
+
+A machine's picture stands well above its own tile: the upper half covers
+the tiles behind it. The board used to pick by the tile under the finger
+alone, so a tap on the upper part of a machine selected the machine behind
+it, or the empty tile behind it. `tools/pick_rate.gd` measures it on the
+hero board, headless:
+
+| | tile rule (before) | picture rule (after) |
+|---|---|---|
+| visible picture pixels that reach their own machine | 37.3% | 100% (by definition) |
+| taps aimed at a machine, finger spread 1.0 mm | 32.7% | 96.8% |
+| same, 1.5 mm | 33.1% | 86.0% |
+| same, 2.0 mm | 32.3% | 70.5% |
+
+The finger spread is a normal scatter on each axis at the default zoom of an
+18:9 phone (2160x1080 at 400 dpi, zoom 0.883). The spreads are assumptions,
+not a measured finger. What matters is the difference between the two rules
+under the same spread.
+
+`IsoArt.pick` is the new rule:
+- Machines are tried front to back, in the order the board draws them, and
+  only where their picture is opaque. A tap through the clear gap beside a
+  tower still reaches what is behind it.
+- Where no machine is drawn, the tile under the finger is picked, as before.
+- While a machine is armed for placing, an empty tile under the finger is
+  still where it goes. Placement did not change, even where a picture in
+  front overlaps the tile; `test_placing_still_puts_the_machine_on_the_tile_under_the_finger`
+  checks that over the whole board.
+
+Unarmed, a tap on the 12.6% of empty-tile floor that a picture covers now
+selects that machine instead of doing nothing.
+
+Cost:
+- Nothing per frame. The pick runs on a finger going down and coming up.
+- About 0.29 ms per pick on the desktop (headless, 4,950 points).
+- The atlas image, 3.4 MB, is read from the GPU on the first tap.
+
+On a phone, that read uses Godot's GLES3 framebuffer readback. It has not
+run on a device. If it returned nothing, the pick would fall back to the
+tile rule, which is also tested.
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock

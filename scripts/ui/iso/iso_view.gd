@@ -94,6 +94,8 @@ var _segments: Dictionary = {}
 var _sheet_name: String = ""
 var _sheet: Dictionary = {}
 var _atlas: Texture2D
+var _pick_img: Image
+var _pick_sheet: String = ""
 var _tiles: Texture2D
 var _world_tex: Texture2D
 var _island_tex: Texture2D
@@ -295,8 +297,32 @@ func focus_cell(cell: int) -> void:
 		maxf(cam.zoom, 1.15))
 
 
+## The tile under screen point `p`: where a dragged machine is dropped.
 func cell_at_screen(p: Vector2) -> int:
 	return Iso.cell_at(cam.screen_to_world(p))
+
+
+## What a finger on screen point `p` means: the machine drawn there, or the
+## tile when none is, and the empty tile while a machine is armed
+## (IsoArt.pick).
+func pick_at_screen(p: Vector2) -> int:
+	return IsoArt.pick(cam.screen_to_world(p), Sim.grid, _sheet, _pick_image(),
+		arm_id != "")
+
+
+## The machine atlas as an image, for testing a tap against what is drawn.
+## Read once per sheet, and only when a finger first needs it.
+func _pick_image() -> Image:
+	if _atlas == null:
+		return null
+	if _pick_sheet != _sheet_name:
+		_pick_sheet = _sheet_name
+		_pick_img = _atlas.get_image()
+		if _pick_img != null and _pick_img.is_compressed():
+			_pick_img.decompress()
+		if _pick_img != null:
+			_pick_img.clear_mipmaps()
+	return _pick_img
 
 
 func screen_of_cell(cell: int) -> Vector2:
@@ -439,7 +465,7 @@ func _press(pos: Vector2, pan_only: bool) -> void:
 	_long_fired = false
 	_samples.clear()
 	_samples.append([Time.get_ticks_msec(), pos])
-	_press_cell = -1 if pan_only else cell_at_screen(pos)
+	_press_cell = -1 if pan_only else pick_at_screen(pos)
 
 
 func _move(pos: Vector2, rel: Vector2) -> void:
@@ -488,7 +514,7 @@ func _release(pos: Vector2) -> void:
 		_panning = false
 		cam.release(_fling_velocity())
 		return
-	var cell: int = cell_at_screen(pos)
+	var cell: int = pick_at_screen(pos)
 	if cell >= 0 and cell == from_cell:
 		cell_tapped.emit(cell)
 	elif cell < 0:

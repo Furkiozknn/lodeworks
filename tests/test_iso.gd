@@ -350,3 +350,153 @@ func test_a_cell_reaches_48dp_at_the_closest_zoom_on_the_reference_phones() -> v
 		runner.gte(max_dp, 48.0,
 			"a cell is %.0f dp tall at the closest zoom on %dp@%ddpi" % [max_dp,
 				int(phone[0]), int(phone[1])])
+
+
+## --- a finger means the machine it is on ---------------------------------------------
+
+func _pick_art() -> Array:
+	var sheet: Dictionary = IsoArt.sheet(IsoArt.sheet_name(Themes.DEFAULT, 0))
+	var img: Image = IsoArt.texture(String(sheet["file"])).get_image()
+	return [sheet, img]
+
+
+## World point of pixel `q` of the picture of the machine on `cell`: the
+## placement IsoView._draw_sprite uses.
+func _on_picture(cell: int, q: Vector2, sheet: Dictionary) -> Vector2:
+	var s: float = Iso.TW * float(IsoArt.placement().get("footprint", 0.8)) \
+		/ IsoArt.base_px(sheet)
+	return Iso.cell_center(cell) + (q + Vector2(0.5, 0.5) - IsoArt.anchor(sheet)) * s
+
+
+## Three points of `id`'s picture on `cell`: the opaque pixel nearest its
+## middle, one a few pixels under the top of the picture, and a clear corner.
+func _picture_points(cell: int, id: String, sheet: Dictionary, img: Image) -> Dictionary:
+	var r: Rect2 = IsoArt.machine_region(sheet, id)
+	var solid: Array[Vector2] = []
+	var top: float = INF
+	for y in range(0, int(r.size.y), 2):
+		for x in range(0, int(r.size.x), 2):
+			if img.get_pixel(int(r.position.x) + x, int(r.position.y) + y).a >= 0.5:
+				solid.append(Vector2(x, y))
+				top = minf(top, float(y))
+	var mean := Vector2.ZERO
+	for q in solid:
+		mean += q
+	mean /= float(solid.size())
+	var centre: Vector2 = solid[0]
+	var high: Array[Vector2] = []
+	for q in solid:
+		if q.distance_to(mean) < centre.distance_to(mean):
+			centre = q
+		if q.y == top + 6.0:
+			high.append(q)
+	return {"centre": _on_picture(cell, centre, sheet),
+		"top": _on_picture(cell, high[high.size() / 2], sheet),
+		"clear": _on_picture(cell, Vector2(1, 1), sheet),
+		"clear_alpha": img.get_pixel(int(r.position.x) + 1, int(r.position.y) + 1).a}
+
+
+func test_a_tap_takes_the_machine_the_player_sees() -> void:
+	var art: Array = _pick_art()
+	var sheet: Dictionary = art[0]
+	var img: Image = art[1]
+	var g := Grid.new()
+	var c: int = Grid.idx(3, 4)
+	g.place(c, "smelter")
+	var pts: Dictionary = _picture_points(c, "smelter", sheet, img)
+	# The middle of the picture.
+	runner.eq(IsoArt.pick(pts["centre"], g, sheet, img, false), c, "the middle of the machine")
+	# High on the picture -- over the tiles behind it. The tile rule took a
+	# tile behind; the machine is what is drawn there.
+	runner.check(Iso.cell_at(pts["top"]) != c, "the top of the picture is over another tile")
+	runner.eq(IsoArt.pick(pts["top"], g, sheet, img, false), c, "the top of the machine")
+	# A clear corner of the picture's rectangle is not the machine.
+	runner.lt(float(pts["clear_alpha"]), 0.5, "that corner is transparent")
+	runner.check(IsoArt.pick(pts["clear"], g, sheet, img, false) != c,
+		"a transparent part of the rectangle is not the machine")
+	# An empty tile with nothing drawn over it is that tile.
+	var t: int = Grid.idx(0, 0)
+	runner.eq(IsoArt.pick(Iso.cell_center(t), g, sheet, img, false), t, "an empty tile")
+	# No picture to test (a sheet that failed to read): the old tile rule.
+	runner.eq(IsoArt.pick(pts["top"], g, sheet, null, false), Iso.cell_at(pts["top"]),
+		"without the atlas image, the tile under the finger")
+
+
+func test_the_machine_in_front_wins_where_two_pictures_overlap() -> void:
+	var art: Array = _pick_art()
+	var sheet: Dictionary = art[0]
+	var img: Image = art[1]
+	var g := Grid.new()
+	var back: int = Grid.idx(2, 3)
+	var front: int = Grid.idx(3, 4)
+	g.place(back, "press")
+	g.place(front, "drill")
+	var r: Rect2 = IsoArt.machine_region(sheet, "press")
+	var both: int = 0
+	for y in range(0, int(r.size.y), 3):
+		for x in range(0, int(r.size.x), 3):
+			if img.get_pixel(int(r.position.x) + x, int(r.position.y) + y).a < 0.5:
+				continue
+			var w: Vector2 = _on_picture(back, Vector2(x, y), sheet)
+			var solo := Grid.new()
+			solo.place(front, "drill")
+			if IsoArt.machine_at(w, solo, sheet, img) == front:
+				both += 1
+				runner.eq(IsoArt.pick(w, g, sheet, img, false), front,
+					"where both pictures are drawn, the one in front is picked")
+	runner.gt(float(both), 20.0, "the two pictures do overlap")
+	var pts: Dictionary = _picture_points(back, "press", sheet, img)
+	runner.eq(IsoArt.pick(pts["top"], g, sheet, img, false), back,
+		"the part of the machine behind that shows is still that machine")
+
+
+func test_picking_is_the_same_at_every_zoom_and_camera_position() -> void:
+	var art: Array = _pick_art()
+	var sheet: Dictionary = art[0]
+	var img: Image = art[1]
+	var g := Grid.new()
+	var c: int = Grid.idx(4, 6)
+	g.place(c, "assembler")
+	var pts: Dictionary = _picture_points(c, "assembler", sheet, img)
+	for z: float in [0.42, 0.883, 1.0, 1.6]:
+		for pan: Vector2 in [Vector2.ZERO, Vector2(300, -120), Vector2(-420, 200)]:
+			var cam := _cam(Vector2(1440, 720))
+			cam.zoom_by(z / cam.zoom, Vector2(720, 360))
+			cam.drag(pan)
+			for k: String in ["centre", "top"]:
+				var screen: Vector2 = cam.world_to_screen(pts[k])
+				runner.eq(IsoArt.pick(cam.screen_to_world(screen), g, sheet, img, false), c,
+					"%s of the machine at zoom %.2f, camera moved %s" % [k, cam.zoom, str(pan)])
+
+
+func test_placing_still_puts_the_machine_on_the_tile_under_the_finger() -> void:
+	var art: Array = _pick_art()
+	var sheet: Dictionary = art[0]
+	var img: Image = art[1]
+	var g := Grid.new()
+	for e: Array in [[1, 2, "drill"], [2, 2, "crusher"], [3, 3, "smelter"], [3, 4, "press"],
+			[4, 4, "vault"], [2, 6, "assembler"], [5, 7, "lab"]]:
+		g.place(Grid.idx(int(e[0]), int(e[1])), String(e[2]))
+	# Wherever the tile under the finger is empty, an armed machine goes on
+	# it, exactly as before -- even where a picture in front overlaps it.
+	var r: Rect2 = Iso.board_rect()
+	var covered: int = 0
+	var checked: int = 0
+	for y in range(int(r.position.y), int(r.end.y), 9):
+		for x in range(int(r.position.x), int(r.end.x), 9):
+			var w := Vector2(x, y)
+			var tile: int = Iso.cell_at(w)
+			if tile < 0:
+				continue
+			if g.is_empty(tile):
+				checked += 1
+				runner.eq(IsoArt.pick(w, g, sheet, img, true), tile,
+					"placing on the empty tile under the finger")
+				if IsoArt.machine_at(w, g, sheet, img) >= 0:
+					covered += 1
+			else:
+				# A tap on a tile with a machine on it selects, armed or not.
+				runner.eq(IsoArt.pick(w, g, sheet, img, true),
+					IsoArt.pick(w, g, sheet, img, false), "armed or not, a machine is selected")
+	runner.gt(float(checked), 100.0, "empty tiles were tapped")
+	runner.gt(float(covered), 0.0, "including where a picture overlaps the tile")

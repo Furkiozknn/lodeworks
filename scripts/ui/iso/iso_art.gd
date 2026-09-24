@@ -21,6 +21,8 @@ const UP_SHEET_MARKS := 3
 
 static var _layout: Dictionary = {}
 static var _tex: Dictionary = {}
+## Board cells nearest the viewer first: the reverse of the drawing order.
+static var _front_first: Array[int] = []
 
 
 static func layout() -> Dictionary:
@@ -164,3 +166,51 @@ static func draw_machine_fit(ci: CanvasItem, rect: Rect2, id: String,
 	var sz: Vector2 = r.size * s
 	ci.draw_texture_rect_region(tex, Rect2(rect.position + (rect.size - sz) * 0.5, sz),
 		r, mod)
+
+
+## --- what a finger means ------------------------------------------------------
+##
+## A finger means what is drawn under it. A machine's picture stands well
+## above its own tile -- its upper half covers the tiles behind it -- so
+## picking by the tile alone gave the machine behind for most of a picture:
+## only 37% of the pixels of a machine on screen reached that machine
+## (docs/AUDIT.md, "Touch"). Machines are tried front to back, the order the
+## board draws them in, and only where their picture is opaque, so a tap
+## through the gap beside a drill's tower still reaches what is behind it.
+
+## The machine drawn at world point `w`, front first, or -1. `img` is the
+## sheet's atlas as an image; without one there is no picture to test.
+static func machine_at(w: Vector2, g: Grid, sheet_info: Dictionary, img: Image) -> int:
+	if img == null or img.is_empty() or sheet_info.is_empty():
+		return -1
+	var s: float = Iso.TW * float(placement().get("footprint", 0.8)) / base_px(sheet_info)
+	var a: Vector2 = anchor(sheet_info)
+	if _front_first.is_empty():
+		_front_first = Iso.depth_order()
+		_front_first.reverse()
+	for cell: int in _front_first:
+		var id: String = g.machine_at(cell)
+		if id == "":
+			continue
+		var r: Rect2 = machine_region(sheet_info, id)
+		# The same placement IsoView._draw_sprite uses, run backwards.
+		var q: Vector2 = (w - Iso.cell_center(cell)) / s + a
+		if q.x < 0.0 or q.y < 0.0 or q.x >= r.size.x or q.y >= r.size.y:
+			continue
+		if img.get_pixelv(Vector2i(r.position + q)).a >= 0.5:
+			return cell
+	return -1
+
+
+## The cell a tap at world point `w` means. Placing keeps the tile rule: an
+## empty tile under the finger is where the armed machine goes, even where a
+## picture in front overlaps it. Everything else -- select, long press,
+## picking up to move -- takes the machine the player sees there, and the
+## tile under the finger where no machine is drawn.
+static func pick(w: Vector2, g: Grid, sheet_info: Dictionary, img: Image,
+		placing: bool) -> int:
+	var tile: int = Iso.cell_at(w)
+	if placing and tile >= 0 and g.is_empty(tile):
+		return tile
+	var m: int = machine_at(w, g, sheet_info, img)
+	return m if m >= 0 else tile
