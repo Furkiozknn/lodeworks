@@ -25,7 +25,7 @@ factory has not reached is strewn with crystals, ore and rubble, and the
 growing yard clears them as it goes.
 
 Drag to pan, pinch or wheel to zoom, tap to place, tap a machine to select
-it and drag it to move it. The
+it and drag it to move it, or press the bin on its panel to remove it. The
 simulation underneath is the one the tests below check; the screen only reads
 it. ([docs/ART.md](docs/ART.md) is the visual system,
 [docs/AUDIT.md](docs/AUDIT.md) section 0 what it was measured to cost.)
@@ -44,13 +44,24 @@ are no further tutorial windows; new machines and new strata are for
 discovering.
 
 The Foreman -- a young miner at the edge of the screen, never over the
-board -- says each line, and after the chapter he goes quiet except for a new
-stratum and the first machine that overheats in it.
+board -- says each line, and a yellow arrow bobs over the thing to tap. After
+the chapter he goes quiet except for a new stratum and the first machine that
+overheats in it.
 
-The **Codex** is there if you want it, one key at the bottom left. Every page
-is a title, one line of what to look at, two sentences, and a **two-to-five
-tile board that is actually running** — a real `Simulation` with the same
-machines and the same status colours as the game. Put a Boiler
+Every panel shows before it tells: pictures first, a few words, and the full
+sentence behind a **?** key. Research is a grid of cards, each with a picture
+of what it acts on, its level and its price on the key that buys it.
+
+| Research | Codex |
+|---|---|
+| ![Research as a grid of picture cards, three to a row](docs/media/research.jpg) | ![The Codex page for the Makers: each machine big, with what goes in and what comes out](docs/media/codex.jpg) |
+
+The **Codex** is there if you want it, one key at the bottom left. It is filed
+by the same seven machine groups as the tray -- Diggers, Makers, Sellers,
+Heaters, Coolers, Boosters, Research -- and shows each machine big and moving,
+with one plain line and what goes in and comes out. Its "How it works" pages
+each run a **small board that is actually running** — a real `Simulation`
+with the same machines and the same status colours as the game. Put a Boiler
 next to a Smelter on a Codex page and the Smelter's pip goes green and its
 progress bar speeds up, because that is what happens. A help page that
 describes a rule can be wrong; a help page that runs the rule cannot.
@@ -72,13 +83,15 @@ directions along the chain**:
 Each state is a different glyph as well as a different colour, so the board
 still works without colour vision. A badge only appears once a state has held
 for a second and a half, and only on the machine where a jam starts -- not on
-every machine queued behind it. The warning key counts what is wrong and each
-tap glides the camera to the next culprit. Tapping a machine opens its panel
+every machine queued behind it. The warning key counts what is wrong, swells
+more insistently as the count grows (never flashing), and each tap glides the
+camera to the next culprit. Tapping a machine opens its panel
 where the machine tray was, below the board, and draws every connection in
 and out of it on top of the world.
 
-The heat button relabels every tile with how far it is from the temperature it
-personally wants, as a signed number. Every machine in this game wants a
+The heat button glows before it is pressed when some machine is too hot, or
+shows frost when one is too cold. Pressed, it relabels every tile with how far
+it is from the temperature it personally wants, as a signed number. Every machine in this game wants a
 different temperature, so an absolute heat map answers the wrong question.
 
 None of this was invented here. It came out of
@@ -87,7 +100,7 @@ actually ship and what their players actually complain about.
 
 ## The loop
 
-A 7×10 grid. Machines have inputs and outputs and feed **whatever is
+A 44 x 44 grid, opened ring by ring round the Core. Machines have inputs and outputs and feed **whatever is
 orthogonally next to them** — there are no belts to draw, because drawing belts
 on a phone is miserable. What makes it a puzzle instead of a packing exercise
 is heat: every machine emits it, half of it bleeds into each neighbour, and
@@ -100,14 +113,15 @@ Then:
 |---|---|
 | 10 seconds | move one tile, watch the credits-per-second change |
 | 1 minute | the first drill → crusher → vault chain pays for the next drill |
-| 10 minutes | the quota falls, you descend, the rock is richer and hotter |
-| first session | three or four strata, and the first machine that only matters because of what it is next to |
+| 10 minutes | the quota falls, you descend, the yard widens, the rock is richer and hotter |
+| first session | the first strata take two or three minutes each, the middle ones three or four, and the first machine that only matters because of what it is next to arrives |
 | next day | offline production banked while you were away |
 | first week | the component chain, Labs, and the research tree |
 | long term | collapse the shaft for Cores, which are the only thing that survives, and start again deeper and faster |
 
 Every stratum is generated from its depth — the same stratum 14 for everybody,
-no server involved — with up to two modifiers drawn from a table of twelve.
+no server involved — with up to two modifiers drawn from a table of twelve,
+explained by a tap on the stratum card.
 *Thermal Vent + Brittle Rock* is a different board from *Insulating Clay +
 Resonant*, and the layout that was right for one is wrong for the other.
 
