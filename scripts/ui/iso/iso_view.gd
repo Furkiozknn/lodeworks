@@ -109,6 +109,14 @@ var _pick_sheet: String = ""
 var _core_img: Image
 ## The yard the view was last framed for.
 var _yard := Vector2i.ZERO
+## Ground the yard has just reached, lighting up in a wave: cell -> seconds
+## until its light arrives (negative once it has).
+var _opened: Dictionary = {}
+var _glide_pending: bool = false
+## Set while a card covers the world: the yard's wave and the glide wait
+## for it, so the player sees the ground grow instead of it happening behind
+## the "new machine" card a descent usually brings.
+var hold_effects: bool = false
 ## 1 the moment the Core comes online, falling to 0.
 var _core_flash: float = 0.0
 var _tiles: Texture2D
@@ -158,8 +166,14 @@ func _ready() -> void:
 		_band_target = band_tint(d)
 		if d > 0:
 			_dive = 1.0
-		# A bigger yard is more to frame.
-		if _yard != BuildArea.size_at(Sim.max_depth, Sim.collapses):
+		# A bigger yard: the new ground lights up, and the view glides out to
+		# take it in.
+		var grown: Vector2i = BuildArea.size_at(Sim.max_depth, Sim.collapses)
+		if _yard != Vector2i.ZERO and grown != _yard:
+			_open_wave(_yard)
+			_yard = grown
+			_glide_pending = true
+		elif grown != _yard:
 			frame_board())
 	resized.connect(_on_resized)
 	_on_stats()
@@ -416,6 +430,33 @@ func core_powered() -> void:
 	_core_flash = 1.0
 
 
+## The yard has grown past `was`: light the new ground, nearest the old yard
+## first, so the growth reads as the factory's ground spreading outwards.
+func _open_wave(was: Vector2i) -> void:
+	_opened.clear()
+	for i in range(Grid.W * Grid.H):
+		if not Sim.is_open(i):
+			continue
+		var p: Vector2i = Grid.xy(i)
+		var dx: int = maxi(p.x - (was.x - 1), 0)
+		var dy: int = maxi((Grid.H - was.y) - p.y, 0)
+		if dx == 0 and dy == 0:
+			continue
+		_opened[i] = -0.18 * float(maxi(dx, dy))
+
+
+## Glide, rather than cut, to the default view for the current yard.
+func _glide_to_frame() -> void:
+	var z0: float = cam.zoom
+	var c0: Vector2 = cam.center
+	frame_board()
+	var z1: float = cam.zoom
+	var c1: Vector2 = cam.center
+	cam.zoom = z0
+	cam.center = c0
+	cam.focus(c1, z1)
+
+
 ## The machine atlas as an image, for testing a tap against what is drawn.
 ## Read once per sheet, and only when a finger first needs it.
 func _pick_image() -> Image:
@@ -462,6 +503,14 @@ func _process(delta: float) -> void:
 		_flash[k] = float(_flash[k]) - delta * 2.4
 		if float(_flash[k]) <= 0.0:
 			_flash.erase(k)
+	if not hold_effects:
+		for k: int in _opened.keys():
+			_opened[k] = float(_opened[k]) + delta
+			if float(_opened[k]) > 1.6:
+				_opened.erase(k)
+		if _glide_pending:
+			_glide_pending = false
+			_glide_to_frame()
 	for k: String in _flow.keys():
 		_flow[k] = float(_flow[k]) - delta
 		if float(_flow[k]) <= 0.0:
@@ -947,6 +996,14 @@ func _touches_machine(cell: int) -> bool:
 func _draw_floor_glow() -> void:
 	var ci: CanvasItem = _floor_glow
 	var g: Texture2D = IsoArt.glow()
+	# Newly opened ground: each tile flares as the wave reaches it and fades.
+	for cell: int in _opened:
+		var t: float = float(_opened[cell])
+		if t < 0.0:
+			continue
+		var col: Color = Palette.ACCENT
+		col.a = 0.55 * (1.0 - t / 1.6)
+		ci.draw_colored_polygon(_diamond(cell, 0.92).slice(0, 4), col)
 	for cell: int in Sim.grid.cells:
 		var st: int = Sim.sim.status_of(cell)
 		if st == Simulation.Status.STARVED or st == Simulation.Status.BLOCKED:

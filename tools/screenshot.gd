@@ -424,6 +424,7 @@ func _run_audit() -> void:
 ##                   with whatever the game has given the player, ten
 ##                   seconds on -- an empty board here means a new player
 ##                   cannot start
+##   first_04/05     the first descent: the yard growing, and after
 func _run_first() -> void:
 	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
 	var gv: IsoView = _main.get("iso_view")
@@ -448,6 +449,16 @@ func _run_first() -> void:
 	await _settle(10.0)
 	await _audit_shot("first_03_income")
 	print("credits %.0f, machines %d" % [Sim.credits, Sim.grid.cells.size()])
+	# The first descent, straight away: the yard grows and the view follows.
+	Sim.credits = maxf(Sim.credits, Sim.quota())
+	_main.call("_on_descend")
+	await _settle(1.0)
+	# The descent's "new machine" card, read and closed; then the ground grows.
+	_main.call("_close_overlay")
+	await _settle(0.5)
+	await _audit_shot("first_04_yard_grows")
+	await _settle(2.5)
+	await _audit_shot("first_05_bigger_yard")
 
 
 func _audit_shot(name: String) -> void:

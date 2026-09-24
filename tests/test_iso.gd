@@ -517,3 +517,23 @@ func test_a_tap_on_the_factory_core_reaches_the_core() -> void:
 	runner.check(v.pick_at_screen(v.cam.world_to_screen(cr.position + Vector2(2, 2)))
 		!= IsoView.CORE, "a clear corner of its rectangle is not the Core")
 	v.free()
+
+
+func test_a_growing_yard_lights_exactly_the_new_ground() -> void:
+	Sim._ensure()
+	var keep: Array = [Sim.max_depth, Sim.collapses]
+	Sim.collapses = 0
+	Sim.max_depth = 1
+	var v := IsoView.new()
+	v.call("_open_wave", BuildArea.size_at(0, 0))
+	var opened: Dictionary = v.get("_opened")
+	var before: Vector2i = BuildArea.size_at(0, 0)
+	var after: Vector2i = BuildArea.size_at(1, 0)
+	runner.eq(opened.size(), after.x * after.y - before.x * before.y,
+		"every tile the yard gained, and no other")
+	for cell: int in opened:
+		runner.check(not BuildArea.is_open(cell, 0, 0) and BuildArea.is_open(cell, 1, 0),
+			"cell %d is new ground" % cell)
+	v.free()
+	Sim.max_depth = int(keep[0])
+	Sim.collapses = int(keep[1])

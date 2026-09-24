@@ -99,6 +99,8 @@ var _pulse_t: float = 0.0
 var _research_nudged: bool = false
 var _last_thermal: int = 0
 var _alerted_depth: int = -1
+## The yard grew and the player has not been told yet (see _tell_yard_news).
+var _yard_news: String = ""
 ## Safe-area insets in canvas units: left, top, right, bottom. Measured from
 ## the display on a device; settable by the layout tests.
 var _safe := Vector4.ZERO
@@ -114,8 +116,10 @@ func _ready() -> void:
 		_refresh()
 		if d > 0 and BuildArea.size_at(Sim.max_depth - 1, Sim.collapses) \
 				!= BuildArea.size_at(Sim.max_depth, Sim.collapses):
-			_say("Stratum %d. The yard is bigger: more ground to build on." % d,
-				Foreman.Pose.JUMP, 4.0)
+			# Said once the world is in view again: a descent usually opens a
+			# "new machine" card first.
+			_yard_news = "Stratum %d. The yard is bigger: more ground to build on." % d
+			call_deferred("_tell_yard_news")
 		elif d > 0:
 			_say("Stratum %d. Richer rock, stranger rules." % d, Foreman.Pose.JUMP, 3.5))
 	Sim.machines_unlocked.connect(_on_unlocked)
@@ -1284,6 +1288,16 @@ func _close_overlay() -> void:
 	for c in _overlay.get_children():
 		c.queue_free()
 	_overlay.visible = false
+	if iso_view != null:
+		iso_view.hold_effects = false
+	_tell_yard_news()
+
+
+func _tell_yard_news() -> void:
+	if _yard_news == "" or _overlay.visible:
+		return
+	_say(_yard_news, Foreman.Pose.JUMP, 4.0)
+	_yard_news = ""
 
 
 ## A centred card over a dimmed world. Sized from the screen, and its body
@@ -1292,6 +1306,7 @@ func _close_overlay() -> void:
 func _open_overlay(title: String, body: Control, actions: Array) -> void:
 	_close_overlay()
 	_overlay.visible = true
+	iso_view.hold_effects = true
 
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.62)

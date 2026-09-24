@@ -293,6 +293,14 @@ A new shaft no longer hands the player all seventy tiles. The shape of it:
 - **Older saves.** A machine an older save left outside the yard keeps
   working, and can be sold or moved inward.
 
+**Growth is an event you see.** When a descent widens the yard, the new
+ground lights up in a wave that spreads out from the old yard, and the view
+glides out to take it in. A descent usually opens a "new machine" card
+first. The wave, the glide and the Foreman's line wait until that card is
+closed, so the player sees the ground grow instead of it happening behind
+the card. The screenshot tool's `first` capture records it
+(`first_04_yard_grows`, `first_05_bigger_yard`).
+
 While the yard is smaller than the board, the default view frames the Core
 and the yard instead of the whole board. That puts the thing to build on,
 and the thing to tap first, at the centre of the first screen.
