@@ -528,13 +528,72 @@ func _build_stratum_card() -> Control:
 	_quota_bar.add_theme_stylebox_override("background", back)
 	_quota_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_quota_bar)
-	_lbl_quota = _label("", 13, Palette.TEXT_DIM)
-	col.add_child(_lbl_quota)
+	# What it costs to go down: a coin and the number, under the bar that
+	# fills towards it.
+	var qrow := HBoxContainer.new()
+	qrow.add_theme_constant_override("separation", 4)
+	qrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	qrow.add_child(_icon_rect("credits", 18))
+	_lbl_quota = _label("", 14, Palette.TEXT_DIM)
+	qrow.add_child(_lbl_quota)
+	col.add_child(qrow)
 	_lbl_mods = _label("", 13, Palette.WARN)
 	_lbl_mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_lbl_mods.custom_minimum_size = Vector2(212, 0)
 	col.add_child(_lbl_mods)
+	# A tap on the card says what this stratum is and what its rules do.
+	p.gui_input.connect(func(e: InputEvent):
+		if (e is InputEventMouseButton and not e.pressed 				and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT) 				or (e is InputEventScreenTouch and not e.pressed):
+			Juice.tap()
+			_show_stratum_info())
 	return p
+
+
+## The stratum card, opened: where the shaft is, what it costs to go on, and
+## what this stratum's rules do -- the one place the modifiers are explained.
+func _show_stratum_info() -> void:
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	var where := HBoxContainer.new()
+	where.add_theme_constant_override("separation", 14)
+	where.add_child(_icon_rect("descend", 64))
+	var band: int = int(Palette.band_at(Sim.depth)[0])
+	where.add_child(_label(BAND_NAMES[band], 28, Color(Palette.BAND_VEIN[band]).lightened(0.2)))
+	body.add_child(where)
+	var cost := HBoxContainer.new()
+	cost.add_theme_constant_override("separation", 12)
+	cost.add_child(_icon_rect("credits", 52))
+	cost.add_child(_label("%s / %s" % [Economy.fmt(Sim.credits), Economy.fmt(Sim.quota())], 26,
+		Palette.CORE))
+	var bar := Chips.Gauge.new(260, 18)
+	bar.value = clampf(Sim.credits / maxf(Sim.quota(), 1.0), 0.0, 1.0)
+	bar.fill = Palette.ACCENT
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cost.add_child(bar)
+	body.add_child(cost)
+	var mods: Array = Sim.stratum().get("modifiers", [])
+	if mods.is_empty():
+		var calm := HBoxContainer.new()
+		calm.add_theme_constant_override("separation", 12)
+		calm.add_child(_icon_rect("ok", 44))
+		calm.add_child(_label("Plain rock. No strange rules here.", 20, Palette.TEXT_DIM))
+		body.add_child(calm)
+	for id in mods:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		# A star: a rule of this stratum, good or bad -- the words say which.
+		var ic := _icon_rect("star", 44)
+		ic.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		row.add_child(ic)
+		var words := VBoxContainer.new()
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.add_child(_label(Strata.modifier_name(String(id)), 22, Palette.WARN))
+		var d := _label(Strata.modifier_desc(String(id)), 18, Palette.TEXT_DIM)
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(d)
+		row.add_child(words)
+		body.add_child(row)
+	_open_overlay("Stratum %d" % Sim.depth, body, [])
 
 
 func _pill(icon_name: String, value: Label, sub: Label = null) -> Control:
@@ -1238,14 +1297,15 @@ func _refresh() -> void:
 	_lbl_band.text = BAND_NAMES[int(Palette.band_at(Sim.depth)[0])]
 	var q: float = Sim.quota()
 	_quota_bar.value = clampf(Sim.credits / q, 0.0, 1.0) if q > 0.0 else 0.0
-	_lbl_quota.text = "descend at %s" % Economy.fmt(q)
+	_lbl_quota.text = Economy.fmt(q)
 	var mods: Array = s.get("modifiers", [])
 	if mods.is_empty():
 		_lbl_mods.text = ""
 		_lbl_mods.visible = false
 	else:
-		# Names only: what each one does is a tap away in the Codex, and a
-		# paragraph per modifier in the corner of the screen is a wall of text.
+		# Names only: what each one does is a tap on this card away
+		# (`_show_stratum_info`), and a paragraph per modifier in the corner
+		# of the screen is a wall of text.
 		var parts: Array = []
 		for id in mods:
 			parts.append(Strata.modifier_name(id))

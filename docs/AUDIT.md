@@ -961,6 +961,18 @@ no way to discover. Selecting a machine now shows a bin key beside its
 an arrow and the credits that come back. Builder games do it the same
 way: select, see, then act.
 
+**The stratum card opens** (`ui_stratum.png`). The card in the top left
+named the stratum's modifiers, such as "Dense Seam", and nothing in the
+game said what they do. A comment claimed the Codex did, but it never had
+a page for them. A tap on the card now opens a card of its own:
+- the band, in its own colour
+- the credits against the quota, with a bar
+- each modifier with a star, its name and its one-sentence effect from
+  `Strata.MODIFIERS`, or "Plain rock" when there are none
+
+The card's own quota line is now a coin and the number, where it used to
+say "descend at 3.95K".
+
 ### The store icon
 
 The launcher icon (`store/icon-192.png`, the adaptive foreground) and the
