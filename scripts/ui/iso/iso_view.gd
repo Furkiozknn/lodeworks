@@ -141,6 +141,10 @@ func _ready() -> void:
 	_things = _layer(false)
 	_glow = _layer(true)
 	_over = _layer(false)
+	# The world's own grade: the painting and the ground under the factory,
+	# not the machines, the lights or the interface.
+	material = _grade(GRADE_FAR)
+	_floor.material = _grade(GRADE_GROUND)
 	_floor.draw.connect(_draw_floor)
 	_floor_glow.draw.connect(_draw_floor_glow)
 	_things.draw.connect(_draw_things)
@@ -177,6 +181,43 @@ func _ready() -> void:
 			frame_board())
 	resized.connect(_on_resized)
 	_on_stats()
+
+
+## The colour of the world, measured against the reference concept with
+## tools/visual_compare.py: its panels sit at saturation 0.55-0.58 and warmth
+## 0.12-0.16, and the game's screens were at 0.39-0.46 and 0.04-0.07 -- a cool
+## haze over everything (docs/AUDIT.md, "The world's colour"). A grade on
+## the two layers that are world, in the shader they are drawn with anyway:
+## no extra pass, no extra draw call.
+##
+## [saturation, warm tint]
+const GRADE_FAR := [1.28, Color(1.07, 1.0, 0.90)]
+const GRADE_GROUND := [1.30, Color(1.07, 1.01, 0.92)]
+const GRADE_SHADER := """
+shader_type canvas_item;
+uniform float saturation = 1.0;
+uniform vec3 warm = vec3(1.0);
+void fragment() {
+	// COLOR arrives already multiplied by the texture.
+	vec4 c = COLOR;
+	float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+	c.rgb = max(mix(vec3(l), c.rgb, saturation), vec3(0.0)) * warm;
+	COLOR = c;
+}
+"""
+static var _grade_shader: Shader
+
+
+static func _grade(g: Array) -> ShaderMaterial:
+	if _grade_shader == null:
+		_grade_shader = Shader.new()
+		_grade_shader.code = GRADE_SHADER
+	var m := ShaderMaterial.new()
+	m.shader = _grade_shader
+	m.set_shader_parameter("saturation", float(g[0]))
+	var t: Color = g[1]
+	m.set_shader_parameter("warm", Vector3(t.r, t.g, t.b))
+	return m
 
 
 func _layer(additive: bool) -> Node2D:

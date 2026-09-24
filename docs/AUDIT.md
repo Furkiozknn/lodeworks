@@ -370,6 +370,34 @@ zoom:
 | stratum 3 | 7 x 8 | 36 dp |
 | whole board | 7 x 10 | 35 dp |
 
+### The world's colour
+
+Measured with `tools/visual_compare.py` against three panels of the
+reference concept (the start, processing and growth panels):
+
+| | saturation | warmth | colourfulness |
+|---|---|---|---|
+| reference panels | 0.55-0.58 | 0.12-0.16 | 24.5-25.9 |
+| new game, before | 0.39 | 0.04 | 22.0 |
+| new game, after | 0.47 | 0.085 | 27.0 |
+| mid-game board, before | 0.46 | 0.065 | 30.4 |
+| mid-game board, after | 0.51 | 0.099 | 34.3 |
+
+Two things were making the screen cool and flat. A blue-grey haze sits
+over the painting, and the Surface band's tint leans blue.
+
+The fix is a grade in the shader the world is already drawn with:
+- saturation ×1.28 and a warm tint on the painting
+- saturation ×1.30 and a warm tint on the ground the factory stands on
+- nothing on the machines, the lights or the interface
+
+It adds no pass and no draw call: draw calls stayed at 128 on the
+reference board, and idle frame p50 at 9.8 ms. Brightness and contrast did
+not move (0.33 / 0.20 new game, 0.40 / 0.22 mid-game).
+
+It stops short of the reference on purpose. The reference is a poster; a
+screen looked at for an hour should not be as loud.
+
 ### The interface steps back
 
 The panels covered 26% of a 2:1 screen, on a new game as much as on a deep
