@@ -79,6 +79,9 @@ var _btn_heat: Button
 var _btn_zoom: Button
 var _btn_descend: Button
 var _lbl_descend_sub: Label
+## What the next stratum brings, drawn on the Descend key: the machines it
+## unlocks, so "why go down" is answered before it is asked.
+var _next_row: HBoxContainer
 var _sheet: PanelContainer
 var _sheet_body: VBoxContainer
 var _sheet_stats: VBoxContainer
@@ -575,6 +578,10 @@ func _build_descend() -> Control:
 	col.add_child(_label("DESCEND", 22, Palette.BG))
 	_lbl_descend_sub = _label("", 14, Color(Palette.BG, 0.8))
 	col.add_child(_lbl_descend_sub)
+	_next_row = HBoxContainer.new()
+	_next_row.add_theme_constant_override("separation", 2)
+	_next_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(_next_row)
 	row.add_child(col)
 	_btn_descend.add_child(row)
 	_btn_descend.pressed.connect(_on_descend)
@@ -1080,6 +1087,7 @@ func _refresh() -> void:
 	_btn_descend.disabled = not Sim.can_descend()
 	_lbl_descend_sub.text = "to stratum %d" % (Sim.depth + 1) if Sim.can_descend() \
 		else "%d%% of quota" % int(round(_quota_bar.value * 100.0))
+	_show_next_unlock()
 	for id: String in _palette_buttons:
 		var afford: bool = Sim.can_afford(id)
 		var cost: Label = _palette_costs.get(id, null)
@@ -1094,6 +1102,33 @@ func _refresh() -> void:
 			1.0 if afford else 0.45)
 	if _stratum_card != null:
 		_layout_hud()
+
+
+## The machines the next stratum unlocks, as small pictures on the Descend
+## key, with "+" and the yard's growth when it grows too. Rebuilt only when
+## the depth changes.
+var _next_for: int = -1
+
+func _show_next_unlock() -> void:
+	if _next_for == Sim.depth:
+		return
+	_next_for = Sim.depth
+	for c in _next_row.get_children():
+		c.queue_free()
+	var now: Array[String] = MachineDB.unlocked_at(Sim.depth)
+	var ids: Array[String] = []
+	for id: String in MachineDB.unlocked_at(Sim.depth + 1):
+		if not now.has(id):
+			ids.append(id)
+	if ids.is_empty():
+		_next_row.visible = false
+		return
+	_next_row.visible = true
+	_next_row.add_child(_label("next:", 12, Color(Palette.BG, 0.75)))
+	for id: String in ids.slice(0, 3):
+		var chip := MachineSprite.new(id, 28.0)
+		chip.tooltip_text = String(MachineDB.get_machine(id)["name"])
+		_next_row.add_child(chip)
 
 
 ## The interface a player has grown into. A new game shows the Stratum,
