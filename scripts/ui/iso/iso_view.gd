@@ -82,6 +82,8 @@ var _flash: Dictionary = {}
 ## "a-b" -> seconds of glow left; a pipe glows for a moment after the
 ## simulation actually moved something along it.
 var _flow: Dictionary = {}
+## Seams whose material runs from the higher cell index to the lower.
+var _flow_from_b: Dictionary = {}
 var _links: Array = []
 var _segments: Dictionary = {}
 var _sheet_name: String = ""
@@ -93,6 +95,9 @@ var _island_tex: Texture2D
 var _band_tint := Color.WHITE
 var _band_target := Color.WHITE
 var _framed: bool = false
+## 1 -> 0 over a descent: the canyon drops away and the light changes.
+var _dive: float = 0.0
+const DIVE_SECONDS := 1.4
 
 
 func _ready() -> void:
@@ -127,7 +132,10 @@ func _ready() -> void:
 	_refresh_sheet()
 
 	Sim.stats_changed.connect(_on_stats)
-	Sim.depth_changed.connect(func(d: int): _band_target = band_tint(d))
+	Sim.depth_changed.connect(func(d: int):
+		_band_target = band_tint(d)
+		if d > 0:
+			_dive = 1.0)
 	resized.connect(_on_resized)
 	_on_stats()
 
@@ -218,7 +226,13 @@ func _on_stats() -> void:
 					for i in range(path.size() - 1):
 						var a: int = int(path[i])
 						var b: int = int(path[i + 1])
-						_flow["%d-%d" % [mini(a, b), maxi(a, b)]] = 0.6
+						var key: String = "%d-%d" % [mini(a, b), maxi(a, b)]
+						_flow[key] = 0.6
+						# Which way it went, so the bead rides the right way.
+						if a > b:
+							_flow_from_b[key] = true
+						else:
+							_flow_from_b.erase(key)
 	badges.update(_raw_states(), 0.0)
 
 
@@ -268,6 +282,7 @@ func _process(delta: float) -> void:
 	for n: Node2D in [_floor, _floor_glow, _things, _glow]:
 		n.transform = t
 	_band_tint = _band_tint.lerp(_band_target, 1.0 - exp(-delta * 2.5))
+	_dive = maxf(_dive - delta / DIVE_SECONDS, 0.0)
 
 	if _pressed and not _panning and not _dragging and not _long_fired \
 			and _press_cell >= 0 and not Sim.grid.is_empty(_press_cell):
@@ -469,11 +484,20 @@ func _draw() -> void:
 	if _world_tex == null:
 		draw_rect(Rect2(Vector2.ZERO, size), Palette.BG, true)
 		return
-	draw_set_transform_matrix(cam.bg_transform())
+	# Descending: the far wall rushes up past the island and the light dips,
+	# for as long as the new stratum's colour takes to arrive. The painting is
+	# scaled up a little while it moves so no edge of it is ever on screen.
+	var d: float = sin(_dive * PI)
+	var bt: Transform2D = cam.bg_transform()
+	if d > 0.001:
+		var k: float = 1.0 + 0.10 * d
+		bt = Transform2D(0.0, bt.get_scale() * k, 0.0,
+			(bt.origin - size * 0.5) * k + size * 0.5 + Vector2(0, -size.y * 0.04 * d))
+	draw_set_transform_matrix(bt)
 	draw_texture(_world_tex, Vector2.ZERO, _band_tint)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	# A little haze over the far world so the island reads as nearer.
-	var haze: Color = Color(0.10, 0.12, 0.20, 0.18)
+	var haze: Color = Color(0.10, 0.12, 0.20, 0.18 + 0.35 * d)
 	draw_rect(Rect2(Vector2.ZERO, size), haze, true)
 
 
@@ -519,7 +543,11 @@ func _draw_floor() -> void:
 		bc[2] + down]), shade)
 
 	_draw_tiles(ci)
-	_draw_rim(ci, bc)
+	var tris := Tris.new()
+	_draw_rim(ci, bc, tris)
+	for cell: int in Strata.blocked_cells(Sim.depth):
+		_rubble(tris, cell)
+	tris.flush(ci)
 	_draw_floor_marks(ci)
 
 	# Contact shadows: a machine that casts nothing floats.
@@ -528,6 +556,45 @@ func _draw_floor() -> void:
 		var c: Vector2 = Iso.cell_center(cell) + Vector2(4.0, 6.0)
 		ci.draw_texture_rect(g, Rect2(c - Vector2(Iso.TW * 0.46, Iso.TH * 0.46),
 			Vector2(Iso.TW * 0.92, Iso.TH * 0.92)), false, Color(0, 0, 0, 0.55))
+
+	# The pipes lie on the floor, in the seams between plates, all in one
+	# batch. Drawn under every machine rather than interleaved with them: a
+	# pipe between two machines is behind the nearer one either way, and
+	# keeping them out of the machine pass lets all the machines -- one atlas
+	# -- draw as one batch instead of breaking at every pipe.
+	var pipes := Tris.new()
+	for key: String in _segments:
+		_pipe(pipes, key)
+	pipes.flush(ci)
+
+
+## Untextured triangles collected and drawn in one call. Lines, circles and
+## polygons are each a draw call in the compatibility renderer; seventy
+## rivets and forty pipes were a third of the frame's draw calls.
+class Tris:
+	var pts := PackedVector2Array()
+	var cols := PackedColorArray()
+	var idx := PackedInt32Array()
+
+	func quad(a: Vector2, b: Vector2, c: Vector2, d: Vector2, col: Color) -> void:
+		var i: int = pts.size()
+		pts.append_array([a, b, c, d])
+		cols.append_array([col, col, col, col])
+		idx.append_array([i, i + 1, i + 2, i, i + 2, i + 3])
+
+	## A straight band `w` wide from p0 to p1.
+	func band(p0: Vector2, p1: Vector2, w: float, col: Color) -> void:
+		var d: Vector2 = (p1 - p0).normalized()
+		var n := Vector2(-d.y, d.x) * (w * 0.5)
+		quad(p0 + n, p1 + n, p1 - n, p0 - n, col)
+
+	func dot(c: Vector2, r: float, col: Color) -> void:
+		quad(c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0), col)
+
+	func flush(ci: CanvasItem) -> void:
+		if idx.is_empty():
+			return
+		RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), idx, pts, cols)
 
 
 ## The ground the factory does not own yet: the rest of the slab. Locked
@@ -541,16 +608,11 @@ func _draw_expansion(ci: CanvasItem) -> void:
 	var b: Array = ex[1]
 	var dim := Color(0.05, 0.06, 0.10, 0.30)
 	var edge := Color(1.0, 0.85, 0.55, 0.16)
-	for sy in range(int(a[1]), int(b[1]) + 1):
-		for sx in range(int(a[0]), int(b[0]) + 1):
-			var t: Vector2 = Iso.slab_top(sx, sy)
-			var pts := PackedVector2Array([t, t + Vector2(Iso.TW * 0.5, Iso.TH * 0.5),
-				t + Vector2(0, Iso.TH), t + Vector2(-Iso.TW * 0.5, Iso.TH * 0.5)])
-			ci.draw_colored_polygon(pts, dim)
 	# The plot's outline, dashed: ground that is marked out and not yet built.
 	var c := PackedVector2Array([Iso.slab_top(int(a[0]), int(a[1])),
 		Iso.slab_top(int(b[0]) + 1, int(a[1])), Iso.slab_top(int(b[0]) + 1, int(b[1]) + 1),
 		Iso.slab_top(int(a[0]), int(b[1]) + 1)])
+	ci.draw_colored_polygon(c, dim)
 	for e in range(4):
 		ci.draw_dashed_line(c[e], c[(e + 1) % 4], edge, 3.0, 12.0)
 
@@ -599,7 +661,7 @@ func _draw_tiles(ci: CanvasItem) -> void:
 
 
 ## The iron frame around the board: the edge of what the factory owns.
-func _draw_rim(ci: CanvasItem, bc: PackedVector2Array) -> void:
+func _draw_rim(ci: CanvasItem, bc: PackedVector2Array, tris: Tris) -> void:
 	var w: float = 7.0
 	var dark := Color(0.13, 0.13, 0.17)
 	var top := Color(0.36, 0.33, 0.33)
@@ -613,8 +675,7 @@ func _draw_rim(ci: CanvasItem, bc: PackedVector2Array) -> void:
 		var b: Vector2 = bc[(e + 1) % 4]
 		var cells: int = Grid.W if e % 2 == 0 else Grid.H
 		for i in range(cells + 1):
-			var p: Vector2 = a.lerp(b, float(i) / float(cells))
-			ci.draw_circle(p, 2.6, brass)
+			tris.dot(a.lerp(b, float(i) / float(cells)), 3.0, brass)
 
 
 func _diamond(cell: int, grow: float) -> PackedVector2Array:
@@ -709,22 +770,14 @@ func _footprint() -> float:
 func _draw_things() -> void:
 	var ci: CanvasItem = _things
 	var o: Vector2i = Iso.board_offset()
-	# Everything that stands on the slab -- machines, pipes, the Core, props --
+	# Everything that stands on the slab -- machines, the Core, props --
 	# in one list sorted by slab depth, so a lamp on the front rim covers the
 	# machine behind it and the Core's tower is covered by the machines in
 	# front of it.
 	var items: Array = []
-	var blocked: Dictionary = Strata.blocked_cells(Sim.depth)
-	for cell in range(Grid.W * Grid.H):
+	for cell: int in Sim.grid.cells:
 		var p: Vector2i = Grid.xy(cell)
 		items.append([float(p.x + o.x + p.y + o.y), 0, cell])
-	for key: String in _segments:
-		var sg: Dictionary = _segments[key]
-		var pa: Vector2i = Grid.xy(int(sg["a"]))
-		var pb: Vector2i = Grid.xy(int(sg["b"]))
-		var back: float = float(mini(pa.x + pa.y, pb.x + pb.y) + o.x + o.y)
-		# After the machine it leaves, before the one it reaches.
-		items.append([back + 0.5, 1, key])
 	var props: Array = IsoArt.placement().get("props", [])
 	for pr: Array in props:
 		items.append([float(int(pr[0]) + int(pr[1])) - 0.25, 2, pr])
@@ -737,13 +790,9 @@ func _draw_things() -> void:
 		match int(it[1]):
 			0:
 				var cell: int = int(it[2])
-				if blocked.has(cell):
-					_draw_rubble(ci, cell)
 				var id: String = Sim.grid.machine_at(cell)
 				if id != "" and not (_dragging and cell == selected_cell):
 					_draw_machine(ci, cell, id)
-			1:
-				_draw_pipe(ci, String(it[2]))
 			2:
 				_draw_prop(ci, it[2])
 			3:
@@ -805,12 +854,12 @@ func _draw_prop(ci: CanvasItem, pr: Array) -> void:
 		Color.WHITE.lerp(_band_tint, 0.3))
 
 
-func _draw_rubble(ci: CanvasItem, cell: int) -> void:
+func _rubble(tris: Tris, cell: int) -> void:
 	var c: Vector2 = Iso.cell_center(cell)
 	for k in range(3):
 		var o := Vector2(-18.0 + 18.0 * k, -2.0 + 5.0 * (k % 2))
-		ci.draw_circle(c + o, 9.0 - k, Color(0.24, 0.22, 0.25))
-		ci.draw_circle(c + o - Vector2(2, 3), 5.0 - k, Color(0.40, 0.37, 0.40))
+		tris.dot(c + o, 10.0 - k, Color(0.24, 0.22, 0.25))
+		tris.dot(c + o - Vector2(2, 3), 6.0 - k, Color(0.40, 0.37, 0.40))
 
 
 func _draw_sprite(ci: CanvasItem, id: String, at: Vector2, mod: Color, squash: float) -> void:
@@ -867,28 +916,21 @@ func _draw_machine(ci: CanvasItem, cell: int, id: String) -> void:
 		squash = 1.0 + 0.012 * sin(Sim.sim.progress_of(cell) * TAU)
 	_draw_sprite(ci, id, Iso.cell_center(cell), mod, squash)
 
-	var marks: int = Sim.upgrade_marks()
-	if marks > 0 and marks < IsoArt.UP_SHEET_MARKS:
-		var f: Vector2 = Iso.cell_center(cell) + Vector2(0, Iso.TH * 0.5 * _footprint() + 2.0)
-		for k in range(marks):
-			ci.draw_circle(f + Vector2(-6.0 + 12.0 * k, -2.0), 3.0, Palette.CORE)
 
 
-func _draw_pipe(ci: CanvasItem, key: String) -> void:
+func _pipe(t: Tris, key: String) -> void:
 	var s: Dictionary = _segments[key]
 	var a: Vector2 = Iso.cell_center(int(s["a"]))
 	var b: Vector2 = Iso.cell_center(int(s["b"]))
 	var dir: Vector2 = (b - a).normalized()
-	# From the edge of one plate to the edge of the next, raised a little off
-	# the floor so it reads as a pipe lying across the seam.
 	# Plate edge to plate edge, and a little under each plate, so the ends are
-	# tucked in rather than floating.
+	# tucked in rather than floating; raised a little off the floor so it
+	# reads as a pipe lying across the seam.
 	var reach: float = a.distance_to(b) * (0.5 - _footprint() * 0.5) + 16.0
 	var mid: Vector2 = (a + b) * 0.5 - Vector2(0, 9.0)
 	var p0: Vector2 = mid - dir * reach
 	var p1: Vector2 = mid + dir * reach
-	var res: int = int(s["res"])
-	var col: Color = Palette.res_color(res)
+	var col: Color = Palette.res_color(int(s["res"]))
 	var live: bool = _flow.has(key)
 	var warn: Color = Color(0, 0, 0, 0)
 	for cell: int in [int(s["a"]), int(s["b"])]:
@@ -897,17 +939,17 @@ func _draw_pipe(ci: CanvasItem, key: String) -> void:
 			warn = Palette.ST_BLOCKED
 		elif sh == StatusBadges.Show.STARVED and warn.a == 0.0:
 			warn = Palette.ST_STARVED
-	ci.draw_line(p0 + Vector2(0, 5), p1 + Vector2(0, 5), Color(0, 0, 0, 0.35), 14.0, true)
-	ci.draw_line(p0, p1, Color(0.16, 0.15, 0.18), 14.0, true)
+	t.band(p0 + Vector2(0, 5), p1 + Vector2(0, 5), 14.0, Color(0, 0, 0, 0.35))
+	t.band(p0, p1, 14.0, Color(0.16, 0.15, 0.18))
 	var body: Color = col.lerp(Color(0.25, 0.25, 0.3), 0.15 if live else 0.55)
 	if warn.a > 0.0:
 		body = body.lerp(warn, 0.35 + 0.25 * sin(_anim * 5.0))
-	ci.draw_line(p0, p1, body, 9.5, true)
-	ci.draw_line(p0 - Vector2(0, 2.5), p1 - Vector2(0, 2.5), body.lightened(0.5), 2.5, true)
+	t.band(p0, p1, 9.5, body)
+	t.band(p0 - Vector2(0, 2.5), p1 - Vector2(0, 2.5), 2.5, body.lightened(0.5))
 	var brass := Color(0.80, 0.62, 0.30)
 	var n := Vector2(-dir.y, dir.x)
 	for p in [p0, p1]:
-		ci.draw_line(p - n * 8.5, p + n * 8.5, brass, 4.5, true)
+		t.band(p - n * 8.5, p + n * 8.5, 4.5, brass)
 
 
 ## --- light on top ------------------------------------------------------------
@@ -948,9 +990,84 @@ func _draw_glow() -> void:
 				from_a = path.find(int(s["a"])) < path.find(int(s["b"]))
 				break
 		var p: Vector2 = (a.lerp(b, t) if from_a else b.lerp(a, t)) - Vector2(0, 12)
-		var col2: Color = Palette.res_color(int(s["res"])).lightened(0.35)
-		col2.a = 0.95 * clampf(float(_flow[key]) * 2.0, 0.0, 1.0)
-		ci.draw_texture_rect(g, Rect2(p - Vector2(17, 17), Vector2(34, 34)), false, col2)
+		var live: float = clampf(float(_flow[key]) * 2.0, 0.0, 1.0)
+		var col2: Color = Palette.res_color(int(s["res"])).lerp(Color.WHITE, 0.55)
+		# The seam itself lights up while material crosses it. Light, not
+		# pipe: it passes over the nearer machine's foot as a glow would, so a
+		# connection that is working can be read at a glance even where the
+		# pipe underneath is hidden by the machine in front of it.
+		var dir: Vector2 = (b - a).normalized()
+		var reach: float = a.distance_to(b) * (0.5 - _footprint() * 0.5) + 14.0
+		var mid: Vector2 = (a + b) * 0.5 - Vector2(0, 12)
+		var seam: Color = col2
+		seam.a = 0.45 * live
+		ci.draw_line(mid - dir * reach, mid + dir * reach, seam, 6.0, true)
+		col2.a = live
+		ci.draw_texture_rect(g, Rect2(p - Vector2(20, 20), Vector2(40, 40)), false, col2)
+	_draw_life(ci, g)
+
+
+## The things that make the place feel lived in, all light and all cheap:
+## steam off the machines that run hot by nature, embers off the ones that
+## are overheating, the crystals and lamps breathing, the Core's crystal, and
+## a little dust drifting through the lamp light. Every one of them reads the
+## simulation or the layout; none of them is a rule.
+const STEAMERS := ["smelter", "boiler", "press", "condenser"]
+
+func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
+	for cell: int in Sim.grid.cells:
+		var id: String = Sim.grid.machine_at(cell)
+		var st: int = Sim.sim.status_of(cell)
+		var shown: int = badges.shown(cell)
+		var hot: bool = shown == StatusBadges.Show.HOT or shown == StatusBadges.Show.CRITICAL
+		if not (hot or (st == Simulation.Status.RUNNING and STEAMERS.has(id))):
+			continue
+		var top: Vector2 = Iso.cell_center(cell) - Vector2(0, Iso.TH * 1.55)
+		for k in range(2):
+			var t: float = fposmod(_anim * 0.55 + float(k) * 0.5 + float(cell) * 0.137, 1.0)
+			var drift := Vector2(sin(t * 5.0 + float(cell)) * 6.0, -t * 46.0)
+			var col: Color = Color(1.0, 0.55, 0.25) if hot else Color(0.85, 0.88, 0.95)
+			col.a = (0.30 if hot else 0.16) * sin(t * PI)
+			var r: float = (7.0 if hot else 11.0) + t * 16.0
+			ci.draw_texture_rect(g, Rect2(top + drift - Vector2(r, r), Vector2(r, r) * 2.0),
+				false, col)
+	# Crystals and lamps on the slab.
+	var props: Array = IsoArt.placement().get("props", [])
+	for pr: Array in props:
+		var kind: String = String(pr[2])
+		var col2: Color
+		match kind:
+			"crystal_purple": col2 = Color(0.75, 0.35, 1.0)
+			"crystal_cyan": col2 = Color(0.35, 0.85, 1.0)
+			"ore_vein": col2 = Color(1.0, 0.55, 0.2)
+			"lamp": col2 = Color(1.0, 0.75, 0.4)
+			_: continue
+		var at: Vector2 = Iso.slab_top(float(pr[0]) + 0.5, float(pr[1]) + 0.5) - Vector2(0, 30)
+		var breathe: float = 0.5 + 0.5 * sin(_anim * 1.7 + float(int(pr[0]) * 3 + int(pr[1])))
+		col2.a = 0.22 + 0.18 * breathe
+		ci.draw_texture_rect(g, Rect2(at - Vector2(46, 40), Vector2(92, 80)), false, col2)
+	# The Core's crystal, brighter the more of the board is running.
+	var cr: Rect2 = core_rect()
+	if cr.size.x > 0.0:
+		var running: int = 0
+		for cell: int in Sim.grid.cells:
+			if Sim.sim.status_of(cell) == Simulation.Status.RUNNING:
+				running += 1
+		var k2: float = clampf(float(running) / 12.0, 0.2, 1.0)
+		var tip := Vector2(cr.get_center().x, cr.position.y + cr.size.y * 0.16)
+		var col3 := Color(0.45, 0.85, 1.0, (0.35 + 0.15 * sin(_anim * 2.2)) * k2)
+		ci.draw_texture_rect(g, Rect2(tip - Vector2(70, 70), Vector2(140, 140)), false, col3)
+	# Dust in the lamp light: a fixed set of motes on slow loops over the slab.
+	var slab: PackedVector2Array = Iso.slab_corners()
+	var left: float = slab[3].x
+	var width: float = slab[1].x - slab[3].x
+	for i in range(22):
+		var sx: float = fposmod(float(i) * 0.6180339, 1.0)
+		var t2: float = fposmod(_anim * (0.03 + 0.02 * fposmod(float(i) * 0.37, 1.0)) + sx, 1.0)
+		var p2 := Vector2(left + width * sx + sin(_anim * 0.5 + float(i)) * 20.0,
+			slab[2].y - t2 * (slab[2].y - slab[0].y + 260.0))
+		var col4 := Color(1.0, 0.9, 0.7, 0.20 * sin(t2 * PI))
+		ci.draw_texture_rect(g, Rect2(p2 - Vector2(3, 3), Vector2(6, 6)), false, col4)
 
 
 ## --- screen-space overlay ------------------------------------------------------
@@ -989,6 +1106,32 @@ func _draw_over() -> void:
 					+ _badge_side(cell, false) * Iso.TW * 0.32 - Vector2(0, Iso.TH * 0.55))
 		_draw_badge(ci, p, r, shown)
 
+	# Material in transit: one small bead per seam the simulation actually
+	# moved something across in the last moment, riding from the machine that
+	# gave it to the one that took it. Screen-sized, so it stays readable when
+	# zoomed out, and outlined, so it reads over any machine.
+	var bead_r: float = clampf(5.0 * z, 3.5, 7.0)
+	var beads := Tris.new()
+	for key: String in _flow:
+		if not _segments.has(key):
+			continue
+		var s: Dictionary = _segments[key]
+		var a: Vector2 = Iso.cell_center(int(s["a"]))
+		var b: Vector2 = Iso.cell_center(int(s["b"]))
+		if _flow_from_b.has(key):
+			var tmp: Vector2 = a
+			a = b
+			b = tmp
+		var t: float = fposmod(_anim * 1.4 + float(key.hash() % 97) * 0.01, 1.0)
+		var d: Vector2 = (b - a)
+		var p: Vector2 = cam.world_to_screen(a + d * (0.3 + 0.4 * t) - Vector2(0, 14))
+		var live: float = clampf(float(_flow[key]) * 2.0, 0.0, 1.0)
+		var col: Color = Palette.res_color(int(s["res"])).lerp(Color.WHITE, 0.35)
+		col.a = live
+		beads.dot(p, bead_r + 1.5, Color(0.05, 0.05, 0.08, 0.85 * live))
+		beads.dot(p, bead_r, col)
+	beads.flush(ci)
+
 	if selected_cell >= 0 and not Sim.grid.is_empty(selected_cell) and not _dragging:
 		_draw_selected_links(ci)
 		var top: Vector2 = cam.world_to_screen(Iso.cell_center(selected_cell)
@@ -1000,6 +1143,17 @@ func _draw_over() -> void:
 			t + Vector2(w, -w * 1.2), t]), Color(0, 0, 0, 0.4))
 		ci.draw_colored_polygon(PackedVector2Array([t + Vector2(-w, -w * 1.4),
 			t + Vector2(w, -w * 1.4), t + Vector2(0, -w * 0.15)]), Palette.ACCENT)
+	# Research, on every machine it bought: notches on the plate's front
+	# corner until the whole set turns gold.
+	var marks: int = Sim.upgrade_marks()
+	if marks > 0 and marks < IsoArt.UP_SHEET_MARKS and z > 0.55:
+		var nt := Tris.new()
+		for cell: int in Sim.grid.cells:
+			var f: Vector2 = cam.world_to_screen(Iso.cell_center(cell)
+				+ Vector2(0, Iso.TH * 0.5 * _footprint()))
+			for k in range(marks):
+				nt.dot(f + Vector2((-5.0 + 10.0 * k) * z, -3.0 * z), 3.2 * z, Palette.CORE)
+		nt.flush(ci)
 	if overlay == Overlay.HEAT and z > 0.55:
 		_draw_heat_numbers(ci, font)
 	if _pressed and not _panning and not _dragging and _press_cell >= 0:

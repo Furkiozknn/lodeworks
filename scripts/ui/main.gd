@@ -90,6 +90,7 @@ var _pulsing: Control = null
 var _pulse_t: float = 0.0
 var _research_nudged: bool = false
 var _last_thermal: int = 0
+var _alerted_depth: int = -1
 ## Safe-area insets in canvas units: left, top, right, bottom. Measured from
 ## the display on a device; settable by the layout tests.
 var _safe := Vector4.ZERO
@@ -1120,6 +1121,17 @@ func _refresh_problems() -> void:
 	_last_thermal = int(c["thermal"])
 	var n: int = int(c["starved"]) + int(c["blocked"]) + int(c["thermal"])
 	_lbl_problem_count.text = str(n) if n > 0 else ""
+	# The Foreman steps in once per stratum, the first time something on the
+	# board is actually in trouble -- a machine at critical heat -- and points
+	# at the key that finds it. Once, so it is news rather than nagging.
+	var calm: bool = Tutorial.is_done(Sim.tutorial_step()) and not _overlay.visible
+	if _alerted_depth != Sim.depth and calm:
+		for cell: int in Sim.grid.cells:
+			if iso_view.badges.shown(cell) == StatusBadges.Show.CRITICAL:
+				_alerted_depth = Sim.depth
+				_say("Something is overheating. The warning key finds it.",
+					Foreman.Pose.ALERT, 5.0)
+				break
 	var parts: Array[String] = []
 	if int(c["starved"]) > 0:
 		parts.append("%d starved" % int(c["starved"]))
