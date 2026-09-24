@@ -686,9 +686,13 @@ nothing yield more, but the multiplier is on every machine's output
 (`Simulation.yield_mult`). The sentence now says so.
 
 Drafting Table sells blueprint slots. No screen in the game saves or
-loads a blueprint. The slots exist in the simulation and the store, and
-nothing uses them. This pass did not remove the line, because that is an
-economy decision. It is listed as open under "What is still UNKNOWN".
+loads a blueprint, so the slots exist in the simulation and the store but
+nothing uses them. A card that takes research and changes nothing the
+player can see is a fake, so the grid no longer offers it
+(`HIDDEN_RESEARCH`). The upgrade stays in the data, and a save that has
+bought it keeps its level. For the same reason the Licence's shop page no
+longer lists "Two more blueprint slots", though the grant is kept. Both
+come back with a blueprint screen, which is the owner's decision.
 
 **Collapse** (`ui_collapse.png`, `ui_collapse_locked.png`) is one card.
 - **Open**, it shows the trade: the Core, an arrow, and the Cores it pays,
@@ -1039,10 +1043,10 @@ Updated 24 September 2026, after the landscape round:
 - The descent pace (above) makes a run about 1.8 times as long for the
   same Cores. Whether the collapse payout should rise to match is the
   owner's decision.
-- Drafting Table (research) and the Licence's extra blueprint slots sell
-  something no screen uses: there is no way to save or load a blueprint.
-  Either the blueprint screen gets built or the line comes out. That is the
-  owner's decision.
+- Blueprints: the simulation, a research line and the Licence all carry
+  blueprint slots, and there is no screen to save or load one. The
+  research card and the shop bullet are hidden until there is. Whether to
+  build the screen or drop the slots is the owner's decision.
 
 Everything in this document was measured in the headless simulation, which is
 the same code the game runs, on hardware that is not a phone.

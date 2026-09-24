@@ -121,9 +121,10 @@ func _run() -> void:
 	if cards == null:
 		_failures.append("the research panel has no card grid")
 	else:
-		if cards.get_child_count() != Economy.TREE_ORDER.size():
+		var offered: int = Economy.TREE_ORDER.size() - ((_main.get_script() as GDScript).get("HIDDEN_RESEARCH") as Array).size()
+		if cards.get_child_count() != offered:
 			_failures.append("research shows %d cards for %d lines"
-				% [cards.get_child_count(), Economy.TREE_ORDER.size()])
+				% [cards.get_child_count(), offered])
 		if _main.size.x >= 1400.0 and cards.columns != 3:
 			_failures.append("research is %d columns on a landscape phone, not 3" % cards.columns)
 		for card: Node in cards.get_children():

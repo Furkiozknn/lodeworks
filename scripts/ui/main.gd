@@ -1726,6 +1726,13 @@ const RESEARCH_COLUMNS := 3
 const RESEARCH_CARD_MIN_W := 330.0
 
 
+## Research lines the grid does not offer. Drafting Table sells blueprint
+## slots, and no screen saves or loads a blueprint yet: a card that takes
+## research and changes nothing the player can see would be a fake. It comes
+## back with the blueprint screen; its level, if a save has one, is kept.
+const HIDDEN_RESEARCH := ["blueprint_slots"]
+
+
 func _show_research() -> void:
 	# What there is to spend, as the same pictures the prices use, beside the
 	# title.
@@ -1748,7 +1755,8 @@ func _show_research() -> void:
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	for id: String in Economy.TREE_ORDER:
-		grid.add_child(_research_card(id))
+		if not HIDDEN_RESEARCH.has(id):
+			grid.add_child(_research_card(id))
 	_open_overlay("Research", grid, [], 1240.0, wallet)
 
 
