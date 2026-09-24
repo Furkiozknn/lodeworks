@@ -427,6 +427,17 @@ it asks nothing new of the player. It only changes how the Core looks:
 Tapping an online Core names its level and the stratum at which it grows
 next.
 
+(Changed in the overnight round, 25 September 2026. Five levels by
+stratum 4 left the Core the same for the rest of a shaft, and a shaft now
+runs much longer. The Core now has eight levels, one for each ring of
+yard round it: level 5 at stratum 7 and level 8 at stratum 16, so each
+widening of the yard is also the Core growing. It stops growing in size at
+level 5, so it never covers its ring. From level 6 a column of light rises
+from its crystal, taller each level. From 7 a second orbit circles its
+top, and at 8 the crystal never goes dark (`ui_core_level8.png`).
+`test_the_core_grows_with_its_yard_all_the_way_down` checks that every
+level is reached, on a stratum where the yard widens.)
+
 **The dark Core stays clear of every panel; an online one may not.** Only
 the dark Core, the thing a new game asks the player to tap, is kept clear
 of every panel. Keeping an online Core clear as well cost too much: a

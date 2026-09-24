@@ -483,6 +483,7 @@ func _run_first() -> void:
 ##   ui_stratum      the stratum card opened: band, quota, rules
 ##   ui_settings_*   Settings, one shot per group
 ##   ui_band_banner  a new band's name as a descent reaches it
+##   ui_core_level8  the Core at its last level, close up
 func _run_ui() -> void:
 	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
 	_apply_build("hero")
@@ -545,6 +546,14 @@ func _run_ui() -> void:
 	await _settle(0.9)
 	await _audit_shot("ui_band_banner")
 	await _settle(2.4)
+	# The Core at its last level, sixteen strata down, close up.
+	var gv: IsoView = _main.get("iso_view")
+	Sim.max_depth = 16
+	gv.cam.focus(gv.core_rect().get_center() + Vector2(0, 60), 0.9)
+	await _settle(1.2)
+	await _audit_shot("ui_core_level8")
+	print("  core level %d at stratum %d" % [IsoView.core_level(), Sim.max_depth])
+	Sim.max_depth = 7
 	print("wrote the panel screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 

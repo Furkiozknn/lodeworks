@@ -1539,7 +1539,8 @@ func _on_core_tapped() -> void:
 		return
 	var lvl: int = IsoView.core_level()
 	var next: String = "It is as big as it gets." if lvl >= IsoView.CORE_LEVELS \
-		else "Descend to take it deeper: at stratum %d it grows to level %d." % [lvl, lvl + 1]
+		else "It grows with its yard: at stratum %d it reaches level %d." % [
+			IsoView.stratum_for_level(lvl + 1), lvl + 1]
 	_info("Factory Core, level %d" % lvl, ("The heart of this shaft. It gave you the "
 		+ "credits for your first Drill and Vault; everything since, the board has "
 		+ "earned.\n\nStratum %d. %s Every stratum is richer rock, and new machines "
@@ -2305,10 +2306,13 @@ func _show_settings() -> void:
 		row.offset_left = 14
 		row.add_theme_constant_override("separation", 12)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var sign: Control = _icon_rect(String(t["icon"]), 52) if t.has("icon") \
-			else Chips.Glyph.new(String(t["glyph"]), 52.0)
-		sign.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(sign)
+		var mark: Control
+		if t.has("icon"):
+			mark = _icon_rect(String(t["icon"]), 52)
+		else:
+			mark = Chips.Glyph.new(String(t["glyph"]), 52.0)
+		mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(mark)
 		var nm := _label(String(t["name"]), 22, Palette.TEXT)
 		nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		nm.size_flags_vertical = Control.SIZE_FILL
@@ -2414,9 +2418,9 @@ func _set_setting(key: String, value: Variant) -> void:
 
 
 ## A row that switches something on or off: the whole row is the key.
-func _setting_switch(sign: Control, title: String, sub: String, value: bool,
+func _setting_switch(mark: Control, title: String, sub: String, value: bool,
 		changed: Callable) -> Button:
-	var b := _setting_row(sign, title, sub)
+	var b := _setting_row(mark, title, sub)
 	b.toggle_mode = true
 	b.set_pressed_no_signal(value)
 	b.set_meta("setting", title)
@@ -2432,8 +2436,8 @@ func _setting_switch(sign: Control, title: String, sub: String, value: bool,
 
 
 ## A row that opens something.
-func _setting_action(sign: Control, title: String, sub: String, cb: Callable) -> Button:
-	var b := _setting_row(sign, title, sub)
+func _setting_action(mark: Control, title: String, sub: String, cb: Callable) -> Button:
+	var b := _setting_row(mark, title, sub)
 	var go := _label("›", 40, Palette.TEXT_DIM)
 	go.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	(b.get_child(0) as HBoxContainer).add_child(go)
@@ -2443,7 +2447,7 @@ func _setting_action(sign: Control, title: String, sub: String, cb: Callable) ->
 	return b
 
 
-func _setting_row(sign: Control, title: String, sub: String) -> Button:
+func _setting_row(mark: Control, title: String, sub: String) -> Button:
 	var b := _button("", Palette.PANEL_HI)
 	b.custom_minimum_size = Vector2(0, MIN_TOUCH)
 	# A toggled row looks like any other; the switch shows the state.
@@ -2454,8 +2458,8 @@ func _setting_row(sign: Control, title: String, sub: String) -> Button:
 	row.offset_right = -16
 	row.add_theme_constant_override("separation", 14)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sign.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(sign)
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(mark)
 	var words := VBoxContainer.new()
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.alignment = BoxContainer.ALIGNMENT_CENTER

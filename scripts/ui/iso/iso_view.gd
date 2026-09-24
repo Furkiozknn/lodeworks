@@ -1195,16 +1195,37 @@ func core_center() -> Vector2:
 	return Iso.slab_top(float(cc[0]) + n * 0.5, float(cc[1]) + n * 0.5)
 
 
-## The Core grows with its shaft: level 1 as a shaft opens, one more for
-## each stratum it has been taken down, 5 from the fourth. The level is only
-## what the Core looks like -- its size, its light, the conduits it runs into
-## the yard -- and it reads the depth the shaft has already reached, so it
-## asks nothing new of the player.
-const CORE_LEVELS := 5
+## The Core grows with its shaft: one level for each ring of yard round it,
+## 1 as a shaft opens and 8 at stratum 16. The level is only what the Core
+## looks like -- its size up to level 5, then its light: a column of light
+## from its crystal from 6, growing each level, a second orbit from 7, a
+## crystal that never goes dark at 8 -- and it reads the depth the shaft has
+## already reached, so it asks nothing new of the player.
+const CORE_LEVELS := 8
+## The level at which the Core reaches its full size; above it, it grows in
+## light and energy rather than in size, so it never covers its ring.
+const CORE_FULL_SIZE_LEVEL := 5
 
 
 static func core_level() -> int:
-	return 1 + clampi(Sim.max_depth, 0, CORE_LEVELS - 1)
+	return level_at(Sim.max_depth)
+
+
+## The Core grows with its yard: one level for every ring of ground round it,
+## so each widening of the yard is also the Core growing (1 at the start, 5
+## at stratum 7, 8 at stratum 16).
+static func level_at(max_depth: int) -> int:
+	return clampi(BuildArea.radius_at(max_depth), 1, CORE_LEVELS)
+
+
+## The first stratum at which the Core reaches `level` (-1 past the last).
+static func stratum_for_level(level: int) -> int:
+	if level > CORE_LEVELS:
+		return -1
+	for d in range(0, 200):
+		if level_at(d) >= level:
+			return d
+	return -1
 
 
 func core_rect() -> Rect2:
@@ -1212,8 +1233,8 @@ func core_rect() -> Rect2:
 	if info.is_empty():
 		return Rect2(core_center(), Vector2.ZERO)
 	var n: float = float(IsoArt.placement().get("core_size", 3))
-	# A level-1 Core is 84% of the full one; each level adds 4%.
-	var grow: float = 0.84 + 0.04 * float(core_level() - 1)
+	# A level-1 Core is 84% of the full one; each level adds 4%, up to full.
+	var grow: float = 0.84 + 0.04 * float(mini(core_level(), CORE_FULL_SIZE_LEVEL) - 1)
 	var s: float = n * Iso.TW * 0.86 / IsoArt.base_px(info) * grow
 	var cell: Array = info["cell"]
 	var a: Vector2 = IsoArt.anchor(info)
@@ -1512,7 +1533,29 @@ func _draw_core_level(ci: CanvasItem, g: Texture2D, cr: Rect2) -> void:
 	if lvl >= 5:
 		var tip := Vector2(cr.get_center().x, cr.position.y + cr.size.y * 0.12)
 		var f: float = maxf(sin(_anim * 0.8), 0.0)
-		_mote(ci, g, tip, 60.0 + 50.0 * f, Color(0.6, 0.9, 1.0, 0.25 * f))
+		# From level 8 the crystal never goes dark between flares.
+		var floor_a: float = 0.12 if lvl >= 8 else 0.0
+		_mote(ci, g, tip, 60.0 + 50.0 * f, Color(0.6, 0.9, 1.0, floor_a + 0.25 * f))
+	if lvl >= 6:
+		# A column of light rising from the crystal, taller and brighter at
+		# each level: it stands above everything on the board, so it reads
+		# from any zoom, where a ring on the ground would be under the
+		# machines round the Core.
+		var top := Vector2(cr.get_center().x, cr.position.y + cr.size.y * 0.12)
+		var steps: int = 3 + 2 * (lvl - 6)
+		var pulse2: float = 0.8 + 0.2 * sin(_anim * 1.4)
+		for i in range(steps):
+			var up: float = float(i) / float(steps)
+			var p3: Vector2 = top - Vector2(0, cr.size.y * 0.16 * float(i))
+			var r3: float = cr.size.x * (0.2 - 0.1 * up)
+			_mote(ci, g, p3, r3, Color(0.5, 0.9, 1.0, (0.5 - 0.35 * up) * pulse2))
+	if lvl >= 7:
+		# A second, higher orbit.
+		var hi: Vector2 = cr.position + cr.size * Vector2(0.5, 0.25)
+		for k in range(3):
+			var a3: float = -_anim * 1.3 + TAU * float(k) / 3.0
+			_mote(ci, g, hi + Vector2(cos(a3) * cr.size.x * 0.3, sin(a3) * cr.size.x * 0.1), 18.0,
+				Color(0.7, 0.95, 1.0, 0.75))
 
 
 ## The Core's conduits into the yard, from level 2: lit lines on the floor
@@ -1567,10 +1610,11 @@ func _receiving(cell: int) -> bool:
 const STEAMERS := ["smelter", "boiler", "press", "condenser"]
 
 func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
-	if not effects:
-		return
-	_draw_work(ci, g)
-	for cell: int in Sim.grid.cells:
+	# Settings' "Machine effects" is the machines' own: their work and their
+	# steam. The crystals, the lamps and the Core stay lit either way.
+	if effects:
+		_draw_work(ci, g)
+	for cell: int in (Sim.grid.cells if effects else {}):
 		var id: String = Sim.grid.machine_at(cell)
 		var st: int = Sim.sim.status_of(cell)
 		var shown: int = badges.shown(cell)
