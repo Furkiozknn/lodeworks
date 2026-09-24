@@ -365,11 +365,14 @@ func _build() -> void:
 	# The standard mobile pattern: the thing that just happened, and one tap to
 	# take it back, for a few seconds. Cheaper than a confirmation on every
 	# placement and far cheaper than a mis-tap the player cannot reverse.
-	_undo_btn = _button("Undo", Palette.PANEL_HI)
-	_undo_btn.add_theme_color_override("font_color", Palette.TEXT)
+	_undo_btn = _button("", Palette.PANEL_HI)
+	_undo_btn.tooltip_text = "Undo"
 	_undo_btn.visible = false
 	_undo_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_undo_btn.custom_minimum_size = Vector2(140, MIN_TOUCH)
+	_undo_btn.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
+	var undo_mark := Chips.Glyph.new("undo", 60.0)
+	undo_mark.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_undo_btn.add_child(undo_mark)
 	_undo_btn.pressed.connect(_do_undo)
 	_hud.add_child(_undo_btn)
 

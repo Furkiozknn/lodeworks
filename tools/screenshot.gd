@@ -480,6 +480,7 @@ func _run_first() -> void:
 ##                lines that need Cores first
 ##   ui_collapse, ui_collapse_locked  the trade, and the locked card
 ##   ui_codex_makers, ui_codex_boosters, ui_codex_rules  the Codex
+##   ui_undo         the Undo key after a placement
 ##   ui_stratum      the stratum card opened: band, quota, rules
 ##   ui_settings_*   Settings, one shot per group
 ##   ui_band_banner  a new band's name as a descent reaches it
@@ -524,6 +525,12 @@ func _run_ui() -> void:
 			await _audit_shot(String(t[1]))
 		cx.queue_free()
 		await _settle(0.2)
+	# The Undo key, as it shows for a few seconds after a placement.
+	_main.call("_push_undo", {"kind": "place", "cell": -1, "price": 0.0})
+	await _settle(0.3)
+	await _audit_shot("ui_undo")
+	_main.set("_undo_time", 0.01)
+	await _settle(0.2)
 	# The stratum card, opened: the band, the quota and the rules.
 	_main.call("_show_stratum_info")
 	await _settle(0.6)

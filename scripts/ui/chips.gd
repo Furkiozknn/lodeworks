@@ -122,7 +122,7 @@ class Switch extends Control:
 
 ## A sign drawn in lines, for the few things the icon sheet has no picture of:
 ## "speaker", "wave", "screen", "sparkle", "battery", "hand", "vibrate",
-## "person", "zoom", "motion", "bin".
+## "person", "zoom", "motion", "bin", "undo".
 class Glyph extends Control:
 	var kind: String = ""
 	var col := Palette.TEXT
@@ -193,6 +193,12 @@ class Glyph extends Control:
 				draw_line(_p(0.6, 0.6), _p(0.84, 0.84), col, w * 1.6)
 				draw_line(_p(0.3, 0.42), _p(0.54, 0.42), acc, w)
 				draw_line(_p(0.42, 0.3), _p(0.42, 0.54), acc, w)
+			"undo":
+				# A hooked arrow turning back on itself.
+				draw_arc(_p(0.52, 0.56), s * 0.24, -PI * 0.95, PI * 0.55, 24, col, w * 1.4, true)
+				var tip: Vector2 = _p(0.52, 0.56) + Vector2(cos(-PI * 0.95), sin(-PI * 0.95)) * s * 0.24
+				draw_colored_polygon(PackedVector2Array([tip + Vector2(-s * 0.13, 0.0),
+					tip + Vector2(s * 0.1, -s * 0.14), tip + Vector2(s * 0.1, s * 0.12)]), col)
 			"bin":
 				var red := Palette.BAD
 				draw_line(_p(0.22, 0.26), _p(0.78, 0.26), red, w * 1.3)
