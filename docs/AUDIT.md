@@ -993,6 +993,26 @@ KB, and the feature graphic is 1024 x 500 with no alpha. With the icon
 redrawn, nothing used `MachineArt` any more. It was removed, and its test
 now checks that every machine has a picture in the machine sheet.
 
+### What the overnight round cost the frame
+
+The perf probe (`LODEWORKS_SOAK=20`, hero board) was run on `9d82995`,
+where the round started, and on `d15ae35`, back to back on the same
+desktop:
+
+| | 9d82995 | d15ae35 |
+|---|---|---|
+| idle frame p50 / p95 | 11.68 / 15.19 ms | 11.86 / 15.66 ms |
+| 20 s soak p50 | 11.32 ms | 11.57 ms |
+| draw calls, idle | 148 | 165 |
+| nodes | 185 | 209 |
+| static memory | 46.1 MB | 47.2 MB |
+| texture memory | 34.0 MB | 33.4 MB |
+
+Most of the extra draw calls come from the wider yard at stratum 7, which
+has more lit tiles, and from the tray's group signs. The frame is 0.2 ms
+slower, which is inside the probe's run-to-run spread on this machine. A
+phone is still UNKNOWN.
+
 ### World colour: tried and put back
 
 The world's saturation is 0.40 to 0.43, and the reference concepts sit at
