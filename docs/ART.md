@@ -46,7 +46,9 @@ inconsistency the eye catches first.
 - **Pan** 1:1 with the finger (no easing while it is down), a **fling** that
   coasts after release, **pinch** and **wheel** zoom about the point under
   them, the zoom key gliding between the whole factory and a close view.
-- **Zoom** 0.42 to 1.6. The default frames the board and the Core in the
+- **Zoom** 0.42 to 1.6. While the yard (the ground a shaft may build on,
+  `BuildArea`) is smaller than the board, the default frames the Core and
+  the yard, up to zoom 1.15; after that it frames the board and the Core in the
   space the HUD leaves free.
 - **Bounds**: the camera never shows anything outside the painting, at any
   zoom, aspect ratio or fling (`test_the_camera_never_shows_the_void` checks
@@ -72,7 +74,7 @@ Back to front, each a layer of `IsoView`:
 | floor | the slab's two front faces, 70 floor slabs, the iron rim with brass rivets, the expansion plot, marks, contact shadows, pipes | one textured and two untextured batches |
 | floor light | each working machine's light pool, hot machines' orange pool, the rim lamps | additive |
 | things | machines, props and the Core, sorted by slab depth | one atlas: the machines batch |
-| light | machine cores, flow along seams, steam, embers, crystals, the Core's crystal, dust | additive |
+| light | machine cores, flow along seams, each machine's own work (dust, stamps, sparks, mist, coins, welding, pulses), steam, embers, crystals, the Core's crystal and level, dust | additive |
 | overlay | badges, flow beads, notches, previews, numbers, the selected machine's links | screen space, fixed size |
 
 **The slab** is 12 x 12 cells. The board sits at slab (4, 1); the Factory
@@ -83,6 +85,24 @@ it set the view's height (docs/AUDIT.md, "The default view").
 Slab (1..3, 1..7) is **the expansion plot**: dimmed, outlined in dashes,
 with a padlocked barrier at each end. It is visual only -- no rule reads
 it -- and it is where a future expansion mechanic would open ground.
+
+**The Core's states.** A shaft opens with its Core dark (cool grey, no
+crystal light, a target pulsing on its body). A tap brings it online with a
+flare.
+
+**The Core's levels.** Levels run from 1 to 5, one per stratum. A level-1
+Core is drawn at 84% of its picture and each level adds 4%. From level 2 it
+has a halo and conduits of light into the yard beside it, from level 3
+orbiting motes, and at level 5 a slow flare.
+
+**The yard.** Ground outside the yard is drawn at about 45% brightness.
+The yard's inner edge is a lit accent line. When the yard grows, the new
+tiles flare in a wave outwards from the old edge.
+
+**The world's grade.** The painting and the ground go through a small grade
+in their own shader: saturation x1.28-1.30 and a warm tint. That keeps them
+nearer the concept's warmth without touching the machines, the lights or
+the interface (docs/AUDIT.md, "The world's colour").
 
 **Props** (crystals, an ore vein, rubble, lamps, a crate, a steam vent) are
 hand-placed in `layout.json` -> `placement.props`.

@@ -7,12 +7,22 @@ Not published. This repository is a working game, a test suite that checks the
 *balance* and not only the code, and everything needed to put it on Google Play
 except the things only a human with a bank account can do.
 
-![The main screen: a factory on a floating island over a canyon](docs/media/main-landscape.jpg)
+![A new game: the Factory Core, still dark, beside the small lit yard](docs/media/first-screen.jpg)
+
+![The same shaft seven strata down](docs/media/main-landscape.jpg)
 
 A landscape, three-quarter isometric world: a painted canyon with parallax, a
 rock island floating in it, a stone slab on the island, the 7x10 board on the
-slab and the Factory Core standing behind it. Drag to pan, pinch or wheel to
-zoom, tap to place, tap a machine to select it and drag it to move it. The
+slab and the Factory Core standing beside it.
+
+**A shaft starts small.** The Core is dark, and a tap brings it online and
+pays for the first Drill and Vault. A 4 x 4 yard beside it is all the
+ground there is to build on at first. Every stratum the shaft goes down
+widens the yard, and the Core grows with it, until the whole board is
+open.
+
+Drag to pan, pinch or wheel to zoom, tap to place, tap a machine to select
+it and drag it to move it. The
 simulation underneath is the one the tests below check; the screen only reads
 it. ([docs/ART.md](docs/ART.md) is the visual system,
 [docs/AUDIT.md](docs/AUDIT.md) section 0 what it was measured to cost.)
