@@ -571,6 +571,78 @@ On a phone, that read uses Godot's GLES3 framebuffer readback. It has not
 run on a device. If it returned nothing, the pick would fall back to the
 tile rule, which is also tested.
 
+### Overnight round: what already existed (24 September 2026)
+
+Read before any code of the overnight round: the docs, `layout.json`, the
+scripts and the 22 commits this branch is ahead of `main` (`015fc85` to
+`b8643f0`). The overnight brief repeats requests from earlier rounds, so
+each one is sorted here first. Nothing marked DONE was rebuilt.
+
+| brief item | state | evidence |
+|---|---|---|
+| P0 first minute: dark Core, power it, first income, first machine, first goal | DONE | `568a859`, `da2f1e2`, `f017d41`; "The first minute" above. Re-measured below, not rebuilt |
+| P1 the world as the screen: HUD share, board share, safe areas | DONE | `99c2393`; the layout check prints `hud%` and checks 11 shapes x 3 safe areas |
+| P2 camera: pinch, pan, fling, wheel, invisible bounds | DONE | `c10ae71`, `fbc9ad5`, `c6124a9`; `tests/test_iso.gd` |
+| P2 touch: the tap takes the machine it is on | DONE | `848bad3`, 86.0% at a 1.5 mm finger spread |
+| P2 the +/- key | PARTIAL | one key that toggles between the framed view and 1.6x zoom; decided this round |
+| P3 the Factory Core as the centre that grows | DONE | `c3dc4fe`: five levels by stratum, size, light, conduits |
+| P3 locked ground that shows the future | DONE | `c6124a9`, `a22dbbb`: the ring round the Core, grey tiles, the stratum shown on a tap |
+| P4 placing: preview, move, remove, undo | DONE | placement preview with heat and boost numbers (`test_the_placement_preview_tells_the_truth`) |
+| P4 machine categories | MISSING | the tray is in unlock order; this round |
+| P5 pipes: seams, flow beads, light over machines, stall tint, selected links on top | DONE | `3f8df0b`, `iso_view._pipe`, `_selected_links` |
+| P6 progressive HUD | DONE | `99c2393` |
+| P6 warning escalation | MISSING | a count on the key, dimmed at zero; nothing grows with the count |
+| P6 the flame key | PARTIAL | toggles the heat view; its picture never changes |
+| P7 Research as picture cards, three to a row | DONE | `b8643f0`, this round |
+| Collapse as a card | PARTIAL | icons since `9d82995`; the card this round |
+| P8 Codex | PARTIAL | 12 concept pages with running boards and long sentences; no page per machine |
+| P9 Settings | PARTIAL | one column with sound, haptics, statistics, ad privacy, shop, Codex and self test; no groups |
+| P10 Descend | PARTIAL | a 1.4 s dive, a tint per depth band, next unlocks on the key; the pace between descents gets faster, not slower (measured below) |
+| P11 machines at work | DONE | `b33c28a`: each type has its own movement |
+| P12 world colour | PARTIAL | saturation 0.467 against 0.55 in the reference (`d0af932`) |
+| the unlock as a reward moment | DONE | `e1735f0`, the NEW! card |
+| 55 x 55 world | SUPERSEDED | the owner chose 44 x 44 (`c6124a9`) |
+
+Duplicates and dead systems found:
+- **Two machine renderers.** `MachineArt` draws machines from rectangles.
+  The game draws them from the sprite sheets, and `MachineArt` is left only
+  in the icon and feature graphic tool (`tools/brand_painter.gd`). So the
+  store icon shows machines the game no longer has. It is store work (P13)
+  and was not touched.
+- **Blueprints.** The simulation, a research line and the Licence all add
+  blueprint slots, but no screen saves or loads a blueprint. It is listed
+  under "What is still UNKNOWN" as the owner's decision.
+
+**The brief used Clash of Clans as a reference for habits, not content.**
+This is how its habits map onto the factory, and where each one stands.
+
+| habit | in Lodeworks | state |
+|---|---|---|
+| a central building everything grows round | the Factory Core in the middle of the 44 x 44 board | DONE |
+| building level readable from the picture | the Core's five levels; machine upgrade marks in the sheets | DONE |
+| locked land that shows what is coming | the yard ring, grey tiles, "reaches here at stratum N" | DONE |
+| select, then information, then action | tap a machine: the sheet with its picture, recipe, gauges and "?" | DONE |
+| a big main action where the thumb is | DESCEND, bottom right, with the next unlocks on it | DONE |
+| a small goal always in view | the quota bar and the tutorial line | DONE |
+| a new building as a reward | the NEW! card, then the machine waiting in the tray | DONE |
+| upgrades as picture cards | Research grid | DONE this round |
+| builder-style categories | machine groups in the tray and the Codex | this round |
+| alerts that grow with the trouble | the problem key | this round |
+
+**The first five minutes, re-measured** with the journey lab's first half
+hour (`LODEWORKS_JOURNEY=first`) and the `first` screenshots:
+
+| time | what the player has | what tells them the next step |
+|---|---|---|
+| 0-10 s | a dark Core in the middle of the rock | the Core glows and the tutorial line says to tap it |
+| 10-30 s | the Core running, 40 credits banked | the lit ring round the Core and the pulsing Drill in the tray |
+| 30-60 s | Drill and Vault; the first credit 2.1 s after both stand | the next tutorial line, and the counter rising |
+| 1-3 min | 3 machines at 1 min, 14 at 3 min | the quota bar filling; the first descent at 178 s |
+| 3-5 min | stratum 1, a wider yard, Smelter and Boiler | the NEW! card, then the machines waiting in the tray |
+
+Nothing in it blocked the first descent, so the opening was not rebuilt.
+The pace after it is not right, and is the Descend item below.
+
 ### The panels, shown before they are read
 
 The rule for this pass: the player should see a panel before reading it.
