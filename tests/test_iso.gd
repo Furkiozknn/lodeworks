@@ -548,3 +548,17 @@ func test_a_growing_yard_lights_exactly_the_new_ground() -> void:
 	v.free()
 	Sim.max_depth = int(keep[0])
 	Sim.collapses = int(keep[1])
+
+
+func test_a_descent_into_a_new_band_takes_longer_than_one_inside_it() -> void:
+	# Going down a stratum should feel like going somewhere, and going into a
+	# new band like arriving in a new world -- without ever making a player
+	# wait on it.
+	runner.near(IsoView.dive_seconds(1), 1.43, 0.05, "the first descents are quick")
+	for d in [4, 10, 17]:
+		runner.near(IsoView.dive_seconds(d), 2.6, 0.001,
+			"stratum %d opens a new band and gets the long plunge" % d)
+	runner.gt(IsoView.dive_seconds(16), IsoView.dive_seconds(2),
+		"a deep descent takes longer than a shallow one")
+	for d in range(1, 60):
+		runner.lte(IsoView.dive_seconds(d), 2.6, "stratum %d: a plunge, not a wait" % d)

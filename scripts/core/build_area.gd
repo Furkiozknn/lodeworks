@@ -7,9 +7,9 @@ extends RefCounted
 ## The Core stands on a 4 x 4 block at the centre of the board (CORE), the
 ## way a base-building map puts its main building. Nothing is built on it.
 ## Round it lies the yard: every tile within `radius_at(depth)` tiles of the
-## Core. A new shaft opens a one-tile ring -- twenty tiles -- and every
-## stratum it goes down widens the ring by one, so the factory visibly grows
-## outwards from its Core until, twenty strata down, the whole board is open.
+## Core. A new shaft opens a one-tile ring -- twenty tiles -- and the ring
+## widens as the shaft goes down, so the factory visibly grows outwards from
+## its Core until, deep enough, the whole board is open.
 ## The rest of the board is ground the factory has not reached yet.
 ##
 ## It is a rule about where a new machine may go, and only that. A machine
@@ -25,21 +25,21 @@ const MAX_RADIUS := 20
 ## How many tiles beyond the Core the yard reaches at this stratum. The same
 ## for every shaft, the first and every one after a collapse.
 ##
-## One ring at the start (20 tiles), two at stratum 1 (48), three from
-## stratum 2 (84); then one more ring every EXTRA_EVERY strata from stratum
-## 10. Room is what paces a shaft: the 7 x 10 board this replaced held 70
-## machines, and its balance was measured against that, so the yard stays
-## near it through the first hour and grows past it only deep down
-## (docs/AUDIT.md, "The 44 x 44 board").
-const EXTRA_EVERY := 4
+## One ring at the start (20 tiles), two at stratum 1 (48), three at 2
+## (84), four at 4 (128), five at 7 (180), then one more every EXTRA_EVERY
+## strata from stratum 10. Going down pays in ground as well as machines,
+## so the middle of a shaft always has somewhere new to build. The quota
+## climbs faster than the room (`Strata.quota_for`), which is what makes a
+## deep stratum take longer than a shallow one (docs/AUDIT.md, "Descend:
+## the pace").
+const RINGS := [1, 2, 3, 3, 4, 4, 4, 5, 5, 5]
+const EXTRA_EVERY := 3
 
 static func radius_at(max_depth: int) -> int:
 	var d: int = maxi(max_depth, 0)
-	if d < 2:
-		return 1 + d
-	if d < 10:
-		return 3
-	return mini(4 + (d - 10) / EXTRA_EVERY, MAX_RADIUS)
+	if d < RINGS.size():
+		return int(RINGS[d])
+	return mini(6 + (d - RINGS.size()) / EXTRA_EVERY, MAX_RADIUS)
 
 
 static func is_core(cell: int) -> bool:

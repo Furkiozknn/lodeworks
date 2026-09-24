@@ -759,9 +759,8 @@ func test_a_new_shaft_builds_in_a_small_yard_round_the_core() -> void:
 	runner.check(Sim.try_place(Grid.idx(19, 21), "drill"), "inside, it can")
 	runner.check(not Sim.move_machine(Grid.idx(19, 21), Grid.idx(4, 2)),
 		"nor can one be moved out of it")
-	# The ring widens at strata 1 and 2, holds near the old board's 70 tiles
-	# through the first hour, then keeps widening deep down until it is the
-	# whole board. It never shrinks.
+	# The ring widens early and through the middle of a shaft, then every
+	# few strata deep down until it is the whole board. It never shrinks.
 	var sizes: Array[int] = []
 	for d in range(0, 80):
 		var n: int = 0
@@ -770,8 +769,9 @@ func test_a_new_shaft_builds_in_a_small_yard_round_the_core() -> void:
 		sizes.append(n)
 	runner.eq(sizes[1], 48, "stratum 1: two rings, 48 tiles")
 	runner.eq(sizes[2], 84, "stratum 2: three rings, 84 tiles")
-	runner.eq(sizes[9], 84, "held there to stratum 9")
-	runner.gt(float(sizes[10]), 84.0, "and wider from stratum 10")
+	runner.eq(sizes[4], 128, "stratum 4: four rings, 128 tiles")
+	runner.eq(sizes[7], 180, "stratum 7: five rings, 180 tiles")
+	runner.gt(float(sizes[10]), 180.0, "and wider from stratum 10")
 	for d in range(1, sizes.size()):
 		runner.gte(float(sizes[d]), float(sizes[d - 1]), "stratum %d never shrinks it" % d)
 	runner.eq(sizes[sizes.size() - 1], Grid.W * Grid.H - 16,

@@ -299,7 +299,9 @@ base-building map. It is now:
 whole 44 x 44 open, the journey lab's competent player never runs out of
 room. After half an hour it had 130 machines at stratum 13; on the 7 x 10
 board it had 70 at stratum 5. So the yard is held at 84 tiles, near the old
-board's 70, until stratum 10.
+board's 70, until stratum 10. (Changed in the overnight round: the lab
+player behind these numbers paid for machines it could not place, which
+hid the real pace. See "Descend: the pace".)
 
 | descend to | 7 x 10 board | 44 x 44, this yard |
 |---|---|---|
@@ -756,6 +758,73 @@ Tests check that every page has a short line and a short title. The smoke
 test checks one key per group, every machine on its own group's page
 exactly once, and every reached rule page shown.
 
+### Descend: the pace
+
+The brief asked for quick early descents and noticeably longer ones in the
+middle and late game, with no waiting for its own sake. The pace was
+measured first, with the journey lab's player over its first hour
+(`LODEWORKS_JOURNEY=first LODEWORKS_JOURNEY_SECONDS=3600`).
+
+**The lab had a bug that hid the real pace.** Its player paid for a machine
+before looking for a tile, so once the yard was full it threw its credits
+away every half second. That read as a wall at stratum 7, which the game
+does not have: `Sim.try_place` refuses a closed tile without charging.
+With the bug fixed, the real curve got faster, not slower, in the middle:
+
+| stratum reached | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| before, seconds taken | 178 | 155 | 79 | 81 | 68 | 131 | 73 | 46 | 17 | 23 | 33 | 47 | 338 |
+| after, seconds taken | 178 | 156 | 117 | 123 | 122 | 246 | 144 | 187 | 333 | 495 | 732 | | |
+
+There were two causes:
+- **The yard stopped at 84 tiles from stratum 2 to 10.** Once it was full
+  there was nothing to spend on, so credits piled up.
+- **The quota grew more slowly than income.** It grew 1.55x a stratum.
+  Deeper rock pays more (`Strata` richness), so a full yard cleared each
+  new quota faster than the one before.
+
+What changed:
+- **The quota grows 1.8x a stratum** (`Strata.quota_for`). The first quota
+  is unchanged.
+- **The yard keeps growing through the middle.** It is three rings at
+  stratum 2, four at 4, five at 7, then one more every three strata from
+  10 (`BuildArea.RINGS`). A descent gives ground as well as a machine, so
+  a longer stratum has building in it, not waiting.
+- **The default view stops at zoom 0.6, not 0.55.** The wider yard at
+  stratum 14 otherwise made a tile 17.9 dp on a 16:9 1080p phone. The
+  layout check's floor is 19 dp.
+
+After the change, the first three strata still take two to three minutes.
+Strata 4 to 8 take two to four minutes each, and from stratum 9 each takes
+five minutes or more. The lab's player reaches stratum 11 in its first
+hour, where before it reached 17.
+
+The cost is paid in the prestige loop:
+
+| lab's full run (raw lines) | before | after |
+|---|---|---|
+| time to the end of a run | 49 min | 1 h 30 min |
+| depth reached | 14 | 12 |
+| lifetime credits | 374K | 1.29M |
+| Cores for collapsing there | 46 | 46 |
+
+A collapse pays the same Cores for a run about 1.8 times as long, so Cores
+per hour fall by roughly 45%. Raising the collapse payout would restore
+them. That is an economy decision this round did not make, and it is
+listed under "What is still UNKNOWN". The test that stops the curve walling
+out (`test_the_curve_does_not_wall_out_by_depth_twenty`, under 12 hours
+at stratum 20) still passes. Both changes are single constants and can be
+put back.
+
+**The plunge itself.** A descent used to plunge the world for 1.4 s at
+every depth. Now it takes 1.4 s near the surface and up to 2.0 s deep
+down. Going into a new band (the Workings, the Deep, the Abyss) takes
+2.6 s, and the band's name crosses the screen in its own light
+(`ui_band_banner.png`). The plunge waits while the NEW! card covers the
+world, so the player sees it instead of it happening behind the card. The
+board keeps running and takes taps throughout; `test_a_descent_into_a_new_band_takes_longer_than_one_inside_it`
+caps it at 2.6 s.
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock
@@ -860,6 +929,9 @@ Updated 24 September 2026, after the landscape round:
   input-latency and touch figure is UNKNOWN.
 - No purchase has ever been made in a real store, and no ad has ever been
   served.
+- The descent pace (above) makes a run about 1.8 times as long for the
+  same Cores. Whether the collapse payout should rise to match is the
+  owner's decision.
 - Drafting Table (research) and the Licence's extra blueprint slots sell
   something no screen uses: there is no way to save or load a blueprint.
   Either the blueprint screen gets built or the line comes out. That is the

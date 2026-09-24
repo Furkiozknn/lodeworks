@@ -95,10 +95,16 @@ const MODIFIER_IDS := ["thermal_vent", "coolant_seep", "brittle", "dense",
 ## The quota curve. Deliberately super-linear but not brutal: the first few
 ## strata should fall in a single session so the player learns the loop, and by
 ## depth 20 a descent should be an evening's project rather than a tap.
+## Credits it costs to leave a stratum. It grows 1.8x a stratum; it was
+## 1.55x until 24 September 2026. The journey lab's player measured the old
+## curve getting faster, not slower, past the first strata: 17 to 47 seconds
+## each for strata 8 to 12. At 1.8x the first strata take two to three
+## minutes, the middle three to four, and from stratum 9 five minutes and
+## more (docs/AUDIT.md, "Descend: the pace").
 static func quota_for(depth: int) -> float:
 	if depth <= 0:
 		return 60.0
-	return 60.0 * pow(1.55, float(depth)) + 40.0 * float(depth)
+	return 60.0 * pow(1.8, float(depth)) + 40.0 * float(depth)
 
 
 static func modifiers_for(depth: int) -> Array[String]:

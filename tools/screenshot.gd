@@ -479,6 +479,7 @@ func _run_first() -> void:
 ##                lines that need Cores first
 ##   ui_collapse, ui_collapse_locked  the trade, and the locked card
 ##   ui_codex_makers, ui_codex_boosters, ui_codex_rules  the Codex
+##   ui_band_banner  a new band's name as a descent reaches it
 func _run_ui() -> void:
 	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
 	_apply_build("hero")
@@ -519,6 +520,12 @@ func _run_ui() -> void:
 			await _audit_shot(String(t[1]))
 		cx.queue_free()
 		await _settle(0.2)
+	# A new band's name across the world, as a descent into the Workings
+	# shows it.
+	_main.call("_band_banner", 1)
+	await _settle(0.9)
+	await _audit_shot("ui_band_banner")
+	await _settle(2.4)
 	print("wrote the panel screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 

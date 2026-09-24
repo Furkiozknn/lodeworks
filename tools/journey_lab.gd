@@ -144,8 +144,14 @@ class Run extends RefCounted:
 		var price: float = cost(want)
 		if credits < price:
 			return false
+		# Paid only for a machine that found a tile. Paying first threw the
+		# price away every beat once the yard was full, which read as a wall
+		# at stratum 7 that the game does not have: `Sim.try_place` refuses
+		# a closed tile without charging.
+		if not place_best(want):
+			return false
 		credits -= price
-		return place_best(want)
+		return true
 
 	## Build the board the row plan describes, cheapest missing tile first.
 	func try_build_rows(rows: Array) -> bool:
@@ -271,12 +277,19 @@ func _first_session() -> void:
 	r.grid.place(Grid.idx(19, 22), "vault")
 	r.placed = 2
 	var marks := [10.0, 60.0, 180.0, 600.0, 1800.0]
+	# LODEWORKS_JOURNEY_SECONDS runs the same player for longer, to see the
+	# pace past the first half hour.
+	var horizon: float = maxf(float(OS.get_environment("LODEWORKS_JOURNEY_SECONDS")), 1800.0)
+	if horizon > 1800.0:
+		marks.append(horizon)
 	var mark: int = 0
 	var events: Array = []
+	var gaps: Array[String] = []
+	var last_t: float = 0.0
 	var last_depth: int = 0
 	var t: float = 0.0
 	var beat: int = 0
-	while t < 1800.0:
+	while t < horizon:
 		r.tick()
 		t += Simulation.TICK_DT
 		beat += 1
@@ -287,6 +300,8 @@ func _first_session() -> void:
 					unlocked.append(id)
 			events.append("%6.0fs  descend to stratum %d  (%d machines)%s" % [t, r.depth,
 				r.placed, "" if unlocked.is_empty() else "  UNLOCKS " + ", ".join(unlocked)])
+			gaps.append("%d:%.0f" % [r.depth, t - last_t])
+			last_t = t
 			last_depth = r.depth
 		if beat % 5 == 0:
 			var up: String = r.try_upgrade()
@@ -303,8 +318,9 @@ func _first_session() -> void:
 	for e: String in events:
 		print("   " + String(e))
 	print("")
-	print("   after 30 minutes: stratum %d, %d machines, collapse %s"
-		% [r.depth, r.placed,
+	print("   seconds per stratum (reached:taken): " + " ".join(gaps))
+	print("   after %s: stratum %d, %d machines, collapse %s"
+		% [Economy.fmt_duration(horizon), r.depth, r.placed,
 			"available (%d Cores)" % r.pending_cores() if Economy.can_collapse(
 				r.max_depth) else "not yet"])
 

@@ -87,6 +87,8 @@ var _sheet_body: VBoxContainer
 var _sheet_stats: VBoxContainer
 var _sheet_title: Label
 var _sheet_art: Control
+## A band the shaft has just entered, waiting for the view to clear (-1: none).
+var _band_news: int = -1
 ## The open overlay's scroller, so a panel rebuilt in place keeps its place.
 var _overlay_scroll: ScrollContainer
 var _sheet_status: Control
@@ -129,7 +131,11 @@ func _ready() -> void:
 			_yard_news = "Stratum %d. The yard is bigger: more ground to build on." % d
 			call_deferred("_tell_yard_news")
 		elif d > 0:
-			_say("Stratum %d. Richer rock, stranger rules." % d, Foreman.Pose.JUMP, 3.5))
+			_say("Stratum %d. Richer rock, stranger rules." % d, Foreman.Pose.JUMP, 3.5)
+		# A new band is a new world: its name, big, once the view is clear.
+		if d > 0 and int(Palette.band_at(d)[0]) != int(Palette.band_at(d - 1)[0]):
+			_band_news = int(Palette.band_at(d)[0])
+			call_deferred("_tell_yard_news"))
 	Sim.machines_unlocked.connect(_on_unlocked)
 	Sim.offline_earnings.connect(_show_offline)
 	Sim.collapsed.connect(_on_collapsed)
@@ -1367,10 +1373,36 @@ func _close_overlay() -> void:
 
 
 func _tell_yard_news() -> void:
-	if _yard_news == "" or _overlay.visible:
+	if _overlay.visible:
+		return
+	if _band_news >= 0:
+		_band_banner(_band_news)
+		_band_news = -1
+	if _yard_news == "":
 		return
 	_say(_yard_news, Foreman.Pose.JUMP, 4.0)
 	_yard_news = ""
+
+
+## The name of the band the shaft has just gone down into, across the
+## middle of the screen in its own light, while the world changes colour
+## behind it. It fades on its own and takes no taps.
+func _band_banner(band: int) -> void:
+	var l := _label(String(BAND_NAMES[band]).to_upper(), 64, Color(Palette.BAND_VEIN[band]).lightened(0.25))
+	l.add_theme_constant_override("outline_size", 12)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.offset_bottom = -size.y * 0.18
+	l.modulate.a = 0.0
+	add_child(l)
+	var tw := l.create_tween()
+	tw.tween_property(l, "modulate:a", 1.0, 0.5)
+	tw.tween_interval(1.6)
+	tw.tween_property(l, "modulate:a", 0.0, 0.9)
+	tw.tween_callback(l.queue_free)
 
 
 ## A centred card over a dimmed world. Sized from the screen, and its body

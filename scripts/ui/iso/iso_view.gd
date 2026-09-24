@@ -47,7 +47,7 @@ const CORE := -2
 const YARD_ZOOM_MAX := 1.15
 ## The farthest the default view goes: a tile is still about 20 dp on a
 ## phone. A bigger yard is framed on the Core and panned for the rest.
-const DEFAULT_ZOOM_MIN := 0.55
+const DEFAULT_ZOOM_MIN := 0.6
 
 enum Overlay { NONE, HEAT }
 
@@ -132,7 +132,7 @@ var _band_target := Color.WHITE
 var _framed: bool = false
 ## 1 -> 0 over a descent: the canyon drops away and the light changes.
 var _dive: float = 0.0
-const DIVE_SECONDS := 1.4
+var _dive_seconds: float = 1.4
 
 
 func _ready() -> void:
@@ -183,6 +183,7 @@ func _ready() -> void:
 		_band_target = band_tint(d)
 		if d > 0:
 			_dive = 1.0
+			_dive_seconds = dive_seconds(d)
 		# A bigger yard: the new ground lights up, and the view glides out to
 		# take it in.
 		var grown: Vector2i = BuildArea.size_at(Sim.max_depth, Sim.collapses)
@@ -361,6 +362,16 @@ func default_zoom() -> float:
 	var r: Rect2 = frame_rect()
 	return clampf(cam.clamp_zoom(minf(fr.size.x / r.size.x, fr.size.y / r.size.y)),
 		DEFAULT_ZOOM_MIN, YARD_ZOOM_MAX)
+
+
+## How long the plunge into stratum `depth` takes: 1.4 s near the surface,
+## a little longer the deeper it goes, and 2.6 s into a new band -- the
+## Workings, the Deep, the Abyss -- where the whole world changes colour.
+## Never long enough to wait on: the board keeps running and takes taps.
+static func dive_seconds(depth: int) -> float:
+	if depth > 0 and int(Palette.band_at(depth)[0]) != int(Palette.band_at(depth - 1)[0]):
+		return 2.6
+	return lerpf(1.4, 2.0, clampf(float(depth) / 20.0, 0.0, 1.0))
 
 
 ## Descending has to look like going somewhere. One painting, tinted per band:
@@ -559,7 +570,10 @@ func _process(delta: float) -> void:
 	for n: Node2D in [_ground, _floor, _floor_glow, _things, _glow]:
 		n.transform = t
 	_band_tint = _band_tint.lerp(_band_target, 1.0 - exp(-delta * 2.5))
-	_dive = maxf(_dive - delta / DIVE_SECONDS, 0.0)
+	# Held while a card covers the world, like the yard's wave: the plunge
+	# is for seeing.
+	if not hold_effects:
+		_dive = maxf(_dive - delta / _dive_seconds, 0.0)
 	_core_flash = maxf(_core_flash - delta / 1.6, 0.0)
 
 	if _pressed and not _panning and not _dragging and not _long_fired \
