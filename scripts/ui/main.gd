@@ -87,6 +87,9 @@ var _sheet_body: VBoxContainer
 var _sheet_stats: VBoxContainer
 var _sheet_title: Label
 var _sheet_art: Control
+var _sheet_status: Control
+## The words behind the detail sheet's "?".
+var _sheet_help: String = ""
 var _palette_buttons: Dictionary = {}
 var _palette_costs: Dictionary = {}
 
@@ -735,29 +738,36 @@ func _build_sheet() -> void:
 	_sheet = _panel(Palette.PANEL_HI, 0.94)
 	_sheet.visible = false
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 14)
 	_sheet.add_child(row)
 
-	_sheet_art = MachineSprite.new("", 130.0)
+	# The machine itself, big: the picture is what the player recognises.
+	_sheet_art = MachineSprite.new("", 150.0)
 	row.add_child(_sheet_art)
 
 	var left := VBoxContainer.new()
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 2)
+	left.alignment = BoxContainer.ALIGNMENT_CENTER
+	left.add_theme_constant_override("separation", 8)
 	var head := HBoxContainer.new()
-	_sheet_title = _label("", 22, Palette.TEXT)
-	_sheet_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_theme_constant_override("separation", 10)
+	_sheet_status = _icon_rect("ok", 44)
+	head.add_child(_sheet_status)
+	_sheet_title = _label("", 26, Palette.TEXT)
+	_sheet_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(_sheet_title)
 	left.add_child(head)
+	# What it makes, as gems: the board carries them in the same colours.
 	_sheet_body = VBoxContainer.new()
-	_sheet_body.add_theme_constant_override("separation", 2)
 	left.add_child(_sheet_body)
+	# How hot, and how busy: two bars.
+	_sheet_stats = VBoxContainer.new()
+	_sheet_stats.add_theme_constant_override("separation", 6)
+	left.add_child(_sheet_stats)
 	row.add_child(left)
 
-	_sheet_stats = VBoxContainer.new()
-	_sheet_stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_sheet_stats.add_theme_constant_override("separation", 1)
-	row.add_child(_sheet_stats)
+	# The words, for whoever wants them.
+	row.add_child(_help_button("", func() -> String: return _sheet_help))
 
 	var close := _button("✕", Palette.PANEL)
 	close.add_theme_color_override("font_color", Palette.TEXT)
@@ -766,6 +776,27 @@ func _build_sheet() -> void:
 	close.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	close.pressed.connect(_close_sheet)
 	row.add_child(close)
+
+
+## A "?" key: the words for something a panel now shows in pictures. The
+## text is read when it is pressed, so it can describe the moment.
+func _help_button(title: String, text: Callable) -> Button:
+	var b := _button("?", Palette.PANEL)
+	b.add_theme_color_override("font_color", Palette.ACCENT)
+	b.add_theme_font_size_override("font_size", 32)
+	b.custom_minimum_size = Vector2(76, 76)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var sb: StyleBox = b.get_theme_stylebox(state)
+		if sb is StyleBoxFlat:
+			(sb as StyleBoxFlat).set_corner_radius_all(38)
+	b.pressed.connect(func():
+		Juice.tap()
+		var t: String = String(text.call())
+		var head: String = title if title != "" else _sheet_title.text
+		_info(head, t))
+	return b
 
 
 func _close_sheet() -> void:
@@ -864,13 +895,9 @@ func _make_palette_button(id: String) -> Control:
 	col.add_theme_constant_override("separation", -2)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var chip := MachineSprite.new(id, 58.0)
+	var chip := MachineSprite.new(id, 66.0)
 	chip.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(chip)
-	var name_lbl: Label = _label(String(m["name"]), 13, Palette.TEXT)
-	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.clip_text = true
-	col.add_child(name_lbl)
 	var cost_row := HBoxContainer.new()
 	cost_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	cost_row.add_theme_constant_override("separation", 2)
@@ -880,6 +907,13 @@ func _make_palette_button(id: String) -> Control:
 	cost_row.add_child(cost_lbl)
 	col.add_child(cost_row)
 	b.add_child(col)
+	# The name and what it does, behind a "?" in the corner.
+	var help: Button = _machine_help(id)
+	help.custom_minimum_size = Vector2(40, 40)
+	help.size = Vector2(40, 40)
+	help.add_theme_font_size_override("font_size", 22)
+	help.position = Vector2(98 - 42, 2)
+	b.add_child(help)
 
 	b.pressed.connect(func(): _arm(id))
 	_palette_buttons[id] = b
@@ -940,16 +974,22 @@ func _on_cell_long_pressed(cell: int) -> void:
 		return
 	var id: String = Sim.grid.machine_at(cell)
 	var refund: float = MachineDB.cost_for(id, maxi(Sim.grid.count_of(id) - 1, 0)) * 0.75
-	_confirm("Remove %s?" % MachineDB.get_machine(id)["name"],
-		"You get %s credits back." % Economy.fmt(refund),
-		"Remove", func():
-			Sim.sell(cell)
-			_push_undo({"kind": "sell", "cell": cell, "id": id,
-				"refund": refund})
-			Juice.sell()
-			_close_sheet()
-			_shown_credits = Sim.credits
-			_refresh())
+	var do_remove := func() -> void:
+		Sim.sell(cell)
+		_push_undo({"kind": "sell", "cell": cell, "id": id, "refund": refund})
+		Juice.sell()
+		_close_sheet()
+		_shown_credits = Sim.credits
+		_refresh()
+	# The machine, an arrow, and what comes back for it.
+	var what := HBoxContainer.new()
+	what.alignment = BoxContainer.ALIGNMENT_CENTER
+	what.add_theme_constant_override("separation", 16)
+	what.add_child(MachineSprite.new(id, 150.0))
+	what.add_child(Chips.Arrow.new(56.0))
+	what.add_child(_icon_rect("credits", 64))
+	what.add_child(_label("+%s" % Economy.fmt(refund), 40, Palette.CORE))
+	_open_overlay("Remove?", what, [{"text": "Remove", "color": Palette.BAD, "cb": do_remove}])
 
 
 func _on_descend() -> void:
@@ -973,34 +1013,36 @@ func _on_unlocked(ids: Array) -> void:
 	_rebuild_palette()
 	Juice.unlock()
 
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 8)
+	# The new machines, big and working, each with what it makes and a "?"
+	# for the words. They are waiting in the tray.
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 28)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	for id: String in ids:
-		row.add_child(MachineSprite.new(String(id), 170.0, true))
-	body.add_child(row)
-	for id2: String in ids:
-		var m: Dictionary = MachineDB.get_machine(id2)
-		body.add_child(_label(String(m["name"]), 24,
-			Palette.machine_light(String(id2))))
-		body.add_child(_wrap_label(MachineDB.recipe_text(String(id2))))
-		body.add_child(_wrap_label(String(m["desc"])))
-	body.add_child(HSeparator.new())
-	var hint := HBoxContainer.new()
-	hint.add_theme_constant_override("separation", 12)
-	var badge := Foreman.Badge.new(Foreman.Pose.CHEER, 96.0)
-	badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	hint.add_child(badge)
-	var hint_lbl: Label = _wrap_label(
-		"It is in the tray at the bottom. What it is next to matters more "
-		+ "than how many you own.")
-	hint_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hint.add_child(hint_lbl)
-	body.add_child(hint)
-	_open_overlay("New machine unlocked", body, [])
+		var col := VBoxContainer.new()
+		col.alignment = BoxContainer.ALIGNMENT_CENTER
+		col.add_theme_constant_override("separation", 6)
+		col.add_child(MachineSprite.new(String(id), 190.0, true))
+		var line := HBoxContainer.new()
+		line.alignment = BoxContainer.ALIGNMENT_CENTER
+		line.add_theme_constant_override("separation", 8)
+		line.add_child(Chips.recipe(String(id), 40.0))
+		line.add_child(_machine_help(String(id)))
+		col.add_child(line)
+		row.add_child(col)
+	var badge := Foreman.Badge.new(Foreman.Pose.CHEER, 110.0)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_END
+	row.add_child(badge)
+	_open_overlay("NEW!", row, [])
+
+
+## A machine's "?": its name, what it makes and what it is for.
+func _machine_help(id: String) -> Button:
+	var m: Dictionary = MachineDB.get_machine(id)
+	var b: Button = _help_button(String(m["name"]), func() -> String:
+		var t: String = MachineDB.recipe_text(id)
+		return (t + "\n\n" if t != "" else "") + String(m["desc"]))
+	return b
 
 
 func _on_collapsed(gained: int) -> void:
@@ -1432,62 +1474,71 @@ func _show_cell_info(cell: int) -> void:
 	(_sheet_art as MachineSprite).id = id
 	_sheet_art.queue_redraw()
 
-	# The verdict first, in words, in the direction the player has to look.
-	# A colour on a tile says something is wrong; this says what to do.
+	# The verdict as a picture: all is well, it is too hot or too cold, or
+	# something is wrong round it. The words are behind the "?".
 	var verdict: String
-	var verdict_col: Color
+	var icon: String
 	match st:
 		Simulation.Status.STARVED:
 			verdict = "Starved — it is not being fed. Look UPSTREAM."
-			verdict_col = Palette.BAD
+			icon = "warning"
 		Simulation.Status.BLOCKED:
 			verdict = "Backed up — nothing takes its output. Look DOWNSTREAM."
-			verdict_col = Palette.WARN
+			icon = "warning"
 		Simulation.Status.IDLE:
 			verdict = "Idle. Nothing for it to do."
-			verdict_col = Palette.TEXT_FAINT
+			icon = "lock"
 		Simulation.Status.PASSIVE:
 			verdict = "Working by standing there. It has no cycle of its own."
-			verdict_col = Palette.GOOD
+			icon = "energy"
 		_:
 			if eff < Simulation.THERMAL_WARNING:
 				verdict = "Running, but %s: giving up %d%% of its output." % [
 					"too hot" if delta > 0.0 else "too cold",
 					int(round((1.0 - eff) * 100.0))]
-				verdict_col = Palette.ST_HOT if delta > 0.0 else Palette.ST_COLD
+				icon = "heat" if delta > 0.0 else "cold"
 			else:
 				verdict = "Running well."
-				verdict_col = Palette.GOOD
-	var v := _label(verdict, 17, verdict_col)
-	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_sheet_body.add_child(v)
-	# The recipe, rendered from the table rather than written down, so the
-	# panel cannot describe a machine the simulation does not have.
+				icon = "ok"
+	(_sheet_status as TextureRect).texture = IsoArt.icon(icon)
+	_sheet_body.add_child(Chips.recipe(id, 42.0))
+
+	# Heat: the bar is the machine's temperature, the notch where it wants to
+	# be; red past its tolerance.
+	var top: float = float(m["heat_optimum"]) + float(m["heat_tolerance"]) * 1.6 + 1.0
+	var hg := Chips.Gauge.new(220, 14)
+	hg.value = heat / top
+	hg.target = float(m["heat_optimum"]) / top
+	hg.fill = Palette.heat_color(heat)
+	var heat_row := HBoxContainer.new()
+	heat_row.add_theme_constant_override("separation", 8)
+	heat_row.add_child(_icon_rect("heat", 30))
+	heat_row.add_child(hg)
+	_sheet_stats.add_child(heat_row)
+	# Busy: how much of the time it is working.
+	var wg := Chips.Gauge.new(220, 14)
+	wg.value = Sim.sim.uptime_of(cell)
+	wg.fill = Palette.GOOD
+	var work_row := HBoxContainer.new()
+	work_row.add_theme_constant_override("separation", 8)
+	work_row.add_child(_icon_rect("upgrade", 30))
+	work_row.add_child(wg)
+	_sheet_stats.add_child(work_row)
+
+	# Everything the panel used to spell out, for the "?".
+	var lines: Array[String] = [verdict]
 	var recipe: String = MachineDB.recipe_text(id)
 	if recipe != "":
-		var rl := _label(recipe, 15, Palette.TEXT_DIM)
-		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_sheet_body.add_child(rl)
-	var d := _label(String(m["desc"]), 14, Palette.TEXT_FAINT)
-	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_sheet_body.add_child(d)
-
-	_sheet_stats.add_child(_stat_row("Temperature",
-		"%.1f  (wants %.1f)" % [heat, float(m["heat_optimum"])]))
-	_sheet_stats.add_child(_stat_row("Thermal output",
-		"%d%%" % int(round(eff * 100.0))))
-	# Duty cycle, not items per second. It is comparable between machine
-	# types, it needs no unit, and it answers what the player is asking:
-	# is this tile earning its square.
-	_sheet_stats.add_child(_stat_row("Working",
-		"%d%% of the time" % int(round(Sim.sim.uptime_of(cell) * 100.0))))
+		lines.append(recipe)
+	lines.append(String(m["desc"]))
+	lines.append("")
+	lines.append("Temperature %.1f (wants %.1f) · thermal output %d%%" % [heat,
+		float(m["heat_optimum"]), int(round(eff * 100.0))])
+	lines.append("Working %d%% of the time · cycle speed when fed %.2f/s" % [
+		int(round(Sim.sim.uptime_of(cell) * 100.0)), Sim.sim.effective_rate(cell)])
 	if amp > 1.001:
-		_sheet_stats.add_child(_stat_row("Neighbour boost",
-			"+%.0f%%" % ((amp - 1.0) * 100.0)))
-	# Labelled as a capability, not as output. A machine that is backed up can
-	# be quick and still be doing nothing.
-	_sheet_stats.add_child(_stat_row("Cycle speed when fed",
-		"%.2f /s" % Sim.sim.effective_rate(cell)))
+		lines.append("Neighbour boost +%.0f%%" % ((amp - 1.0) * 100.0))
+	_sheet_help = "\n".join(lines)
 
 	_tray.visible = false
 	_sheet.visible = true
@@ -1502,6 +1553,14 @@ func _stat_row(name: String, value: String) -> Control:
 	return row
 
 
+## Which picture each research line is drawn with.
+const RESEARCH_ICONS := {
+	"throughput_1": "upgrade", "yield_1": "energy", "value_1": "credits",
+	"research_1": "research", "heat_tolerance": "heat", "offline_cap": "star",
+	"offline_rate": "star", "core_yield": "cores", "blueprint_slots": "codex",
+}
+
+
 func _show_research() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
@@ -1514,26 +1573,38 @@ func _show_research() -> void:
 
 		var row := _panel(Palette.PANEL_HI)
 		var rc := HBoxContainer.new()
-		rc.add_theme_constant_override("separation", 12)
+		rc.add_theme_constant_override("separation", 14)
 		row.add_child(rc)
-		var text := VBoxContainer.new()
-		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		text.add_child(_label("%s   %d/%d" % [u["name"], lvl, int(u["max"])], 20, Palette.TEXT))
-		var dl := _label(String(u["desc"]), 16, Palette.TEXT_DIM)
-		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		text.add_child(dl)
-		rc.add_child(text)
+		rc.add_child(_icon_rect(String(RESEARCH_ICONS.get(id, "upgrade")), 56))
+		# How far along: one pip a level.
+		var pips := HBoxContainer.new()
+		pips.add_theme_constant_override("separation", 5)
+		pips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		for k in range(int(u["max"])):
+			pips.add_child(_pip(k < lvl))
+		rc.add_child(pips)
+		rc.add_child(_help_button(String(u["name"]), func() -> String:
+			return String(u["desc"])))
 
 		if maxed:
-			rc.add_child(_label("Fully researched", 17, Palette.GOOD))
+			rc.add_child(_icon_rect("ok", 56))
 		else:
-			var cost_text: String = "%s research" % Economy.fmt(float(c["research"]))
-			if int(c["cores"]) > 0:
-				cost_text += "  +  %d cores" % int(c["cores"])
-			var b := _button(cost_text, Palette.RESEARCH)
+			# The price as pictures and numbers on the key itself.
+			var b := _button("", Palette.RESEARCH)
 			b.size_flags_horizontal = Control.SIZE_SHRINK_END
-			b.custom_minimum_size = Vector2(250, 60)
-			b.add_theme_font_size_override("font_size", 18)
+			b.custom_minimum_size = Vector2(230, 76)
+			var price := HBoxContainer.new()
+			price.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			price.alignment = BoxContainer.ALIGNMENT_CENTER
+			price.add_theme_constant_override("separation", 6)
+			price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			price.add_child(_icon_rect("research", 40))
+			price.add_child(_label(Economy.fmt(float(c["research"])), 22, Palette.BG))
+			if int(c["cores"]) > 0:
+				price.add_child(_icon_rect("cores", 36))
+				price.add_child(_label(str(int(c["cores"])), 22, Palette.BG))
+			b.add_child(price)
 			b.disabled = not Sim.can_buy_upgrade(id)
 			b.pressed.connect(func():
 				if Sim.buy_upgrade(id):
@@ -1547,22 +1618,41 @@ func _show_research() -> void:
 	_open_overlay("Research", col, [])
 
 
+## One level of a research line: lit if bought.
+func _pip(lit: bool) -> Control:
+	var d := ColorRect.new()
+	d.custom_minimum_size = Vector2(22, 22)
+	d.color = Palette.RESEARCH if lit else Color(Palette.BG, 0.9)
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return d
+
+
 func _show_collapse() -> void:
 	var gained: int = Sim.pending_cores()
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 10)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
 	if not Economy.can_collapse(Sim.max_depth):
-		body.add_child(_wrap_label(
-			"Collapsing the shaft converts everything you have built into Cores, which survive into the next run.\n\nYou need to reach stratum %d first. You are at %d."
-			% [Economy.COLLAPSE_MIN_DEPTH, Sim.max_depth]))
-		_open_overlay("Collapse", body, [])
+		# Locked: the stratum it opens at.
+		row.add_child(_icon_rect("lock", 96))
+		row.add_child(_icon_rect("descend", 72))
+		row.add_child(_label("%d" % Economy.COLLAPSE_MIN_DEPTH, 48, Palette.TEXT))
+		row.add_child(_help_button("Collapse", func() -> String:
+			return ("Collapsing the shaft converts everything you have built into Cores, which "
+				+ "survive into the next run.\n\nYou need to reach stratum %d first. You are "
+				+ "at %d.") % [Economy.COLLAPSE_MIN_DEPTH, Sim.max_depth]))
+		_open_overlay("Collapse", row, [])
 		return
-	body.add_child(_wrap_label(
-		"You recover %d Cores.\n\nGone: the board, your credits, your research, your depth.\nKept: Cores, everything you have researched permanently, and your blueprints.\n\nDeeper runs and larger lifetime earnings both raise the payout, with diminishing returns on earnings — so pushing one more stratum is usually worth more than grinding one more hour."
-		% gained))
-	_open_overlay("Collapse the shaft", body,
-		[{"text": "Collapse for %d" % gained, "color": Palette.CORE,
-			"cb": func(): Sim.collapse()}])
+	row.add_child(_icon_rect("cores", 110))
+	row.add_child(_label("+%d" % gained, 56, Palette.CORE))
+	row.add_child(_help_button("Collapse the shaft", func() -> String:
+		return ("You recover %d Cores.\n\nGone: the board, your credits, your research, "
+			+ "your depth.\nKept: Cores, everything you have researched permanently, and your "
+			+ "blueprints.\n\nDeeper runs and larger lifetime earnings both raise the payout, "
+			+ "with diminishing returns on earnings -- so pushing one more stratum is usually "
+			+ "worth more than grinding one more hour.") % gained))
+	_open_overlay("Collapse", row,
+		[{"text": "Collapse", "color": Palette.CORE, "cb": func(): Sim.collapse()}])
 
 
 func _wrap_label(text: String) -> Label:
@@ -1586,22 +1676,20 @@ func _show_offline(report: Dictionary) -> void:
 	var off_badge := Foreman.Badge.new(Foreman.Pose.CHEER, 110.0)
 	off_badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	head.add_child(off_badge)
-	var sum_col := VBoxContainer.new()
-	sum_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sum_col.add_child(_label("+%s credits" % Economy.fmt(amount), 34,
-		Palette.CORE))
-	sum_col.add_child(_label("The shaft kept running.", 16, Palette.TEXT_DIM))
-	head.add_child(sum_col)
-	body.add_child(head)
-	var detail: String = "Away %s. Counted %s at %d%% of your live rate." % [away, counted, rate_pct]
+	head.add_child(_icon_rect("credits", 72))
+	var sum_lbl := _label("+%s" % Economy.fmt(amount), 44, Palette.CORE)
+	sum_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(sum_lbl)
+	var detail: String = "The shaft kept running.\n\nAway %s. Counted %s at %d%% of your live rate." % [away, counted, rate_pct]
 	if bool(report.get("capped", false)):
 		detail += "\n\nYour offline banking is full at %.0f hours. Night Shift in Research raises it." % Sim.offline_hours()
-	body.add_child(_wrap_label(detail))
+	head.add_child(_help_button("While you were away", func() -> String: return detail))
+	body.add_child(head)
 
 	var actions: Array = []
 	if Ads.can_offer(Ads.P_DOUBLE_OFFLINE):
 		actions.append({
-			"text": "Watch an ad to double it",
+			"text": "Ad: x2",
 			"color": Palette.GOOD,
 			"cb": func(): Ads.show_rewarded(Ads.P_DOUBLE_OFFLINE),
 		})
@@ -1631,7 +1719,7 @@ func _show_offline(report: Dictionary) -> void:
 			"cb": func(): _open_shop(),
 		})
 
-	_open_overlay("While you were away", body, actions)
+	_open_overlay("Welcome back", body, actions)
 
 
 func _show_settings() -> void:
