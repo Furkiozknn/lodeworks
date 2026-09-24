@@ -25,6 +25,10 @@ var _current: String = ""
 func _initialize() -> void:
 	var files: Array[String] = _find_tests()
 	files.sort()
+	# LODEWORKS_TESTS=test_iso runs only the files whose name contains it.
+	var only: String = OS.get_environment("LODEWORKS_TESTS")
+	if only != "":
+		files = files.filter(func(f: String) -> bool: return f.contains(only))
 	print("running %d test files\n" % files.size())
 	for path in files:
 		_run_file(path)

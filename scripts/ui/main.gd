@@ -75,6 +75,17 @@ var _quota_bar: ProgressBar
 var _lbl_mods: Label
 var _btn_problems: Button
 var _lbl_problem_count: Label
+## The Problems key's light, the count it last showed, and where its swell is.
+var _problem_glow: TextureRect
+## The heat key's picture and light, the state it shows (see
+## `StatusBadges.heat_state`) and where its flicker is.
+var _heat_icon: TextureRect
+var _heat_glow: TextureRect
+var _heat_state: int = 0
+var _heat_beat: int = 0
+var _heat_t: float = 0.0
+var _problem_n: int = 0
+var _alarm_t: float = 0.0
 var _btn_heat: Button
 var _btn_zoom: Button
 var _btn_descend: Button
@@ -218,6 +229,48 @@ func _process(delta: float) -> void:
 			_foreman.visible = false
 	if _btn_zoom != null:
 		_btn_zoom.text = "−" if iso_view.cam.zoom > iso_view.default_zoom() * 1.15 else "+"
+	_swell_alarm(delta)
+
+
+## The Problems key's swell: its speed and size from the problem count, a
+## light behind it from warm to red, and nothing at all for one or two.
+func _swell_alarm(delta: float) -> void:
+	if _btn_problems == null or _problem_glow == null:
+		return
+	var n: int = _problem_n
+	var level: int = StatusBadges.alarm_level(n)
+	var hz: float = StatusBadges.alarm_hz(n)
+	if bool(Sim.settings.get("reduce_motion", false)):
+		hz = 0.0
+	_alarm_t = fposmod(_alarm_t + delta * hz, 1.0)
+	var k: float = 0.5 - 0.5 * cos(TAU * _alarm_t) if hz > 0.0 else 0.0
+	var grow: float = 1.0 + StatusBadges.alarm_swell(n) * k
+	_btn_problems.pivot_offset = _btn_problems.size * 0.5
+	_btn_problems.scale = Vector2(grow, grow)
+	var glow: Color = Palette.BAD if level >= 4 else Palette.WARN
+	var still: float = [0.0, 0.0, 0.22, 0.32, 0.42][level]
+	glow.a = still + (0.3 if level >= 2 else 0.0) * k
+	_problem_glow.modulate = glow
+	_glow_heat(delta)
+
+
+## The heat key: grey when every machine is at its temperature, lit when
+## some are not, glowing warm and then red -- or frosty, when it is cold that
+## is costing -- with a slow flicker once a machine is badged.
+func _glow_heat(delta: float) -> void:
+	if _heat_icon == null:
+		return
+	var st: int = _heat_state
+	var hz: float = [0.0, 0.0, 0.6, 1.0][st]
+	if bool(Sim.settings.get("reduce_motion", false)):
+		hz = 0.0
+	_heat_t = fposmod(_heat_t + delta * hz, 1.0)
+	var k: float = 0.5 - 0.5 * cos(TAU * _heat_t) if hz > 0.0 else 0.0
+	_heat_icon.modulate = Color(0.62, 0.62, 0.68, 0.85) if st == 0 else Color.WHITE
+	var frost: bool = _heat_icon.texture == IsoArt.icon("cold")
+	var col: Color = Palette.ST_COLD if frost else (Palette.BAD if st >= 3 else Palette.ST_HOT)
+	col.a = [0.0, 0.16, 0.30, 0.42][st] + [0.0, 0.0, 0.12, 0.2][st] * k
+	_heat_glow.modulate = col
 
 
 ## --- construction ----------------------------------------------------------
@@ -489,8 +542,16 @@ func _build_tools() -> Control:
 	_btn_heat = _button("", Palette.PANEL_HI)
 	_btn_heat.toggle_mode = true
 	_btn_heat.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
+	_heat_glow = TextureRect.new()
+	_heat_glow.texture = IsoArt.glow()
+	_heat_glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_heat_glow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_heat_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_heat_glow.modulate = Color(Palette.ST_HOT, 0.0)
+	_btn_heat.add_child(_heat_glow)
 	var hic := _icon_rect("heat", 46)
 	hic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_heat_icon = hic
 	_btn_heat.add_child(hic)
 	_btn_heat.tooltip_text = "Heat view"
 	_btn_heat.toggled.connect(func(on: bool):
@@ -502,7 +563,8 @@ func _build_tools() -> Control:
 	col.add_child(_btn_heat)
 
 	# One key: in to the middle of the screen, or back out to the whole
-	# factory. The pinch and the wheel do everything in between.
+	# factory. Off unless Settings turns it on (Accessibility): a phone
+	# pinches, and a key that only zooms is a key the screen can do without.
 	_btn_zoom = _button("+", Palette.PANEL_HI)
 	_btn_zoom.add_theme_font_size_override("font_size", 34)
 	_btn_zoom.add_theme_color_override("font_color", Palette.TEXT)
@@ -522,6 +584,14 @@ func _build_tools() -> Control:
 	# camera glides to it. The count is on the key.
 	_btn_problems = _button("", Palette.PANEL_HI)
 	_btn_problems.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
+	# A soft light behind the sign, which the alarm swells.
+	_problem_glow = TextureRect.new()
+	_problem_glow.texture = IsoArt.glow()
+	_problem_glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_problem_glow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_problem_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_problem_glow.modulate = Color(Palette.WARN, 0.0)
+	_btn_problems.add_child(_problem_glow)
 	var wic := _icon_rect("warning", 42)
 	wic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_btn_problems.add_child(wic)
@@ -1190,6 +1260,9 @@ func _show_what_matters() -> void:
 	_btn_collapse.visible = cores
 	_btn_heat.visible = heat
 	_btn_problems.visible = veteran or not Sim.grid.cells.is_empty()
+	# Pinch, the wheel and the trackpad zoom; the key is for a player who
+	# cannot pinch, and only appears when Settings asks for it.
+	_btn_zoom.visible = bool(Sim.settings.get("zoom_key", false))
 
 
 ## --- undo ------------------------------------------------------------------
@@ -1252,6 +1325,22 @@ func _refresh_problems() -> void:
 	_last_thermal = int(c["thermal"])
 	var n: int = int(c["starved"]) + int(c["blocked"]) + int(c["thermal"])
 	_lbl_problem_count.text = str(n) if n > 0 else ""
+	# The alarm grows with the count (`StatusBadges.alarm_*`); a step up into
+	# a stronger alarm is heard once.
+	var level: int = StatusBadges.alarm_level(n)
+	if level >= 3 and level > StatusBadges.alarm_level(_problem_n):
+		Juice.alarm()
+	_problem_n = n
+	# The heat key's picture, from the same badges the board shows. Twice a
+	# second is plenty -- a badge takes 1.5 s to appear -- and a full board
+	# costs about 0.25 ms to read on the desktop.
+	_heat_beat += 1
+	if _heat_beat % 5 == 1:
+		var hs: Array = iso_view.badges.heat_state(Sim.sim, Sim.grid.cells)
+		_heat_state = int(hs[0])
+		_heat_icon.texture = IsoArt.icon("cold" if bool(hs[1]) else "heat")
+	_lbl_problem_count.add_theme_color_override("font_color",
+		[Palette.TEXT, Palette.TEXT, Palette.WARN, Palette.WARN, Palette.BAD][level])
 	# The Foreman steps in once per stratum, the first time something on the
 	# board is actually in trouble -- a machine at critical heat -- and points
 	# at the key that finds it. Once, so it is news rather than nagging.

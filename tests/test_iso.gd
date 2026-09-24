@@ -562,3 +562,58 @@ func test_a_descent_into_a_new_band_takes_longer_than_one_inside_it() -> void:
 		"a deep descent takes longer than a shallow one")
 	for d in range(1, 60):
 		runner.lte(IsoView.dive_seconds(d), 2.6, "stratum %d: a plunge, not a wait" % d)
+
+
+func test_the_problem_alarm_grows_with_the_count_and_never_flashes() -> void:
+	# More trouble, a more insistent key -- but a swell, never a strobe.
+	runner.eq(StatusBadges.alarm_level(0), 0, "no problems, no alarm")
+	runner.near(StatusBadges.alarm_hz(1), 0.0, 0.0001, "one problem: a count, no movement")
+	runner.near(StatusBadges.alarm_hz(2), 0.0, 0.0001, "two: still just a count")
+	runner.gt(StatusBadges.alarm_hz(3), 0.0, "three start a slow swell")
+	var last_hz: float = 0.0
+	var last_swell: float = 0.0
+	var last_level: int = 0
+	for n in range(0, 200):
+		var hz: float = StatusBadges.alarm_hz(n)
+		var sw: float = StatusBadges.alarm_swell(n)
+		var lv: int = StatusBadges.alarm_level(n)
+		runner.gte(hz, last_hz, "%d problems swell no slower than %d" % [n, n - 1])
+		runner.gte(sw, last_swell, "%d problems swell no smaller" % n)
+		runner.gte(float(lv), float(last_level), "%d problems are no calmer" % n)
+		runner.lte(hz, 1.25, "%d problems: under the 3-a-second flash limit, with room" % n)
+		runner.lte(sw, 0.10, "%d problems: the key grows a tenth at most" % n)
+		last_hz = hz
+		last_swell = sw
+		last_level = lv
+	runner.eq(StatusBadges.alarm_level(12), 4, "a dozen is critical")
+
+
+func _heat_key_on(layout: Array) -> Array:
+	var g := Grid.new()
+	for e: Array in layout:
+		g.place(Grid.idx(int(e[0]), int(e[1])), String(e[2]))
+	var s := Simulation.new(g, 7)
+	s.run_ticks(300)
+	var b := StatusBadges.new()
+	for i in range(int(StatusBadges.SHOW_AFTER * 60.0) + 4):
+		var raw: Dictionary = {}
+		for c: int in g.cells:
+			raw[c] = StatusBadges.classify(s, c)
+		b.update(raw, 1.0 / 60.0)
+	return b.heat_state(s, g.cells)
+
+
+func test_the_heat_key_tells_the_boards_heat_before_it_is_opened() -> void:
+	# No gauge of its own: the key reads the same badges the board shows.
+	var calm: Array = _heat_key_on([[0, 0, "drill"], [1, 0, "vault"]])
+	runner.eq(int(calm[0]), 0, "a drill and a vault at the surface: the key is calm")
+	# A Press, which wants to stay cool, between two Boilers.
+	var hot: Array = _heat_key_on([[0, 1, "drill"], [1, 1, "crusher"], [2, 1, "smelter"],
+		[3, 1, "press"], [4, 1, "vault"], [3, 0, "boiler"], [3, 2, "boiler"]])
+	runner.gte(float(hot[0]), 2.0, "a machine badged for heat lights the key")
+	runner.check(not bool(hot[1]), "and it is heat, so the key shows a flame")
+	# A Smelter, which wants three heat, with a Coolant Cell against it.
+	var cold: Array = _heat_key_on([[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
+		[3, 0, "vault"], [2, 1, "coolant"]])
+	runner.gte(float(cold[0]), 2.0, "a Smelter kept cold lights the key")
+	runner.check(bool(cold[1]), "and it is cold, so the key shows frost")

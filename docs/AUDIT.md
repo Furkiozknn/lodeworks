@@ -825,6 +825,78 @@ world, so the player sees it instead of it happening behind the card. The
 board keeps running and takes taps throughout; `test_a_descent_into_a_new_band_takes_longer_than_one_inside_it`
 caps it at 2.6 s.
 
+### The three keys on the right edge
+
+**The Problems key grows with the trouble** (`StatusBadges.alarm_*`).
+It was a count on a key that dimmed at zero. Now it escalates with the
+number of problems:
+
+| problems | what the key does |
+|---|---|
+| 0 | dimmed |
+| 1-2 | the count, nothing more |
+| 3-5 | a slow swell in size and a warm light behind the sign |
+| 6-11 | a faster, larger swell and a stronger light; the warning tone once, lower |
+| 12 and more | red light, the count in red, the fastest swell |
+
+The swell's speed and size come from the count: 0.45 swells a second
+plus 0.07 per problem, and 3% bigger plus 0.6% per problem. It is capped
+at 1.25 swells a second and 10% bigger. That is a smooth swell, not an
+on-off flash, and it stays well under the three flashes a second that
+photosensitivity guidance draws the line at.
+`test_the_problem_alarm_grows_with_the_count_and_never_flashes` checks
+that it never calms down as the count rises and never passes either cap.
+The tone reuses the heat warning's sound, a little lower, and shares its
+twenty-second gap. The two never stack.
+
+**The zoom key is gone by default.** It did one thing, jump between the
+framed view and 1.6x, which pinch, the mouse wheel and the trackpad all
+already do. Removing it gives the world back about one point of the
+screen:
+
+| hud share, 2:1 | with the key | without |
+|---|---|---|
+| new game | 12.8% | 11.8% |
+| stratum 1 yard | 15.6% | 14.6% |
+| stratum 3 yard | 19.6% | 18.6% |
+| deep shaft | 23.2% | 22.3% |
+
+A player who cannot pinch can turn it back on under Settings,
+Accessibility. Nothing replaces it: the brief said not to add a key just
+to fill the gap.
+
+**The flame key shows the board's heat before it is opened**
+(`StatusBadges.heat_state`). It has no gauge of its own. It reads the same
+badges the board shows, so the key and the board cannot disagree, and the
+badges' 1.5 s hold means it cannot flicker.
+
+| state | when | the key |
+|---|---|---|
+| calm | every machine within a tenth of its best | grey |
+| warm | some machine giving up a little (MILD) | lit, faint glow |
+| hot | a machine badged too hot or too cold | warm glow, slow flicker |
+| critical | a machine choking, under 40% | red glow, faster flicker |
+
+When cold is what costs, the flame becomes the snowflake. The flicker is
+at most one a second. `test_the_heat_key_tells_the_boards_heat_before_it_is_opened`
+builds a calm board, a Press between two Boilers, and a Smelter against a
+Coolant Cell, and checks the key on each.
+
+The cost was measured. Reading the badges takes 0.245 ms for 180
+machines on the desktop, so the key reads them twice a second, not ten
+times. The alarm's arithmetic is 0.5 microseconds a frame. The perf probe
+(`LODEWORKS_SOAK=20`) was run back to back on the hero board, before and
+after:
+
+| | before | after |
+|---|---|---|
+| idle frame p50 | 11.82 ms | 11.84 ms |
+| 20 s soak p50 | 11.46 ms | 11.60 ms |
+| draw calls | 163 | 163 |
+
+The difference is inside the run-to-run spread. "Reduce motion" in
+Settings stills both the swell and the flicker, and keeps the light.
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock

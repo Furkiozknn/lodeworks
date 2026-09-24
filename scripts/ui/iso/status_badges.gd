@@ -28,6 +28,42 @@ extends RefCounted
 ## under a quarter uptime), the same one behind the Problems count, so the
 ## badge and the count cannot disagree. None of this feeds back into play.
 
+
+## --- the Problems key's alarm -------------------------------------------------
+##
+## The key grows more insistent as more machines are in trouble, and it never
+## flashes. One or two problems: the count on the key, nothing more. From
+## three, a slow swell in size and light whose speed and size grow with the
+## count. At its fastest it is 1.25 swells a second, well under the three a
+## second that photosensitivity guidance treats as the limit, and it is a
+## smooth swell, not an on-off flash. The settings' "Reduce motion" stills it.
+
+## 0 none, 1 a count, 2 a slow swell, 3 a stronger one, 4 critical.
+static func alarm_level(n: int) -> int:
+	if n <= 0:
+		return 0
+	if n < 3:
+		return 1
+	if n < 6:
+		return 2
+	if n < 12:
+		return 3
+	return 4
+
+
+## Swells a second for `n` problems.
+static func alarm_hz(n: int) -> float:
+	if n < 3:
+		return 0.0
+	return minf(0.45 + 0.07 * float(n), 1.25)
+
+
+## How much bigger the key gets at the top of a swell, as a fraction.
+static func alarm_swell(n: int) -> float:
+	if n < 3:
+		return 0.0
+	return minf(0.03 + 0.006 * float(n), 0.10)
+
 enum Show { NONE, MILD, HOT, COLD, CRITICAL, BLOCKED, STARVED }
 
 const SHOW_AFTER := 1.5
@@ -121,6 +157,42 @@ func update(raw: Dictionary, dt: float) -> void:
 
 func shown(cell: int) -> int:
 	return int(_cells.get(cell, {}).get("shown", Show.NONE))
+
+
+## --- the heat key -------------------------------------------------------------
+##
+## The flame key's picture tells the board's heat before the heat view is
+## opened, from the same badges the board shows (so the key and the board
+## cannot disagree, and neither flickers):
+##
+##   0 calm      every machine within a tenth of its best temperature
+##   1 warm      some machine giving up a little to heat or cold (MILD)
+##   2 hot       a machine badged too hot or too cold (under 70%)
+##   3 critical  a machine choking (under 40%)
+##
+## Returns [state, cold]: `cold` is true when every machine in the worst
+## state is too cold rather than too hot, so the key can show frost.
+func heat_state(s: Simulation, cells: Dictionary) -> Array:
+	var worst: int = 0
+	var any_hot: bool = false
+	for cell: int in cells:
+		var k: int = 0
+		match shown(cell):
+			Show.MILD:
+				k = 1
+			Show.HOT, Show.COLD:
+				k = 2
+			Show.CRITICAL:
+				k = 3
+			_:
+				continue
+		var hot: bool = s.heat_delta_at(cell) > 0.0
+		if k > worst:
+			worst = k
+			any_hot = hot
+		elif k == worst:
+			any_hot = any_hot or hot
+	return [worst, worst > 0 and not any_hot]
 
 
 func clear() -> void:

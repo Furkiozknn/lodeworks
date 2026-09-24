@@ -329,6 +329,12 @@ func heat_warning() -> void:
 	play("heat_warning", 1.0, 20.0)
 
 
+## The Problems key crossing into a stronger alarm: the warning tone, lower.
+## Shares the warning's twenty-second gap, so the two never stack.
+func alarm() -> void:
+	play("heat_warning", 0.8, 20.0)
+
+
 func income() -> void:
 	# Throttled hard: production is continuous, and a sound per sale would be
 	# a machine gun.
