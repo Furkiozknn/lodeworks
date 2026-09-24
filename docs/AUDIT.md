@@ -81,7 +81,135 @@ connections -> heat -> UI -> Foreman -> animation -> asset budget -> tests
 -> device validation -> store. Each step measured; everything unmeasured is
 written as UNKNOWN.
 
+### What this round did, and what it did not
+
+Branch `visual/landscape-iso`. The simulation, economy, progression, save
+format, monetization and tests of all of those are untouched; the new
+screen reads the simulation and writes to it only through the three
+gestures it always had (place, move, sell).
+
+**Done**
+
+- Private repository, CI green on `main`; the Android chain fixed three
+  times until it produced debug APKs and a debug AAB on every push (A1-A3).
+- Landscape 1440x720, sensor landscape. The main screen is a 2:1 isometric
+  world: canyon painting with parallax, rock island, 12x12 slab, the 7x10
+  board, the Factory Core (on the slab, off the board), a fenced expansion
+  plot, props, depth-band tint and a descent effect.
+- Camera: 1:1 pan, fling, pinch, wheel, zoom key, bounds that never show
+  the void; a machine must be selected before it can be dragged.
+- 12 machines x 6 palettes x 2 tiers generated in one isometric style;
+  Core, props, island, world, HUD icons, Foreman poses. Palette purchases
+  keep working and now show their own sprites; the shop's palette strips
+  and the Codex boards draw the same sprites.
+- Pipes drawn only where the simulation can move material; flow beads on
+  seams that actually moved something; the selected machine's links on top.
+- Badges after 1.5 s, only at the root of a jam; the heat language (tint,
+  glow, embers, flame badge, the Foreman once per stratum at critical).
+- Landscape HUD in the corners; detail panel in the tray's place.
+- Tools: `art_build.py`, `asset_budget.py`, `layout_check.tscn`,
+  `perf_probe.tscn`, `visual_compare.py`, audit captures in `shots.tscn`.
+- Tests: 246 -> 262 (2904 assertions); plus the layout check, the art
+  budget, the audit capture and a six-resolution smoke test in CI.
+
+**Not done, and why**
+
+| | not done | why |
+|---|---|---|
+| N1 | Signed release AAB | no keystore secret; needs a person (docs/CI.md) |
+| N2 | Any device run | no Android device attached to this machine |
+| N3 | Separate paintings for Surface, Deep and Abyss | one painting tinted per band is the stated interim; four paintings are four generations and 3 x 2.4 MB of budget -- worth it once the Workings screen is approved |
+| N4 | Pipes readable at the default zoom on a dense board | in a 45-degree view the seam between two machines is behind the nearer one; beads and the selected-machine links carry connections instead (see item 7 below) |
+| N5 | Per-part machine animation (the drill bit turning, the ram falling) | sprites are single frames; the machines breathe and glow on their real cycle instead. Frames would be 12 x N more generations |
+| N6 | Store screenshots, feature graphic, preview video in landscape | the directive puts store work after the main screen; the capture tool already renders at 1920x1080 |
+| N7 | Codex and shop redesigned for landscape | they work (scroll, full width) and draw the new sprites; their layout is still the portrait one widened |
+| N8 | `visual/perspective-main-view` (06e5b3b) and 9a524fe | not in any place this machine can reach; content UNKNOWN |
+| N9 | Removing `MachineArt` | still draws the store icon in `tools/brand_painter.gd`; goes with N6 |
+
+### Old renderer against new, same machine
+
+Windows 11, Intel UHD Graphics, `gl_compatibility`, frames uncapped (vsync
+off). The same 36-machine board (the audit's reference board, stratum 7).
+Old = `main` at `1c57304`, portrait; new = this branch, 1440x720. Device
+column: UNKNOWN.
+
+| | old (procedural, portrait) | new (sprites, landscape iso) |
+|---|---|---|
+| frame p50 / p95 / p99, idle | 2.0 / 9.4 / 12.3 ms | 12.3 / 17.9 / 20.4 ms |
+| frame p50 / p95 / p99, panning | -- (no camera) | 10.9 / 14.5 / 16.3 ms |
+| frame p50 / p95 / p99, zooming | -- | 10.4 / 14.0 / 18.5 ms |
+| 600 s soak p50 / p95 / p99 | not run | 12.1 / 15.8 / 18.5 ms, memory 45.1 -> 45.7 MB, nodes 181 -> 181 (build `3f8df0b`) |
+| draw calls (renderer counter) | 92 | 132 on the bare board (world 37, HUD 95), 150-185 with the Foreman and badges up |
+| texture memory (renderer counter) | 9.0 MB | 33.9 MB |
+| video memory (renderer counter) | 15.3 MB | 40.5 MB |
+| sim tick | 0.98 ms | 1.0 ms (budget 3 ms) |
+| scene load, warm | 1.2 ms | 1.1-2.0 ms |
+| art load, uncached | -- | 110-135 ms (8 files) |
+| palette switch to an unloaded sheet | -- | 55-86 ms |
+| descend, to the first frame after | -- | 46-48 ms |
+| committed art | 0 | 6.76 MB (budget 40 MB); 15.5 MB imported |
+| colourfulness (Hasler-Suesstrunk) | 17.3 | 28.0 (reference concept: 30.3) |
+| readability, closest pair at 44 px | colour 20.8, grey 16.0 (from the old ART.md) | colour 18.9 (free palette), grey 11.8 (Slate); floors 9.0 / 6.0 |
+| board share of the screen | 48% (a 691x987 rectangle) | 11.8% at the default zoom on 2:1 (a diamond; the rest is world) |
+
+**Decision.** The new renderer replaces the old on the main screen and
+`GridView` is deleted: it is the only one of the two that is the requested
+game, it is consistent (one camera for every sprite), and it costs 12 ms a
+frame on the weakest desktop GPU at hand, inside a 16.7 ms frame. It is
+five to six times the old renderer's frame time and four times its texture
+memory, and whether a mid-range phone holds 60 fps with it is **UNKNOWN**
+until the probe or the self test runs on one. `MachineArt` stays only for
+the store icon (N9).
+
+### Measured on eleven screen shapes
+
+`tools/layout_check.tscn`, the real main screen, three safe areas each (none,
+a 96/48 side notch, a 40/36 top and gesture bar). No overlap, nothing
+outside the safe area, the whole board visible between the panels, on all
+33. Cell height is in dp for a device of that shape at the density given.
+
+| screen | canvas | cell, default zoom | cell, closest zoom | board share |
+|---|---|---|---|---|
+| 16:9 1920x1080 @420 | 1440x810 | 24.7 dp | 52.0 dp | 14.2% |
+| 16:9 1280x720 @320 | 1440x810 | 21.6 dp | 45.5 dp | 14.2% |
+| 18:9 2160x1080 @400 | 1440x720 | 25.1 dp | 61.4 dp | 11.8% |
+| 19.5:9 2340x1080 @420 | 1560x720 | 23.9 dp | 58.5 dp | 10.9% |
+| 20:9 2400x1080 @405 | 1600x720 | 24.8 dp | 60.7 dp | 10.7% |
+| 21:9 2520x1080 @420 | 1680x720 | 23.9 dp | 58.5 dp | 10.2% |
+| 16:10 2560x1600 @300 | 1440x900 | 52.5 dp | 97.1 dp | 16.6% |
+| 4:3 2048x1536 @264 | 1440x1080 | 59.4 dp | 88.3 dp | 21.4% |
+
+The Cowork estimate of "about 32 dp at normal zoom, 51 dp close" was
+optimistic at normal zoom: it is 24-25 dp on the phones that matter, under
+Android's 48 dp. The camera is the answer (52-61 dp at the closest zoom),
+not a bigger default, because a bigger default loses the world. Every HUD
+key is 96 canvas units: 48 dp or more on every shape except the 720p xhdpi
+16:9 phone, where they measure 43-44 dp (reported, not enforced).
+
+### The 12-point comparison with the reference
+
+Reference: the user's concept `ref2.png` and the generated target mock
+`r2_target.png` (both portrait mock-ups). Compared with
+`01_main_landscape.png`. Each row says what it is measured by; a row that
+can only be judged says so.
+
+| # | item | result | evidence |
+|---|---|---|---|
+| 1 | Camera | **PASS** | 2:1 isometric, 45 degrees, as the directive asked (`test_the_projection_is_two_to_one`); pan, fling, pinch, wheel, bounds tested. The reference mock-ups are a front-facing 3/4 view; the directive's Clash-style 45 degrees was followed instead |
+| 2 | Perspective | **PARTIAL** | board, machines, island, props and Core share one camera; the world painting is a front-facing 3/4 view (the image model did not rotate it), softened by parallax |
+| 3 | World feel | **PASS** | island over a canyon, Core, expansion plot, props around the board; the board itself is 11.8% of the default screen and the rest is world. The old screen had no world |
+| 4 | Grid placement | **PASS** | whole board in the free area on 11 shapes x 3 safe areas, no panel over it (layout check) |
+| 5 | Machine scale | **PARTIAL** | plate = 76% of a cell; 24-25 dp cells at the default zoom are under the 48 dp floor, 52-61 dp at the closest zoom |
+| 6 | Colour | **PARTIAL** | colourfulness 28.0 against 30.3 / 30.7; saturation 0.44 against 0.54-0.57 (`tools/visual_compare.py`) |
+| 7 | Light | **PARTIAL** | brightness 0.40 against 0.37-0.40 (matched), contrast 0.22 against 0.26; additive glows, no bloom (the compatibility renderer has no HDR 2D) |
+| 8 | Depth | **PASS** | back-to-front drawing tested; parallax, cliffs, contact shadows, raised slab. Connections behind nearer machines: see N4 |
+| 9 | UI | **PASS** | corners and edges as the reference; keys 96 units; no overlap on 33 layouts |
+| 10 | Animation | **PARTIAL** | breathing and core glow on the real cycle, steam, embers, flow beads, crystals, dust, descent; no per-part motion (N5) |
+| 11 | Atmosphere | **PARTIAL** | the painting is still (waterfalls and mist do not move); dust and lamp light move; other depth bands are a tint (N3) |
+| 12 | Overall premium feel | **UNKNOWN** | a judgement, and nobody but the author has looked. The four audit screens are in CI's `screenshots` artifact; the "before" screen was captured from `1c57304` on the same machine |
+
 ---
+
 
 23 September 2026. Every claim below is a number one of the tools in this
 repository prints, or it is marked UNKNOWN. Reproduce with:
@@ -154,11 +282,10 @@ Evidence for every row is a measurement, not a judgement.
 
 ## 3. What is still UNKNOWN
 
-Unchanged from the previous round, and not improved by anything here:
+Updated 24 September 2026, after the landscape round:
 
-- No APK or AAB has ever been built. No Android SDK, Gradle repository or
-  Godot export template is reachable from the build environment.
-- CI has never run. The repository has never been pushed.
+- No signed release AAB has been built (no keystore secret). Debug APKs and
+  a debug-signed AAB are built by CI on every push.
 - Nothing has run on a real Android device. Every frame-time, memory, battery,
   input-latency and touch figure is UNKNOWN.
 - No purchase has ever been made in a real store, and no ad has ever been

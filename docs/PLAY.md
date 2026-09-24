@@ -25,10 +25,10 @@ a real store. Nothing has.
 Each one is here because no amount of code can do it. They are stated as
 narrowly as possible.
 
-1. **Create the GitHub repository and push.** `tools/push-to-github.sh` does
-   the push; creating the repository is the one action a security classifier
-   here refuses. Until this happens, CI has never run and the Android build is
-   entirely unverified.
+1. ~~Create the GitHub repository and push.~~ **Done 23 September 2026**:
+   private `Furkiozknn/lodeworks`, pushed with `tools/push-to-github.sh`. Both
+   workflows are green on `main`; the debug APK (with and without plugins)
+   and a debug-signed AAB are built on every push (docs/CI.md).
 2. **Register a Play Console developer account** and complete Android
    developer verification (government ID for a personal account, a D-U-N-S
    number for an organisation).
@@ -61,8 +61,12 @@ narrowly as possible.
    number and email on the store page anyway.
 7. **Paste `store/data-safety.md`** into App content → Data safety, and answer
    the content rating questionnaire (prepared answers below).
-8. **Upload the preview video to YouTube.** Play takes a URL, not a file.
-   `store/preview.mp4` is the file.
+8. **Re-shoot the store assets in landscape, then upload the preview video
+   to YouTube.** The game is landscape since the isometric round; the
+   screenshots, feature graphic and `store/preview.mp4` in `store/` are still
+   the portrait, procedural-renderer ones and no longer show the game. The
+   capture is automated (`tools/shots.tscn` at 1920x1080); choosing and
+   uploading is not. Play takes the video as a YouTube URL.
 9. **Closed testing: 12 testers, 14 continuous days.** A new personal
    developer account cannot reach production without it.
 10. **Run `docs/DEVICE-TEST.md` on a real Android phone.** 18 of its 25 checks
@@ -136,11 +140,12 @@ The two findings that decided the design:
 Stated here rather than buried, because the temptation to round these up is
 the whole reason the project has a rule about it.
 
-- **No APK or AAB has ever been produced.** No Android SDK, no Gradle
-  repositories and no Godot export templates are reachable from the build
-  environment; `dl.google.com`, `maven.google.com`, `services.gradle.org` and
-  `repo1.maven.org` all fail to connect.
-- **CI has never run.** The repository has never been pushed.
+- **No signed release build exists.** Debug APKs and a debug-signed AAB are
+  built by CI on every push (first green run: APK 162.9 MB without plugins,
+  174.3 MB with, AAB 67.7 MB -- debug builds, x86_64 included, unstripped).
+  A release size is UNKNOWN until a signed release build exists.
+- **CI has run and is green** (`ci` and `android`); a signed release bundle
+  has not been built, because no keystore secret exists.
 - **Nothing has run on a real Android device.** Every frame-time, memory,
   battery, input-latency and touch figure is UNKNOWN.
 - **No purchase has ever been made.** The billing client handles every

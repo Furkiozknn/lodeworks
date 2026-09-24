@@ -391,8 +391,10 @@ func test_the_play_document_and_the_readiness_tool_exist() -> void:
 	for product: String in MonetizationDB.keys():
 		runner.check(doc.contains(MonetizationDB.store_id(product)),
 			"docs/PLAY.md must name every product to create: " + product)
-	for unknown: String in ["No APK or AAB has ever been produced",
-			"CI has never run", "Nothing has run on a real Android device",
+	# CI has run and debug APKs/AABs exist since 23 September 2026; what is
+	# still unverified is a signed release build, a device and a purchase.
+	for unknown: String in ["No signed release build exists",
+			"Nothing has run on a real Android device",
 			"No purchase has ever been made"]:
 		runner.check(doc.contains(unknown),
 			"the publishing document must keep stating what is NOT verified: "

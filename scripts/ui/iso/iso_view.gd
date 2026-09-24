@@ -591,6 +591,29 @@ class Tris:
 	func dot(c: Vector2, r: float, col: Color) -> void:
 		quad(c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0), col)
 
+	func tri(a: Vector2, b: Vector2, c: Vector2, col: Color) -> void:
+		var i: int = pts.size()
+		pts.append_array([a, b, c])
+		cols.append_array([col, col, col])
+		idx.append_array([i, i + 1, i + 2])
+
+	func circle(c: Vector2, r: float, col: Color, n: int = 16) -> void:
+		var i: int = pts.size()
+		pts.append(c)
+		cols.append(col)
+		for k in range(n):
+			pts.append(c + Vector2.from_angle(TAU * float(k) / float(n)) * r)
+			cols.append(col)
+		for k in range(n):
+			idx.append_array([i, i + 1 + k, i + 1 + (k + 1) % n])
+
+	func ring(c: Vector2, r: float, w: float, col: Color, n: int = 18) -> void:
+		for k in range(n):
+			var a0: Vector2 = Vector2.from_angle(TAU * float(k) / float(n))
+			var a1: Vector2 = Vector2.from_angle(TAU * float(k + 1) / float(n))
+			quad(c + a0 * (r - w * 0.5), c + a1 * (r - w * 0.5), c + a1 * (r + w * 0.5),
+				c + a0 * (r + w * 0.5), col)
+
 	func flush(ci: CanvasItem) -> void:
 		if idx.is_empty():
 			return
@@ -976,6 +999,7 @@ func _draw_glow() -> void:
 		var c: Vector2 = Iso.cell_center(cell) - Vector2(0, Iso.TH * 0.75)
 		ci.draw_texture_rect(g, Rect2(c - Vector2(34, 34), Vector2(68, 68)), false, col)
 	# Material moving: a bright bead travelling along each live pipe.
+	var seams := Tris.new()
 	for key: String in _flow:
 		if not _segments.has(key):
 			continue
@@ -1001,10 +1025,11 @@ func _draw_glow() -> void:
 		var mid: Vector2 = (a + b) * 0.5 - Vector2(0, 12)
 		var seam: Color = col2
 		seam.a = 0.45 * live
-		ci.draw_line(mid - dir * reach, mid + dir * reach, seam, 6.0, true)
+		seams.band(mid - dir * reach, mid + dir * reach, 6.0, seam)
 		col2.a = live
 		ci.draw_texture_rect(g, Rect2(p - Vector2(20, 20), Vector2(40, 40)), false, col2)
 	_draw_life(ci, g)
+	seams.flush(ci)
 
 
 ## The things that make the place feel lived in, all light and all cheap:
@@ -1090,6 +1115,8 @@ func _draw_over() -> void:
 	var font: Font = ThemeDB.fallback_font
 	var z: float = cam.zoom
 	var r: float = clampf(12.0 * z, 9.0, 16.0)
+	# Every shape in this layer goes into one batch; text follows it.
+	var ov := Tris.new()
 	for cell: int in Sim.grid.cells:
 		var shown: int = badges.shown(cell)
 		if shown == StatusBadges.Show.NONE or shown == StatusBadges.Show.MILD:
@@ -1104,14 +1131,13 @@ func _draw_over() -> void:
 			StatusBadges.Show.STARVED:
 				p = cam.world_to_screen(Iso.cell_center(cell)
 					+ _badge_side(cell, false) * Iso.TW * 0.32 - Vector2(0, Iso.TH * 0.55))
-		_draw_badge(ci, p, r, shown)
+		_badge(ov, p, r, shown)
 
 	# Material in transit: one small bead per seam the simulation actually
 	# moved something across in the last moment, riding from the machine that
 	# gave it to the one that took it. Screen-sized, so it stays readable when
 	# zoomed out, and outlined, so it reads over any machine.
 	var bead_r: float = clampf(5.0 * z, 3.5, 7.0)
-	var beads := Tris.new()
 	for key: String in _flow:
 		if not _segments.has(key):
 			continue
@@ -1128,32 +1154,29 @@ func _draw_over() -> void:
 		var live: float = clampf(float(_flow[key]) * 2.0, 0.0, 1.0)
 		var col: Color = Palette.res_color(int(s["res"])).lerp(Color.WHITE, 0.35)
 		col.a = live
-		beads.dot(p, bead_r + 1.5, Color(0.05, 0.05, 0.08, 0.85 * live))
-		beads.dot(p, bead_r, col)
-	beads.flush(ci)
+		ov.dot(p, bead_r + 1.5, Color(0.05, 0.05, 0.08, 0.85 * live))
+		ov.dot(p, bead_r, col)
 
 	if selected_cell >= 0 and not Sim.grid.is_empty(selected_cell) and not _dragging:
-		_draw_selected_links(ci)
+		_selected_links(ov)
 		var top: Vector2 = cam.world_to_screen(Iso.cell_center(selected_cell)
 			- Vector2(0, Iso.TH * 1.55))
 		var bob: float = sin(_anim * 4.0) * 4.0
 		var t := top + Vector2(0, bob)
 		var w: float = clampf(11.0 * z, 8.0, 15.0)
-		ci.draw_colored_polygon(PackedVector2Array([t + Vector2(-w, -w * 1.2),
-			t + Vector2(w, -w * 1.2), t]), Color(0, 0, 0, 0.4))
-		ci.draw_colored_polygon(PackedVector2Array([t + Vector2(-w, -w * 1.4),
-			t + Vector2(w, -w * 1.4), t + Vector2(0, -w * 0.15)]), Palette.ACCENT)
+		ov.tri(t + Vector2(-w, -w * 1.2), t + Vector2(w, -w * 1.2), t, Color(0, 0, 0, 0.4))
+		ov.tri(t + Vector2(-w, -w * 1.4), t + Vector2(w, -w * 1.4), t + Vector2(0, -w * 0.15),
+			Palette.ACCENT)
 	# Research, on every machine it bought: notches on the plate's front
 	# corner until the whole set turns gold.
 	var marks: int = Sim.upgrade_marks()
 	if marks > 0 and marks < IsoArt.UP_SHEET_MARKS and z > 0.55:
-		var nt := Tris.new()
 		for cell: int in Sim.grid.cells:
 			var f: Vector2 = cam.world_to_screen(Iso.cell_center(cell)
 				+ Vector2(0, Iso.TH * 0.5 * _footprint()))
 			for k in range(marks):
-				nt.dot(f + Vector2((-5.0 + 10.0 * k) * z, -3.0 * z), 3.2 * z, Palette.CORE)
-		nt.flush(ci)
+				ov.dot(f + Vector2((-5.0 + 10.0 * k) * z, -3.0 * z), 3.2 * z, Palette.CORE)
+	ov.flush(ci)
 	if overlay == Overlay.HEAT and z > 0.55:
 		_draw_heat_numbers(ci, font)
 	if _pressed and not _panning and not _dragging and _press_cell >= 0:
@@ -1165,7 +1188,7 @@ func _draw_over() -> void:
 ## with chevrons running the way material runs. It is the one moment the
 ## pipes are allowed on top of the machines, because it is the moment the
 ## player asked.
-func _draw_selected_links(ci: CanvasItem) -> void:
+func _selected_links(ov: Tris) -> void:
 	var lift := Vector2(0, -Iso.TH * 0.45)
 	for l: Dictionary in _links:
 		var path: Array = l["path"]
@@ -1175,8 +1198,9 @@ func _draw_selected_links(ci: CanvasItem) -> void:
 		var pts := PackedVector2Array()
 		for c in path:
 			pts.append(cam.world_to_screen(Iso.cell_center(int(c)) + lift))
-		ci.draw_polyline(pts, Color(0, 0, 0, 0.55), 7.0, true)
-		ci.draw_polyline(pts, col, 3.5, true)
+		for i in range(pts.size() - 1):
+			ov.band(pts[i], pts[i + 1], 7.0, Color(0, 0, 0, 0.55))
+			ov.band(pts[i], pts[i + 1], 3.5, col)
 		for i in range(pts.size() - 1):
 			var a: Vector2 = pts[i]
 			var b: Vector2 = pts[i + 1]
@@ -1185,14 +1209,13 @@ func _draw_selected_links(ci: CanvasItem) -> void:
 			for k in range(2):
 				var t: float = fposmod(_anim * 0.9 + 0.5 * float(k), 1.0)
 				var p: Vector2 = a.lerp(b, 0.2 + 0.6 * t)
-				ci.draw_colored_polygon(PackedVector2Array([p + d * 7.0,
-					p - d * 5.0 + n * 6.0, p - d * 5.0 - n * 6.0]), col)
+				ov.tri(p + d * 7.0, p - d * 5.0 + n * 6.0, p - d * 5.0 - n * 6.0, col)
 
 
-func _draw_badge(ci: CanvasItem, p: Vector2, r: float, kind: int) -> void:
+func _badge(ov: Tris, p: Vector2, r: float, kind: int) -> void:
 	var bob: float = sin(_anim * 3.0) * 1.5
 	p.y += bob
-	ci.draw_circle(p + Vector2(0, 2), r + 1.5, Color(0, 0, 0, 0.45))
+	ov.circle(p + Vector2(0, 2), r + 1.5, Color(0, 0, 0, 0.45))
 	var col: Color
 	match kind:
 		StatusBadges.Show.BLOCKED: col = Palette.ST_BLOCKED
@@ -1202,29 +1225,33 @@ func _draw_badge(ci: CanvasItem, p: Vector2, r: float, kind: int) -> void:
 		_: col = Palette.BAD
 	if kind == StatusBadges.Show.CRITICAL:
 		var k: float = 0.5 + 0.5 * sin(_anim * 7.0)
-		ci.draw_circle(p, r * (1.35 + 0.25 * k), Color(col, 0.25 * (1.0 - k)))
-	ci.draw_circle(p, r + 1.5, Color(0.08, 0.09, 0.12))
-	ci.draw_circle(p, r, col)
+		ov.circle(p, r * (1.35 + 0.25 * k), Color(col, 0.25 * (1.0 - k)))
+	ov.circle(p, r + 1.5, Color(0.08, 0.09, 0.12))
+	ov.circle(p, r, col)
 	var w := Color(1, 1, 1, 0.95)
 	var u: float = r * 0.5
+	var lw: float = maxf(r * 0.16, 2.0)
 	# A different glyph for every state, not only a different colour.
 	match kind:
 		StatusBadges.Show.BLOCKED:
-			ci.draw_rect(Rect2(p + Vector2(-u * 0.75, -u * 0.8), Vector2(u * 0.5, u * 1.6)), w)
-			ci.draw_rect(Rect2(p + Vector2(u * 0.25, -u * 0.8), Vector2(u * 0.5, u * 1.6)), w)
+			ov.quad(p + Vector2(-u * 0.75, -u * 0.8), p + Vector2(-u * 0.25, -u * 0.8),
+				p + Vector2(-u * 0.25, u * 0.8), p + Vector2(-u * 0.75, u * 0.8), w)
+			ov.quad(p + Vector2(u * 0.25, -u * 0.8), p + Vector2(u * 0.75, -u * 0.8),
+				p + Vector2(u * 0.75, u * 0.8), p + Vector2(u * 0.25, u * 0.8), w)
 		StatusBadges.Show.STARVED:
-			ci.draw_arc(p, u * 0.95, 0.0, TAU, 20, w, maxf(r * 0.16, 2.0), true)
-			ci.draw_line(p + Vector2(-u, u), p + Vector2(u, -u), w, maxf(r * 0.16, 2.0), true)
+			ov.ring(p, u * 0.95, lw, w)
+			ov.band(p + Vector2(-u, u), p + Vector2(u, -u), lw, w)
 		StatusBadges.Show.HOT:
-			ci.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -u * 1.2),
-				p + Vector2(u * 0.8, u * 0.4), p + Vector2(0, u), p + Vector2(-u * 0.8, u * 0.4)]), w)
+			ov.quad(p + Vector2(0, -u * 1.2), p + Vector2(u * 0.8, u * 0.4), p + Vector2(0, u),
+				p + Vector2(-u * 0.8, u * 0.4), w)
 		StatusBadges.Show.COLD:
 			for a in range(3):
 				var d := Vector2.from_angle(float(a) * PI / 3.0) * u * 1.05
-				ci.draw_line(p - d, p + d, w, maxf(r * 0.14, 1.5), true)
+				ov.band(p - d, p + d, maxf(r * 0.14, 1.5), w)
 		_:
-			ci.draw_rect(Rect2(p + Vector2(-u * 0.18, -u * 1.0), Vector2(u * 0.36, u * 1.2)), w)
-			ci.draw_circle(p + Vector2(0, u * 0.62), u * 0.2, w)
+			ov.quad(p + Vector2(-u * 0.18, -u), p + Vector2(u * 0.18, -u),
+				p + Vector2(u * 0.18, u * 0.2), p + Vector2(-u * 0.18, u * 0.2), w)
+			ov.circle(p + Vector2(0, u * 0.62), u * 0.2, w, 8)
 
 
 func _num(ci: CanvasItem, font: Font, at: Vector2, text: String, col: Color, fs: int,

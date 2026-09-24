@@ -125,7 +125,7 @@ static func depth_key(cell: int) -> int:
 ## far side of a support tile -- that takes it. The rule is the one
 ## `Simulation._takers` applies, minus the momentary "is its buffer full",
 ## because a pipe is the connection and not the traffic on it.
-## `test_a_conduit_is_drawn_exactly_where_material_can_move` holds the two to
+## `test_a_pipe_is_drawn_exactly_where_the_simulation_can_move_material` holds the two to
 ## each other.
 
 static func accepts(g: Grid, cell: int, res: int) -> bool:

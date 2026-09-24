@@ -1,78 +1,87 @@
-# The build chain, and the one thing only you can do
+# The build chain
 
-Everything in this repository that can be automated is automated. One step
-cannot be, and it is the first one.
+The repository is `Furkiozknn/lodeworks` (private), created on 23 September
+2026 and first pushed with `tools/push-to-github.sh` (which checks the tree
+is clean and refuses to push over an existing history). Both workflows run on
+every push to `main`, on pull requests, and by hand (`workflow_dispatch`,
+which is how a branch is built without a pull request):
+
+```bash
+gh workflow run ci.yml --ref <branch>
+gh workflow run android.yml --ref <branch>
+```
 
 ---
 
-## The single manual step
+## From a clean clone
 
-**Create an empty GitHub repository.** Nothing else.
-
-It can be private — GitHub Actions runs on private repositories, and the whole
-chain below works exactly the same. Do not initialise it with a README, a
-`.gitignore` or a licence; the push below expects it empty.
-
-This step is manual because creating a repository under your account is an
-account operation that this session's security policy refuses, for public and
-private alike. That refusal is not worked around anywhere in this project.
-
-## Then one command
+Nothing is generated into the repository before a build: the art is
+committed with its import settings, and the Android build template is
+installed by the export itself.
 
 ```bash
-tools/push-to-github.sh git@github.com:<you>/lodeworks.git
-# or, over https:
-tools/push-to-github.sh https://github.com/<you>/lodeworks.git
+git clone https://github.com/Furkiozknn/lodeworks.git && cd lodeworks
+godot --headless --path . --import                         # Godot 4.7.2
+godot --headless --path . --script res://tests/test_runner.gd
+godot --headless --path . tools/layout_check.tscn           # a scene: it names autoloads
+godot --path . --resolution 1440x720 tools/smoke.tscn       # needs a display (or xvfb-run)
+uv run --no-project --with pillow python tools/asset_budget.py
 ```
 
-It checks the working tree is clean, checks the remote is empty, pushes `main`,
-and prints the URLs of the two workflows that will start.
+The Android APK needs the Android SDK, JDK 17 and Godot's export templates
+(the workflow fetches the templates):
 
-## What happens without you
+```bash
+godot --headless --path . --install-android-build-template \
+  --export-debug "Android APK" "$PWD/build/lodeworks.apk"
+```
 
-The push starts both workflows.
+`--install-android-build-template` is required: the presets use a Gradle
+build, `android/` is gitignored, and without it a fresh checkout stops at
+"Android build template not installed in the project". That was the first
+`android` run's failure; it is fixed in `ba6371f`.
 
-**`ci`** — three jobs, every push:
+Rebuilding the art is only needed after a new generation:
+
+```bash
+uv run --no-project --with pillow --with numpy --with scipy python tools/art_build.py
+godot --headless --path . --import
+```
+
+(`docs/ART.md` section 9 has the generation and download steps.)
+
+## `ci` -- every push
 
 | job | what it proves |
 |---|---|
-| tests | 134 tests and 498 assertions, including the balance, the economy model, the tutorial flow and the release configuration |
-| self test | the device self test's non-hardware rows, from a command line |
-| ui smoke | the real game boots under a virtual display, the settings panel, the Codex and the diagnostics screen all open, and none of them renders as an empty rectangle |
+| tests | the unit suite (262 tests at the time of writing), the device self test's non-hardware rows, the balance, layout, journey, strategy and money tools, Play readiness (with a check that the data-safety form still matches the code), **the landscape layout on eleven screen shapes and three safe areas**, and **the art budget** (fails over 40 MB or on a picture with no recorded source) |
+| screenshots render | the store screenshots at 1920x1080 and **the four audit screens** (main, zoomed, whole world, one machine) from the running game |
+| readability | every machine sprite distinguishable from every other at 44/72/110 px, in colour and greyscale, for the free palette and Slate |
+| ui smoke | the real game boots and its screens open, at 1440x720, 1920x1080, 2400x1080, 1280x720 and the portrait windows 720x1440 and 360x720 |
 
-It also prints the balance diagnostics and the layout scoreboard, because the
-numbers move whenever the economy is touched and somebody should read them.
+Godot can exit 0 after a script error, so the layout and audit steps check
+their verdict line rather than the exit code.
 
-**`android`** — the part that has never run:
+## `android` -- every push
 
 | leg | what it proves |
 |---|---|
-| `without-plugins` | the project exports an installable APK with no ad or billing SDK present at all. This is the standing proof of the claim the whole service layer rests on |
-| `with-plugins` | the AdMob and Play Billing plugins resolve, link, and the result still builds |
+| `without-plugins` | an installable APK with no ad or billing SDK at all -- the claim the service layer rests on |
+| `with-plugins` | the AdMob and Play Billing plugins resolve and link; also exports the **bundle preset as a debug-signed AAB** (`lodeworks-DEBUG-not-for-upload.aab`) so the AAB half of the Gradle chain runs on every push |
 
-Each leg runs the full test suite first, exports with the `Android APK`
-preset, and then **checks the bytes**: a non-empty file over five megabytes,
-containing `classes.dex` and an `arm64-v8a` library, with `aapt2` printing its
-package and target SDK. An export that produced nothing still exits zero often
-enough to be worth checking.
+Each leg runs the tests first and then checks the bytes: a file over 5 MB
+containing `classes.dex` and an `arm64-v8a` library, with a build report
+(size, sha256, Godot version, contents, the badging `aapt2` prints, plugin
+lock). First green run on `main` (`35909824939`): APK without plugins
+162,857,140 B, with plugins 174,309,375 B, debug AAB 67,656,927 B. These are
+debug builds carrying arm64 and x86_64 libraries unstripped; a release size
+is UNKNOWN.
 
-The APKs land in the run's artifacts, each with a **build report** beside it:
-the file size and sha256, the Godot version, the dex and native libraries
-inside, what `aapt2` says the package declares (package name, target SDK,
-permissions, ABIs), the exact plugin versions that were fetched, and the
-self-test output from that run. That report is the evidence the first green
-run produces, and it is the first thing worth reading afterwards.
+## The signed bundle -- needs a person
 
-`lodeworks-apk-with-plugins` is the one to put on a phone.
-
-## The release bundle
-
-Tag a commit `v*` and the `aab` job builds a signed Android App Bundle —
-**but only if the signing secrets exist**. With no `ANDROID_KEYSTORE_BASE64`
-secret it builds nothing and says so in the run summary, rather than quietly
-producing a debug-signed bundle that cannot be uploaded.
-
-To enable it, add three repository secrets:
+Tag a commit `v*` and the `aab` job builds a signed bundle, **only if the
+signing secrets exist**; without `ANDROID_KEYSTORE_BASE64` it builds nothing
+and says so rather than quietly producing a debug-signed one.
 
 | secret | what it is |
 |---|---|
@@ -80,38 +89,17 @@ To enable it, add three repository secrets:
 | `ANDROID_KEYSTORE_USER` | the key alias |
 | `ANDROID_KEYSTORE_PASSWORD` | the key password |
 
-Generate the keystore once and keep it somewhere you will still have it in
-five years:
-
 ```bash
 keytool -genkey -v -keystore lodeworks-release.keystore \
   -alias upload -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-Losing an upload key is recoverable through Play support. Losing an app
-signing key without Play App Signing enrolled is not.
+Keep it somewhere you will still have it in five years. Losing an upload key
+is recoverable through Play support; losing an app signing key without Play
+App Signing enrolled is not.
 
-## What has been checked without running any of it
+## What is still not verified
 
-The export chain cannot run in the environment this was written in: the hosts
-that serve the Android SDK, Gradle and Google's Maven repositories are
-unreachable, and so are Godot's export templates. So the export has never been
-executed and nothing here claims otherwise.
-
-What *has* been checked, by `tests/test_release_config.gd`, on every test run:
-
-- both presets exist and are named exactly what the workflow asks for — a
-  renamed preset otherwise fails after eight minutes of toolchain setup
-- targetSdk 36, minSdk 24, Gradle build on, arm64 shipped, no 32-bit ARM
-- the APK and AAB presets are identical in every setting except the output
-  format, so testing one says something about the other
-- `INTERNET` and `VIBRATE` declared, no custom permissions
-- no keystore path, user or password is committed
-- every launcher icon the preset points at exists on disk
-- the package name is a valid Android package name
-- the version in both presets matches the project version
-- the renderer is still `gl_compatibility` and the game is still portrait
-- every file and preset name the two workflows invoke exists
-
-That is the entire configuration surface. What remains untested is Gradle
-itself, which is what the first green run is for.
+- No APK has run on a phone. Every frame-time, memory, touch and battery
+  number for a device is UNKNOWN; the desktop numbers are in docs/AUDIT.md.
+- No signed release bundle has been built (no keystore secret).

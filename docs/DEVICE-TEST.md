@@ -41,7 +41,7 @@ release key.
 
 ## 1. One tap: the automated half
 
-Open the game → **≡** → **Run device self test**.
+Open the game → the **gear** at the top right → **Run device self test**.
 
 Eighteen rows run immediately. Each is PASS, FAIL, UNKNOWN or INFO, and each
 has an id so a result can be pasted back as one block.
@@ -51,9 +51,9 @@ has an id so a result can be pasted back as one block.
 | `device` | SoC, cores, Android version | — (informational) |
 | `renderer` | which driver `gl_compatibility` actually got | — (informational) |
 | `screen` | resolution, aspect, dpi | the aspect is outside the 1.30–2.40 band the layout was built for |
-| `scaling` | window, canvas, base and scale factor | the canvas is much narrower than the design base, so the board may be clipped |
-| `orientation` | portrait lock held | the window is landscape on a portrait-locked project |
-| `touch` | **board cell size in dp** | under 44dp — the board is not usable one-handed |
+| `scaling` | window, canvas, base and scale factor | the canvas is much smaller than the 1440x720 design base on either axis, so the interface may be clipped |
+| `orientation` | landscape lock held (either way up) | the window is portrait on a landscape-locked project |
+| `touch` | **a board cell's height in dp**, now and at the closest zoom | under 44dp even at the closest zoom (INFO when only the current zoom is under 48dp: zoom in to place precisely) |
 | `safe_area` | cutout, punch-hole and gesture insets with edge-to-edge on | an inset is negative, meaning it is being reported in the wrong space |
 | `draw` | canvas draw calls and items | over 400 — something started drawing polygons per tile |
 | `shaders` | canvas pipelines compiled | — (informational; **any increase while playing is a stutter**) |
@@ -98,24 +98,24 @@ Work down this list once. Each row has a criterion, not a vibe.
 | `tutorial` | play the eight-step chapter without reading this file | every step's pulsing outline is on tiles you can reach one-handed; each step advances the moment you do the thing, not after a delay; no step is ambiguous enough to need a second attempt |
 | `tap` | tap an empty tile with nothing armed, then with something armed | the first toasts and does nothing; the second places exactly where the thumb was, not one tile off |
 | `longpress` | hold a machine | the remove dialog appears at about half a second, and **cancelling it leaves the board untouched** |
-| `drag` | drag a machine to an empty tile, and to an occupied one | the ghost follows the finger, the legal target outlines green, the illegal one does nothing and costs nothing |
+| `drag` | tap a machine to select it, then drag it to an empty tile, and to an occupied one | the ghost follows the finger, the legal target lights green, the illegal one does nothing and costs nothing; dragging an unselected machine pans the world instead |
 | `undo` | place a machine, then tap **Undo** | the machine goes, and the credits return to **exactly** what they were — not the 75% resale value |
-| `cancel` | start a drag and release it back on the origin tile | nothing moves, nothing is spent |
-| `nozoom` | try to pinch-zoom and to pan the board | **nothing happens, and nothing needs to.** The 7×10 board is sized to fit every phone without either; if any part of it is off-screen or unreachable, that is a `scaling` failure, not a missing feature |
-| `smallscreen` | if you have a second, smaller phone, install there too | the board still fits without scrolling and `touch` still passes |
-| `production` | watch a working chain for thirty seconds | material motes visibly cross between tiles; progress bars sweep; a machine you starve stops sweeping within a second or two |
-| `status` | break a chain by selling one machine | the tile downstream turns red (starved) and the one upstream turns amber (backed up) within about half a second, and the count above the board changes |
+| `cancel` | start a drag of a selected machine and release it back on its own tile | nothing moves, nothing is spent |
+| `camera` | pan with one finger, fling, pinch in and out, tap the zoom key | the world moves exactly with the finger and coasts after a fling; the pinch zooms about the fingers; **no empty space beyond the painting ever shows**; the zoom key goes to a close view and back to the whole factory |
+| `smallscreen` | if you have a second, smaller phone, install there too | the default view still shows the whole board between the panels and `touch` still passes |
+| `production` | watch a working chain for thirty seconds | beads visibly ride the seams between machines; working machines breathe and glow; a machine you starve goes dark within a second or two |
+| `status` | break a chain by selling one machine | within about two seconds a red badge appears on the machine downstream (starved) and an amber one where the jam starts upstream (backed up) -- not on every machine behind it -- and the count on the warning key changes |
 | `heat` | tap **Heat** | every occupied tile shows a signed number; the numbers change when you add a Boiler; empty tiles show absolute heat only where it differs from ambient |
 | `previewlive` | press and hold on an empty tile with a Boiler armed | each neighbour shows what it would gain or lose, and after placing, the `preview` row still passes |
 | `ratelive` | note the credits/second, place a machine, watch | the number restarts its measurement rather than holding the old value; after a **collapse** it reads zero, not the rate of the factory you just gave up |
-| `upgrades` | buy a research upgrade | gold notches appear on every machine on the board |
+| `upgrades` | buy a research upgrade | gold notches appear on every machine's plate; at three notches the whole factory switches to its gilded top tier |
 | `sound` | tap **Sound + buzz** on the self test screen | you hear fourteen distinct sounds and feel a buzz on each; placement, refusal, upgrade and reward are clearly different from one another |
 | `haptics` | place, then mis-tap on rubble | a short buzz on the first, a different, blunter one on the second; both absent when Haptics is off in settings |
 | `background` | background the app for two minutes, return | the ambience stops when backgrounded and resumes on return; the board is where you left it; `lifecycle` now shows a suspend and a resume |
 | `restart` | force-stop from Android's app settings, reopen | everything survives, including the tutorial step and the research tree. This is the path autosave does **not** get to run on |
 | `offline` | close for an hour, reopen | the welcome-back panel prints three numbers, and rate × counted time × the stated fraction equals the payout |
 | `collapse` | reach stratum 3 and collapse | the Cores shown **before** committing are the Cores received; the board clears; the research tree survives; `ratelive` reads zero afterwards |
-| `visual` | look at the board at every stratum you reach | no tearing, no flicker, no tile drawn over another, no text clipped by a cutout |
+| `visual` | look at the board at every stratum you reach | no tearing, no flicker, no machine drawn over one standing in front of it, no text clipped by a cutout |
 | `crash` | the whole session | the app never dies. If it does, `adb logcat` output from §0 is the thing to keep |
 
 ## 3. Three minutes on a table: the soak

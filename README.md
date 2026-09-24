@@ -7,7 +7,15 @@ Not published. This repository is a working game, a test suite that checks the
 *balance* and not only the code, and everything needed to put it on Google Play
 except the things only a human with a bank account can do.
 
-![Three stages of a run](store/screenshots/03_full_board.png)
+![The main screen: a factory on a floating island over a canyon](docs/media/main-landscape.jpg)
+
+A landscape, three-quarter isometric world: a painted canyon with parallax, a
+rock island floating in it, a stone slab on the island, the 7x10 board on the
+slab and the Factory Core standing behind it. Drag to pan, pinch or wheel to
+zoom, tap to place, tap a machine to select it and drag it to move it. The
+simulation underneath is the one the tests below check; the screen only reads
+it. ([docs/ART.md](docs/ART.md) is the visual system,
+[docs/AUDIT.md](docs/AUDIT.md) section 0 what it was measured to cost.)
 
 ---
 
@@ -22,10 +30,14 @@ having you do them, in the real game, on your real board. Then it stops. There
 are no further tutorial windows; new machines and new strata are for
 discovering.
 
-The **Codex** is there if you want it, behind a `?` in the header. Every page
+The Foreman -- a young miner at the edge of the screen, never over the
+board -- says each line, and after the chapter he goes quiet except for a new
+stratum and the first machine that overheats in it.
+
+The **Codex** is there if you want it, one key at the bottom left. Every page
 is a title, one line of what to look at, two sentences, and a **two-to-five
 tile board that is actually running** — a real `Simulation` with the same
-tiles, the same status lights and the same heat wash as the game. Put a Boiler
+machines and the same status colours as the game. Put a Boiler
 next to a Smelter on a Codex page and the Smelter's pip goes green and its
 progress bar speeds up, because that is what happens. A help page that
 describes a rule can be wrong; a help page that runs the rule cannot.
@@ -39,17 +51,18 @@ directions along the chain**:
 
 | | |
 |---|---|
-| green square | working |
-| amber bar | output backed up — the problem is **downstream** |
-| red bar | missing an input — the problem is **upstream** |
-| orange or blue notch | running at the wrong temperature, and losing output for it |
+| a machine breathing and lit | working |
+| amber badge, two bars, on its output side | backed up — the problem is **downstream** |
+| red badge, an empty ring, on its input side | missing an input — the problem is **upstream** |
+| a warm glow, embers and a flame badge (or blue and frost) | the wrong temperature, and losing output for it |
 
-Each state is a different shape as well as a different colour, so the board
-still works without colour vision. One line above the grid counts what is
-wrong; tapping it walks through the culprits. Tapping a machine opens a sheet
-at the *bottom* of the screen — never a popover under the thumb that is
-pointing at the tile — which says in words what is wrong and which way to
-look.
+Each state is a different glyph as well as a different colour, so the board
+still works without colour vision. A badge only appears once a state has held
+for a second and a half, and only on the machine where a jam starts -- not on
+every machine queued behind it. The warning key counts what is wrong and each
+tap glides the camera to the next culprit. Tapping a machine opens its panel
+where the machine tray was, below the board, and draws every connection in
+and out of it on top of the world.
 
 The heat button relabels every tile with how far it is from the temperature it
 personally wants, as a signed number. Every machine in this game wants a
@@ -117,19 +130,18 @@ from a Lab and a Lab only eats Components. So the question is not "which board
 earns more" but "credits now, or upgrades that outlast the shaft", and the
 stratum decides which board is even buildable.
 
-## No art files, no audio files
+## The art, and no audio files
 
-There is not one bitmap and not one sound file in this project. The board, the
-UI, the app icon and the feature graphic are all drawn by the same code; every
-sound effect and the factory ambience are synthesised from arithmetic at
-startup, a few milliseconds of sine partials and filtered noise.
+The pictures are generated -- twelve machines in six palettes and two upgrade
+tiers, the world, the island, the Core, props, HUD icons and the Foreman --
+all against one isometric style sheet, and built into the game by
+`tools/art_build.py`, which measures every sprite's base plate from its alpha
+channel and writes `assets/art/layout.json`. Every file has its generation job,
+prompt and references in [art_src/SOURCES.md](art_src/SOURCES.md). 6.76 MB
+committed against a 40 MB budget (`tools/asset_budget.py`).
 
-That is a production decision before it is an aesthetic one. A solo developer's
-scarcest resource is art, and the second scarcest is the patience to keep
-twelve machines looking like each other. Here a new machine is a row in a
-table, a colour and a silhouette family — and the store artwork picks it up
-without anyone exporting anything. It also means there is no licence to check
-and nothing to clear before shipping.
+There is still not one sound file: every sound effect and the factory ambience
+are synthesised from arithmetic at startup.
 
 ## Monetisation, designed in rather than bolted on
 
@@ -152,8 +164,10 @@ delete in week one.
 ## Running it
 
 ```bash
-godot --path . --resolution 720x1440                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 137 tests
+godot --path . --resolution 1440x720                              # play it
+godot --headless --path . --script res://tests/test_runner.gd     # 262 tests
+godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
+godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
 godot --headless --path . --script res://tools/diagnose.gd        # per-tile balance dump
 godot --headless --path . --script res://tools/layout_lab.gd      # score the reference layouts
@@ -185,8 +199,8 @@ at real tick rate and asserts against wall-clock seconds:
 - the curve has not walled out by stratum 20
 
 `tests/test_performance.gd` is the one that would have caught the fourth. It
-asserts the tick budget, the save budget, that the project still ships no
-bitmaps and no audio files, and — after
+asserts the tick budget, the save budget, that every picture ships from the
+budgeted art folder and no audio file ships at all, and — after
 [a measurement that said otherwise](docs/BALANCE.md) — that no more than a
 third of the reference board is sitting idle.
 
@@ -234,10 +248,12 @@ scripts/sim/      the one autoload that owns live state
 scripts/services/ save, analytics, ads, IAP, and the device self test — each
                   degrades to a no-op when its native plugin is absent, so the
                   game always runs and always tests
-scripts/ui/       drawn with _draw(); there is not one bitmap in the project,
-                  and MachineArt is the single place a machine is drawn -- the
-                  board, the icon and the feature graphic all call it
-tests/            137 tests, no framework dependency
+scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
+                  IsoView, which draws it and turns fingers into place / move /
+                  sell / pan / zoom
+scripts/ui/       the landscape HUD, Codex, shop, diagnostics
+assets/art/       the generated art and layout.json; art_src/ its sources
+tests/            262 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs
@@ -252,22 +268,19 @@ Working: the simulation, the economy, the descent, prestige, the research tree,
 saves with offline progress, the tutorial, the UI, and the ad/IAP/analytics
 interfaces with their no-op fallbacks.
 
-Everything that can be automated has been. What is left is one manual step
-and a phone:
+Everything that can be automated has been. What is left is a keystore and
+a phone:
 
-- **The build chain is ready and has never run.** One empty GitHub repository
-  — private is fine — then `tools/push-to-github.sh <url>`, and CI builds two
-  APKs (one deliberately with no ad or billing SDK at all) and checks the
-  bytes of each. [`docs/CI.md`](docs/CI.md) is the whole procedure. Creating
-  the repository is the single step this project cannot do for itself.
-- **The export configuration is verified without a build.** The Android
-  toolchain is unreachable from where this was written, so instead
-  `tests/test_release_config.gd` checks the entire configuration surface on
-  every run: both preset names against what the workflow asks for, targetSdk
-  36 and minSdk 24, that the APK and AAB presets are identical except for
-  their output format, permissions, that no keystore material is committed,
-  that every launcher icon exists, that the versions match, and that every
-  file the two workflows invoke is present.
+- **The build chain runs.** The private repository `Furkiozknn/lodeworks`
+  builds, on every push, two debug APKs (one deliberately with no ad or
+  billing SDK at all) and a debug-signed AAB, and checks the bytes of each.
+  A signed release bundle needs three repository secrets and a tag;
+  [`docs/CI.md`](docs/CI.md) is the procedure.
+- **The export configuration is also checked without a build**:
+  `tests/test_release_config.gd` checks both preset names against the
+  workflow, targetSdk 36 and minSdk 24, APK/AAB parity, permissions, that no
+  keystore material is committed, launcher icons, versions, and every file
+  the workflows invoke.
 - **The device pass is a twenty-minute scripted procedure**, not a wish.
   [`docs/DEVICE-TEST.md`](docs/DEVICE-TEST.md) has twenty-five checks with
   pass criteria; eighteen of them the game runs on itself in one tap and
@@ -284,12 +297,12 @@ nothing behind it:
   account, no ad unit ids, no Play Console product. The integration is written
   and its failure paths are tested; the live paths are not, so monetization is
   not working.
-- **The Android export has never been executed.** It needs an Android SDK, JDK
-  17 and Google's Maven repositories; `dl.google.com`, `maven.google.com`,
-  `services.gradle.org` and `repo1.maven.org` are all unreachable from the
-  machine this was written on, and so are Godot's own export templates. The
-  workflow that does it is committed, validated and has never run.
-- No sound, and blueprints save and load but have no UI.
+- **No signed release build exists** (no keystore), so a release size is
+  UNKNOWN; the debug APKs are 163-174 MB with x86_64 included and unstripped.
+- **The store screenshots and preview video are the old portrait ones** and
+  no longer show the game; the landscape capture is automated, choosing and
+  uploading is not.
+- No music, and blueprints save and load but have no UI.
 
 See [docs/RELEASE.md](docs/RELEASE.md) §6 for claim-by-claim evidence and §7
 for what needs a human.
