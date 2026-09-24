@@ -1,71 +1,109 @@
 class_name BuildArea
 extends RefCounted
 
-## How much of the board a shaft may build on: the yard.
+## Where on the 44 x 44 board a shaft may build: the Factory Core in the
+## middle, and the yard round it.
 ##
-## A new shaft does not hand the player all seventy tiles. It opens a small
-## yard beside the Factory Core and widens it as the shaft goes deeper, so the
-## first screen says "start here" rather than "here is everything", and every
-## stratum visibly gives the factory more room. The yard grows from the
-## board's left corner, where the Core stands.
-##
-## After the first collapse the whole board is open from the start: a player
-## who has been deep once does not need walking through the first strata
-## again, and the prestige loop keeps the pace it was balanced at.
+## The Core stands on a 4 x 4 block at the centre of the board (CORE), the
+## way a base-building map puts its main building. Nothing is built on it.
+## Round it lies the yard: every tile within `radius_at(depth)` tiles of the
+## Core. A new shaft opens a one-tile ring -- twenty tiles -- and every
+## stratum it goes down widens the ring by one, so the factory visibly grows
+## outwards from its Core until, twenty strata down, the whole board is open.
+## The rest of the board is ground the factory has not reached yet.
 ##
 ## It is a rule about where a new machine may go, and only that. A machine
 ## already standing outside the yard -- from a save made before the yard
 ## existed -- keeps working, and can be sold or moved inward.
 
-## The yard at each stratum, as [columns, rows], counted from the Core's
-## corner of the board: columns from x = 0, rows up from the bottom row.
+## The Core's block, in board cells.
+const CORE := Rect2i(20, 20, 4, 4)
+## How far the yard can reach: to the edge of the board.
+const MAX_RADIUS := 20
+
+
+## How many tiles beyond the Core the yard reaches at this stratum. The same
+## for every shaft, the first and every one after a collapse.
 ##
-## Sized so that it never holds a player back, only shows them where to
-## build: each step is at least as many tiles as the journey lab's competent
-## player has built by the time they descend from that stratum (14, 31, 42,
-## 53 and 64 machines -- tools/journey_lab.gd with LODEWORKS_NO_YARD=1).
-const STEPS := [[4, 4], [5, 7], [6, 8], [7, 8], [7, 10]]
+## One ring at the start (20 tiles), two at stratum 1 (48), three from
+## stratum 2 (84); then one more ring every EXTRA_EVERY strata from stratum
+## 10. Room is what paces a shaft: the 7 x 10 board this replaced held 70
+## machines, and its balance was measured against that, so the yard stays
+## near it through the first hour and grows past it only deep down
+## (docs/AUDIT.md, "The 44 x 44 board").
+const EXTRA_EVERY := 4
+
+static func radius_at(max_depth: int) -> int:
+	var d: int = maxi(max_depth, 0)
+	if d < 2:
+		return 1 + d
+	if d < 10:
+		return 3
+	return mini(4 + (d - 10) / EXTRA_EVERY, MAX_RADIUS)
 
 
-static func size_at(max_depth: int, collapses: int) -> Vector2i:
-	if collapses > 0:
-		return Vector2i(Grid.W, Grid.H)
-	var s: Array = STEPS[clampi(max_depth, 0, STEPS.size() - 1)]
-	return Vector2i(int(s[0]), int(s[1]))
+static func is_core(cell: int) -> bool:
+	return CORE.has_point(Grid.xy(cell))
 
 
-static func is_open(cell: int, max_depth: int, collapses: int) -> bool:
-	var size: Vector2i = size_at(max_depth, collapses)
+## How many tiles `cell` is from the Core (1 for the ring touching it).
+static func reach(cell: int) -> int:
 	var p: Vector2i = Grid.xy(cell)
-	return p.x < size.x and p.y >= Grid.H - size.y
+	var dx: int = maxi(maxi(CORE.position.x - p.x, p.x - (CORE.end.x - 1)), 0)
+	var dy: int = maxi(maxi(CORE.position.y - p.y, p.y - (CORE.end.y - 1)), 0)
+	return maxi(dx, dy)
 
 
-static func is_whole_board(max_depth: int, collapses: int) -> bool:
-	return size_at(max_depth, collapses) == Vector2i(Grid.W, Grid.H)
+static func is_open(cell: int, max_depth: int, _collapses: int = 0) -> bool:
+	return not is_core(cell) and reach(cell) <= radius_at(max_depth)
 
 
-## The stratum a first shaft opens `cell` at.
+## The yard's side, in tiles: the Core and the ring round it.
+static func size_at(max_depth: int, _collapses: int = 0) -> Vector2i:
+	var r: int = radius_at(max_depth)
+	return Vector2i(mini(CORE.size.x + 2 * r, Grid.W), mini(CORE.size.y + 2 * r, Grid.H))
+
+
+static func is_whole_board(max_depth: int, _collapses: int = 0) -> bool:
+	return radius_at(max_depth) >= MAX_RADIUS
+
+
+## The stratum at which the yard reaches `cell`.
 static func opens_at(cell: int) -> int:
-	for d in range(STEPS.size()):
-		if is_open(cell, d, 0):
-			return d
-	return STEPS.size() - 1
+	var r: int = reach(cell)
+	var d: int = 0
+	while radius_at(d) < r and d < 1000:
+		d += 1
+	return d
 
 
 ## Every cell outside the yard, as a set -- the shape Strata.blocked_cells
 ## uses, so a measurement tool can treat both alike.
-static func closed_cells(max_depth: int, collapses: int) -> Dictionary:
+static func closed_cells(max_depth: int, _collapses: int = 0) -> Dictionary:
 	var out: Dictionary = {}
 	for i in range(Grid.W * Grid.H):
-		if not is_open(i, max_depth, collapses):
+		if not is_open(i, max_depth):
 			out[i] = true
 	return out
 
 
-## The yard's four corners on the slab, in board cells: back, right, front,
-## left, like Iso.board_corners().
-static func corners(max_depth: int, collapses: int) -> Array[Vector2i]:
-	var size: Vector2i = size_at(max_depth, collapses)
-	var y0: int = Grid.H - size.y
-	return [Vector2i(0, y0), Vector2i(size.x, y0), Vector2i(size.x, Grid.H),
-		Vector2i(0, Grid.H)]
+## The yard's square, as its four corners in board edge coordinates: back,
+## right, front, left, like Iso.board_corners().
+static func corners(max_depth: int, _collapses: int = 0) -> Array[Vector2i]:
+	var r: int = radius_at(max_depth)
+	var a := Vector2i(maxi(CORE.position.x - r, 0), maxi(CORE.position.y - r, 0))
+	var b := Vector2i(mini(CORE.end.x + r, Grid.W), mini(CORE.end.y + r, Grid.H))
+	return [a, Vector2i(b.x, a.y), b, Vector2i(a.x, b.y)]
+
+
+## The yard's cells, nearest the Core first: what the tutorial points at.
+static func cells(max_depth: int) -> Array[int]:
+	var out: Array[int] = []
+	var c: Array[Vector2i] = corners(max_depth)
+	for y in range(c[0].y, c[2].y):
+		for x in range(c[0].x, c[2].x):
+			var i: int = Grid.idx(x, y)
+			if is_open(i, max_depth):
+				out.append(i)
+	out.sort_custom(func(a: int, b: int) -> bool: return reach(a) < reach(b))
+	return out

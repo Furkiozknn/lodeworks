@@ -2,7 +2,7 @@
 
 The main screen is a landscape, three-quarter isometric world: a painted
 canyon, a rock island floating in it, a stone slab on the island, and on
-the slab the 7x10 board the simulation plays on, with the Factory Core
+the slab the 44 x 44 board the simulation plays on, with the Factory Core
 standing behind it. Every picture in it is generated art, built into the
 game by `tools/art_build.py`; every number that places a picture is in
 `assets/art/layout.json`; everything that moves is driven by the
@@ -78,7 +78,8 @@ Back to front, each a layer of `IsoView`:
 | overlay | badges, flow beads, notches, previews, numbers, the selected machine's links | screen space, fixed size |
 
 **The slab** is 12 x 12 cells. The board sits at slab (4, 1); the Factory
-Core stands on slab (1..3, 8..10), beside the board's left corner, and takes
+Core stands on the 4 x 4 block in the middle of the board (BuildArea.CORE;
+slab 22..25), where nothing is built, and takes
 no board cell (`test_the_board_sits_on_the_island_and_inside_the_world`).
 It stood behind the back corner until the default view was tightened; there
 it set the view's height (docs/AUDIT.md, "The default view").

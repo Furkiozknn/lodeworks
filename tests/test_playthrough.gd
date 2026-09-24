@@ -14,11 +14,12 @@ extends RefCounted
 ## It plays badly on purpose -- a fixed, obvious strategy with no optimisation.
 ## If a naive player cannot get anywhere, the game is wrong.
 
-## In the first shaft's yard, beside the Core.
+## In the first shaft's yard, the ring round the Core: down its left side
+## (x = 19) and along the front (y = 24).
 const PLAN := [
-	[1, 8, "drill"], [2, 8, "vault"], [1, 9, "drill"], [0, 8, "crusher"],
-	[0, 9, "crusher"], [2, 9, "vault"], [1, 7, "drill"], [0, 7, "crusher"],
-	[2, 7, "vault"],
+	[19, 21, "drill"], [19, 22, "vault"], [19, 20, "drill"], [19, 19, "crusher"],
+	[20, 19, "vault"], [19, 23, "crusher"], [19, 24, "drill"], [20, 24, "crusher"],
+	[21, 24, "vault"],
 ]
 
 var runner: Object
@@ -81,8 +82,8 @@ func test_a_naive_player_can_actually_progress() -> void:
 	# The first thing the game asks for, and the only money it ever gives.
 	_ok(not Sim.can_afford("drill"), "nothing can be bought before the Core is online")
 	_ok(Sim.power_core(), "the Core comes online")
-	_ok(Sim.try_place(Grid.idx(1, 8), "drill"), "can place the first drill")
-	_ok(Sim.try_place(Grid.idx(2, 8), "vault"), "can place a vault beside it")
+	_ok(Sim.try_place(Grid.idx(19, 21), "drill"), "can place the first drill")
+	_ok(Sim.try_place(Grid.idx(19, 22), "vault"), "can place a vault beside it")
 	_advance(30.0)
 	_ok(Sim.credits > 0.0, "thirty seconds of two tiles earns something")
 	_ok(Sim.credits_per_sec > 0.0, "and the rate readout is non-zero")

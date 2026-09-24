@@ -11,15 +11,18 @@ except the things only a human with a bank account can do.
 
 ![The same shaft seven strata down](docs/media/main-landscape.jpg)
 
+![Zoomed out: the whole 44 x 44 board on its island, the factory in the middle](docs/media/whole-board.jpg)
+
 A landscape, three-quarter isometric world: a painted canyon with parallax, a
-rock island floating in it, a stone slab on the island, the 7x10 board on the
-slab and the Factory Core standing beside it.
+rock island floating in it, and on it a 44 x 44 board with the Factory Core
+standing in the middle.
 
 **A shaft starts small.** The Core is dark, and a tap brings it online and
-pays for the first Drill and Vault. A 4 x 4 yard beside it is all the
-ground there is to build on at first. Every stratum the shaft goes down
-widens the yard, and the Core grows with it, until the whole board is
-open.
+pays for the first Drill and Vault. The one-tile ring round it is all the
+ground there is to build on at first. Deeper strata widen the ring, and
+the Core grows with it, until the whole board is open. The ground the
+factory has not reached is strewn with crystals, ore and rubble, and the
+growing yard clears them as it goes.
 
 Drag to pan, pinch or wheel to zoom, tap to place, tap a machine to select
 it and drag it to move it. The

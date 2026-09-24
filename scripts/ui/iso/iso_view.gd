@@ -42,9 +42,12 @@ signal core_tapped()
 
 ## What pick_at_screen returns for the Factory Core, which is on no cell.
 const CORE := -2
-## The closest the default view comes while the yard is smaller than the
-## board: phones sit well under it (1.08 on 2:1), a tablet stops here.
+## The closest the default view comes: phones sit under it, a tablet stops
+## here.
 const YARD_ZOOM_MAX := 1.15
+## The farthest the default view goes: a tile is still about 20 dp on a
+## phone. A bigger yard is framed on the Core and panned for the rest.
+const DEFAULT_ZOOM_MIN := 0.55
 
 enum Overlay { NONE, HEAT }
 
@@ -69,6 +72,8 @@ var free_rect := Rect2()
 ## top middle is not.
 var avoid_rects: Array[Rect2] = []
 
+var _ground: Node2D
+var _ground_sig: Array = []
 var _floor: Node2D
 var _floor_glow: Node2D
 var _things: Node2D
@@ -136,6 +141,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_ground = _layer(false)
 	_floor = _layer(false)
 	_floor_glow = _layer(true)
 	_things = _layer(false)
@@ -144,7 +150,9 @@ func _ready() -> void:
 	# The world's own grade: the painting and the ground under the factory,
 	# not the machines, the lights or the interface.
 	material = _grade(GRADE_FAR)
+	_ground.material = _grade(GRADE_GROUND)
 	_floor.material = _grade(GRADE_GROUND)
+	_ground.draw.connect(_draw_ground)
 	_floor.draw.connect(_draw_floor)
 	_floor_glow.draw.connect(_draw_floor_glow)
 	_things.draw.connect(_draw_things)
@@ -161,6 +169,11 @@ func _ready() -> void:
 	cam.anchor = Iso.anchor()
 	cam.center = cam.anchor
 	cam.parallax = float(IsoArt.placement().get("parallax", 0.82))
+	cam.bg_parallax = float(IsoArt.placement().get("bg_parallax", 0.12))
+	var slab := Rect2(Iso.slab_corners()[0], Vector2.ZERO)
+	for p in Iso.slab_corners():
+		slab = slab.expand(p)
+	cam.near_bounds = slab.grow(Iso.TW)
 	_band_tint = band_tint(Sim.depth)
 	_band_target = _band_tint
 	_refresh_sheet()
@@ -247,9 +260,15 @@ func frame_board() -> void:
 	cam.fit(frame_rect(), fr, scale)
 	# A first yard is small; fitted to a tablet it would fill the screen and
 	# hide the world it stands in.
-	if cam.zoom > YARD_ZOOM_MAX and not BuildArea.is_whole_board(Sim.max_depth, Sim.collapses):
+	if cam.zoom > YARD_ZOOM_MAX:
 		scale = YARD_ZOOM_MAX / cam.zoom
 		cam.fit(frame_rect(), fr, scale)
+	if cam.zoom < DEFAULT_ZOOM_MIN:
+		# A yard too big to see whole at a readable size: the Core and as much
+		# of the yard round it as fits. The rest is a pan away.
+		cam.fit(frame_rect(), fr, DEFAULT_ZOOM_MIN / cam.zoom)
+		_framed = true
+		return
 	while scale > 0.6 and board_under_panel():
 		scale *= 0.97
 		cam.fit(frame_rect(), fr, scale)
@@ -293,8 +312,6 @@ func board_under_panel() -> bool:
 ## closes in on the Core and the ground the player can build on, with a strip
 ## of the ground still to come on either side (BuildArea).
 func frame_rect() -> Rect2:
-	if BuildArea.is_whole_board(Sim.max_depth, Sim.collapses):
-		return board_frame_rect().merge(core_rect().grow(8.0))
 	var y: PackedVector2Array = yard_corners()
 	var r := Rect2(y[0], Vector2.ZERO)
 	for p in y:
@@ -342,7 +359,8 @@ static func machine_rise() -> float:
 func default_zoom() -> float:
 	var fr: Rect2 = free_rect if free_rect.size.x > 8.0 else Rect2(Vector2.ZERO, size)
 	var r: Rect2 = frame_rect()
-	return cam.clamp_zoom(minf(fr.size.x / r.size.x, fr.size.y / r.size.y))
+	return clampf(cam.clamp_zoom(minf(fr.size.x / r.size.x, fr.size.y / r.size.y)),
+		DEFAULT_ZOOM_MIN, YARD_ZOOM_MAX)
 
 
 ## Descending has to look like going somewhere. One painting, tinted per band:
@@ -489,15 +507,13 @@ func core_powered() -> void:
 ## first, so the growth reads as the factory's ground spreading outwards.
 func _open_wave(was: Vector2i) -> void:
 	_opened.clear()
-	for i in range(Grid.W * Grid.H):
-		if not Sim.is_open(i):
-			continue
-		var p: Vector2i = Grid.xy(i)
-		var dx: int = maxi(p.x - (was.x - 1), 0)
-		var dy: int = maxi((Grid.H - was.y) - p.y, 0)
-		if dx == 0 and dy == 0:
-			continue
-		_opened[i] = -0.18 * float(maxi(dx, dy))
+	# The yard was `was` tiles square round the Core: its reach was half of
+	# what the Core does not take up.
+	var old_r: int = (was.x - BuildArea.CORE.size.x) / 2
+	for i: int in BuildArea.cells(Sim.max_depth):
+		var r: int = BuildArea.reach(i)
+		if r > old_r:
+			_opened[i] = -0.18 * float(r - old_r - 1)
 
 
 ## Glide, rather than cut, to the default view for the current yard.
@@ -540,7 +556,7 @@ func _process(delta: float) -> void:
 	cam.set_viewport(size)
 	cam.step(delta)
 	var t: Transform2D = cam.near_transform()
-	for n: Node2D in [_floor, _floor_glow, _things, _glow]:
+	for n: Node2D in [_ground, _floor, _floor_glow, _things, _glow]:
 		n.transform = t
 	_band_tint = _band_tint.lerp(_band_target, 1.0 - exp(-delta * 2.5))
 	_dive = maxf(_dive - delta / DIVE_SECONDS, 0.0)
@@ -583,6 +599,14 @@ func _process(delta: float) -> void:
 	queue_redraw()
 	for n: Node2D in [_floor, _floor_glow, _things, _glow, _over]:
 		n.queue_redraw()
+	# The ground -- 1,936 tiles, the island, the rim -- is only redrawn when
+	# something it shows has changed. Its layer moves with the camera like the
+	# others, so panning and zooming never touch it.
+	var sig: Array = [Sim.depth, Sim.max_depth, overlay, Sim.grid.version,
+		_band_tint.to_html(false)]
+	if sig != _ground_sig:
+		_ground_sig = sig
+		_ground.queue_redraw()
 
 
 ## --- input -------------------------------------------------------------------
@@ -791,8 +815,10 @@ func _island_transform() -> Transform2D:
 		top - Vector2(float(tc[0]) * sx, float(tc[1]) * sy))
 
 
-func _draw_floor() -> void:
-	var ci: CanvasItem = _floor
+## The ground: the island, the slab's faces, every tile, the rim, rubble.
+## Redrawn only when it changes (see _process).
+func _draw_ground() -> void:
+	var ci: CanvasItem = _ground
 	var lift: float = float(IsoArt.placement().get("board_lift", 10))
 	if _island_tex != null:
 		ci.draw_set_transform_matrix(_island_transform())
@@ -817,10 +843,14 @@ func _draw_floor() -> void:
 	_draw_tiles(ci)
 	var tris := Tris.new()
 	_draw_rim(ci, bc, tris)
-	_draw_yard_edge(ci)
 	for cell: int in Strata.blocked_cells(Sim.depth):
 		_rubble(tris, cell)
 	tris.flush(ci)
+
+
+func _draw_floor() -> void:
+	var ci: CanvasItem = _floor
+	_draw_yard_edge(ci)
 	_draw_floor_marks(ci)
 
 	# Contact shadows: a machine that casts nothing floats.
@@ -1010,8 +1040,8 @@ func _draw_floor_marks(ci: CanvasItem) -> void:
 	if arm_id != "" and overlay != Overlay.HEAT and Sim.can_afford(arm_id):
 		var ghost: Color = Palette.machine_light(arm_id)
 		ghost.a = 0.22 + 0.10 * pulse
-		for cell in range(Grid.W * Grid.H):
-			if not Sim.grid.is_empty(cell) or Sim.is_blocked(cell) or not Sim.is_open(cell):
+		for cell: int in BuildArea.cells(Sim.max_depth):
+			if not Sim.grid.is_empty(cell) or Sim.is_blocked(cell):
 				continue
 			if not (Sim.grid.cells.is_empty() or _touches_machine(cell)):
 				continue
@@ -1191,7 +1221,17 @@ func _draw_core(ci: CanvasItem) -> void:
 	ci.draw_texture_rect_region(tex, r, IsoArt.region(info, 0), mod)
 
 
+## Is prop `pr` standing on ground the yard has reached? The yard clears it.
+func _prop_cleared(pr: Array) -> bool:
+	var o: Vector2i = Iso.board_offset()
+	var x: int = int(pr[0]) - o.x
+	var y: int = int(pr[1]) - o.y
+	return Grid.in_bounds(x, y) and Sim.is_open(Grid.idx(x, y))
+
+
 func _draw_prop(ci: CanvasItem, pr: Array) -> void:
+	if _prop_cleared(pr):
+		return
 	var info: Dictionary = IsoArt.layout().get("props", {})
 	var tex: Texture2D = IsoArt.texture(String(info.get("file", "")))
 	if tex == null:
@@ -1462,12 +1502,16 @@ func _draw_core_level(ci: CanvasItem, g: Texture2D, cr: Rect2) -> void:
 func _draw_core_conduits(ci: CanvasItem) -> void:
 	if not Sim.core_online:
 		return
-	var n: int = mini(core_level() - 1, 3)
+	var n: int = mini(core_level() - 1, 4)
 	var base: Vector2 = core_center()
+	var c: Rect2i = BuildArea.CORE
+	# Out of the middle of each of the Core's sides into the ring round it.
+	var sides: Array[Vector2i] = [Vector2i(c.position.x - 1, c.position.y + 1),
+		Vector2i(c.end.x, c.position.y + 2), Vector2i(c.position.x + 2, c.position.y - 1),
+		Vector2i(c.position.x + 1, c.end.y)]
 	var tris := Tris.new()
 	for k in range(n):
-		var cell: int = Grid.idx(0, Grid.H - 1 - k)
-		var to: Vector2 = Iso.cell_center(cell) - Vector2(Iso.TW * 0.25, 0)
+		var to: Vector2 = Iso.cell_center(Grid.idx(sides[k].x, sides[k].y))
 		var lit: Color = Palette.ACCENT
 		lit.a = 0.35
 		tris.band(base, to, 5.0, lit)
@@ -1524,6 +1568,8 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 	# Crystals and lamps on the slab.
 	var props: Array = IsoArt.placement().get("props", [])
 	for pr: Array in props:
+		if _prop_cleared(pr):
+			continue
 		var kind: String = String(pr[2])
 		var col2: Color
 		match kind:

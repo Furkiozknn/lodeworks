@@ -62,10 +62,18 @@ func test_cramped_blocks_the_outer_ring_only() -> void:
 	if found <= 0:
 		return
 	var blocked: Dictionary = Strata.blocked_cells(found)
-	runner.check(blocked.has(Grid.idx(0, 0)), "corner is blocked")
-	runner.check(not blocked.has(Grid.idx(3, 4)), "the middle is still usable")
-	runner.gt(float(Grid.W * Grid.H - blocked.size()), 10.0,
-		"cramped must still leave a playable board")
+	# The outer ring is the yard's: the edge of the ground the factory has.
+	var r: int = BuildArea.radius_at(found)
+	var c: Rect2i = BuildArea.CORE
+	runner.check(blocked.has(Grid.idx(c.position.x - r, c.position.y - r)),
+		"the yard's corner is blocked")
+	runner.check(not blocked.has(Grid.idx(c.position.x - 1, c.position.y)),
+		"the ground by the Core is still usable")
+	var open: int = 0
+	for i in range(Grid.W * Grid.H):
+		if BuildArea.is_open(i, found) and not blocked.has(i):
+			open += 1
+	runner.gt(float(open), 10.0, "cramped must still leave a playable yard")
 
 
 func test_no_cores_before_the_minimum_depth() -> void:

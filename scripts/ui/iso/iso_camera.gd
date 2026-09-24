@@ -13,22 +13,29 @@ extends RefCounted
 ##   * wheel steps and "go to that machine" glide rather than snap
 ##
 ## Two layers move under it. The board and its island are the near layer and
-## follow the camera 1:1. The painting behind is far away: it slides at
-## `parallax` of the speed and scales by zoom^parallax, which is what makes
-## the island read as floating over a canyon rather than printed on it. The
-## "no void" rule is therefore a rule about the far layer, and the near
-## layer's limits are derived from it.
+## follow the camera 1:1; the camera's centre stays inside `near_bounds`, the
+## plateau and a margin. The painting behind is far away: it slides at
+## `bg_parallax` of the camera's speed and scales by zoom^parallax, and is
+## never shown smaller than covers the screen from where it is being looked
+## at -- so however big the world is, and wherever the camera goes, there is
+## painting behind it and never void.
 
 var viewport := Vector2(1440, 720)
 ## The painting, in its own pixels, and the world point both layers share
 ## when the camera is centred on it.
 var bg_size := Vector2(3840, 2160)
 var anchor := Vector2(1920, 1015)
+## How the painting scales with zoom (zoom^parallax) ...
 var parallax := 0.82
+## ... and how far it slides as the camera moves. Small: the world is far
+## bigger than the painting, and the painting is far away.
+var bg_parallax := 0.12
+## Where the camera's centre may go, in world units. Empty: anywhere.
+var near_bounds := Rect2()
 
 var zoom_max := 1.6
-## Never so far out that the board is a thumbnail.
-var zoom_floor := 0.42
+## Far enough out to see the whole 44 x 44 board on a phone.
+var zoom_floor := 0.22
 
 var center := Vector2(1920, 1015)
 var zoom := 1.0
@@ -50,10 +57,21 @@ const FLING_STOP := 4.0
 
 
 ## The far layer's scale: zoom^parallax, but never smaller than what covers
-## the screen. The near layer can zoom out past that point (a tall portrait
-## window needs it); the painting simply stops shrinking.
-func bg_zoom(z: float) -> float:
-	return maxf(pow(z, parallax), cover_zoom())
+## the screen from the point of the painting being looked at. The near layer
+## can zoom out past that; the painting simply stops shrinking.
+func bg_zoom(z: float, c: Vector2 = center) -> float:
+	var cb: Vector2 = bg_center(c)
+	var need: float = maxf(viewport.x * 0.5 / minf(cb.x, bg_size.x - cb.x),
+		viewport.y * 0.5 / minf(cb.y, bg_size.y - cb.y))
+	return maxf(maxf(pow(z, parallax), need), cover_zoom())
+
+
+## The point of the painting the camera looks at: it slides a little with the
+## camera, and stops well short of the painting's edges.
+func bg_center(c: Vector2) -> Vector2:
+	var cb: Vector2 = anchor + (c - anchor) * bg_parallax
+	var m: Vector2 = bg_size * 0.3
+	return Vector2(clampf(cb.x, m.x, bg_size.x - m.x), clampf(cb.y, m.y, bg_size.y - m.y))
 
 
 func cover_zoom() -> float:
@@ -68,17 +86,14 @@ func clamp_zoom(z: float) -> float:
 	return clampf(z, min_zoom(), maxf(zoom_max, min_zoom()))
 
 
-## The nearest centre at which the far layer still covers the whole screen.
-func clamp_center(c: Vector2, z: float) -> Vector2:
-	var zb: float = bg_zoom(z)
-	var half: Vector2 = viewport * 0.5 / zb
-	var cb: Vector2 = anchor + (c - anchor) * parallax
-	for a in range(2):
-		if bg_size[a] <= half[a] * 2.0:
-			cb[a] = bg_size[a] * 0.5
-		else:
-			cb[a] = clampf(cb[a], half[a], bg_size[a] - half[a])
-	return anchor + (cb - anchor) / parallax
+## The nearest allowed centre: inside the world's bounds. The painting covers
+## the screen from anywhere (bg_zoom), so this is only about not losing the
+## plateau.
+func clamp_center(c: Vector2, _z: float) -> Vector2:
+	if near_bounds.size == Vector2.ZERO:
+		return c
+	return Vector2(clampf(c.x, near_bounds.position.x, near_bounds.end.x),
+		clampf(c.y, near_bounds.position.y, near_bounds.end.y))
 
 
 func world_to_screen(w: Vector2) -> Vector2:
@@ -92,8 +107,8 @@ func screen_to_world(s: Vector2) -> Vector2:
 ## Where the far layer's pixel `q` lands on screen, and the transform that
 ## draws the painting.
 func bg_transform() -> Transform2D:
-	var zb: float = bg_zoom(zoom)
-	var cb: Vector2 = anchor + (center - anchor) * parallax
+	var zb: float = bg_zoom(zoom, center)
+	var cb: Vector2 = bg_center(center)
 	return Transform2D(0.0, Vector2(zb, zb), 0.0, viewport * 0.5 - cb * zb)
 
 

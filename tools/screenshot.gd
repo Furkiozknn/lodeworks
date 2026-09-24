@@ -26,14 +26,14 @@ const REEL_DIR := "user://reel"
 ## surfaces, and must be 24-bit with no alpha channel.
 const SHOTS := [
 	{"name": "01_line", "build": "full", "wait": 2.5,
-		"alt": "A full production line on the seven by ten grid, machines feeding their neighbours."},
+		"alt": "A factory wrapped round its Core on the 44 x 44 board, machines feeding their neighbours."},
 	{"name": "02_heat", "build": "heat", "wait": 2.0, "overlay": true,
 		"alt": "The heat overlay, showing how far each machine is from the temperature it wants."},
 	{"name": "03_bottleneck", "build": "broken", "wait": 3.0,
 		"alt": "Two machines flagged as starved and backed up, with a count above the board."},
-	{"name": "04_place", "build": "heat", "wait": 1.5, "press": [4, 4], "arm": "boiler",
+	{"name": "04_place", "build": "heat", "wait": 1.5, "press": [23, 18], "arm": "boiler",
 		"alt": "Placing a boiler, previewing the heat it will add to each neighbour."},
-	{"name": "05_detail", "build": "full", "wait": 2.0, "select": [2, 2],
+	{"name": "05_detail", "build": "full", "wait": 2.0, "select": [21, 19],
 		"alt": "The detail sheet for a smelter, naming what is wrong and which way to look."},
 	{"name": "06_research", "build": "full", "wait": 1.0, "panel": "research",
 		"alt": "The permanent research tree, bought with Cores."},
@@ -52,7 +52,7 @@ const REEL := [
 	{"build": "full", "seconds": 2.0, "overlay": true},
 	{"build": "heat", "seconds": 3.0, "grow": true},
 	{"build": "broken", "seconds": 2.5},
-	{"build": "full", "seconds": 2.5, "select": [2, 4]},
+	{"build": "full", "seconds": 2.5, "select": [21, 19]},
 ]
 
 var _main: Control
@@ -188,20 +188,22 @@ func _apply_build(kind: String) -> void:
 			Sim.depth = 0
 			Sim.max_depth = 0
 			Sim.credits = 240.0
-			# In the first shaft's yard, beside the Core.
+			# Two short lines along the ring behind the Core.
+			var y: int = BuildArea.CORE.position.y - 1
+			var x0: int = BuildArea.CORE.position.x - 1
 			_place([
-				[1, 7, "drill"], [2, 7, "crusher"], [3, 7, "vault"],
-				[1, 8, "drill"], [2, 8, "crusher"], [3, 8, "vault"],
+				[x0, y, "drill"], [x0 + 1, y, "crusher"], [x0 + 2, y, "vault"],
+				[x0 + 3, y, "drill"], [x0 + 4, y, "crusher"], [x0 + 5, y, "vault"],
 			])
 		"heat":
 			Sim.depth = 3
 			Sim.max_depth = 3
 			Sim.credits = 4200.0
-			_place([
+			_place_shifted([
 				[1, 3, "drill"], [2, 3, "crusher"], [3, 3, "smelter"],
 				[3, 2, "boiler"], [4, 3, "press"], [4, 2, "coolant"],
 				[5, 3, "vault"], [1, 4, "drill"], [2, 4, "crusher"],
-			])
+			], 2)
 		"broken":
 			# Deliberately wrong, because "the board tells you which machine is
 			# the problem" is the thing worth showing and it cannot be shown on
@@ -210,39 +212,27 @@ func _apply_build(kind: String) -> void:
 			Sim.depth = 5
 			Sim.max_depth = 5
 			Sim.credits = 26000.0
-			_place([
+			_place_shifted([
 				[1, 3, "drill"], [2, 3, "crusher"], [3, 3, "smelter"],
 				[4, 3, "press"], [5, 3, "assembler"],
 				[1, 4, "drill"], [2, 4, "crusher"], [3, 4, "smelter"],
 				[5, 4, "lab"],
-			])
+			], 3)
 		"hero":
-			# The board the audit screenshots show, chosen by measurement
-			# (a scratch run compared four candidate boards at depths 5-8):
-			# a mid-game factory at the Workings, 397.9 credits a second at
-			# stratum 7, the Dense Seam. Every chain is complete, so the one
-			# jammed drill and the press row running hot are the only badges
-			# on screen -- the heat language, without noise.
+			# The board the audit screenshots and the performance probe show: a
+			# mid-game factory at the Workings wrapped round the front of its
+			# Core -- spokes of Drill, Crusher and Vault, every third one a
+			# Smelter selling through the Vaults beside it -- at stratum 7,
+			# the Dense Seam.
 			Sim.depth = 7
 			Sim.max_depth = 7
 			Sim.cores = 6
 			Sim.research = 340.0
 			Sim.credits = 41000.0
 			Sim.upgrade_levels = {"throughput_1": 1, "yield_1": 1}
-			_place([
-				[1, 0, "drill"], [2, 0, "drill"], [3, 0, "drill"], [4, 0, "drill"], [5, 0, "drill"],
-				[1, 1, "crusher"], [2, 1, "crusher"], [3, 1, "amplifier"], [4, 1, "crusher"],
-				[5, 1, "crusher"],
-				[0, 2, "vault"], [1, 2, "smelter"], [2, 2, "smelter"], [3, 2, "vault"],
-				[4, 2, "smelter"], [5, 2, "smelter"], [6, 2, "vault"],
-				[0, 3, "vault"], [1, 3, "press"], [2, 3, "press"], [3, 3, "coolant"],
-				[4, 3, "press"], [5, 3, "press"], [6, 3, "vault"],
-				[1, 4, "vault"], [2, 4, "assembler"], [3, 4, "assembler"], [4, 4, "assembler"],
-				[5, 4, "vault"],
-				[2, 5, "vault"], [3, 5, "lab"], [4, 5, "vault"],
-				[1, 7, "drill"], [2, 7, "crusher"], [3, 7, "smelter"], [4, 7, "vault"],
-			])
+			_ring(["front", "right"])
 		"full":
+			# Every tile of the stratum-9 yard: the whole ring round the Core.
 			Sim.depth = 9
 			Sim.max_depth = 9
 			Sim.cores = 14
@@ -250,28 +240,7 @@ func _apply_build(kind: String) -> void:
 			Sim.credits = 186000.0
 			Sim.upgrade_levels = {"throughput_1": 3, "yield_1": 2, "value_1": 2,
 				"research_1": 1, "heat_tolerance": 1}
-			# Exactly the layout tests/test_progression.gd verifies end to end,
-			# so the screenshot cannot show a board that does not work.
-			_place([
-				[0, 0, "drill"], [1, 0, "drill"], [2, 0, "drill"], [3, 0, "drill"],
-				[4, 0, "drill"], [5, 0, "drill"], [6, 0, "drill"],
-				[0, 1, "crusher"], [1, 1, "crusher"], [2, 1, "crusher"], [3, 1, "crusher"],
-				[4, 1, "crusher"], [5, 1, "crusher"], [6, 1, "crusher"],
-				[0, 2, "vault"], [1, 2, "smelter"], [2, 2, "smelter"], [3, 2, "smelter"],
-				[4, 2, "smelter"], [5, 2, "smelter"], [6, 2, "vault"],
-				[0, 3, "vault"], [1, 3, "press"], [2, 3, "press"], [3, 3, "press"],
-				[4, 3, "press"], [5, 3, "press"], [6, 3, "vault"],
-				[0, 4, "vault"], [1, 4, "vault"], [2, 4, "assembler"], [3, 4, "assembler"],
-				[4, 4, "assembler"], [5, 4, "vault"], [6, 4, "vault"],
-				[1, 5, "vault"], [2, 5, "vault"], [3, 5, "lab"], [4, 5, "vault"],
-				[5, 5, "vault"],
-				[0, 6, "drill"], [1, 6, "drill"], [2, 6, "drill"], [3, 6, "drill"],
-				[4, 6, "drill"], [5, 6, "drill"], [6, 6, "drill"],
-				[0, 7, "crusher"], [1, 7, "crusher"], [2, 7, "crusher"], [3, 7, "crusher"],
-				[4, 7, "crusher"], [5, 7, "crusher"], [6, 7, "crusher"],
-				[0, 8, "vault"], [1, 8, "vault"], [2, 8, "vault"], [3, 8, "vault"],
-				[4, 8, "vault"], [5, 8, "vault"], [6, 8, "vault"],
-			])
+			_ring(["back", "front", "left", "right"])
 	Sim.unlocked.clear()
 	# A new game's Core is still dark; every other board has long been running.
 	Sim.set("core_online", kind != "new")
@@ -294,6 +263,43 @@ func _apply_build(kind: String) -> void:
 func _place(list: Array) -> void:
 	for e: Array in list:
 		Sim.grid.place(Grid.idx(int(e[0]), int(e[1])), String(e[2]))
+
+
+## A layout from the 7 x 10 board, moved into the three rows of yard behind
+## the Core (row `top` of the old layout lands on the ring's outer row).
+func _place_shifted(list: Array, top: int) -> void:
+	var c: Rect2i = BuildArea.CORE
+	var shift := Vector2i(c.position.x - 3 - 0, c.position.y - 3 - top)
+	for e: Array in list:
+		Sim.grid.place(Grid.idx(int(e[0]) + shift.x, int(e[1]) + shift.y), String(e[2]))
+
+
+## A factory in the three-tile ring round the Core, on the given sides. Rows
+## run along the ring, outer to inner, so no machine waits and none is
+## stuck: a Crusher under every other outer Drill, fed by it and by the
+## Drills beside it in the middle row; Vaults over those middle Drills and
+## all along the inner row -- every fourth place a Smelter instead, selling
+## ingots through the Vaults either side of it.
+func _ring(sides: Array) -> void:
+	var c: Rect2i = BuildArea.CORE
+	for side: String in sides:
+		var along: int = 10 if side == "back" or side == "front" else 4
+		for i in range(along):
+			var kinds: Array = ["vault", "drill", "vault"]
+			if i % 2 == 0:
+				kinds = ["drill", "crusher", "smelter" if i % 4 == 0 else "vault"]
+			for k in range(3):
+				var p: Vector2i
+				match side:
+					"back":
+						p = Vector2i(c.position.x - 3 + i, c.position.y - 3 + k)
+					"front":
+						p = Vector2i(c.position.x - 3 + i, c.end.y + 2 - k)
+					"left":
+						p = Vector2i(c.position.x - 3 + k, c.position.y + i)
+					"right":
+						p = Vector2i(c.end.x + 2 - k, c.position.y + i)
+				Sim.grid.place(Grid.idx(p.x, p.y), String(kinds[k]))
 
 
 func _open_panel(which: String) -> void:
@@ -321,9 +327,10 @@ func _record_reel() -> void:
 			_select(Grid.idx(int(sc[0]), int(sc[1])))
 		var frames: int = int(float(beat["seconds"]) * REEL_FPS)
 		var grow: bool = bool(beat.get("grow", false))
+		# The heat build's neighbours in the ring behind the Core.
 		var queue: Array = [
-			[5, 2, "boiler"], [6, 3, "vault"], [2, 2, "crusher"],
-			[0, 3, "drill"], [4, 4, "press"], [5, 4, "vault"],
+			[22, 17, "boiler"], [23, 18, "vault"], [19, 17, "crusher"],
+			[17, 18, "drill"], [22, 19, "press"], [23, 19, "vault"],
 		]
 		for f in range(frames):
 			# Placing machines on camera: the one thing a still cannot show is
@@ -407,7 +414,8 @@ func _run_audit() -> void:
 	await _settle(1.6)
 	await _audit_shot("03_full_world")
 
-	var target: int = Grid.idx(2, 3)
+	# A Smelter in the ring in front of the Core.
+	var target: int = Grid.idx(BuildArea.CORE.position.x + 1, BuildArea.CORE.end.y)
 	gv.selected_cell = target
 	_main.call("_show_cell_info", target)
 	gv.cam.focus(Iso.cell_center(target) - Vector2(0, 40), gv.cam.zoom_max)

@@ -267,8 +267,8 @@ func _opening() -> void:
 func _first_session() -> void:
 	print("\n== 10 SECONDS - 30 MINUTES ==")
 	var r := Run.new()
-	r.grid.place(Grid.idx(1, 8), "drill")
-	r.grid.place(Grid.idx(1, 9), "vault")
+	r.grid.place(Grid.idx(19, 21), "drill")
+	r.grid.place(Grid.idx(19, 22), "vault")
 	r.placed = 2
 	var marks := [10.0, 60.0, 180.0, 600.0, 1800.0]
 	var mark: int = 0

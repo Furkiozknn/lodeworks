@@ -229,30 +229,31 @@ func test_every_tutorial_step_is_satisfied_by_doing_the_thing() -> void:
 	for i: int in Tutorial.highlight(0, Sim):
 		runner.check(Sim.is_open(i), "and only at tiles in the yard")
 
-	# All of it inside the first shaft's yard, the 4 x 4 by the Core.
-	Sim.try_place(Grid.idx(1, 8), "drill")
+	# All of it in the first shaft's yard, the ring round the Core; x = 19 is
+	# the column against the Core's left side.
+	Sim.try_place(Grid.idx(19, 21), "drill")
 	runner.check(Tutorial.satisfied(0, Sim), "placing a drill finishes step 1")
 
 	# Step 2 is about adjacency, so an unconnected vault must not count.
-	Sim.try_place(Grid.idx(2, 7), "vault")
+	Sim.try_place(Grid.idx(19, 19), "vault")
 	runner.check(not Tutorial.satisfied(1, Sim),
 		"a vault nowhere near the drill has not taught adjacency")
-	Sim.sell(Grid.idx(2, 7))
-	Sim.try_place(Grid.idx(2, 8), "vault")
+	Sim.sell(Grid.idx(19, 19))
+	Sim.try_place(Grid.idx(19, 22), "vault")
 	runner.check(Tutorial.satisfied(1, Sim), "one that touches it has")
 
 	Sim.lifetime_credits = 5.0
 	runner.check(Tutorial.satisfied(2, Sim), "credits arriving finishes step 3")
 
 	runner.check(not Tutorial.satisfied(3, Sim), "nothing has been moved")
-	Sim.move_machine(Grid.idx(2, 8), Grid.idx(2, 9))
+	Sim.move_machine(Grid.idx(19, 22), Grid.idx(19, 23))
 	runner.check(Tutorial.satisfied(3, Sim), "moving the vault finishes step 4")
 
 	runner.check(not Tutorial.satisfied(4, Sim), "no crusher yet")
-	Sim.try_place(Grid.idx(0, 8), "crusher")
+	Sim.try_place(Grid.idx(19, 20), "crusher")
 	runner.check(not Tutorial.satisfied(4, Sim),
 		"a crusher that touches only the drill is not between them")
-	Sim.try_place(Grid.idx(1, 9), "crusher")
+	Sim.try_place(Grid.idx(19, 22), "crusher")
 	runner.check(Tutorial.satisfied(4, Sim),
 		"one that touches both the drill and the vault is")
 
@@ -342,12 +343,12 @@ func test_undoing_a_placement_returns_exactly_what_it_cost() -> void:
 	Sim.unlocked.clear()
 	Sim._recompute()
 	var price: float = Sim.cost_of("drill")
-	runner.check(Sim.try_place(Grid.idx(1, 8), "drill"), "placed")
+	runner.check(Sim.try_place(Grid.idx(19, 21), "drill"), "placed")
 	runner.near(Sim.credits, 1000.0 - price, 0.001, "it cost what it said")
-	runner.check(Sim.undo_place(Grid.idx(1, 8), price), "undone")
+	runner.check(Sim.undo_place(Grid.idx(19, 21), price), "undone")
 	runner.near(Sim.credits, 1000.0, 0.001,
 		"undo must return the price paid, not the resale value")
-	runner.check(Sim.grid.is_empty(Grid.idx(1, 8)), "and take the machine back")
+	runner.check(Sim.grid.is_empty(Grid.idx(19, 21)), "and take the machine back")
 	Save.wipe()
 
 
@@ -386,7 +387,7 @@ func test_the_rate_readout_does_not_survive_the_board_it_measured() -> void:
 	Sim.unlocked.clear()
 	Sim._recompute()
 	Sim.credits_per_sec = 999.0
-	runner.check(Sim.try_place(Grid.idx(1, 8), "drill"), "a drill in the yard")
+	runner.check(Sim.try_place(Grid.idx(19, 21), "drill"), "a drill in the yard")
 	runner.near(Sim._rate_elapsed, 0.0, 0.0001,
 		"placing a machine must restart the measurement")
 
@@ -640,8 +641,8 @@ func test_a_new_game_can_start_the_core_pays_for_the_first_two_machines() -> voi
 		MachineDB.cost_for("drill", 0) + MachineDB.cost_for("vault", 0), 0.001,
 		"which is exactly a first Drill and a first Vault")
 	runner.eq(Sim.lifetime_credits, 0.0, "a reserve is not earnings")
-	runner.check(Sim.try_place(Grid.idx(1, 8), "drill"), "the Drill, in the yard")
-	runner.check(Sim.try_place(Grid.idx(2, 8), "vault"), "and the Vault it sells through")
+	runner.check(Sim.try_place(Grid.idx(19, 21), "drill"), "the Drill, in the yard")
+	runner.check(Sim.try_place(Grid.idx(19, 22), "vault"), "and the Vault it sells through")
 	runner.check(not Sim.power_core(), "the reserve is paid once a shaft")
 	Save.wipe()
 
@@ -690,38 +691,64 @@ func test_the_core_survives_a_save_and_older_saves_load_sensibly() -> void:
 
 ## --- the yard -----------------------------------------------------------------------
 
-func test_a_new_shaft_builds_in_a_small_yard_that_grows_with_depth() -> void:
+func test_a_new_shaft_builds_in_a_small_yard_round_the_core() -> void:
 	_new_game()
 	Sim.power_core()
-	runner.eq(BuildArea.size_at(0, 0), Vector2i(4, 4), "a new shaft opens a 4 x 4 yard")
+	runner.eq(Grid.W, 44, "a 44 x 44 board")
+	runner.eq(Grid.H, 44, "")
 	var open: int = 0
 	for i in range(Grid.W * Grid.H):
 		open += 1 if Sim.is_open(i) else 0
-	runner.eq(open, 16, "sixteen tiles of seventy")
-	runner.check(Sim.is_open(Grid.idx(0, Grid.H - 1)), "at the Core's corner of the board")
+	runner.eq(open, 20, "a new shaft opens the one-tile ring round the Core: twenty tiles")
+	runner.eq(BuildArea.size_at(0), Vector2i(6, 6), "a 6 x 6 square with the Core in it")
+	for i in range(Grid.W * Grid.H):
+		if BuildArea.is_core(i):
+			runner.check(not Sim.is_open(i), "nothing is built on the Core's own block")
+	runner.check(Sim.is_open(Grid.idx(19, 19)), "the ring's corner is yard")
 	runner.check(not Sim.try_place(Grid.idx(4, 2), "drill"),
 		"a machine cannot go outside it")
 	runner.eq(Sim.credits, Sim.core_reserve(), "and a refused placement costs nothing")
-	runner.check(Sim.try_place(Grid.idx(0, 9), "drill"), "inside, it can")
-	runner.check(not Sim.move_machine(Grid.idx(0, 9), Grid.idx(4, 2)),
+	runner.check(not Sim.try_place(Grid.idx(21, 21), "drill"), "nor on the Core")
+	runner.check(Sim.try_place(Grid.idx(19, 21), "drill"), "inside, it can")
+	runner.check(not Sim.move_machine(Grid.idx(19, 21), Grid.idx(4, 2)),
 		"nor can one be moved out of it")
-	# Every stratum of the first shaft gives more ground, until it is all open.
-	var last: int = 16
-	for d in range(1, BuildArea.STEPS.size()):
-		var sz: Vector2i = BuildArea.size_at(d, 0)
-		runner.gt(float(sz.x * sz.y), float(last), "stratum %d widens the yard" % d)
-		last = sz.x * sz.y
-	runner.check(BuildArea.is_whole_board(BuildArea.STEPS.size() - 1, 0),
-		"and the last step is the whole board")
-	for i in range(Grid.W * Grid.H):
-		runner.check(BuildArea.is_open(i, BuildArea.opens_at(i), 0),
-			"a tile is open from the stratum it says it opens at")
+	# The ring widens at strata 1 and 2, holds near the old board's 70 tiles
+	# through the first hour, then keeps widening deep down until it is the
+	# whole board. It never shrinks.
+	var sizes: Array[int] = []
+	for d in range(0, 80):
+		var n: int = 0
+		for i in range(Grid.W * Grid.H):
+			n += 1 if BuildArea.is_open(i, d) else 0
+		sizes.append(n)
+	runner.eq(sizes[1], 48, "stratum 1: two rings, 48 tiles")
+	runner.eq(sizes[2], 84, "stratum 2: three rings, 84 tiles")
+	runner.eq(sizes[9], 84, "held there to stratum 9")
+	runner.gt(float(sizes[10]), 84.0, "and wider from stratum 10")
+	for d in range(1, sizes.size()):
+		runner.gte(float(sizes[d]), float(sizes[d - 1]), "stratum %d never shrinks it" % d)
+	runner.eq(sizes[sizes.size() - 1], Grid.W * Grid.H - 16,
+		"deep enough, it is the whole board but the Core")
+	for i in range(0, Grid.W * Grid.H, 7):
+		if not BuildArea.is_core(i):
+			runner.check(BuildArea.is_open(i, BuildArea.opens_at(i)),
+				"a tile is open from the stratum it says it opens at")
 	Save.wipe()
 
 
-func test_after_a_collapse_the_whole_board_is_open() -> void:
-	runner.check(BuildArea.is_whole_board(0, 1),
-		"a player who has collapsed once is not walked through the yard again")
+func test_the_yard_is_the_same_after_a_collapse() -> void:
+	for i in range(0, Grid.W * Grid.H, 5):
+		runner.eq(BuildArea.is_open(i, 3, 1), BuildArea.is_open(i, 3, 0),
+			"a collapse does not change the yard's rule")
+
+
+func test_a_seven_by_ten_save_lands_beside_the_core() -> void:
+	var g := Grid.new()
+	g.from_dict({"w": 7, "h": 10, "cells": {"0": "drill", "69": "vault"}})
+	runner.eq(g.machine_at(Grid.idx(13, 17)), "drill", "the old top corner")
+	runner.eq(g.machine_at(Grid.idx(19, 26)), "vault", "the old far corner, against the Core")
+	for i: int in g.cells:
+		runner.check(not BuildArea.is_core(i), "nothing lands on the Core")
 
 
 func test_a_machine_outside_the_yard_from_an_older_save_keeps_working() -> void:

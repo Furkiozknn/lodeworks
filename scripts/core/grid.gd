@@ -8,8 +8,15 @@ extends RefCounted
 ## know about money. The simulation does that, which is what makes both of them
 ## testable without a running game.
 
-const W := 7
-const H := 10
+## 44 x 44, the size of a base-building map: the Factory Core stands in the
+## middle (BuildArea.CORE) and the factory grows outwards from it as the shaft
+## goes deeper. Until September 2026 the board was 7 x 10; saves from then
+## are moved in beside the Core (LEGACY_SHIFT).
+const W := 44
+const H := 44
+## Where a 7 x 10 board from an older save lands: its right edge against the
+## Core's left side, centred on it.
+const LEGACY_SHIFT := Vector2i(13, 17)
 
 ## cell index -> {id: String, buf_in: Dictionary, buf_out: Dictionary}
 var cells: Dictionary = {}
@@ -21,6 +28,10 @@ var _heat_dirty: bool = true
 
 ## How many of each machine id are on the board -- drives the cost curve.
 var owned: Dictionary = {}
+
+## Goes up whenever what stands where changes, so a drawing of the board can
+## tell when it has to be redrawn without comparing the whole board.
+var version: int = 0
 
 ## Set by the stratum. Ambient heat is added to every cell; spread controls how
 ## far a machine's own heat reaches. Both are what make the same layout behave
@@ -68,6 +79,7 @@ func place(i: int, id: String) -> bool:
 	cells[i] = {"id": id, "buf_in": {}, "buf_out": {}}
 	owned[id] = count_of(id) + 1
 	_heat_dirty = true
+	version += 1
 	return true
 
 
@@ -78,6 +90,7 @@ func remove(i: int) -> String:
 	cells.erase(i)
 	owned[id] = maxi(count_of(id) - 1, 0)
 	_heat_dirty = true
+	version += 1
 	return id
 
 
@@ -92,6 +105,7 @@ func move(from_i: int, to_i: int) -> bool:
 	cells[to_i] = cells[from_i]
 	cells.erase(from_i)
 	_heat_dirty = true
+	version += 1
 	return true
 
 
@@ -352,6 +366,7 @@ func clear() -> void:
 	cells.clear()
 	owned.clear()
 	_heat_dirty = true
+	version += 1
 
 
 func to_dict() -> Dictionary:
@@ -364,8 +379,19 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	clear()
 	var packed: Dictionary = d.get("cells", {})
+	var w: int = int(d.get("w", W))
+	var h: int = int(d.get("h", H))
 	for k: String in packed:
 		var i: int = int(k)
 		var id: String = String(packed[k])
+		if w != W or h != H:
+			# A board of another size: re-index by position, moved in by
+			# LEGACY_SHIFT.
+			if i < 0 or i >= w * h:
+				continue
+			var p: Vector2i = Vector2i(i % w, i / w) + LEGACY_SHIFT
+			if not in_bounds(p.x, p.y):
+				continue
+			i = idx(p.x, p.y)
 		if i >= 0 and i < W * H and MachineDB.exists(id):
 			place(i, id)

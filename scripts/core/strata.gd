@@ -162,16 +162,25 @@ static func describe(depth: int) -> Dictionary:
 	return d
 
 
+static var _blocked_cache: Dictionary = {}
+
+
 ## Cells that cannot be built on at this depth. Returned as a set so the grid
 ## and the UI can both ask cheaply.
 static func blocked_cells(depth: int) -> Dictionary:
+	if _blocked_cache.has(depth):
+		return _blocked_cache[depth]
 	var out: Dictionary = {}
-	if not bool(describe(depth)["cramped"]):
-		return out
-	for x in range(Grid.W):
-		for y in range(Grid.H):
-			if x == 0 or y == 0 or x == Grid.W - 1 or y == Grid.H - 1:
-				out[Grid.idx(x, y)] = true
+	if bool(describe(depth)["cramped"]):
+		# Cramped: the outermost ring of the yard caves in -- the edge of the
+		# ground the factory has, wherever that edge is by now (BuildArea).
+		var r: int = BuildArea.radius_at(depth)
+		for i in range(Grid.W * Grid.H):
+			if not BuildArea.is_core(i) and BuildArea.reach(i) == r:
+				out[i] = true
+	# Asked for every tile, many times a frame; the answer only depends on
+	# the depth.
+	_blocked_cache[depth] = out
 	return out
 
 

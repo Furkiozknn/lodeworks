@@ -35,7 +35,7 @@ func test_every_cell_round_trips_through_the_projection() -> void:
 	var c: Vector2 = Iso.cell_center(Grid.idx(3, 4))
 	runner.eq(Iso.cell_at(c + Vector2(Iso.TW * 0.45, 0)), Grid.idx(3, 4), "right point")
 	runner.eq(Iso.cell_at(c + Vector2(0, -Iso.TH * 0.45)), Grid.idx(3, 4), "top point")
-	runner.eq(Iso.cell_at(Iso.anchor() + Vector2(0, -Iso.TH * 20)), -1,
+	runner.eq(Iso.cell_at(Iso.anchor() + Vector2(0, -Iso.TH * 60)), -1,
 		"off the board is no cell")
 
 
@@ -62,25 +62,30 @@ func test_machines_are_drawn_back_to_front() -> void:
 					"%s is drawn before %s" % [str(back), str(p)])
 
 
-func test_the_board_sits_on_the_island_and_inside_the_world() -> void:
+func test_the_board_sits_on_the_island_with_the_core_in_its_middle() -> void:
 	var slab: PackedVector2Array = Iso.slab_corners()
 	var slab_poly := PackedVector2Array(slab)
 	for p in Iso.board_corners():
 		runner.check(Geometry2D.is_point_in_polygon(p, slab_poly)
 			or _on_edge(p, slab_poly), "the board corner %s is on the slab" % str(p))
-	var size_a: Array = IsoArt.layout()["world"]["size"]
-	var world := Rect2(Vector2.ZERO, Vector2(float(size_a[0]), float(size_a[1])))
-	runner.check(world.encloses(Iso.board_rect()), "the board is inside the painting")
-	# The Core stands on the slab and takes no board cell.
+	# The Core is drawn exactly on the block of board cells it takes.
 	var cc: Array = IsoArt.placement()["core_cell"]
 	var n: int = int(IsoArt.placement()["core_size"])
 	var o: Vector2i = Iso.board_offset()
-	for sy in range(int(cc[1]), int(cc[1]) + n):
-		for sx in range(int(cc[0]), int(cc[0]) + n):
-			runner.check(not Grid.in_bounds(sx - o.x, sy - o.y),
-				"the Core covers no board cell (slab %d,%d)" % [sx, sy])
-			runner.check(sx >= 0 and sy >= 0 and sx < Iso.slab_cells() and sy < Iso.slab_cells(),
-				"the Core is on the slab")
+	runner.eq(Vector2i(int(cc[0]), int(cc[1])) - o, BuildArea.CORE.position,
+		"the Core's picture stands on its block")
+	runner.eq(n, BuildArea.CORE.size.x, "and is as wide")
+	runner.eq(BuildArea.CORE.position + BuildArea.CORE.size / 2, Vector2i(Grid.W, Grid.H) / 2,
+		"in the middle of the board")
+	# However big the world is, the camera can go to every corner of it.
+	var c := _cam(Vector2(1440, 720))
+	var bounds := Rect2(slab[0], Vector2.ZERO)
+	for p in slab:
+		bounds = bounds.expand(p)
+	c.near_bounds = bounds.grow(Iso.TW)
+	for p in Iso.board_corners():
+		runner.check(c.clamp_center(p, 1.0).distance_to(p) < 0.5,
+			"the camera can look straight at the board corner %s" % str(p))
 
 
 func _on_edge(p: Vector2, poly: PackedVector2Array) -> bool:
@@ -176,14 +181,20 @@ func test_a_drag_moves_the_world_exactly_with_the_finger() -> void:
 	runner.check(not c.is_moving(), "and stops")
 
 
-func test_framing_puts_the_whole_board_in_the_free_space() -> void:
-	var c := _cam(Vector2(1440, 720))
+func test_framing_puts_the_first_yard_and_the_core_in_the_free_space() -> void:
+	var keep: int = Sim.max_depth
+	Sim.max_depth = 0
+	var v := IsoView.new()
+	v.cam = _cam(Vector2(1440, 720))
 	var free := Rect2(Vector2(22, 14), Vector2(1310, 548))
-	var r: Rect2 = IsoView.board_frame_rect()
-	c.fit(r, free)
-	for p in Iso.board_corners():
-		runner.check(free.grow(1.0).has_point(c.world_to_screen(p)),
-			"board corner %s is on screen in the free area" % str(p))
+	v.cam.fit(v.frame_rect(), free)
+	for p in v.yard_corners():
+		runner.check(free.grow(1.0).has_point(v.cam.world_to_screen(p)),
+			"yard corner %s is on screen in the free area" % str(p))
+	runner.check(free.has_point(v.cam.world_to_screen(v.core_center())),
+		"and so is the Core")
+	v.free()
+	Sim.max_depth = keep
 
 
 ## --- the pipes do not lie ----------------------------------------------------------
@@ -530,7 +541,7 @@ func test_a_growing_yard_lights_exactly_the_new_ground() -> void:
 	var before: Vector2i = BuildArea.size_at(0, 0)
 	var after: Vector2i = BuildArea.size_at(1, 0)
 	runner.eq(opened.size(), after.x * after.y - before.x * before.y,
-		"every tile the yard gained, and no other")
+		"every tile the yard gained, and no other (the Core's block is inside both)")
 	for cell: int in opened:
 		runner.check(not BuildArea.is_open(cell, 0, 0) and BuildArea.is_open(cell, 1, 0),
 			"cell %d is new ground" % cell)

@@ -16,11 +16,12 @@ extends Node
 ##   * any part leaves the safe area (tested with no inset and with a notch
 ##     and a gesture bar inset on every side)
 ##   * a key is smaller than the 48dp touch floor on the reference phone
-##   * the board, framed by the default camera, is not fully on screen, or
-##     disappears under the interface
+##   * the Factory Core, framed by the default camera, is off screen or under
+##     the interface
 ##   * Descend is not reachable
-##   * on a landscape screen, the board takes less than MIN_BOARD_SHARE of it
-##     at the default zoom, with no inset
+##   * on a landscape phone, a tile at the default zoom is under
+##     MIN_TILE_DP -- a deep shaft's yard is framed on the Core, and the
+##     tiles must stay big enough to aim at
 ##
 ## All of that on a shaft with the whole board open. Then again as a new game
 ## opens -- Core dark, the first yard (BuildArea) -- where it fails if:
@@ -52,10 +53,9 @@ const SIZES := [
 	["port. 360x720", Vector2i(360, 720), 0],
 ]
 const INSETS := [Vector4.ZERO, Vector4(96, 0, 48, 0), Vector4(0, 40, 0, 36)]
-## Percent of a landscape screen the board's diamond must take at the default
-## zoom. It was 10-14% before the default view was tightened and is 18.5-25%
-## now (docs/AUDIT.md, "The default view"); this keeps it from sliding back.
-const MIN_BOARD_SHARE := 18.0
+## The smallest a tile may be, in dp, at a deep shaft's default zoom on a
+## landscape phone (IsoView.DEFAULT_ZOOM_MIN keeps it about 20).
+const MIN_TILE_DP := 19.0
 
 var _fail: Array[String] = []
 var _warned: Dictionary = {}
@@ -67,10 +67,12 @@ func _ready() -> void:
 	var main: Control = get_parent().get_node("Main")
 	await tree.process_frame
 	main.call("_close_overlay")
-	_set_state("board", main, 0)
+	# A deep shaft: stratum 14, a 5-ring yard too big to frame whole.
+	_set_state("board", main, 14)
 	await tree.process_frame
 	await tree.process_frame
-	print("%-18s %-12s %9s %9s %8s %6s %s" % ["screen", "canvas", "cell dp", "max dp", "board%",
+	print("a deep shaft: stratum 14, yard %s" % str(BuildArea.size_at(14)))
+	print("%-18s %-12s %9s %9s %8s %6s %s" % ["screen", "canvas", "cell dp", "max dp", "yard%",
 		"hud%", "notes"])
 	print("(cell dp = a cell's height at the default and the closest zoom; 0 = no density, desktop window)")
 	for s: Array in SIZES:
@@ -144,41 +146,42 @@ func _check(main: Control, name: String, window: Vector2, dpi: int, inset: Vecto
 			elif inset == Vector4.ZERO and not _warned.has(name):
 				_warned[name] = true
 				print("WARN  " + msg + " -- reported, not enforced (see SIZES)")
-	# The board, as the default camera frames it.
+	# The deep shaft's default view: the Core, and as much yard as fits.
 	var view: IsoView = main.get("iso_view")
 	view.frame_board()
 	var free: Rect2 = view.free_rect
-	var corners: PackedVector2Array = PackedVector2Array()
-	for p in Iso.board_corners():
-		var sp: Vector2 = view.cam.world_to_screen(p)
-		corners.append(sp)
-		if not free.grow(2.0).has_point(sp):
-			_fail.append("%s: board corner %s is outside the free area %s" % [tag, str(sp), str(free)])
+	var core: Vector2 = view.cam.world_to_screen(view.core_center())
+	if not free.grow(2.0).has_point(core):
+		_fail.append("%s: the Core %s is outside the free area %s" % [tag, str(core), str(free)])
 	for k: String in rects:
-		var r: Rect2 = rects[k]
-		var box := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end,
-			Vector2(r.position.x, r.end.y)])
-		if not Geometry2D.intersect_polygons(corners, box).is_empty():
-			_fail.append("%s: the %s panel covers part of the board" % [tag, k])
+		if (rects[k] as Rect2).has_point(core):
+			_fail.append("%s: the %s panel covers the Core" % [tag, k])
 	var desc: Rect2 = rects["descend"]
 	if desc.size.x < 60.0 or desc.size.y < 60.0:
 		_fail.append("%s: Descend is too small to reach" % tag)
 	if inset == Vector4.ZERO:
-		var area: float = absf(_poly_area(corners))
 		var scale_px: float = window.y / canvas.y if canvas.x >= canvas.y else window.x / canvas.x
 		var cell_dp: float = Iso.TH * view.cam.zoom * dp_per_unit
 		var max_dp: float = Iso.TH * view.cam.zoom_max * dp_per_unit
-		var share: float = 100.0 * area / (canvas.x * canvas.y)
-		if canvas.x > canvas.y and share < MIN_BOARD_SHARE:
-			_fail.append("%s: the board is %.1f%% of the screen, under %.0f%%" % [tag, share,
-				MIN_BOARD_SHARE])
+		if canvas.x > canvas.y and dpi > 0 and strict and cell_dp < MIN_TILE_DP:
+			_fail.append("%s: a tile is %.1f dp at the default zoom, under %.0f" % [tag,
+				cell_dp, MIN_TILE_DP])
+		var yard := PackedVector2Array()
+		for p in view.yard_corners():
+			yard.append(view.cam.world_to_screen(p))
+		var shown: float = 0.0
+		var screen := PackedVector2Array([Vector2.ZERO, Vector2(canvas.x, 0.0), canvas,
+			Vector2(0.0, canvas.y)])
+		for part in Geometry2D.intersect_polygons(yard, screen):
+			shown += absf(_poly_area(part))
 		print("%-18s %-12s %9.1f %9.1f %7.1f%% %5.1f%% %s" % [name,
-			"%dx%d" % [int(canvas.x), int(canvas.y)], cell_dp, max_dp, share,
-			_hud_share(rects, canvas), "zoom %.2f, %.2f px/unit" % [view.cam.zoom, scale_px]])
+			"%dx%d" % [int(canvas.x), int(canvas.y)], cell_dp, max_dp,
+			100.0 * shown / (canvas.x * canvas.y), _hud_share(rects, canvas),
+			"zoom %.2f, %.2f px/unit" % [view.cam.zoom, scale_px]])
 
 
-## "board": a shaft that has collapsed once, so the whole board is open --
-## what the board-share numbers have always measured. "yard": a new game.
+## "board": a deep shaft, the Core long online, research and Cores in hand.
+## "yard": a new game or an early stratum.
 func _set_state(state: String, main: Control, depth: int = 0) -> void:
 	Sim.grid.clear()
 	Sim.depth = depth

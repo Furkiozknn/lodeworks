@@ -279,7 +279,77 @@ screen instead of 21.5%, and the layout check's 18% floor failed. The
 Core's top still touches the stratum card. The card has to shrink, not the
 board.
 
+### The 44 x 44 board
+
+The user asked for the 7 x 10 board to become 44 x 44, the size of a
+base-building map. It is now:
+- **The board.** `Grid.W` and `Grid.H` are 44, on a 48-cell slab.
+- **The Core.** The Factory Core stands on the 4 x 4 block in the middle
+  (`BuildArea.CORE`), like a town hall. Nothing is built there.
+- **The yard.** The yard is the ring of ground round the Core, and it
+  replaces the corner yard described below. It is one tile wide (20 tiles)
+  in a new shaft, two at stratum 1 (48 tiles) and three from stratum 2 (84
+  tiles). From stratum 10 it gains another ring every four strata.
+- **Obstacles.** The ground outside the yard is strewn with 52 crystals,
+  ore veins, rubble piles, crates and vents, as obstacles. A tile the yard
+  reaches is cleared of its obstacle. Eight lamps stand on the slab's edge.
+- **Old saves.** A 7 x 10 board moves in beside the Core (`Grid.LEGACY_SHIFT`).
+
+**Room paces a shaft, so the yard is held near the old board.** With the
+whole 44 x 44 open, the journey lab's competent player never runs out of
+room. After half an hour it had 130 machines at stratum 13; on the 7 x 10
+board it had 70 at stratum 5. So the yard is held at 84 tiles, near the old
+board's 70, until stratum 10.
+
+| descend to | 7 x 10 board | 44 x 44, this yard |
+|---|---|---|
+| stratum 1 | 176 s | 178 s |
+| stratum 2 | 312 s | 334 s |
+| stratum 3 | 386 s | 412 s |
+| stratum 4 | 463 s | 493 s |
+| stratum 5 | 554 s | 561 s |
+| after 30 minutes | stratum 5, 70 machines | stratum 7, 84 machines |
+
+The half hour ends two strata deeper, because 84 tiles are more than 70.
+That is the one measured change to the pace.
+
+**The camera now bounds on the world, not on the painting.** Its centre
+stays over the slab. The painting slides at 0.12 of the camera's speed and
+is never drawn smaller than covers the screen from where it is looked at,
+so there is no void anywhere. It zooms out to 0.22, enough to see the
+whole board on a phone.
+
+The default view frames the Core and the yard. It stops at zoom 0.55 for a
+yard too big to see whole, where a tile is about 21 dp on 2:1, and the rest
+is a pan away.
+
+**The ground is drawn once and kept.** The island, the slab and all 1,936
+tiles are redrawn only when what they show changes. Panning and zooming
+move that drawing without redrawing it.
+
+Measured back to back on the same machine, on the desktop probe:
+
+| | before | after |
+|---|---|---|
+| idle frame p50 | 15.7 ms | 15.3 ms |
+| sim tick | 1.42 ms (36 machines) | 1.30 ms (42 machines) |
+| draw calls | 184 | 137 |
+
+The machine was running slower than in the earlier rounds' 9.8 ms
+measurements, which is why the comparison is back to back.
+
+The layout check now checks a deep shaft (stratum 14):
+- the Core is in view and clear of every panel
+- a tile is at least 19 dp at the default zoom
+
+It also runs the yard at strata 0, 1 and 3 as before. On 2:1 a new game
+opens with the 6 x 6 yard square (the Core and its ring) centred, at 40 dp
+tiles.
+
 ### The yard: a small start that grows
+
+(Superseded by the ring round the Core above. It is kept for the
+measurements that sized the steps.)
 
 A new shaft no longer hands the player all seventy tiles. The shape of it:
 - **Where it starts.** A 4 x 4 yard at the board's corner, beside the
