@@ -316,7 +316,7 @@
   ],
   "core_cell": [
    1,
-   1
+   8
   ],
   "core_size": 3,
   "footprint": 0.76,
@@ -325,53 +325,53 @@
   "expansion": [
    [
     1,
-    4
+    1
    ],
    [
     3,
-    10
+    7
    ]
   ],
   "props": [
    [
     2,
-    4,
+    1,
     "lock"
    ],
    [
     2,
-    8,
+    7,
     "lock"
    ],
    [
     1,
-    6,
+    4,
     "crystal_purple"
    ],
    [
     3,
-    9,
+    5,
     "crystal_cyan"
    ],
    [
-    1,
-    9,
-    "ore_vein"
-   ],
-   [
     3,
-    6,
+    3,
     "rubble"
    ],
    [
-    2,
-    10,
+    1,
+    6,
     "crate"
    ],
    [
     0,
     5,
     "vent"
+   ],
+   [
+    0,
+    9,
+    "ore_vein"
    ],
    [
     0,

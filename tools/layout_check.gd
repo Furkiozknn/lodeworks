@@ -19,6 +19,8 @@ extends Node
 ##   * the board, framed by the default camera, is not fully on screen, or
 ##     disappears under the interface
 ##   * Descend is not reachable
+##   * on a landscape screen, the board takes less than MIN_BOARD_SHARE of it
+##     at the default zoom, with no inset
 ##
 ## It also prints the numbers the audit reports: the cell's size in dp at the
 ## default and the closest zoom, and how much of the screen the board takes.
@@ -43,6 +45,10 @@ const SIZES := [
 	["port. 360x720", Vector2i(360, 720), 0],
 ]
 const INSETS := [Vector4.ZERO, Vector4(96, 0, 48, 0), Vector4(0, 40, 0, 36)]
+## Percent of a landscape screen the board's diamond must take at the default
+## zoom. It was 10-14% before the default view was tightened and is 18.5-25%
+## now (docs/AUDIT.md, "The default view"); this keeps it from sliding back.
+const MIN_BOARD_SHARE := 18.0
 
 var _fail: Array[String] = []
 var _warned: Dictionary = {}
@@ -132,8 +138,12 @@ func _check(main: Control, name: String, window: Vector2, dpi: int, inset: Vecto
 		var scale_px: float = window.y / canvas.y if canvas.x >= canvas.y else window.x / canvas.x
 		var cell_dp: float = Iso.TH * view.cam.zoom * dp_per_unit
 		var max_dp: float = Iso.TH * view.cam.zoom_max * dp_per_unit
+		var share: float = 100.0 * area / (canvas.x * canvas.y)
+		if canvas.x > canvas.y and share < MIN_BOARD_SHARE:
+			_fail.append("%s: the board is %.1f%% of the screen, under %.0f%%" % [tag, share,
+				MIN_BOARD_SHARE])
 		print("%-18s %-12s %9.1f %9.1f %7.1f%% %s" % [name, "%dx%d" % [int(canvas.x), int(canvas.y)],
-			cell_dp, max_dp, 100.0 * area / (canvas.x * canvas.y),
+			cell_dp, max_dp, share,
 			"zoom %.2f, %.2f px/unit" % [view.cam.zoom, scale_px]])
 
 

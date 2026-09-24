@@ -53,6 +53,11 @@ var badges := StatusBadges.new()
 ## The part of the screen the interface leaves clear. Set by the HUD; the
 ## camera frames the board inside it.
 var free_rect := Rect2()
+## The interface's panels, in screen space. The default view is stepped back
+## until no corner of the board sits under one of them -- the free rectangle
+## alone cannot know that the top corners of the screen are taken while the
+## top middle is not.
+var avoid_rects: Array[Rect2] = []
 
 var _floor: Node2D
 var _floor_glow: Node2D
@@ -162,8 +167,25 @@ func frame_board() -> void:
 		return
 	cam.set_viewport(size)
 	var fr: Rect2 = free_rect if free_rect.size.x > 8.0 else Rect2(Vector2.ZERO, size)
-	cam.fit(frame_rect(), fr)
+	var scale: float = 1.0
+	cam.fit(frame_rect(), fr, scale)
+	while scale > 0.6 and board_under_panel():
+		scale *= 0.97
+		cam.fit(frame_rect(), fr, scale)
 	_framed = true
+
+
+## Does any panel cover part of the board, as the camera frames it now?
+func board_under_panel() -> bool:
+	var corners := PackedVector2Array()
+	for p in Iso.board_corners():
+		corners.append(cam.world_to_screen(p))
+	for r: Rect2 in avoid_rects:
+		var box := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end,
+			Vector2(r.position.x, r.end.y)])
+		if not Geometry2D.intersect_polygons(corners, box).is_empty():
+			return true
+	return false
 
 
 ## The board and the Core together: what the first look has to contain.
@@ -171,11 +193,22 @@ func frame_rect() -> Rect2:
 	return board_frame_rect().merge(core_rect().grow(8.0))
 
 
-## The world rectangle the default view has to show: the board, plus the
-## height of the tallest machine above its back corner.
+## The world rectangle the default view has to show: the board, plus exactly
+## as much above its back corner as the tallest machine rises (measured from
+## the sprite sheet, 58 units today) and the slab's front face below.
+##
+## It used to carry two cell-heights of margin above and the whole Factory
+## Core standing behind the board, and the board came out at 12% of a 2:1
+## screen with 25 dp cells. Framed tightly, with the Core moved beside the
+## board's left corner so it no longer sets the height, the board is 22% of
+## the screen and a cell is 34 dp (docs/AUDIT.md, "The default view").
 static func board_frame_rect() -> Rect2:
+	var sheet: Dictionary = IsoArt.sheet(Themes.DEFAULT)
+	var s: float = Iso.TW * float(IsoArt.placement().get("footprint", 0.8)) \
+		/ IsoArt.base_px(sheet)
+	var rise: float = maxf(IsoArt.anchor(sheet).y * s - Iso.TH * 0.5, 0.0)
 	var r: Rect2 = Iso.board_rect()
-	return r.grow_individual(Iso.TW * 0.35, Iso.TH * 2.2, Iso.TW * 0.35, Iso.TH * 0.6)
+	return r.grow_individual(Iso.TW * 0.2, rise + 6.0, Iso.TW * 0.2, 24.0)
 
 
 ## The zoom the default view settles on, for the touch-target report.

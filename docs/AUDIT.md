@@ -150,7 +150,7 @@ column: UNKNOWN.
 | committed art | 0 | 6.76 MB (budget 40 MB); 15.5 MB imported |
 | colourfulness (Hasler-Suesstrunk) | 17.3 | 28.0 (reference concept: 30.3) |
 | readability, closest pair at 44 px | colour 20.8, grey 16.0 (from the old ART.md) | colour 18.9 (free palette), grey 11.8 (Slate); floors 9.0 / 6.0 |
-| board share of the screen | 48% (a 691x987 rectangle) | 11.8% at the default zoom on 2:1 (a diamond; the rest is world) |
+| board share of the screen | 48% (a 691x987 rectangle) | 21.5% at the default zoom on 2:1 (a diamond; the rest is world); 11.8% before the reframing below |
 
 **Decision.** The new renderer replaces the old on the main screen and
 `GridView` is deleted: it is the only one of the two that is the requested
@@ -168,23 +168,69 @@ a 96/48 side notch, a 40/36 top and gesture bar). No overlap, nothing
 outside the safe area, the whole board visible between the panels, on all
 33. Cell height is in dp for a device of that shape at the density given.
 
+Before -> after the reframing described in the next section.
+
 | screen | canvas | cell, default zoom | cell, closest zoom | board share |
 |---|---|---|---|---|
-| 16:9 1920x1080 @420 | 1440x810 | 24.7 dp | 52.0 dp | 14.2% |
-| 16:9 1280x720 @320 | 1440x810 | 21.6 dp | 45.5 dp | 14.2% |
-| 18:9 2160x1080 @400 | 1440x720 | 25.1 dp | 61.4 dp | 11.8% |
-| 19.5:9 2340x1080 @420 | 1560x720 | 23.9 dp | 58.5 dp | 10.9% |
-| 20:9 2400x1080 @405 | 1600x720 | 24.8 dp | 60.7 dp | 10.7% |
-| 21:9 2520x1080 @420 | 1680x720 | 23.9 dp | 58.5 dp | 10.2% |
-| 16:10 2560x1600 @300 | 1440x900 | 52.5 dp | 97.1 dp | 16.6% |
-| 4:3 2048x1536 @264 | 1440x1080 | 59.4 dp | 88.3 dp | 21.4% |
+| 16:9 1920x1080 @420 | 1440x810 | 24.7 -> 32.6 dp | 52.0 dp | 14.2 -> 24.7% |
+| 16:9 1280x720 @320 | 1440x810 | 21.6 -> 28.5 dp | 45.5 dp | 14.2 -> 24.7% |
+| 18:9 2160x1080 @400 | 1440x720 | 25.1 -> 33.9 dp | 61.4 dp | 11.8 -> 21.5% |
+| 19.5:9 2340x1080 @420 | 1560x720 | 23.9 -> 32.3 dp | 58.5 dp | 10.9 -> 19.9% |
+| 20:9 2400x1080 @405 | 1600x720 | 24.8 -> 33.5 dp | 60.7 dp | 10.7 -> 19.4% |
+| 21:9 2520x1080 @420 | 1680x720 | 23.9 -> 32.3 dp | 58.5 dp | 10.2 -> 18.5% |
+| 16:10 2560x1600 @300 | 1440x900 | 52.5 -> 60.8 dp | 97.1 dp | 16.6 -> 22.2% |
+| 4:3 2048x1536 @264 | 1440x1080 | 59.4 -> 55.3 dp | 88.3 dp | 21.4 -> 18.5% |
 
-The Cowork estimate of "about 32 dp at normal zoom, 51 dp close" was
-optimistic at normal zoom: it is 24-25 dp on the phones that matter, under
-Android's 48 dp. The camera is the answer (52-61 dp at the closest zoom),
-not a bigger default, because a bigger default loses the world. Every HUD
+The Cowork estimate of "about 32 dp at normal zoom, 51 dp close" holds now,
+after the reframing: 32-34 dp on the phones that matter. That is still
+under Android's 48 dp, so aiming at one cell precisely still means zooming
+in (52-61 dp at the closest zoom). 4:3 is the one shape that lost: the
+width binds there, and the Core beside the board's left corner makes the
+framed rectangle wider (21.4 -> 18.5%, cells 59 -> 55 dp, still above
+48 dp). Every HUD
 key is 96 canvas units: 48 dp or more on every shape except the 720p xhdpi
 16:9 phone, where they measure 43-44 dp (reported, not enforced).
+
+### The default view
+
+The first measurement of this round: at the default zoom the board was
+11.8% of a 2:1 screen with 24-25 dp cells, and the world, not the factory,
+was the main object. Two things set that zoom. The framed rectangle
+carried two cell-heights of margin above the board and 0.35 of a cell
+either side, and the Factory Core stood behind the board's back corner, so
+the view had to be tall enough for the Core's whole tower.
+
+Framings measured on the 2:1 canvas with its real free rectangle (a scratch
+probe; same numbers for 16:9 and 20:9 in the same order):
+
+| framing | zoom | cell | board share | Core |
+|---|---|---|---|---|
+| A: board + whole Core (as it was) | 0.655 | 25.1 dp | 12.2% | whole |
+| B: board only, old margins | 0.772 | 29.6 dp | 17.0% | cut |
+| C: board only, tight margins | 0.883 | 33.9 dp | 22.2% | cut |
+| D: tight + the Core's lower 60% | 0.812 | 31.2 dp | 18.8% | cut |
+| E: tight + Core moved to slab (1, 8) | 0.883 | 33.9 dp | 22.2% | whole |
+| F: tight + a 2x2 Core at slab (1, 8) | 0.883 | 33.9 dp | 22.2% | whole |
+
+**E** is what shipped: C's zoom with the Core still in view and at its
+size. The Core now stands on slab (1..3, 8..10), beside the board's left
+corner, where it no longer sets the height; the expansion plot takes slab
+(1..3, 1..7). The margin above the board is exactly how far the tallest
+machine sprite rises above the back corner (58 units, read from the sheet
+by `IsoView.board_frame_rect`), plus 6. The board, the cell and the sprite
+scale are unchanged -- only the camera's default moved.
+
+Framing tighter uncovered one case the free rectangle cannot see: with a
+96-unit side notch the resources panel, top right, reached the board's
+right corner. The default view now steps back 3% at a time (to 0.6 of the
+fit at most) while any HUD panel covers part of the board
+(`IsoView.board_under_panel`); the layout check passes 11 screens x 3 safe
+areas with it.
+
+Cost: none measured. Idle p50 / p95 / p99 10.8 / 14.9 / 16.9 ms, panning
+11.3 / 15.8 / 18.9 ms, zooming 11.0 / 16.1 / 17.9 ms, draw calls 176-184,
+a 60 s soak 12.7 / 18.4 / 22.4 ms with memory flat (45.1 -> 45.1 MB) --
+same machine and GPU as the table above; a phone: **UNKNOWN**.
 
 ### The 12-point comparison with the reference
 
@@ -197,9 +243,9 @@ can only be judged says so.
 |---|---|---|---|
 | 1 | Camera | **PASS** | 2:1 isometric, 45 degrees, as the directive asked (`test_the_projection_is_two_to_one`); pan, fling, pinch, wheel, bounds tested. The reference mock-ups are a front-facing 3/4 view; the directive's Clash-style 45 degrees was followed instead |
 | 2 | Perspective | **PARTIAL** | board, machines, island, props and Core share one camera; the world painting is a front-facing 3/4 view (the image model did not rotate it), softened by parallax |
-| 3 | World feel | **PASS** | island over a canyon, Core, expansion plot, props around the board; the board itself is 11.8% of the default screen and the rest is world. The old screen had no world |
+| 3 | World feel | **PASS** | island over a canyon, Core, expansion plot, props around the board; the board itself is 21.5% of the default 2:1 screen (11.8% before the reframing) and the rest is world. The old screen had no world |
 | 4 | Grid placement | **PASS** | whole board in the free area on 11 shapes x 3 safe areas, no panel over it (layout check) |
-| 5 | Machine scale | **PARTIAL** | plate = 76% of a cell; 24-25 dp cells at the default zoom are under the 48 dp floor, 52-61 dp at the closest zoom |
+| 5 | Machine scale | **PARTIAL** | plate = 76% of a cell; 32-34 dp cells at the default zoom (24-25 before the reframing) are under the 48 dp floor, 52-61 dp at the closest zoom |
 | 6 | Colour | **PARTIAL** | colourfulness 28.0 against 30.3 / 30.7; saturation 0.44 against 0.54-0.57 (`tools/visual_compare.py`) |
 | 7 | Light | **PARTIAL** | brightness 0.40 against 0.37-0.40 (matched), contrast 0.22 against 0.26; additive glows, no bloom (the compatibility renderer has no HDR 2D) |
 | 8 | Depth | **PASS** | back-to-front drawing tested; parallax, cliffs, contact shadows, raised slab. Connections behind nearer machines: see N4 |

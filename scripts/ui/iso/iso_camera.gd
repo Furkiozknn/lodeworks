@@ -112,9 +112,9 @@ func set_viewport(size: Vector2) -> void:
 ## Frame a world rectangle inside a screen rectangle -- the part of the
 ## screen the interface leaves free -- and snap there. Used once at start;
 ## everything after that moves.
-func fit(world_rect: Rect2, free_rect: Rect2) -> void:
+func fit(world_rect: Rect2, free_rect: Rect2, scale: float = 1.0) -> void:
 	var z: float = minf(free_rect.size.x / world_rect.size.x,
-		free_rect.size.y / world_rect.size.y)
+		free_rect.size.y / world_rect.size.y) * scale
 	zoom = clamp_zoom(z)
 	# Centre the rectangle in the free area, not in the screen: the free area
 	# is off-centre when the tray takes more room than the top bar.

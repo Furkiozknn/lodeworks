@@ -661,6 +661,11 @@ func _layout_hud() -> void:
 		b - BOTTOM_H - 10.0 - t))
 	var had: Rect2 = iso_view.free_rect
 	iso_view.free_rect = free
+	var avoid: Array[Rect2] = []
+	var hr: Dictionary = hud_rects()
+	for k: String in hr:
+		avoid.append(hr[k])
+	iso_view.avoid_rects = avoid
 	if had.size == Vector2.ZERO or not had.is_equal_approx(free):
 		iso_view.frame_board()
 

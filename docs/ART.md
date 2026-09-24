@@ -55,7 +55,7 @@ inconsistency the eye catches first.
   camera's speed and scales by zoom^0.82, never below what covers the
   screen, so the island reads as floating over the canyon.
 
-Readability before show: a cell at the default zoom is 24-25 dp tall on a
+Readability before show: a cell at the default zoom is 32-34 dp tall on a
 1080p phone (measured by `tools/layout_check.tscn`), which is enough to see
 the factory and too small to aim at precisely; at the closest zoom it is
 52-61 dp, above Android's 48 dp floor. A machine must be picked (tapped)
@@ -76,9 +76,11 @@ Back to front, each a layer of `IsoView`:
 | overlay | badges, flow beads, notches, previews, numbers, the selected machine's links | screen space, fixed size |
 
 **The slab** is 12 x 12 cells. The board sits at slab (4, 1); the Factory
-Core stands on slab (1..3, 1..3), behind the board's back corner, and takes
+Core stands on slab (1..3, 8..10), beside the board's left corner, and takes
 no board cell (`test_the_board_sits_on_the_island_and_inside_the_world`).
-Slab (1..3, 4..10) is **the expansion plot**: dimmed, outlined in dashes,
+It stood behind the back corner until the default view was tightened; there
+it set the view's height (docs/AUDIT.md, "The default view").
+Slab (1..3, 1..7) is **the expansion plot**: dimmed, outlined in dashes,
 with a padlocked barrier at each end. It is visual only -- no rule reads
 it -- and it is where a future expansion mechanic would open ground.
 
