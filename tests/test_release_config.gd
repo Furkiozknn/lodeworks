@@ -479,7 +479,7 @@ func test_every_stratum_field_is_applied_somewhere() -> void:
 
 ## --- the visual system ------------------------------------------------------
 
-func test_every_machine_has_a_body_a_light_and_a_build() -> void:
+func test_every_machine_has_a_body_a_light_and_a_picture() -> void:
 	# The art is code, so a machine that was added to `MachineDB` without
 	# being given a look is a compile-time-clean silhouette-less grey box.
 	# This is the check that catches it.
@@ -488,9 +488,11 @@ func test_every_machine_has_a_body_a_light_and_a_build() -> void:
 		runner.check(Palette.MACHINE_LIGHT.has(id), "no light colour: " + id)
 		runner.check(Palette.MACHINE_GLYPH.has(id), "no glyph: " + id)
 		runner.check(Palette.MACHINE_FAMILY.has(id), "no family: " + id)
-		var art: String = _read("res://scripts/ui/machine_art.gd")
-		runner.check(art.contains('"%s":' % id),
-			"%s has no build in MachineArt, so it draws as a plain box" % id)
+		# Its picture, in the machine sheet the board, the tray and the store
+		# art all draw from.
+		var sheet: Dictionary = IsoArt.sheet(IsoArt.sheet_name(Palette.theme(), 0))
+		runner.gt(IsoArt.machine_region(sheet, id).size.x, 0.0,
+			"%s has no picture in the machine sheet" % id)
 
 
 func test_the_readability_check_exists_and_is_wired_up() -> void:

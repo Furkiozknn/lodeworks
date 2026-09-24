@@ -10,8 +10,9 @@ simulation.
 
 The procedural renderer this replaced (`GridView` + `MachineArt`, every
 machine drawn from lit rectangles) is described in the git history
-(`docs/ART.md` before `c10ae71`). `MachineArt` survives only in
-`tools/brand_painter.gd`, which draws the store icon; see section 12.
+(`docs/ART.md` before `c10ae71`). `MachineArt` drew the store icon until
+25 September 2026; the icon and feature graphic now draw the Core and the
+machine sheet too, and `MachineArt` is gone.
 
 ---
 
@@ -280,7 +281,14 @@ checks it.
 - `tests/test_iso.gd`, `tools/layout_check.tscn`, the audit screenshots in
   CI (`LODEWORKS_CAPTURE=audit tools/shots.tscn`).
 
-**Not yet on the new art**: the store icon and feature graphic
-(`tools/brand_painter.gd` still draws them procedurally with `MachineArt`),
-and the store screenshots, which are portrait and must be re-shot in
-landscape. The directive puts store work after the main screen.
+**The store icon and feature graphic** are drawn by `tools/brand_painter.gd`
+from the game's own pictures: the world painting, the Factory Core with its
+glow, and machines from the sheet. The icon is the Core with a Drill and a
+Vault at its feet, on the canyon darkened so it holds at 48 dp. The feature
+graphic has the name and two plain lines on the left, and the Core with its
+first four machines on the right. `tools/store-assets.sh` renders and
+copies them.
+
+**Not yet on the new art**: the store screenshots in `store/screenshots`
+are the old portrait ones. The landscape capture is automated, but which
+shots to upload is a person's choice.

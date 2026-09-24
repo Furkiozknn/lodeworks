@@ -124,7 +124,7 @@ gestures it always had (place, move, sell).
 | N6 | Store screenshots, feature graphic, preview video in landscape | the directive puts store work after the main screen; the capture tool already renders at 1920x1080 |
 | N7 | Codex and shop redesigned for landscape | they work (scroll, full width) and draw the new sprites; their layout is still the portrait one widened |
 | N8 | `visual/perspective-main-view` (06e5b3b) and 9a524fe | not in any place this machine can reach; content UNKNOWN |
-| N9 | Removing `MachineArt` | still draws the store icon in `tools/brand_painter.gd`; goes with N6 |
+| N9 | Removing `MachineArt` | done 25 September 2026: the store icon and feature graphic draw the game's own sprites |
 
 ### Old renderer against new, same machine
 
@@ -606,11 +606,12 @@ each one is sorted here first. Nothing marked DONE was rebuilt.
 | 55 x 55 world | SUPERSEDED | the owner chose 44 x 44 (`c6124a9`) |
 
 Duplicates and dead systems found:
-- **Two machine renderers.** `MachineArt` draws machines from rectangles.
-  The game draws them from the sprite sheets, and `MachineArt` is left only
-  in the icon and feature graphic tool (`tools/brand_painter.gd`). So the
-  store icon shows machines the game no longer has. It is store work (P13)
-  and was not touched.
+- **Two machine renderers.** `MachineArt` drew machines from rectangles.
+  The game draws them from the sprite sheets, and `MachineArt` was left
+  only in the icon and feature graphic tool (`tools/brand_painter.gd`), so
+  the launcher icon showed machines the game no longer has. Later that
+  night the icon and feature graphic were redrawn from the Core and the
+  machine sheet, and `MachineArt` was removed (below, "The store icon").
 - **Blueprints.** The simulation, a research line and the Licence all add
   blueprint slots, but no screen saves or loads a blueprint. It is listed
   under "What is still UNKNOWN" as the owner's decision.
@@ -946,6 +947,26 @@ changes what it names, and that flipping it back restores it. Things the
 brief listed but the game does not have got no row: music, notifications,
 language, an account or cloud save, and camera sensitivity. The version
 number sits under the groups.
+
+### The store icon
+
+The launcher icon (`store/icon-192.png`, the adaptive foreground) and the
+store icon and feature graphic were still the rectangle machines from
+before the art. That icon is the first picture of the game anyone sees,
+on the phone's home screen, and it showed a game that no longer exists.
+They are now drawn from the game's own pictures:
+- **The icon** is the Factory Core, lit, with a Drill and a Vault at its
+  feet, on the canyon painting darkened so it holds at 48 dp.
+- **The adaptive foreground** keeps the same picture inside the middle 60%
+  that every launcher mask leaves visible.
+- **The feature graphic** has the name, the five resource colours, and two
+  plain lines on the left. The Core and its first four machines stand on
+  the right.
+
+`tools/check-store-assets.py` passes: the icon is 512 x 512, 24-bit, 498
+KB, and the feature graphic is 1024 x 500 with no alpha. With the icon
+redrawn, nothing used `MachineArt` any more. It was removed, and its test
+now checks that every machine has a picture in the machine sheet.
 
 ### The 12-point comparison with the reference
 
