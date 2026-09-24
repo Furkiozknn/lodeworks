@@ -281,6 +281,22 @@ checks it.
 - `tests/test_iso.gd`, `tools/layout_check.tscn`, the audit screenshots in
   CI (`LODEWORKS_CAPTURE=audit tools/shots.tscn`).
 
+**Signs drawn in code.** A few interface pictures are not in the icon
+sheet and are drawn as lines (`Chips.Glyph`): the Settings groups' speaker,
+screen, touch and accessibility signs, and the rows' wave, sparkle,
+battery, vibration, zoom and motion signs. The first minutes' arrow
+(`Chips.Pointer`) and the settings switch (`Chips.Switch`) are drawn the
+same way. They are flat and simple next to the painted icons on purpose:
+they sit in panels, not on the world.
+
+**Machine groups use the icon sheet.** The group signs are pickaxe
+(Diggers), gear (Makers), coin (Sellers), flame (Heaters), snowflake
+(Coolers), lightning gear (Boosters) and flask (Research). They are the
+same pictures in the tray's corners, the Codex's keys and its pages.
+
+**A new band's name** crosses the screen in that band's vein colour
+(`Palette.BAND_VEIN`) as a descent reaches it.
+
 **The store icon and feature graphic** are drawn by `tools/brand_painter.gd`
 from the game's own pictures: the world painting, the Factory Core with its
 glow, and machines from the sheet. The icon is the Core with a Drill and a
