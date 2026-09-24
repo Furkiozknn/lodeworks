@@ -486,8 +486,6 @@ func test_every_machine_has_a_body_a_light_and_a_picture() -> void:
 	for id: String in MachineDB.ORDER:
 		runner.check(Palette.MACHINE_COLOR.has(id), "no body colour: " + id)
 		runner.check(Palette.MACHINE_LIGHT.has(id), "no light colour: " + id)
-		runner.check(Palette.MACHINE_GLYPH.has(id), "no glyph: " + id)
-		runner.check(Palette.MACHINE_FAMILY.has(id), "no family: " + id)
 		# Its picture, in the machine sheet the board, the tray and the store
 		# art all draw from.
 		var sheet: Dictionary = IsoArt.sheet(IsoArt.sheet_name(Palette.theme(), 0))

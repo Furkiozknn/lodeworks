@@ -80,24 +80,16 @@ const DIV_COLD := Color("2e6ea8")
 const DIV_OK := Color("2f7a5a")
 const DIV_HOT := Color("b0432a")
 
-## Resource colours and marks. Every machine carries a small chip showing what
-## it OUTPUTS, because "which building makes which item" is the most common
-## readability complaint in the genre and the board cannot answer it from the
-## machine glyph alone.
+## Resource colours: the beads on the seams, the gems in the panels and the
+## recipe chips all carry a resource in its own colour, because "which
+## building makes which item" is the most common readability complaint in the
+## genre.
 const RES_COLOR := {
 	0: Color("8a7f72"),   ## ore     — dull rock
 	1: Color("b79b76"),   ## gravel  — warmer, lighter
 	2: Color("cfd6df"),   ## ingot   — bright metal
 	3: Color("8fb4d6"),   ## plate   — blued steel
 	4: Color("d9c56a"),   ## component — finished, valuable
-}
-
-const RES_MARK := {
-	0: "·",
-	1: "∷",
-	2: "▬",
-	3: "▤",
-	4: "✦",
 }
 
 ## Machine colours. Grouped by role so the board is legible at a glance:
@@ -118,163 +110,12 @@ const MACHINE_COLOR := {
 	"condenser": Color("6fd6e8"),
 }
 
-## A one-or-two glyph mark per machine, drawn as text. Cheaper than icons,
-## instantly recognisable once learned, and it localises for free.
-const MACHINE_GLYPH := {
-	"drill": "▼",       # down triangle - it digs
-	"crusher": "▦",     # hatched square - it breaks things up
-	"vault": "◎",       # ringed circle - a safe
-	"smelter": "▲",     # up triangle - a furnace flame
-	"boiler": "≈",      # waves - heat
-	"coolant": "❄",     # snowflake
-	"press": "▬",       # heavy bar - it flattens
-	"assembler": "◈",   # diamond in diamond - composition
-	"amplifier": "▶",   # play - it pushes
-	"lab": "○",         # flask bulb
-	"duplicator": "⧉",  # two squares - a copy
-	"condenser": "❅",   # flowered snowflake
-}
-
-## Silhouette families. Two machines of the same colour must still be
-## distinguishable in greyscale and at a glance, so the body outline differs
-## by what the machine DOES. Each family is drawn from rectangles, so the
-## whole board still batches.
-##
-##   RIG     a source — heavy base, tapered head, it goes into the rock
-##   MILL    a converter — squat body with a lid band
-##   FURNACE a heat machine — body with a chimney block
-##   STORE   a sink — double-walled box
-##   LAB     science — narrow tower
-##   FIELD   a passive booster — body with side fins
-enum Family { RIG, MILL, FURNACE, STORE, LAB, FIELD }
-
-const MACHINE_FAMILY := {
-	"drill": Family.RIG,
-	"crusher": Family.MILL,
-	"vault": Family.STORE,
-	"smelter": Family.FURNACE,
-	"boiler": Family.FURNACE,
-	"coolant": Family.FURNACE,
-	"press": Family.MILL,
-	"assembler": Family.MILL,
-	"amplifier": Family.FIELD,
-	"lab": Family.LAB,
-	"duplicator": Family.FIELD,
-	"condenser": Family.FURNACE,
-}
-
 const RADIUS := 10.0
 const PAD := 12.0
 
 
-## --- the material and lighting system ---------------------------------------
-##
-## Everything in this game is still drawn with `draw_rect`. What changed is
-## that a rectangle is no longer a flat colour: it is one face of a solid,
-## lit by one key light, and the game builds machines out of faces.
-##
-## Three tones make a block read as three-dimensional on a flat board:
-##
-##   TOP    the face pointing at the light. Lightest, slightly desaturated
-##          towards white, because a highlight is light, not more paint.
-##   FRONT  the face pointing at the camera. The machine's actual colour.
-##   SIDE   the face turned away. Darkest, and pushed towards the ambient
-##          blue of the shaft rather than towards black, because nothing in a
-##          lit room is ever truly black.
-##
-## Plus two thin extras that do most of the work for almost no cost:
-##
-##   RIM    a one-pixel line along the top-left edge where the key light
-##          catches the corner. This is the single cheapest thing that makes
-##          a flat shape look machined.
-##   CONTACT a dark pad under the body. A block with no shadow floats; a
-##          block with a shadow sits on the tile.
-##
-## The light is fixed: one warm key from the upper left, a cool ambient fill
-## from the shaft itself. It never moves, so every machine on the board agrees
-## about where the light is, which is what makes seventy separate drawings
-## look like one scene.
-
-## Where the key light comes from, in tile fractions. Up and to the left.
-const LIGHT_DIR := Vector2(-0.38, -0.55)
-## How far a top face is offset from its body. The whole 3D read is this
-## number; larger looks like a tower, smaller looks like a sticker.
-const FACE_LIFT := 0.17
-## The warm tint of the key light and the cool tint of the ambient fill.
+## The warm tint of the lamps, for the interface's lit edges.
 const KEY_TINT := Color("ffe9c4")
-const FILL_TINT := Color("2b3a52")
-
-
-## The five tones a solid is drawn with.
-static func faces(base: Color) -> Dictionary:
-	return {
-		"top": base.lerp(KEY_TINT, 0.52),
-		"front": base,
-		"side": base.lerp(FILL_TINT, 0.46).darkened(0.12),
-		"rim": base.lerp(KEY_TINT, 0.78),
-		"contact": base.lerp(BG, 0.72).darkened(0.25),
-	}
-
-
-## Draw one solid block: side faces, front face, lifted top face, rim light
-## and contact shadow. `lift` is the top-face offset as a fraction of the
-## block height; 0 draws a flat plate.
-##
-## Six rectangles, all of which batch. A machine is three or four of these
-## stacked, which is why the board can afford to look built.
-static func block(ci: CanvasItem, r: Rect2, base: Color, lift: float = FACE_LIFT,
-		rim: bool = true, contact: bool = true) -> void:
-	var f: Dictionary = faces(base)
-	var dy: float = r.size.y * lift
-	if contact and dy > 0.5:
-		var pad: Color = f["contact"]
-		pad.a = 0.55
-		ci.draw_rect(Rect2(r.position.x + r.size.x * 0.06,
-			r.position.y + r.size.y - dy * 0.35,
-			r.size.x * 0.94, dy * 0.75), pad, true)
-	# Side: the whole footprint, darkest, showing beneath the front face.
-	ci.draw_rect(r, f["side"], true)
-	# Front: inset from the right and bottom so the side face shows there.
-	ci.draw_rect(Rect2(r.position.x, r.position.y,
-		r.size.x - maxf(dy * 0.55, 0.0), r.size.y - maxf(dy * 0.5, 0.0)),
-		f["front"], true)
-	# Top: lifted and inset, the face the light lands on.
-	if dy > 0.5:
-		ci.draw_rect(Rect2(r.position.x + dy * 0.22, r.position.y,
-			r.size.x - dy * 1.0, dy), f["top"], true)
-	if rim:
-		var w: float = maxf(r.size.y * 0.035, 1.0)
-		ci.draw_rect(Rect2(r.position.x, r.position.y, r.size.x - dy * 0.55, w),
-			f["rim"], true)
-		ci.draw_rect(Rect2(r.position.x, r.position.y, w, r.size.y - dy * 0.5),
-			f["rim"], true)
-
-
-## A glowing element: a bright core with a soft halo around it, drawn as three
-## nested rectangles of falling alpha. Cheaper than a shader and it reads at
-## any size, which a blur texture does not.
-static func emissive(ci: CanvasItem, r: Rect2, col: Color,
-		strength: float = 1.0) -> void:
-	if strength <= 0.01:
-		return
-	var k: float = clampf(strength, 0.0, 2.0)
-	# Four steps rather than two, sized off the SHORT edge so a wide element
-	# does not throw a halo twice its own height. The first version grew the
-	# halo by the element's height and produced a hard orange rectangle round
-	# every Smelter instead of a glow.
-	var unit: float = minf(r.size.x, r.size.y)
-	var halo: Color = col
-	const STEPS := [0.85, 0.52, 0.28, 0.12]
-	const ALPHA := [0.05, 0.09, 0.15, 0.26]
-	for i in range(STEPS.size()):
-		halo.a = ALPHA[i] * k
-		ci.draw_rect(r.grow(unit * STEPS[i] * minf(k, 1.25)), halo, true)
-	# The core itself: white-hot in the middle, its own colour at the edge.
-	var core: Color = col.lerp(Color.WHITE, clampf(0.22 * k, 0.0, 0.6))
-	ci.draw_rect(r, core, true)
-	var hot: Color = Color.WHITE
-	hot.a = clampf(0.30 * k, 0.0, 0.7)
-	ci.draw_rect(r.grow(-unit * 0.22), hot, true)
 
 
 ## --- the shaft, by depth -----------------------------------------------------
@@ -392,35 +233,11 @@ static func machine_color(id: String) -> Color:
 	return MACHINE_COLOR.get(id, Color("8fa5bd"))
 
 
-static func machine_glyph(id: String) -> String:
-	return String(MACHINE_GLYPH.get(id, "?"))
-
-
-static func family_of(id: String) -> int:
-	return int(MACHINE_FAMILY.get(id, Family.MILL))
-
-
 static func res_color(res: int) -> Color:
 	var arr: Array = Themes.resource_colors(_theme)
 	if res >= 0 and res < arr.size():
 		return arr[res]
 	return RES_COLOR.get(res, Color("8fa5bd"))
-
-
-static func res_mark(res: int) -> String:
-	return String(RES_MARK.get(res, "·"))
-
-
-## The resource a machine hands to its neighbours, or -1 for the ones that
-## hand over nothing (a Vault consumes, a Boiler only radiates).
-static func output_res(id: String) -> int:
-	var m: Dictionary = MachineDB.get_machine(id)
-	if m.is_empty():
-		return -1
-	var outs: Dictionary = m.get("outputs", {})
-	for k: int in outs.keys():
-		return k
-	return -1
 
 
 ## Heat to colour, absolute. The knee at 3.0 is where most machines start to
@@ -452,15 +269,6 @@ static func divergent_color(delta: float, tolerance: float) -> Color:
 	if delta < 0.0:
 		return DIV_OK.lerp(DIV_COLD, t)
 	return DIV_OK.lerp(DIV_HOT, t)
-
-
-## Efficiency to colour, used for the bar under each machine.
-static func efficiency_color(eff: float) -> Color:
-	if eff >= 0.95:
-		return GOOD
-	if eff >= 0.7:
-		return WARN
-	return BAD
 
 
 ## Status to colour. `heat_delta` decides which way the thermal warning goes.
