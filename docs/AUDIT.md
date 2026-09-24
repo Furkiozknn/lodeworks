@@ -1123,6 +1123,19 @@ has more lit tiles, and from the tray's group signs. The frame is 0.2 ms
 slower, which is inside the probe's run-to-run spread on this machine. A
 phone is still UNKNOWN.
 
+At the end of the round (the Core's levels 6 to 8, the Descend halo, the
+cleanups), measured again the same way:
+
+| | 9d82995 | end of round |
+|---|---|---|
+| idle frame p50 / p95 | 11.68 / 15.19 ms | 12.03 / 15.77 ms |
+| 20 s soak p50 | 11.32 ms | 11.65 ms |
+| draw calls, idle | 148 | 165 |
+| nodes | 185 | 210 |
+
+That is about 0.35 ms, or 3%, on this desktop. The Descend halo redraws
+its key, so it updates fifteen times a second rather than every frame.
+
 ### World colour: tried and put back
 
 The world's saturation is 0.40 to 0.43, and the reference concepts sit at

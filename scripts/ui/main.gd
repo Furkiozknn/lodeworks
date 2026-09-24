@@ -80,6 +80,7 @@ var _problem_glow: TextureRect
 ## The heat key's picture and light, the state it shows (see
 ## `StatusBadges.heat_state`) and where its flicker is.
 var _descend_seen_closed: bool = false
+var _halo_beat: int = 0
 var _heat_icon: TextureRect
 var _heat_glow: TextureRect
 var _heat_state: int = 0
@@ -296,7 +297,10 @@ func _swell_alarm(delta: float) -> void:
 	_glow_heat(delta)
 	# The Descend key's halo: a warm glow round it that swells slowly while
 	# the way down is open, drawn as the key's own shadow.
-	if _btn_descend != null and not _btn_descend.disabled:
+	_halo_beat += 1
+	# Fifteen updates a second are enough for a two-second swell, and each
+	# update redraws the key.
+	if _btn_descend != null and not _btn_descend.disabled and _halo_beat % 4 == 0:
 		var k3: float = 0.5 - 0.5 * cos(TAU * fposmod(float(Time.get_ticks_msec()) / 1000.0 * 0.5, 1.0))
 		if bool(Sim.settings.get("reduce_motion", false)):
 			k3 = 0.5
