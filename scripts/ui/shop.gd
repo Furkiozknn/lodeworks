@@ -182,14 +182,21 @@ func _build() -> void:
 	margin.add_child(col)
 
 	var head := HBoxContainer.new()
-	var title := _label("Supply Office", 27, Palette.TEXT)
+	var title := _label("Supply Office", 30, Palette.TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(title)
+	# The same close key as every other panel: a thumb's size, in the corner.
 	var close := Button.new()
 	close.text = "✕"
-	close.flat = true
-	close.custom_minimum_size = Vector2(52, 52)
-	close.add_theme_font_size_override("font_size", 22)
+	close.custom_minimum_size = Vector2(96, 96)
+	close.add_theme_font_size_override("font_size", 30)
+	close.add_theme_color_override("font_color", Palette.TEXT)
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = Palette.PANEL_HI
+	cs.set_corner_radius_all(int(Palette.RADIUS) + 2)
+	for st: String in ["normal", "hover", "pressed"]:
+		close.add_theme_stylebox_override(st, cs)
 	close.pressed.connect(func():
 		if _on_close.is_valid():
 			_on_close.call()
@@ -219,15 +226,21 @@ func _build() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_list)
 
+	# Side by side on a landscape screen, one above the other on a narrow one.
+	var cards: BoxContainer = HBoxContainer.new() if size.x >= 1100.0 else VBoxContainer.new()
+	cards.add_theme_constant_override("separation", 14)
 	for key: String in MonetizationDB.products_at("shop"):
-		_list.add_child(_card(key))
+		var c: Control = _card(key)
+		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cards.add_child(c)
+	_list.add_child(cards)
 
 	if Store.has_themes():
 		_list.add_child(_theme_picker())
 
 	var restore := Button.new()
 	restore.text = "Restore purchases"
-	restore.custom_minimum_size = Vector2(0, 46)
+	restore.custom_minimum_size = Vector2(0, 80)
 	restore.add_theme_font_size_override("font_size", 17)
 	restore.add_theme_color_override("font_color", Palette.TEXT_DIM)
 	restore.flat = true
@@ -330,8 +343,8 @@ func _state_row(key: String) -> Control:
 	var price: String = Store.price_text(key)
 	var buy := Button.new()
 	buy.text = "Buy" if price == "" else price
-	buy.custom_minimum_size = Vector2(0, 52)
-	buy.add_theme_font_size_override("font_size", 20)
+	buy.custom_minimum_size = Vector2(0, 96)
+	buy.add_theme_font_size_override("font_size", 26)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Palette.CORE
 	style.set_corner_radius_all(int(Palette.RADIUS))

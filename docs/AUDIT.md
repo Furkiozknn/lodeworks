@@ -122,7 +122,7 @@ gestures it always had (place, move, sell).
 | N4 | Pipes readable at the default zoom on a dense board | in a 45-degree view the seam between two machines is behind the nearer one; beads and the selected-machine links carry connections instead (see item 7 below) |
 | N5 | Per-part machine animation (the drill bit turning, the ram falling) | sprites are single frames; the machines breathe and glow on their real cycle instead. Frames would be 12 x N more generations |
 | N6 | Store screenshots, feature graphic, preview video in landscape | the directive puts store work after the main screen; the capture tool already renders at 1920x1080 |
-| N7 | Codex and shop redesigned for landscape | they work (scroll, full width) and draw the new sprites; their layout is still the portrait one widened |
+| N7 | Codex and shop redesigned for landscape | done 25 September 2026: the Codex is filed by machine group with big pictures, and the shop puts its two products side by side with 96-unit keys |
 | N8 | `visual/perspective-main-view` (06e5b3b) and 9a524fe | not in any place this machine can reach; content UNKNOWN |
 | N9 | Removing `MachineArt` | done 25 September 2026: the store icon and feature graphic draw the game's own sprites |
 
@@ -947,6 +947,12 @@ changes what it names, and that flipping it back restores it. Things the
 brief listed but the game does not have got no row: music, notifications,
 language, an account or cloud save, and camera sensitivity. The version
 number sits under the groups.
+
+**The shop** (`smoke/05_shop.png`) keeps every word it had, because a
+shop is where copy has to be exact. It is laid out for landscape now: the
+two products sit side by side on a screen 1,100 units wide or more, and one
+above the other on a narrower one. Its close key and its Buy key are 96
+units, where they were 52. Restore purchases is 80 units, where it was 46.
 
 ### The store icon
 
