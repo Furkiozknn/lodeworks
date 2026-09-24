@@ -974,6 +974,28 @@ KB, and the feature graphic is 1024 x 500 with no alpha. With the icon
 redrawn, nothing used `MachineArt` any more. It was removed, and its test
 now checks that every machine has a picture in the machine sheet.
 
+### World colour: tried and put back
+
+The world's saturation is 0.40 to 0.43, and the reference concepts sit at
+0.57 to 0.68. The grade shader was tried with more saturation and some
+contrast (`tools/visual_compare.py`, back to back):
+
+| | saturation | contrast | warm-cool |
+|---|---|---|---|
+| now, hero board | 0.429 | 0.164 | 0.212 |
+| saturation 1.46, contrast 1.14, same warm tint | 0.468 | 0.168 | 0.251 |
+| saturation 1.40, contrast 1.14, neutral tint | 0.424 | 0.166 | 0.209 |
+| `ref2.png` | 0.571 | 0.263 | 0.021 |
+
+The first try moved saturation toward the reference, and warmth away
+from it: the ground is one warm hue, so more saturation made it more
+salmon. The second, without the warm tint, gave the saturation back. The
+reference's colour comes from many hues side by side, such as green moss,
+blue crystal and gold, not from a stronger one. The grade was put back.
+Closing the gap means ground tiles and props with more than one hue in
+them. That is art generation, and it was left for a round that can afford
+it.
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock
