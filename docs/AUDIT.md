@@ -643,6 +643,56 @@ This is how its habits map onto the factory, and where each one stands.
 | builder-style categories | machine groups in the tray and the Codex | this round |
 | alerts that grow with the trouble | the problem key | this round |
 
+### Overnight round: where it ended (25 September 2026)
+
+The same items, at the end of the round. The reasons and measurements are
+in the sections below.
+
+| brief item | state | commit |
+|---|---|---|
+| P0 first minute | DONE, plus a tutorial arrow and two tutorial lines corrected | `110c0b8`, `816cc1b` |
+| P2 the +/- key | DONE: off by default, an Accessibility switch | `fd5e69d`, `22306ae` |
+| P3 the Factory Core | DONE: 8 levels, one per yard ring, to stratum 16 | `d8fbf2f` |
+| P4 machine groups | DONE: 7 groups, read off each machine's data | `828e581` |
+| P4 the Remove key on the machine sheet | DONE (added) | `ab5dcef` |
+| P6 warning escalation | DONE | `fd5e69d` |
+| P6 the flame key | DONE: reads the board's heat badges | `fd5e69d` |
+| P6 the stratum card explains its rules | DONE (added) | `d15ae35` |
+| P6 the Descend key calls when ready | DONE (added) | `14a3799` |
+| P7 Research | DONE | `b8643f0` |
+| Collapse | DONE | `cd2944f` |
+| P8 Codex | DONE | `e2e1920` |
+| P9 Settings | DONE | `22306ae` |
+| P10 descent pace | DONE: slower middle and late game, measured | `532ce97` |
+| P10 the plunge and the band's name | DONE | `532ce97` |
+| P10 a different look per depth beyond the band tint | PLANNED: props and ground per band need art |  |
+| P12 world colour | PARTIAL: tried and put back; needs multi-hue ground art | `20ab97b` |
+| P13 store icon and feature graphic | DONE, and `MachineArt` removed | `9d0dae3` |
+| P13 shop layout | DONE | `7cac861` |
+| things the game said that were not true | FIXED: Deeper Bore, blueprint offers hidden, research after a collapse | `b8643f0`, `98b919e`, `0cca9c9` |
+| the journey lab's player | FIXED: it paid for machines it could not place | `532ce97` |
+
+**The brief's five questions.** Each feature was checked against them.
+None of this was asked of a real player, so the first three columns are a
+judgement from the screenshots. The last column is measured.
+
+| feature | easier to understand | fewer taps | livelier | more factory | frame cost |
+|---|---|---|---|---|---|
+| Research grid | yes: picture, state and price in one card | same (one tap to buy) | yes | yes (machines on the cards) | none at rest |
+| Collapse card | yes: gains and losses as pictures | same | yes | yes | none at rest |
+| Codex by group | yes | fewer to find a machine (one tab) | yes (moving machines) | yes | only while open |
+| Machine groups | yes (same sign in tray and Codex) | same | no | yes | none |
+| Alarm and flame keys | yes: state before a tap | fewer (no need to open the heat view to know) | yes | yes | 0.25 ms twice a second |
+| Settings | yes | fewer (every row is one tap) | no | no | none |
+| Tutorial arrow | yes | fewer wrong taps | yes | no | one small draw |
+| Remove key | yes: it can be found at all | same as the long press | no | no | none |
+| Descend halo | yes | no | yes | no | a stylebox change |
+| Core levels 6-8 | yes (the Core keeps changing) | no | yes | yes | a few glows |
+| Slower middle game | not about understanding | no | no | yes (more building per stratum) | no change |
+
+The whole round cost 0.2 ms of idle frame and 17 draw calls on the
+desktop probe ("What the overnight round cost the frame").
+
 **The first five minutes, re-measured** with the journey lab's first half
 hour (`LODEWORKS_JOURNEY=first`) and the `first` screenshots:
 
