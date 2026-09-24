@@ -933,6 +933,14 @@ after:
 The difference is inside the run-to-run spread. "Reduce motion" in
 Settings stills both the swell and the flicker, and keeps the light.
 
+**The Descend key calls when it is ready.** Before, it went from dim to
+bright when the quota was met, and that was all. Now it gives one punch
+at that moment, and while the way down stays open a warm halo swells
+round it once every two seconds. The halo is drawn as the key's own
+shadow, so it costs no extra node. "Reduce motion" holds the halo still.
+Building games make the one big action do this: the player sees that it
+is ready without reading anything.
+
 ### Settings
 
 Settings was one column: the shop, sound, haptics, statistics, ad privacy,

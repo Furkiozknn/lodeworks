@@ -79,6 +79,7 @@ var _lbl_problem_count: Label
 var _problem_glow: TextureRect
 ## The heat key's picture and light, the state it shows (see
 ## `StatusBadges.heat_state`) and where its flicker is.
+var _descend_seen_closed: bool = false
 var _heat_icon: TextureRect
 var _heat_glow: TextureRect
 var _heat_state: int = 0
@@ -293,6 +294,18 @@ func _swell_alarm(delta: float) -> void:
 	glow.a = still + (0.3 if level >= 2 else 0.0) * k
 	_problem_glow.modulate = glow
 	_glow_heat(delta)
+	# The Descend key's halo: a warm glow round it that swells slowly while
+	# the way down is open, drawn as the key's own shadow.
+	if _btn_descend != null and not _btn_descend.disabled:
+		var k3: float = 0.5 - 0.5 * cos(TAU * fposmod(float(Time.get_ticks_msec()) / 1000.0 * 0.5, 1.0))
+		if bool(Sim.settings.get("reduce_motion", false)):
+			k3 = 0.5
+		for st: String in ["normal", "hover"]:
+			var sb := _btn_descend.get_theme_stylebox(st) as StyleBoxFlat
+			if sb != null:
+				sb.shadow_color = Color(1.0, 0.78, 0.3, 0.35 + 0.4 * k3)
+				sb.shadow_size = int(10.0 + 12.0 * k3)
+				sb.shadow_offset = Vector2.ZERO
 
 
 ## The heat key: grey when every machine is at its temperature, lit when
@@ -1319,6 +1332,11 @@ func _refresh() -> void:
 
 	_refresh_problems()
 
+	# The moment the quota is met, the key says so: a punch once, and a
+	# slow warm swell for as long as it stays open.
+	if Sim.can_descend() and _btn_descend.disabled and _descend_seen_closed:
+		Juice.punch(_btn_descend, 0.08, 0.35)
+	_descend_seen_closed = not Sim.can_descend()
 	_btn_descend.disabled = not Sim.can_descend()
 	_lbl_descend_sub.text = "to stratum %d" % (Sim.depth + 1) if Sim.can_descend() \
 		else "%d%% of quota" % int(round(_quota_bar.value * 100.0))
