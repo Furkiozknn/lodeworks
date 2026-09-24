@@ -129,3 +129,37 @@ static func _icon(name: String, px: float) -> TextureRect:
 	ic.custom_minimum_size = Vector2(px, px)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return ic
+
+
+## A Control that draws one machine exactly as the board draws it: the same
+## sprite from the same sheet, so what you pick is what you get.
+class MachineSprite extends Control:
+	var id: String = ""
+	var bob: bool = false
+	var _t: float = 0.0
+
+	func _init(machine_id: String = "", px: float = 64.0, animate: bool = false) -> void:
+		id = machine_id
+		bob = animate
+		custom_minimum_size = Vector2(px, px)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+
+	func _process(delta: float) -> void:
+		if bob:
+			_t += delta
+			queue_redraw()
+
+	func _draw() -> void:
+		if id == "" or size.x < 4.0:
+			return
+		var sheet: Dictionary = IsoArt.sheet(IsoArt.sheet_name(Store.active_theme(),
+			Sim.upgrade_marks()))
+		var r := Rect2(Vector2.ZERO, size)
+		if bob:
+			# A pool of its own light behind it, so it arrives lit.
+			var g: Color = Palette.machine_light(id)
+			g.a = 0.35 + 0.1 * sin(_t * 3.0)
+			draw_texture_rect(IsoArt.glow(), r.grow(-size.x * 0.05), false, g)
+			r.position.y += sin(_t * 2.0) * size.y * 0.015
+		IsoArt.draw_machine_fit(self, r, id, sheet)

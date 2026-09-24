@@ -701,6 +701,35 @@ economy decision. It is listed as open under "What is still UNKNOWN".
 The smoke test checks the card's state against the Sim. The mechanics did
 not change.
 
+**Machine groups.** Every machine is in one of seven groups, shown with
+the same picture in the tray and the Codex. The groups come before the
+Codex here because the Codex is filed by them.
+
+| group | picture | machines |
+|---|---|---|
+| Diggers | pickaxe | Drill |
+| Makers | gear | Crusher, Smelter, Press, Assembler |
+| Sellers | coin | Vault |
+| Heaters | flame | Boiler |
+| Coolers | snowflake | Coolant Cell, Condenser |
+| Boosters | lightning gear | Amplifier, Duplicator |
+| Research | flask | Lab |
+
+A machine's group is read off what it does, not from a list. `source`
+makes a Digger, `sink` a Seller, and a recipe with an input and an output
+a Maker. The test `test_every_machine_is_in_the_group_that_says_what_it_does`
+checks each group against the machine's own data. For example, a Heater
+has to emit heat and a Cooler has to remove it.
+
+The brief suggested groups for collecting and for storage. No machine
+collects, and the Vault sells rather than stores, so those groups were not
+made. No machine was renamed.
+
+The tray is in group order, with a thin seam between groups and the
+group's picture in each key's corner. Each group is in unlock order, so a
+new game's tray is still Drill, Crusher, Vault. Every machine also has a
+short line now, such as "Crushes ore into gravel", which the Codex shows.
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock

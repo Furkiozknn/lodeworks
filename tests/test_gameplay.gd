@@ -275,6 +275,47 @@ func test_the_tutorial_ends_and_stays_ended() -> void:
 		"and there is nothing further to say")
 
 
+## --- machine groups --------------------------------------------------------
+
+func test_every_machine_is_in_the_group_that_says_what_it_does() -> void:
+	# The tray, the Codex and the unlock card sort machines into groups. A
+	# group is a promise about what the machine does, so it is checked
+	# against the machine's own data rather than against a list.
+	var seen: Dictionary = {}
+	for id: String in MachineDB.ORDER:
+		var g: int = MachineDB.group_of(id)
+		runner.check(g >= 0 and g < MachineDB.GROUPS.size(), "%s has a group" % id)
+		seen[g] = true
+		var m: Dictionary = MachineDB.get_machine(id)
+		var tags: Array = m.get("tags", [])
+		var ins: Dictionary = m.get("inputs", {})
+		var outs: Dictionary = m.get("outputs", {})
+		match g:
+			MachineDB.Group.DIG:
+				runner.check(ins.is_empty() and not outs.is_empty(),
+					"a Digger makes something from nothing: " + id)
+			MachineDB.Group.MAKE:
+				runner.check(not ins.is_empty() and not outs.is_empty(),
+					"a Maker turns one thing into another: " + id)
+			MachineDB.Group.SELL:
+				runner.check(tags.has("sink"), "a Seller sells: " + id)
+			MachineDB.Group.HEAT:
+				runner.gt(float(m["heat_out"]), 0.0, "a Heater heats: " + id)
+			MachineDB.Group.COOL:
+				runner.lt(float(m["heat_out"]), 0.0, "a Cooler cools: " + id)
+			MachineDB.Group.BOOST:
+				runner.check(tags.has("amplify") or tags.has("duplicate"),
+					"a Booster boosts: " + id)
+			MachineDB.Group.RESEARCH:
+				runner.check(tags.has("research"), "Research makes research: " + id)
+		var short: String = String(m.get("short", ""))
+		runner.check(short != "" and short.length() <= 60,
+			"%s has a line short enough to read at a glance" % id)
+	runner.eq(seen.size(), MachineDB.GROUPS.size(), "every group has a machine in it")
+	runner.eq(MachineDB.by_group(MachineDB.ORDER).size(), MachineDB.ORDER.size(),
+		"grouping the tray loses no machine")
+
+
 ## --- the codex -------------------------------------------------------------
 
 func test_every_codex_board_is_a_board_that_runs() -> void:

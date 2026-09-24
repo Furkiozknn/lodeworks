@@ -49,6 +49,7 @@ const HEAT_SPREAD := 0.5
 const MACHINES := {
 	"drill": {
 		"name": "Drill",
+		"short": "Digs ore out of the rock.",
 		"desc": "Pulls raw ore out of the stratum. Needs no input, so it is the only thing that works alone -- and the only thing that is boring alone.",
 		"cost": 15.0,
 		"cost_growth": 1.16,
@@ -63,6 +64,7 @@ const MACHINES := {
 	},
 	"crusher": {
 		"name": "Crusher",
+		"short": "Crushes ore into gravel.",
 		"desc": "Two ore into one gravel. Runs a little better warm, which is the first hint that heat is a tool and not only a tax.",
 		"cost": 40.0,
 		"cost_growth": 1.17,
@@ -77,6 +79,7 @@ const MACHINES := {
 	},
 	"vault": {
 		"name": "Vault",
+		"short": "Sells anything it is given.",
 		"desc": "Sells whatever its neighbours hand it. Deeper resources are worth disproportionately more, so a Vault fed raw ore is a Vault wasted.",
 		"cost": 25.0,
 		"cost_growth": 1.14,
@@ -91,6 +94,7 @@ const MACHINES := {
 	},
 	"smelter": {
 		"name": "Smelter",
+		"short": "Melts gravel into ingots.",
 		"desc": "Wants to be hot, and says so. Build it a furnace. Then build the furnace a coolant loop.",
 		"cost": 120.0,
 		"cost_growth": 1.18,
@@ -105,6 +109,7 @@ const MACHINES := {
 	},
 	"boiler": {
 		"name": "Boiler",
+		"short": "Warms the machines around it.",
 		"desc": "Produces nothing. Heats everything around it, and lets material pass through. The first machine that is only worth placing because of what it is next to.",
 		"cost": 90.0,
 		"cost_growth": 1.20,
@@ -119,6 +124,7 @@ const MACHINES := {
 	},
 	"coolant": {
 		"name": "Coolant Cell",
+		"short": "Cools the machines around it.",
 		"desc": "Negative heat, and material still passes through it. Costs you a tile of production but never a connection.",
 		"cost": 110.0,
 		"cost_growth": 1.20,
@@ -133,6 +139,7 @@ const MACHINES := {
 	},
 	"press": {
 		"name": "Press",
+		"short": "Presses ingots into plates.",
 		"desc": "Squeezes ingots flat. Runs hot doing it and cannot take much in return, which is the whole problem with building deep.",
 		"cost": 420.0,
 		"cost_growth": 1.19,
@@ -147,6 +154,7 @@ const MACHINES := {
 	},
 	"assembler": {
 		"name": "Assembler",
+		"short": "Builds plates into parts.",
 		"desc": "The end of the chain, and the hottest thing on the board. A component is worth more than everything that went into it -- if you can keep this cool enough to make one.",
 		"cost": 1400.0,
 		"cost_growth": 1.20,
@@ -161,6 +169,7 @@ const MACHINES := {
 	},
 	"amplifier": {
 		"name": "Amplifier",
+		"short": "Speeds up the machines around it.",
 		"desc": "Every working neighbour runs 35% faster, and the more of them it touches the harder it pushes. Ore passes straight through it.",
 		"cost": 900.0,
 		"cost_growth": 1.24,
@@ -176,6 +185,7 @@ const MACHINES := {
 	},
 	"lab": {
 		"name": "Lab",
+		"short": "Turns parts into research.",
 		"desc": "Turns components into Research instead of credits. Research is the only thing that survives a collapse, so a board with no Lab is a board with no future.",
 		"cost": 2600.0,
 		"cost_growth": 1.22,
@@ -191,6 +201,7 @@ const MACHINES := {
 	},
 	"duplicator": {
 		"name": "Duplicator",
+		"short": "Sometimes doubles what its neighbours make.",
 		"desc": "A chance that a neighbour's output comes out twice, larger the more neighbours it serves. Material passes straight through it.",
 		"cost": 5200.0,
 		"cost_growth": 1.26,
@@ -206,6 +217,7 @@ const MACHINES := {
 	},
 	"condenser": {
 		"name": "Condenser",
+		"short": "Cools the machines around it and speeds them up a little.",
 		"desc": "Cools hard and amplifies weakly, and passes material through. The tile you place when you have run out of room to do both separately.",
 		"cost": 9000.0,
 		"cost_growth": 1.25,
@@ -223,6 +235,72 @@ const MACHINES := {
 
 const ORDER := ["drill", "crusher", "vault", "smelter", "boiler", "coolant",
 	"press", "assembler", "amplifier", "lab", "duplicator", "condenser"]
+
+
+## --- groups ------------------------------------------------------------------
+##
+## What a machine is for, as the player sorts the board in their head. The
+## tray, the Codex and the unlock card all show these, with the same picture.
+## A machine's group is read off what it does -- its tags and its recipe --
+## so a new machine lands in the right one without anyone filing it.
+enum Group { DIG, MAKE, SELL, HEAT, COOL, BOOST, RESEARCH }
+
+const GROUPS := [
+	{"id": "dig", "name": "Diggers", "icon": "descend",
+		"short": "They dig ore out of the rock."},
+	{"id": "make", "name": "Makers", "icon": "settings",
+		"short": "They turn one thing into a better thing."},
+	{"id": "sell", "name": "Sellers", "icon": "credits",
+		"short": "They sell what they are given."},
+	{"id": "heat", "name": "Heaters", "icon": "heat",
+		"short": "They warm the machines around them."},
+	{"id": "cool", "name": "Coolers", "icon": "cold",
+		"short": "They cool the machines around them."},
+	{"id": "boost", "name": "Boosters", "icon": "energy",
+		"short": "They help the machines around them."},
+	{"id": "research", "name": "Research", "icon": "research",
+		"short": "It turns parts into research."},
+]
+
+
+static func group_of(id: String) -> int:
+	var m: Dictionary = get_machine(id)
+	var tags: Array = m.get("tags", [])
+	if tags.has("source"):
+		return Group.DIG
+	if tags.has("sink"):
+		return Group.SELL
+	if tags.has("research"):
+		return Group.RESEARCH
+	if tags.has("cool"):
+		return Group.COOL
+	if tags.has("heat"):
+		return Group.HEAT
+	if tags.has("amplify") or tags.has("duplicate"):
+		return Group.BOOST
+	return Group.MAKE
+
+
+## `ids`, grouped: every Digger, then every Maker, and so on, each group in
+## the order its machines unlock.
+static func by_group(ids: Array) -> Array[String]:
+	var out: Array[String] = []
+	for g in range(GROUPS.size()):
+		for id in ORDER:
+			if ids.has(id) and group_of(id) == g:
+				out.append(id)
+	return out
+
+
+## Whether a machine wants warmth (1), wants to stay cool (-1), or does not
+## much mind (0) -- read off its own heat curve.
+static func heat_liking(id: String) -> int:
+	var m: Dictionary = get_machine(id)
+	if float(m.get("heat_optimum", 0.0)) >= 1.0:
+		return 1
+	if float(m.get("heat_tolerance", 99.0)) <= 3.0:
+		return -1
+	return 0
 
 
 ## --- economic models -------------------------------------------------------

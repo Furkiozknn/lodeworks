@@ -744,7 +744,7 @@ func _build_sheet() -> void:
 	_sheet.add_child(row)
 
 	# The machine itself, big: the picture is what the player recognises.
-	_sheet_art = MachineSprite.new("", 150.0)
+	_sheet_art = Chips.MachineSprite.new("", 150.0)
 	row.add_child(_sheet_art)
 
 	var left := VBoxContainer.new()
@@ -829,44 +829,20 @@ func _rebuild_palette() -> void:
 		c.queue_free()
 	_palette_buttons.clear()
 	_palette_costs.clear()
-	for id in MachineDB.ORDER:
-		if not Sim.is_unlocked(id):
-			continue
+	var last: int = -1
+	for id in MachineDB.by_group(MachineDB.ORDER.filter(func(k): return Sim.is_unlocked(k))):
+		var g: int = MachineDB.group_of(id)
+		if last >= 0 and g != last:
+			# A seam between groups: the tray reads as Diggers, Makers,
+			# Sellers... without a word on it.
+			var seam := ColorRect.new()
+			seam.custom_minimum_size = Vector2(3, 0)
+			seam.size_flags_vertical = Control.SIZE_FILL
+			seam.color = Color(Palette.KEY_TINT, 0.22)
+			seam.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_palette_row.add_child(seam)
+		last = g
 		_palette_row.add_child(_make_palette_button(id))
-
-
-## A Control that draws one machine exactly as the board draws it: the same
-## sprite from the same sheet, so what you pick is what you get.
-class MachineSprite extends Control:
-	var id: String = ""
-	var bob: bool = false
-	var _t: float = 0.0
-
-	func _init(machine_id: String = "", px: float = 64.0, animate: bool = false) -> void:
-		id = machine_id
-		bob = animate
-		custom_minimum_size = Vector2(px, px)
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-
-	func _process(delta: float) -> void:
-		if bob:
-			_t += delta
-			queue_redraw()
-
-	func _draw() -> void:
-		if id == "" or size.x < 4.0:
-			return
-		var sheet: Dictionary = IsoArt.sheet(IsoArt.sheet_name(Store.active_theme(),
-			Sim.upgrade_marks()))
-		var r := Rect2(Vector2.ZERO, size)
-		if bob:
-			# A pool of its own light behind it, so it arrives lit.
-			var g: Color = Palette.machine_light(id)
-			g.a = 0.35 + 0.1 * sin(_t * 3.0)
-			draw_texture_rect(IsoArt.glow(), r.grow(-size.x * 0.05), false, g)
-			r.position.y += sin(_t * 2.0) * size.y * 0.015
-		IsoArt.draw_machine_fit(self, r, id, sheet)
 
 
 func _make_palette_button(id: String) -> Control:
@@ -897,7 +873,7 @@ func _make_palette_button(id: String) -> Control:
 	col.add_theme_constant_override("separation", -2)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var chip := MachineSprite.new(id, 66.0)
+	var chip := Chips.MachineSprite.new(id, 66.0)
 	chip.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(chip)
 	var cost_row := HBoxContainer.new()
@@ -909,6 +885,12 @@ func _make_palette_button(id: String) -> Control:
 	cost_row.add_child(cost_lbl)
 	col.add_child(cost_row)
 	b.add_child(col)
+	# Its group's sign in the corner: the same picture the Codex files it
+	# under.
+	var grp := _icon_rect(String(MachineDB.GROUPS[MachineDB.group_of(id)]["icon"]), 26)
+	grp.position = Vector2(4, 4)
+	grp.size = Vector2(26, 26)
+	b.add_child(grp)
 	# The name and what it does, behind a "?" in the corner.
 	var help: Button = _machine_help(id)
 	help.custom_minimum_size = Vector2(40, 40)
@@ -987,7 +969,7 @@ func _on_cell_long_pressed(cell: int) -> void:
 	var what := HBoxContainer.new()
 	what.alignment = BoxContainer.ALIGNMENT_CENTER
 	what.add_theme_constant_override("separation", 16)
-	what.add_child(MachineSprite.new(id, 150.0))
+	what.add_child(Chips.MachineSprite.new(id, 150.0))
 	what.add_child(Chips.Arrow.new(56.0))
 	what.add_child(_icon_rect("credits", 64))
 	what.add_child(_label("+%s" % Economy.fmt(refund), 40, Palette.CORE))
@@ -1024,7 +1006,7 @@ func _on_unlocked(ids: Array) -> void:
 		var col := VBoxContainer.new()
 		col.alignment = BoxContainer.ALIGNMENT_CENTER
 		col.add_theme_constant_override("separation", 6)
-		col.add_child(MachineSprite.new(String(id), 190.0, true))
+		col.add_child(Chips.MachineSprite.new(String(id), 190.0, true))
 		var line := HBoxContainer.new()
 		line.alignment = BoxContainer.ALIGNMENT_CENTER
 		line.add_theme_constant_override("separation", 8)
@@ -1170,7 +1152,7 @@ func _show_next_unlock() -> void:
 	_next_row.visible = true
 	_next_row.add_child(_label("next:", 12, Color(Palette.BG, 0.75)))
 	for id: String in ids.slice(0, 3):
-		var chip := MachineSprite.new(id, 28.0)
+		var chip := Chips.MachineSprite.new(id, 28.0)
 		chip.tooltip_text = String(MachineDB.get_machine(id)["name"])
 		_next_row.add_child(chip)
 
@@ -1513,7 +1495,7 @@ func _show_cell_info(cell: int) -> void:
 	for c in _sheet_stats.get_children():
 		c.queue_free()
 	_sheet_title.text = String(m["name"])
-	(_sheet_art as MachineSprite).id = id
+	(_sheet_art as Chips.MachineSprite).id = id
 	_sheet_art.queue_redraw()
 
 	# The verdict as a picture: all is well, it is too hot or too cold, or
@@ -1768,7 +1750,7 @@ func _research_art(id: String, px: float, locked: bool) -> Control:
 	elif subject.begins_with("@icon:"):
 		pic = _icon_rect(subject.substr(6), px * 0.86)
 	else:
-		pic = MachineSprite.new(subject, px)
+		pic = Chips.MachineSprite.new(subject, px)
 	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.add_child(pic)
 	var sign_name: String = "lock" if locked else String(art[1])
@@ -1871,7 +1853,7 @@ func _show_collapse() -> void:
 	fate.add_theme_constant_override("separation", 56)
 	var gone := HBoxContainer.new()
 	gone.add_theme_constant_override("separation", 12)
-	for pic: Control in [MachineSprite.new("drill", 76.0), _icon_rect("credits", 76),
+	for pic: Control in [Chips.MachineSprite.new("drill", 76.0), _icon_rect("credits", 76),
 			_icon_rect("research", 76), _icon_rect("descend", 76)]:
 		gone.add_child(_fated(pic, 76.0, false))
 	fate.add_child(gone)
