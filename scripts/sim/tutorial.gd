@@ -90,6 +90,12 @@ const STEPS := [
 	},
 ]
 
+## Before any step, and at the start of every shaft after a collapse: the
+## Core is dark until the player brings it online. Not a step of the chapter,
+## because a shaft after a collapse needs it too and the chapter is long over
+## by then.
+const CORE_LINE := "Tap the FACTORY CORE to bring it online."
+
 ## Fires once, the first time the player has Research to spend. Not part of
 ## the chapter, and not repeated.
 const RESEARCH_NUDGE := "You have Research. Spend it — it is the only thing a collapse does not take."

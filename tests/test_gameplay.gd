@@ -599,3 +599,82 @@ func test_the_foreman_has_every_pose_and_draws_at_any_size() -> void:
 			Foreman.draw_at(probe, Rect2(0, 0, px, px), pose, 0.3)
 	runner.check(true, "every pose draws at every size without throwing")
 	probe.free()
+
+
+## --- the Factory Core starts every shaft -----------------------------------------
+
+func _new_game() -> void:
+	Save.wipe()
+	Sim._ensure()
+	Sim.grid.clear()
+	Sim.credits = 0.0
+	Sim.research = 0.0
+	Sim.cores = 0
+	Sim.depth = 0
+	Sim.max_depth = 0
+	Sim.lifetime_credits = 0.0
+	Sim.collapses = 0
+	Sim.upgrade_levels = {}
+	Sim.core_online = false
+	Sim.unlocked.clear()
+	Sim._recompute()
+
+
+func test_a_new_game_can_start_the_core_pays_for_the_first_two_machines() -> void:
+	_new_game()
+	# The dead end this replaced: nothing in the purse, a Drill at 15.
+	runner.eq(Sim.credits, 0.0, "a new game opens with an empty purse")
+	runner.check(not Sim.can_afford("drill"), "so the first Drill is out of reach")
+	runner.check(Sim.power_core(), "bringing the Core online")
+	runner.check(Sim.core_online, "leaves it online")
+	runner.near(Sim.credits, Sim.core_reserve(), 0.001, "and pays out its reserve")
+	runner.near(Sim.core_reserve(),
+		MachineDB.cost_for("drill", 0) + MachineDB.cost_for("vault", 0), 0.001,
+		"which is exactly a first Drill and a first Vault")
+	runner.eq(Sim.lifetime_credits, 0.0, "a reserve is not earnings")
+	runner.check(Sim.try_place(Grid.idx(3, 4), "drill"), "the Drill")
+	runner.check(Sim.try_place(Grid.idx(4, 4), "vault"), "and the Vault it sells through")
+	runner.check(not Sim.power_core(), "the reserve is paid once a shaft")
+	Save.wipe()
+
+
+func test_a_collapse_darkens_the_core_and_the_next_shaft_starts_the_same_way() -> void:
+	_new_game()
+	Sim.power_core()
+	Sim.max_depth = 12
+	Sim.lifetime_credits = 1.0e9
+	Sim._recompute()
+	runner.check(Sim.can_collapse(), "a deep enough shaft can collapse")
+	Sim.collapse()
+	runner.check(not Sim.core_online, "the next shaft's Core is dark")
+	runner.eq(Sim.credits, 0.0, "and its purse empty")
+	runner.check(Sim.power_core(), "bringing it online")
+	runner.check(Sim.can_afford("drill") and Sim.can_afford("vault"),
+		"pays for the first two machines of the new shaft")
+	Save.wipe()
+
+
+func test_the_core_survives_a_save_and_older_saves_load_sensibly() -> void:
+	_new_game()
+	var d: Dictionary = Sim.to_dict()
+	runner.eq(bool(d.get("core_online", true)), false, "a dark Core is saved dark")
+	Sim.from_dict(d)
+	runner.check(not Sim.core_online, "and loads dark")
+	Sim.power_core()
+	Sim.from_dict(Sim.to_dict())
+	runner.check(Sim.core_online, "an online Core loads online")
+	# A save written before the Core existed has no key at all.
+	var old: Dictionary = Sim.to_dict()
+	old.erase("core_online")
+	old["grid"] = {"w": Grid.W, "h": Grid.H, "cells": {str(Grid.idx(2, 2)): "drill"}}
+	Sim.from_dict(old)
+	runner.check(Sim.core_online, "an older shaft with machines on it is running")
+	old["grid"] = {"w": Grid.W, "h": Grid.H, "cells": {}}
+	old["credits"] = 500.0
+	Sim.from_dict(old)
+	runner.check(Sim.core_online, "so is one with money to build with")
+	old["credits"] = 0.0
+	Sim.from_dict(old)
+	runner.check(not Sim.core_online,
+		"one with neither was the dead end: its Core starts dark and pays its reserve")
+	Save.wipe()

@@ -232,6 +232,53 @@ Cost: none measured. Idle p50 / p95 / p99 10.8 / 14.9 / 16.9 ms, panning
 a 60 s soak 12.7 / 18.4 / 22.4 ms with memory flat (45.1 -> 45.1 MB) --
 same machine and GPU as the table above; a phone: **UNKNOWN**.
 
+### The first minute
+
+`LODEWORKS_CAPTURE=first` makes `tools/shots.tscn` play the first minute of a
+fresh install, the way the tutorial asks for it:
+1. It opens a new game.
+2. It does the first thing the game asks for.
+3. It buys a Drill and a Vault where the tutorial points.
+4. It waits ten seconds.
+
+Before this round it ended with **0 credits and 0 machines**. A new game
+opened with an empty purse, and the first Drill cost 15. Nothing gave the
+player credits, so the Drill the tutorial pointed at could not be bought.
+Every shaft after a collapse opened the same way. The tests never saw it
+because the playthrough set its credits by hand.
+
+The Factory Core now starts every shaft:
+- **The Core starts dark.** A new game, and every shaft after a collapse,
+  opens with the Core dark, a target pulsing on its body, and the Foreman
+  saying "Tap the FACTORY CORE to bring it online."
+- **The first tap pays its reserve.** `Sim.power_core` pays out exactly the
+  price of a first Drill and a first Vault: 40 credits. That is the fewest
+  credits a shaft can start earning with. The reserve is not counted as
+  earnings, so a collapse's Cores do not change. It pays once per shaft.
+- **Online, a tap explains the Core.** A card says what the Core is and
+  where descending leads.
+- **Older saves stay sane.** A save written before this has no
+  `core_online`. A shaft with machines, or with the price of a Drill in its
+  purse, loads running. One with neither was the dead end, so its Core
+  starts dark and pays its reserve.
+
+After: the same run ends with 8 credits, a Drill and a Vault earning 1 per
+second, and the tutorial on its next step.
+
+The tests now cover:
+- a new game (`test_a_new_game_can_start_the_core_pays_for_the_first_two_machines`)
+- a collapse
+- the save round trip, including older saves
+- the Core's hit test
+
+The playthrough now starts the game the way a player does.
+
+Tried and taken back: keeping the Core clear of the stratum card when
+framing. The default view stepped back until the board was 14.1% of a 2:1
+screen instead of 21.5%, and the layout check's 18% floor failed. The
+Core's top still touches the stratum card. The card has to shrink, not the
+board.
+
 ### Touch: a tap takes the machine it is on
 
 A machine's picture stands well above its own tile: the upper half covers

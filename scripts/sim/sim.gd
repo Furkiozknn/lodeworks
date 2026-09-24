@@ -63,6 +63,14 @@ var _tutorial_step: int = 0
 ## the factory, so both are counted here rather than inferred.
 var tutorial_moves: int = 0
 var tutorial_saw_heat: bool = false
+## Whether this shaft's Factory Core has been brought online. A new game, and
+## every shaft after a collapse, opens with it dark: bringing it online is the
+## player's first act, and its reserve buys the first Drill and Vault.
+##
+## Before this, a new game opened with nothing in the purse and a Drill that
+## cost 15 -- no way to place anything, so no way to start -- and every shaft
+## after a collapse opened the same way (docs/AUDIT.md, "The first minute").
+var core_online: bool = false
 
 
 func _ready() -> void:
@@ -194,6 +202,26 @@ func move_machine(from_cell: int, to_cell: int) -> bool:
 	return true
 
 
+## --- the Factory Core ------------------------------------------------------
+
+## What the Core holds for a new shaft: exactly a first Drill and a first
+## Vault, the two machines the tutorial asks for first. Not a bonus -- the
+## fewest credits a shaft can start earning with.
+func core_reserve() -> float:
+	return MachineDB.cost_for("drill", 0) + MachineDB.cost_for("vault", 0)
+
+
+## Bring the Core online and draw its reserve. Once a shaft.
+func power_core() -> bool:
+	if core_online:
+		return false
+	core_online = true
+	credits += core_reserve()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
 ## --- descent ---------------------------------------------------------------
 
 func quota() -> float:
@@ -252,6 +280,9 @@ func collapse() -> int:
 	lifetime_credits = 0.0
 	depth = 0
 	max_depth = 0
+	# The next shaft's Core starts dark again, and its reserve is what the
+	# empty board is rebuilt from.
+	core_online = false
 	_reset_rate_window(true)
 	_recompute()
 	collapsed.emit(gained)
@@ -460,6 +491,7 @@ func to_dict() -> Dictionary:
 		"tutorial": _tutorial_step,
 		"tutorial_moves": tutorial_moves,
 		"tutorial_saw_heat": tutorial_saw_heat,
+		"core_online": core_online,
 		"rate": credits_per_sec,
 		"research_rate": research_per_sec,
 		"saved_at": Time.get_unix_time_from_system(),
@@ -483,5 +515,11 @@ func from_dict(d: Dictionary) -> void:
 	credits_per_sec = float(d.get("rate", 0.0))
 	research_per_sec = float(d.get("research_rate", 0.0))
 	grid.from_dict(d.get("grid", {}))
+	# A save from before the Core had to be brought online: a shaft with
+	# anything on its board, or the price of a first Drill in the purse, is
+	# running; one with neither is the dead end this replaced, so its Core
+	# starts dark and pays out its reserve.
+	var stuck: bool = grid.cells.is_empty() and credits < MachineDB.cost_for("drill", 0)
+	core_online = bool(d.get("core_online", not stuck))
 	sim.reset_progress()
 	_recompute()

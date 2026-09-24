@@ -79,6 +79,10 @@ func _run() -> void:
 		await _run_audit()
 		get_tree().quit()
 		return
+	if OS.get_environment("LODEWORKS_CAPTURE") == "first":
+		await _run_first()
+		get_tree().quit()
+		return
 	for s: Dictionary in SHOTS:
 		_apply_build(String(s["build"]))
 		_set_overlay(bool(s.get("overlay", false)))
@@ -176,6 +180,10 @@ func _apply_build(kind: String) -> void:
 	Sim.tutorial_moves = 0
 	Sim.tutorial_saw_heat = false
 	match kind:
+		"new":
+			# A fresh install: nothing on the board and nothing in the purse.
+			Sim.depth = 0
+			Sim.max_depth = 0
 		"starter":
 			Sim.depth = 0
 			Sim.max_depth = 0
@@ -264,8 +272,10 @@ func _apply_build(kind: String) -> void:
 				[4, 8, "vault"], [5, 8, "vault"], [6, 8, "vault"],
 			])
 	Sim.unlocked.clear()
+	# A new game's Core is still dark; every other board has long been running.
+	Sim.set("core_online", kind != "new")
 	# The tutorial banner belongs on a first-run board, not on a deep one.
-	Sim._tutorial_step = 0 if kind == "starter" else 9
+	Sim._tutorial_step = 0 if kind == "starter" or kind == "new" else Tutorial.count()
 	Sim._recompute()
 	# Warm the board properly so the header shows the rate a player would see
 	# and every status pip reflects a settled board, not a cold-start artefact.
@@ -403,6 +413,40 @@ func _run_audit() -> void:
 	await _settle(1.8)
 	await _audit_shot("04_machine_closeup")
 	print("wrote the audit screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
+
+
+## The first minute of a new game, as a fresh install opens it, into the same
+## folder as the audit screens:
+##   first_01_open   the shaft as it opens
+##   first_02_core   after the first thing the game asks for
+##   first_03_income a Drill and a Vault bought where the tutorial points,
+##                   with whatever the game has given the player, ten
+##                   seconds on -- an empty board here means a new player
+##                   cannot start
+func _run_first() -> void:
+	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
+	var gv: IsoView = _main.get("iso_view")
+	_apply_build("new")
+	_main.call("_close_overlay")
+	_main.call("_refresh_hint")
+	gv.frame_board()
+	await _settle(2.5)
+	await _audit_shot("first_01_open")
+	if _main.has_method("_on_core_tapped"):
+		_main.call("_on_core_tapped")
+	await _settle(1.5)
+	await _audit_shot("first_02_core")
+	var spots: Array[int] = Tutorial.highlight(Sim.tutorial_step(), Sim)
+	if not spots.is_empty() and Sim.try_place(spots[0], "drill"):
+		for n: int in Sim.grid.neighbours(spots[0]):
+			if Sim.grid.is_empty(n) and not Sim.is_blocked(n) and Sim.try_place(n, "vault"):
+				break
+	_main.call("_refresh")
+	_main.call("_maybe_advance_tutorial")
+	_main.call("_refresh_hint")
+	await _settle(10.0)
+	await _audit_shot("first_03_income")
+	print("credits %.0f, machines %d" % [Sim.credits, Sim.grid.cells.size()])
 
 
 func _audit_shot(name: String) -> void:

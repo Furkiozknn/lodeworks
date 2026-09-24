@@ -205,6 +205,7 @@ func _build() -> void:
 	iso_view.ground_tapped.connect(func():
 		if iso_view.selected_cell >= 0:
 			_close_sheet())
+	iso_view.core_tapped.connect(_on_core_tapped)
 	iso_view.machine_moved.connect(func(from_cell: int, to_cell: int):
 		_push_undo({"kind": "move", "cell": to_cell, "from": from_cell})
 		_maybe_advance_tutorial()
@@ -976,6 +977,7 @@ func _on_collapsed(gained: int) -> void:
 	# Framed as what is kept, never as what is lost, and never as a "reset".
 	# The genre's most cited progression failure is a prestige that reads as
 	# punishment, and the wording is half of that.
+	_refresh_hint()
 	_info("The shaft collapses",
 		"You brought up %d Cores.\n\nCores are the only thing that survives a collapse — and everything you spend them on survives with them. The next shaft goes deeper and faster than this one did." % gained)
 
@@ -1158,6 +1160,14 @@ func _refresh_problems() -> void:
 ## quiet.
 
 func _refresh_hint() -> void:
+	# A dark Core comes before everything, the chapter included: nothing can
+	# be bought until it is online.
+	iso_view.highlight_core = not Sim.core_online
+	if not Sim.core_online:
+		_say(Tutorial.CORE_LINE, Foreman.Pose.POINT, 9999.0)
+		iso_view.highlight_cells = []
+		_pulse_control("")
+		return
 	var step: int = Sim.tutorial_step()
 	if Tutorial.is_done(step):
 		iso_view.highlight_cells = []
@@ -1176,6 +1186,27 @@ func _refresh_hint() -> void:
 		iso_view.arm_id = arm
 		for k: String in _palette_buttons:
 			_palette_buttons[k].button_pressed = (k == arm)
+
+
+## The Factory Core. Dark, a tap brings it online and draws its reserve --
+## the first thing a new game, and every shaft after a collapse, asks for.
+## Online, a tap says what it is.
+func _on_core_tapped() -> void:
+	if Sim.power_core():
+		iso_view.core_powered()
+		Juice.reward()
+		_shown_credits = Sim.credits - Sim.core_reserve()
+		_toast_msg("The Core is online: %s credits from its reserve."
+			% Economy.fmt(Sim.core_reserve()))
+		if Tutorial.is_done(Sim.tutorial_step()):
+			_say("Online. Build the shaft back up.", Foreman.Pose.JUMP, 3.0)
+		_refresh()
+		_refresh_hint()
+		return
+	_info("Factory Core", ("The heart of this shaft. It gave you the credits for your "
+		+ "first Drill and Vault; everything since, the board has earned.\n\n"
+		+ "Stratum %d. Descend to take it deeper: every stratum is richer rock, "
+		+ "and new machines open on the way down.") % Sim.depth)
 
 
 ## Some steps have their answer on a button rather than on the board.

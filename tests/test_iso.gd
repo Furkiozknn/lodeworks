@@ -500,3 +500,20 @@ func test_placing_still_puts_the_machine_on_the_tile_under_the_finger() -> void:
 					IsoArt.pick(w, g, sheet, img, false), "armed or not, a machine is selected")
 	runner.gt(float(checked), 100.0, "empty tiles were tapped")
 	runner.gt(float(covered), 0.0, "including where a picture overlaps the tile")
+
+
+func test_a_tap_on_the_factory_core_reaches_the_core() -> void:
+	Sim._ensure()
+	var v := IsoView.new()
+	v.cam = _cam(Vector2(1440, 720))
+	v.call("_refresh_sheet")
+	var cr: Rect2 = v.core_rect()
+	runner.gt(cr.size.x, 0.0, "the Core has a picture")
+	for z: float in [0.6, 1.0, 1.6]:
+		v.cam.zoom_by(z / v.cam.zoom, Vector2(720, 360))
+		var body: Vector2 = cr.position + cr.size * Vector2(0.5, 0.58)
+		runner.eq(v.pick_at_screen(v.cam.world_to_screen(body)), IsoView.CORE,
+			"the middle of the Core's body, at zoom %.2f" % v.cam.zoom)
+	runner.check(v.pick_at_screen(v.cam.world_to_screen(cr.position + Vector2(2, 2)))
+		!= IsoView.CORE, "a clear corner of its rectangle is not the Core")
+	v.free()

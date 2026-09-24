@@ -37,6 +37,11 @@ signal cell_long_pressed(cell: int)
 signal machine_moved(from_cell: int, to_cell: int)
 ## A tap that landed on no board cell: the world, the island, the sky.
 signal ground_tapped()
+## A tap on the Factory Core.
+signal core_tapped()
+
+## What pick_at_screen returns for the Factory Core, which is on no cell.
+const CORE := -2
 
 enum Overlay { NONE, HEAT }
 
@@ -46,6 +51,8 @@ const DRAG_THRESHOLD := 14.0
 var selected_cell: int = -1
 var highlight_cells: Array[int] = []
 var arm_id: String = ""
+## Pulse a ring round the Core's base: it is the thing to tap.
+var highlight_core: bool = false
 var overlay: int = Overlay.NONE
 
 var cam := IsoCamera.new()
@@ -96,6 +103,9 @@ var _sheet: Dictionary = {}
 var _atlas: Texture2D
 var _pick_img: Image
 var _pick_sheet: String = ""
+var _core_img: Image
+## 1 the moment the Core comes online, falling to 0.
+var _core_flash: float = 0.0
 var _tiles: Texture2D
 var _world_tex: Texture2D
 var _island_tex: Texture2D
@@ -178,6 +188,11 @@ func frame_board() -> void:
 
 
 ## Does any panel cover part of the board, as the camera frames it now?
+##
+## The Core is left out on purpose. Keeping it clear of the stratum card too
+## stepped the view back until the board was 14% of a 2:1 screen instead of
+## 21.5%; the card is what has to make room (docs/AUDIT.md, "The first
+## minute").
 func board_under_panel() -> bool:
 	var corners := PackedVector2Array()
 	for p in Iso.board_corners():
@@ -304,10 +319,60 @@ func cell_at_screen(p: Vector2) -> int:
 
 ## What a finger on screen point `p` means: the machine drawn there, or the
 ## tile when none is, and the empty tile while a machine is armed
-## (IsoArt.pick).
+## (IsoArt.pick) -- or CORE, where the Factory Core is what is drawn.
 func pick_at_screen(p: Vector2) -> int:
-	return IsoArt.pick(cam.screen_to_world(p), Sim.grid, _sheet, _pick_image(),
-		arm_id != "")
+	var w: Vector2 = cam.screen_to_world(p)
+	var placing: bool = arm_id != ""
+	var cell: int = IsoArt.pick(w, Sim.grid, _sheet, _pick_image(), placing)
+	if not _on_core(w):
+		return cell
+	if cell < 0:
+		return CORE
+	if Sim.grid.is_empty(cell):
+		return cell if placing else CORE
+	# A machine and the Core both drawn here: the nearer one, in the order
+	# _draw_things sorts them.
+	var drawn: bool = IsoArt.machine_at(w, Sim.grid, _sheet, _pick_image()) == cell
+	var p2: Vector2i = Grid.xy(cell)
+	var o: Vector2i = Iso.board_offset()
+	if drawn and float(p2.x + o.x + p2.y + o.y) > _core_depth():
+		return cell
+	return CORE
+
+
+## Is the Core's picture opaque at world point `w`?
+func _on_core(w: Vector2) -> bool:
+	var r: Rect2 = core_rect()
+	if not r.has_point(w):
+		return false
+	var info: Dictionary = IsoArt.layout().get("core", {})
+	if _core_img == null:
+		var tex: Texture2D = IsoArt.texture(String(info.get("file", "")))
+		if tex == null:
+			return false
+		_core_img = tex.get_image()
+		if _core_img == null:
+			return false
+		if _core_img.is_compressed():
+			_core_img.decompress()
+		_core_img.clear_mipmaps()
+	var region: Rect2 = IsoArt.region(info, 0)
+	var q: Vector2 = region.position + (w - r.position) / r.size * region.size
+	return _core_img.get_pixelv(Vector2i(q)).a >= 0.5
+
+
+## The Core's place in the drawing order (see _draw_things).
+func _core_depth() -> float:
+	var cc: Array = IsoArt.placement().get("core_cell", [])
+	if cc.size() != 2:
+		return -INF
+	var n: int = int(IsoArt.placement().get("core_size", 3))
+	return float(int(cc[0]) + int(cc[1]) + n) - 0.75
+
+
+## The moment the Core comes online: it flares.
+func core_powered() -> void:
+	_core_flash = 1.0
 
 
 ## The machine atlas as an image, for testing a tap against what is drawn.
@@ -342,6 +407,7 @@ func _process(delta: float) -> void:
 		n.transform = t
 	_band_tint = _band_tint.lerp(_band_target, 1.0 - exp(-delta * 2.5))
 	_dive = maxf(_dive - delta / DIVE_SECONDS, 0.0)
+	_core_flash = maxf(_core_flash - delta / 1.6, 0.0)
 
 	if _pressed and not _panning and not _dragging and not _long_fired \
 			and _press_cell >= 0 and not Sim.grid.is_empty(_press_cell):
@@ -517,7 +583,9 @@ func _release(pos: Vector2) -> void:
 	var cell: int = pick_at_screen(pos)
 	if cell >= 0 and cell == from_cell:
 		cell_tapped.emit(cell)
-	elif cell < 0:
+	elif cell == CORE and from_cell == CORE:
+		core_tapped.emit()
+	elif cell == -1:
 		ground_tapped.emit()
 
 
@@ -833,6 +901,14 @@ func _draw_floor_glow() -> void:
 		var c: Vector2 = Iso.cell_center(cell)
 		ci.draw_texture_rect(g, Rect2(c - Vector2(Iso.TW, Iso.TH) * 0.95,
 			Vector2(Iso.TW, Iso.TH) * 1.9), false, col)
+	# The ring round a dark Core's base: the one thing to tap.
+	if highlight_core:
+		var n: float = float(IsoArt.placement().get("core_size", 3))
+		var beat: float = 0.5 + 0.5 * sin(_anim * 4.0)
+		ci.draw_set_transform(core_center(), 0.0, Vector2(1.0, 0.5))
+		ci.draw_arc(Vector2.ZERO, n * Iso.TW * 0.40 + 10.0 * beat, 0.0, TAU, 56,
+			Color(0.45, 0.9, 1.0, 0.45 + 0.35 * beat), 7.0)
+		ci.draw_set_transform_matrix(Transform2D.IDENTITY)
 	# The rim's four corner lamps.
 	var bc: PackedVector2Array = Iso.board_corners()
 	for p in bc:
@@ -917,6 +993,10 @@ func _draw_core(ci: CanvasItem) -> void:
 			running += 1
 	var k: float = clampf(float(running) / 12.0, 0.0, 1.0)
 	var mod := Color(0.9, 0.9, 0.95).lerp(Color(1.08, 1.06, 1.02), k)
+	if not Sim.core_online:
+		# Dark and cold: built, not yet running.
+		mod = Color(0.42, 0.45, 0.55)
+	mod = mod.lerp(Color(1.5, 1.5, 1.5), _core_flash * 0.6)
 	ci.draw_texture_rect_region(tex, r, IsoArt.region(info, 0), mod)
 
 
@@ -1132,12 +1212,12 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 		ci.draw_texture_rect(g, Rect2(at - Vector2(46, 40), Vector2(92, 80)), false, col2)
 	# The Core's crystal, brighter the more of the board is running.
 	var cr: Rect2 = core_rect()
-	if cr.size.x > 0.0:
+	if cr.size.x > 0.0 and Sim.core_online:
 		var running: int = 0
 		for cell: int in Sim.grid.cells:
 			if Sim.sim.status_of(cell) == Simulation.Status.RUNNING:
 				running += 1
-		var k2: float = clampf(float(running) / 12.0, 0.2, 1.0)
+		var k2: float = clampf(float(running) / 12.0, 0.2, 1.0) + _core_flash * 2.0
 		var tip := Vector2(cr.get_center().x, cr.position.y + cr.size.y * 0.16)
 		var col3 := Color(0.45, 0.85, 1.0, (0.35 + 0.15 * sin(_anim * 2.2)) * k2)
 		ci.draw_texture_rect(g, Rect2(tip - Vector2(70, 70), Vector2(140, 140)), false, col3)
@@ -1191,6 +1271,19 @@ func _draw_over() -> void:
 				p = cam.world_to_screen(Iso.cell_center(cell)
 					+ _badge_side(cell, false) * Iso.TW * 0.32 - Vector2(0, Iso.TH * 0.55))
 		_badge(ov, p, r, shown)
+
+	# A dark Core is the one thing to tap: a target pulsing on its body, in
+	# screen space so it is the same size at any zoom.
+	if highlight_core:
+		var cr: Rect2 = core_rect()
+		var at: Vector2 = cam.world_to_screen(cr.position + cr.size * Vector2(0.5, 0.58))
+		var beat: float = 0.5 + 0.5 * sin(_anim * 4.0)
+		ov.ring(at, 30.0 + 10.0 * beat, 7.0, Color(0.05, 0.05, 0.08, 0.55), 28)
+		var ring: Color = Palette.ACCENT
+		ring.a = 0.55 + 0.4 * beat
+		ov.ring(at, 30.0 + 10.0 * beat, 4.0, ring, 28)
+		ov.circle(at, 7.0, Color(0.05, 0.05, 0.08, 0.7))
+		ov.circle(at, 5.0, Palette.ACCENT)
 
 	# Material in transit: one small bead per seam the simulation actually
 	# moved something across in the last moment, riding from the machine that

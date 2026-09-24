@@ -66,6 +66,7 @@ func test_a_naive_player_can_actually_progress() -> void:
 	Sim.max_depth = 0
 	Sim.lifetime_credits = 0.0
 	Sim.upgrade_levels = {}
+	Sim.core_online = false
 	Sim.unlocked.clear()
 	Sim._recompute()
 	Sim.start()
@@ -75,7 +76,9 @@ func test_a_naive_player_can_actually_progress() -> void:
 	_ok(not Sim.is_unlocked("lab"), "and the late ones are not")
 
 	# --- first session ------------------------------------------------------
-	Sim.credits = MachineDB.cost_for("drill", 0) + MachineDB.cost_for("vault", 0)
+	# The first thing the game asks for, and the only money it ever gives.
+	_ok(not Sim.can_afford("drill"), "nothing can be bought before the Core is online")
+	_ok(Sim.power_core(), "the Core comes online")
 	_ok(Sim.try_place(Grid.idx(3, 4), "drill"), "can place the first drill")
 	_ok(Sim.try_place(Grid.idx(4, 4), "vault"), "can place a vault beside it")
 	_advance(30.0)
