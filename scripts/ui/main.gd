@@ -104,7 +104,11 @@ func _ready() -> void:
 	Sim.depth_changed.connect(func(d: int):
 		_rebuild_palette()
 		_refresh()
-		if d > 0:
+		if d > 0 and BuildArea.size_at(Sim.max_depth - 1, Sim.collapses) \
+				!= BuildArea.size_at(Sim.max_depth, Sim.collapses):
+			_say("Stratum %d. The yard is bigger: more ground to build on." % d,
+				Foreman.Pose.JUMP, 4.0)
+		elif d > 0:
 			_say("Stratum %d. Richer rock, stranger rules." % d, Foreman.Pose.JUMP, 3.5))
 	Sim.machines_unlocked.connect(_on_unlocked)
 	Sim.offline_earnings.connect(_show_offline)
@@ -876,6 +880,11 @@ func _on_cell_tapped(cell: int) -> void:
 	if Sim.grid.is_empty(cell):
 		if iso_view.selected_cell >= 0:
 			_close_sheet()
+		if not Sim.is_open(cell):
+			Juice.reject()
+			_toast_msg("The yard reaches this ground at stratum %d."
+				% BuildArea.opens_at(cell))
+			return
 		if _armed == "":
 			_toast_msg("Pick a machine below, then tap a tile.")
 			return

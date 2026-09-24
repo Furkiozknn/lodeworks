@@ -188,9 +188,10 @@ func _apply_build(kind: String) -> void:
 			Sim.depth = 0
 			Sim.max_depth = 0
 			Sim.credits = 240.0
+			# In the first shaft's yard, beside the Core.
 			_place([
-				[2, 4, "drill"], [3, 4, "crusher"], [4, 4, "vault"],
-				[2, 5, "drill"], [3, 5, "crusher"], [4, 5, "vault"],
+				[1, 7, "drill"], [2, 7, "crusher"], [3, 7, "vault"],
+				[1, 8, "drill"], [2, 8, "crusher"], [3, 8, "vault"],
 			])
 		"heat":
 			Sim.depth = 3

@@ -42,9 +42,9 @@ extends RefCounted
 const STEPS := [
 	{
 		"id": "place_drill",
-		"line": "Tap DRILL below, then tap any tile.",
+		"line": "Tap DRILL below, then tap a lit tile by the Core.",
 		"arm": "drill",
-		"highlight": "open_middle",
+		"highlight": "yard",
 	},
 	{
 		"id": "place_vault",
@@ -78,7 +78,7 @@ const STEPS := [
 	},
 	{
 		"id": "reach_quota",
-		"line": "Fill the board and reach the quota at the top right.",
+		"line": "Fill the yard and reach the quota at the top right.",
 		"arm": "",
 		"highlight": "none",
 	},
@@ -171,27 +171,26 @@ static func highlight(index: int, state: Node) -> Array[int]:
 	if grid == null:
 		return out
 	match String(s.get("highlight", "none")):
-		"open_middle":
-			# A small block in the middle of the board, so the first machine
-			# lands somewhere there is room to build around it.
-			for y in range(3, 6):
-				for x in range(2, 5):
-					var i: int = Grid.idx(x, y)
-					if grid.is_empty(i) and not state.call("is_blocked", i):
-						out.append(i)
+		"yard":
+			# The yard by the Core: the only tiles a new shaft can build on.
+			for i in range(Grid.W * Grid.H):
+				if grid.is_empty(i) and state.call("is_open", i) \
+						and not state.call("is_blocked", i):
+					out.append(i)
 		"next_to_drill":
 			for i: int in grid.cells:
 				if grid.machine_at(i) != "drill":
 					continue
 				for n in grid.neighbours(i):
-					if grid.is_empty(n) and not out.has(n) \
+					if grid.is_empty(n) and not out.has(n) and state.call("is_open", n) \
 							and not state.call("is_blocked", n):
 						out.append(n)
 		"between_drill_and_vault":
 			# Empty tiles that touch both, which is exactly the shape the
 			# lesson is about.
 			for i in range(Grid.W * Grid.H):
-				if not grid.is_empty(i) or state.call("is_blocked", i):
+				if not grid.is_empty(i) or state.call("is_blocked", i) \
+						or not state.call("is_open", i):
 					continue
 				var near_drill: bool = false
 				var near_vault: bool = false

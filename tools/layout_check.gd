@@ -22,6 +22,13 @@ extends Node
 ##   * on a landscape screen, the board takes less than MIN_BOARD_SHARE of it
 ##     at the default zoom, with no inset
 ##
+## All of that on a shaft with the whole board open. Then again as a new game
+## opens -- Core dark, the first yard (BuildArea) -- where it fails if:
+##
+##   * the yard is not fully on screen, or disappears under the interface
+##   * the point on the Core the game asks the player to tap is under a panel
+##     or off the screen
+##
 ## It also prints the numbers the audit reports: the cell's size in dp at the
 ## default and the closest zoom, and how much of the screen the board takes.
 
@@ -60,6 +67,7 @@ func _ready() -> void:
 	var main: Control = get_parent().get_node("Main")
 	await tree.process_frame
 	main.call("_close_overlay")
+	_set_state("board")
 	print("%-18s %-12s %9s %9s %8s %s" % ["screen", "canvas", "cell dp", "max dp", "board%", "notes"])
 	print("(cell dp = a cell's height at the default and the closest zoom; 0 = no density, desktop window)")
 	for s: Array in SIZES:
@@ -70,6 +78,17 @@ func _ready() -> void:
 				await tree.process_frame
 			_check(main, String(s[0]), Vector2(s[1]), int(s[2]), inset,
 				s.size() < 4 or bool(s[3]))
+	print("")
+	_set_state("yard")
+	print("a new game: the Core dark, the first yard")
+	print("%-18s %-12s %9s %8s %s" % ["screen", "canvas", "cell dp", "yard%", "notes"])
+	for s: Array in SIZES:
+		tree.root.size = s[1]
+		for inset: Vector4 in INSETS:
+			main.call("set_safe_insets", inset)
+			for i in range(3):
+				await tree.process_frame
+			_check_yard(main, String(s[0]), Vector2(s[1]), int(s[2]), inset)
 	print("")
 	if _fail.is_empty():
 		print("=== layout check passed: %d screens x %d safe areas ===" % [SIZES.size(), INSETS.size()])
@@ -145,6 +164,56 @@ func _check(main: Control, name: String, window: Vector2, dpi: int, inset: Vecto
 		print("%-18s %-12s %9.1f %9.1f %7.1f%% %s" % [name, "%dx%d" % [int(canvas.x), int(canvas.y)],
 			cell_dp, max_dp, share,
 			"zoom %.2f, %.2f px/unit" % [view.cam.zoom, scale_px]])
+
+
+## "board": a shaft that has collapsed once, so the whole board is open --
+## what the board-share numbers have always measured. "yard": a new game.
+func _set_state(state: String) -> void:
+	Sim.grid.clear()
+	Sim.depth = 0
+	Sim.max_depth = 0
+	Sim.collapses = 1 if state == "board" else 0
+	Sim.core_online = state == "board"
+	Sim._recompute()
+
+
+func _check_yard(main: Control, name: String, window: Vector2, dpi: int,
+		inset: Vector4) -> void:
+	var canvas: Vector2 = main.size
+	var tag: String = "%s inset %s, new game" % [name, str(inset)]
+	var rects: Dictionary = main.call("hud_rects")
+	var view: IsoView = main.get("iso_view")
+	view.frame_board()
+	var free: Rect2 = view.free_rect
+	var corners := PackedVector2Array()
+	for p in view.yard_corners():
+		var sp: Vector2 = view.cam.world_to_screen(p)
+		corners.append(sp)
+		if not free.grow(2.0).has_point(sp):
+			_fail.append("%s: yard corner %s is outside the free area %s" % [tag, str(sp), str(free)])
+	var cr: Rect2 = view.core_rect()
+	var tap: Vector2 = view.cam.world_to_screen(cr.position + cr.size * Vector2(0.5, 0.58))
+	var safe := Rect2(Vector2(inset.x, inset.y),
+		canvas - Vector2(inset.x + inset.z, inset.y + inset.w))
+	if not safe.has_point(tap):
+		_fail.append("%s: the Core's tap point %s is off the screen" % [tag, str(tap)])
+	for k: String in rects:
+		var r: Rect2 = rects[k]
+		var box := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end,
+			Vector2(r.position.x, r.end.y)])
+		if not Geometry2D.intersect_polygons(corners, box).is_empty():
+			_fail.append("%s: the %s panel covers part of the yard" % [tag, k])
+		if r.grow(8.0).has_point(tap):
+			_fail.append("%s: the %s panel covers the Core's tap point" % [tag, k])
+	if inset == Vector4.ZERO:
+		var dp_per_unit: float = 0.0
+		if dpi > 0:
+			dp_per_unit = (minf(window.x, window.y) / minf(canvas.x, canvas.y)) \
+				/ (float(dpi) / 160.0)
+		print("%-18s %-12s %9.1f %7.1f%% %s" % [name, "%dx%d" % [int(canvas.x), int(canvas.y)],
+			Iso.TH * view.cam.zoom * dp_per_unit,
+			100.0 * absf(_poly_area(corners)) / (canvas.x * canvas.y),
+			"zoom %.2f, Core tap at %s" % [view.cam.zoom, str(tap.round())]])
 
 
 func _poly_area(p: PackedVector2Array) -> float:

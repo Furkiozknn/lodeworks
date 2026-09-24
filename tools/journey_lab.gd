@@ -35,6 +35,7 @@ class Run extends RefCounted:
 	var upgrades: Dictionary = {}
 	var elapsed: float = 0.0
 	var placed: int = 0
+	var collapses: int = 0
 	var _blocked: Dictionary = {}
 	var _blocked_depth: int = -1
 
@@ -44,12 +45,18 @@ class Run extends RefCounted:
 	func blocked() -> Dictionary:
 		if _blocked_depth != depth:
 			_blocked = Strata.blocked_cells(depth)
+			# The yard: a first shaft builds only on the ground it has reached.
+			_blocked.merge(BuildArea.closed_cells(max_depth, collapses))
 			_blocked_depth = depth
 		return _blocked
 
 	func _init() -> void:
 		grid = Grid.new()
 		sim = Simulation.new(grid, 20260923)
+		# LODEWORKS_NO_YARD=1 measures the game as it was before the yard:
+		# the whole board open from the first second.
+		if OS.get_environment("LODEWORKS_NO_YARD") == "1":
+			collapses = 1
 		recompute()
 
 	func mult() -> Dictionary:
@@ -198,6 +205,8 @@ class Run extends RefCounted:
 	func collapse() -> int:
 		var got: int = pending_cores()
 		cores += got
+		collapses += 1
+		_blocked_depth = -1
 		grid.clear()
 		sim.reset_progress()
 		credits = 0.0
@@ -258,8 +267,8 @@ func _opening() -> void:
 func _first_session() -> void:
 	print("\n== 10 SECONDS - 30 MINUTES ==")
 	var r := Run.new()
-	r.grid.place(Grid.idx(3, 0), "drill")
-	r.grid.place(Grid.idx(3, 1), "vault")
+	r.grid.place(Grid.idx(1, 8), "drill")
+	r.grid.place(Grid.idx(1, 9), "vault")
 	r.placed = 2
 	var marks := [10.0, 60.0, 180.0, 600.0, 1800.0]
 	var mark: int = 0
@@ -276,8 +285,8 @@ func _first_session() -> void:
 			for id: String in MachineDB.unlocked_at(r.depth):
 				if not MachineDB.unlocked_at(r.depth - 1).has(id):
 					unlocked.append(id)
-			events.append("%6.0fs  descend to stratum %d%s" % [t, r.depth,
-				"" if unlocked.is_empty() else "  UNLOCKS " + ", ".join(unlocked)])
+			events.append("%6.0fs  descend to stratum %d  (%d machines)%s" % [t, r.depth,
+				r.placed, "" if unlocked.is_empty() else "  UNLOCKS " + ", ".join(unlocked)])
 			last_depth = r.depth
 		if beat % 5 == 0:
 			var up: String = r.try_upgrade()
@@ -513,6 +522,10 @@ func _initialize() -> void:
 	print("model: %s" % MachineDB.ACTIVE_MODEL)
 	_opening()
 	_first_session()
+	# LODEWORKS_JOURNEY=first: the first half hour and nothing after it.
+	if OS.get_environment("LODEWORKS_JOURNEY") == "first":
+		quit()
+		return
 	_novelty()
 	_prestige_audit()
 	_research_curve()

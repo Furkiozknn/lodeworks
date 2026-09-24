@@ -159,8 +159,14 @@ func is_blocked(cell: int) -> bool:
 	return Strata.blocked_cells(depth).has(cell)
 
 
+## Is `cell` inside this shaft's yard (BuildArea)? New machines go only there.
+func is_open(cell: int) -> bool:
+	return BuildArea.is_open(cell, max_depth, collapses)
+
+
 func try_place(cell: int, id: String) -> bool:
-	if not is_unlocked(id) or is_blocked(cell) or not grid.is_empty(cell):
+	if not is_unlocked(id) or is_blocked(cell) or not is_open(cell) \
+			or not grid.is_empty(cell):
 		return false
 	var price: float = cost_of(id)
 	if credits < price:
@@ -191,7 +197,7 @@ func sell(cell: int) -> bool:
 
 
 func move_machine(from_cell: int, to_cell: int) -> bool:
-	if is_blocked(to_cell):
+	if is_blocked(to_cell) or not is_open(to_cell):
 		return false
 	if not grid.move(from_cell, to_cell):
 		return false

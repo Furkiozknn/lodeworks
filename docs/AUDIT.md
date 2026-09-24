@@ -279,6 +279,58 @@ screen instead of 21.5%, and the layout check's 18% floor failed. The
 Core's top still touches the stratum card. The card has to shrink, not the
 board.
 
+### The yard: a small start that grows
+
+A new shaft no longer hands the player all seventy tiles. The shape of it:
+- **Where it starts.** A 4 x 4 yard at the board's corner, beside the
+  Factory Core, is lit and outlined. The rest of the board is darker ground
+  the factory has not reached yet.
+- **How it grows.** Every stratum of the first shaft widens the yard (16,
+  35, 48, 56, then all 70 tiles). The Foreman says so when it happens.
+- **What a tap outside it does.** A tap there says at which stratum that
+  ground opens (`BuildArea.opens_at`).
+- **After the first collapse.** The whole board is open from the start.
+- **Older saves.** A machine an older save left outside the yard keeps
+  working, and can be sold or moved inward.
+
+While the yard is smaller than the board, the default view frames the Core
+and the yard instead of the whole board. That puts the thing to build on,
+and the thing to tap first, at the centre of the first screen.
+
+**Sized so it never holds a player back.** `tools/journey_lab.gd`
+(`LODEWORKS_JOURNEY=first`) plays a competent player through the first half
+hour. Without the yard (`LODEWORKS_NO_YARD=1`), that player had built 14,
+31, 42, 53 and 64 machines when it descended from strata 0 to 4. Each yard
+step is at least that many tiles.
+
+Measured on the same model:
+
+| descend to | without the yard | with the yard |
+|---|---|---|
+| stratum 1 | 176 s (14 machines) | 191 s (14 machines) |
+| stratum 2 | 312 s | 331 s |
+| stratum 3 | 386 s | 406 s |
+| stratum 4 | 463 s | 488 s |
+| stratum 5 | 554 s | 559 s |
+
+The yard's corner shape makes the model's reading-order placement a little
+less efficient early on (+15 s to the first descent). By stratum 5 the two
+are within 1%.
+
+A first try with a 3 x 3 yard was measured and dropped. The first descent
+took 564 s instead of 176 s, and after half an hour the player was only at
+stratum 1.
+
+The layout check now also checks a new game on every screen shape and safe
+area:
+- the whole yard is on screen and no panel covers it
+- no panel covers the point on the Core the game asks the player to tap
+
+At the default zoom of a new game, a tile is now 39–41 dp on the phone
+shapes instead of 32–34. On tablets the view stops at zoom 1.15 so the
+world stays in sight. A shaft with the whole board open frames exactly as
+before: 21.5% of a 2:1 screen.
+
 ### Touch: a tap takes the machine it is on
 
 A machine's picture stands well above its own tile: the upper half covers

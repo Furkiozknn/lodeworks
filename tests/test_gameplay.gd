@@ -219,35 +219,40 @@ func test_every_tutorial_step_is_satisfied_by_doing_the_thing() -> void:
 	Sim.tutorial_moves = 0
 	Sim.tutorial_saw_heat = false
 	Sim._tutorial_step = 0
+	Sim.collapses = 0
 	Sim.unlocked.clear()
 	Sim._recompute()
 
 	runner.check(not Tutorial.satisfied(0, Sim), "nothing is done yet")
 	runner.gt(float(Tutorial.highlight(0, Sim).size()), 0.0,
 		"the first step points at some tiles")
+	for i: int in Tutorial.highlight(0, Sim):
+		runner.check(Sim.is_open(i), "and only at tiles in the yard")
 
-	Sim.try_place(Grid.idx(3, 4), "drill")
+	# All of it inside the first shaft's yard, the 4 x 4 by the Core.
+	Sim.try_place(Grid.idx(1, 8), "drill")
 	runner.check(Tutorial.satisfied(0, Sim), "placing a drill finishes step 1")
 
 	# Step 2 is about adjacency, so an unconnected vault must not count.
-	Sim.try_place(Grid.idx(0, 0), "vault")
+	Sim.try_place(Grid.idx(2, 7), "vault")
 	runner.check(not Tutorial.satisfied(1, Sim),
 		"a vault nowhere near the drill has not taught adjacency")
-	Sim.try_place(Grid.idx(4, 4), "vault")
+	Sim.sell(Grid.idx(2, 7))
+	Sim.try_place(Grid.idx(2, 8), "vault")
 	runner.check(Tutorial.satisfied(1, Sim), "one that touches it has")
 
 	Sim.lifetime_credits = 5.0
 	runner.check(Tutorial.satisfied(2, Sim), "credits arriving finishes step 3")
 
 	runner.check(not Tutorial.satisfied(3, Sim), "nothing has been moved")
-	Sim.move_machine(Grid.idx(4, 4), Grid.idx(5, 4))
+	Sim.move_machine(Grid.idx(2, 8), Grid.idx(2, 9))
 	runner.check(Tutorial.satisfied(3, Sim), "moving the vault finishes step 4")
 
 	runner.check(not Tutorial.satisfied(4, Sim), "no crusher yet")
-	Sim.try_place(Grid.idx(3, 3), "crusher")
+	Sim.try_place(Grid.idx(0, 8), "crusher")
 	runner.check(not Tutorial.satisfied(4, Sim),
 		"a crusher that touches only the drill is not between them")
-	Sim.try_place(Grid.idx(4, 4), "crusher")
+	Sim.try_place(Grid.idx(1, 9), "crusher")
 	runner.check(Tutorial.satisfied(4, Sim),
 		"one that touches both the drill and the vault is")
 
@@ -332,15 +337,17 @@ func test_undoing_a_placement_returns_exactly_what_it_cost() -> void:
 	Sim.grid.clear()
 	Sim.credits = 1000.0
 	Sim.depth = 0
+	Sim.max_depth = 0
+	Sim.collapses = 0
 	Sim.unlocked.clear()
 	Sim._recompute()
 	var price: float = Sim.cost_of("drill")
-	runner.check(Sim.try_place(Grid.idx(3, 3), "drill"), "placed")
+	runner.check(Sim.try_place(Grid.idx(1, 8), "drill"), "placed")
 	runner.near(Sim.credits, 1000.0 - price, 0.001, "it cost what it said")
-	runner.check(Sim.undo_place(Grid.idx(3, 3), price), "undone")
+	runner.check(Sim.undo_place(Grid.idx(1, 8), price), "undone")
 	runner.near(Sim.credits, 1000.0, 0.001,
 		"undo must return the price paid, not the resale value")
-	runner.check(Sim.grid.is_empty(Grid.idx(3, 3)), "and take the machine back")
+	runner.check(Sim.grid.is_empty(Grid.idx(1, 8)), "and take the machine back")
 	Save.wipe()
 
 
@@ -375,10 +382,11 @@ func test_the_rate_readout_does_not_survive_the_board_it_measured() -> void:
 	Sim.credits = 100000.0
 	Sim.depth = 0
 	Sim.max_depth = 0
+	Sim.collapses = 0
 	Sim.unlocked.clear()
 	Sim._recompute()
 	Sim.credits_per_sec = 999.0
-	Sim.try_place(Grid.idx(3, 3), "drill")
+	runner.check(Sim.try_place(Grid.idx(1, 8), "drill"), "a drill in the yard")
 	runner.near(Sim._rate_elapsed, 0.0, 0.0001,
 		"placing a machine must restart the measurement")
 
@@ -632,8 +640,8 @@ func test_a_new_game_can_start_the_core_pays_for_the_first_two_machines() -> voi
 		MachineDB.cost_for("drill", 0) + MachineDB.cost_for("vault", 0), 0.001,
 		"which is exactly a first Drill and a first Vault")
 	runner.eq(Sim.lifetime_credits, 0.0, "a reserve is not earnings")
-	runner.check(Sim.try_place(Grid.idx(3, 4), "drill"), "the Drill")
-	runner.check(Sim.try_place(Grid.idx(4, 4), "vault"), "and the Vault it sells through")
+	runner.check(Sim.try_place(Grid.idx(1, 8), "drill"), "the Drill, in the yard")
+	runner.check(Sim.try_place(Grid.idx(2, 8), "vault"), "and the Vault it sells through")
 	runner.check(not Sim.power_core(), "the reserve is paid once a shaft")
 	Save.wipe()
 
@@ -677,4 +685,57 @@ func test_the_core_survives_a_save_and_older_saves_load_sensibly() -> void:
 	Sim.from_dict(old)
 	runner.check(not Sim.core_online,
 		"one with neither was the dead end: its Core starts dark and pays its reserve")
+	Save.wipe()
+
+
+## --- the yard -----------------------------------------------------------------------
+
+func test_a_new_shaft_builds_in_a_small_yard_that_grows_with_depth() -> void:
+	_new_game()
+	Sim.power_core()
+	runner.eq(BuildArea.size_at(0, 0), Vector2i(4, 4), "a new shaft opens a 4 x 4 yard")
+	var open: int = 0
+	for i in range(Grid.W * Grid.H):
+		open += 1 if Sim.is_open(i) else 0
+	runner.eq(open, 16, "sixteen tiles of seventy")
+	runner.check(Sim.is_open(Grid.idx(0, Grid.H - 1)), "at the Core's corner of the board")
+	runner.check(not Sim.try_place(Grid.idx(4, 2), "drill"),
+		"a machine cannot go outside it")
+	runner.eq(Sim.credits, Sim.core_reserve(), "and a refused placement costs nothing")
+	runner.check(Sim.try_place(Grid.idx(0, 9), "drill"), "inside, it can")
+	runner.check(not Sim.move_machine(Grid.idx(0, 9), Grid.idx(4, 2)),
+		"nor can one be moved out of it")
+	# Every stratum of the first shaft gives more ground, until it is all open.
+	var last: int = 16
+	for d in range(1, BuildArea.STEPS.size()):
+		var sz: Vector2i = BuildArea.size_at(d, 0)
+		runner.gt(float(sz.x * sz.y), float(last), "stratum %d widens the yard" % d)
+		last = sz.x * sz.y
+	runner.check(BuildArea.is_whole_board(BuildArea.STEPS.size() - 1, 0),
+		"and the last step is the whole board")
+	for i in range(Grid.W * Grid.H):
+		runner.check(BuildArea.is_open(i, BuildArea.opens_at(i), 0),
+			"a tile is open from the stratum it says it opens at")
+	Save.wipe()
+
+
+func test_after_a_collapse_the_whole_board_is_open() -> void:
+	runner.check(BuildArea.is_whole_board(0, 1),
+		"a player who has collapsed once is not walked through the yard again")
+
+
+func test_a_machine_outside_the_yard_from_an_older_save_keeps_working() -> void:
+	_new_game()
+	var d: Dictionary = Sim.to_dict()
+	d["grid"] = {"w": Grid.W, "h": Grid.H, "cells": {
+		str(Grid.idx(3, 0)): "drill", str(Grid.idx(4, 0)): "vault"}}
+	d["core_online"] = true
+	Sim.from_dict(d)
+	runner.check(not Sim.is_open(Grid.idx(3, 0)), "the tiles are outside the yard")
+	runner.eq(Sim.grid.machine_at(Grid.idx(3, 0)), "drill", "the machines are still there")
+	var earned: float = 0.0
+	for i in range(200):
+		earned += float(Sim.sim.tick()["credits"])
+	runner.gt(earned, 0.0, "and still earning")
+	runner.check(Sim.sell(Grid.idx(4, 0)), "one can be sold")
 	Save.wipe()

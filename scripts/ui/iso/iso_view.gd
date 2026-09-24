@@ -42,6 +42,9 @@ signal core_tapped()
 
 ## What pick_at_screen returns for the Factory Core, which is on no cell.
 const CORE := -2
+## The closest the default view comes while the yard is smaller than the
+## board: phones sit well under it (1.08 on 2:1), a tablet stops here.
+const YARD_ZOOM_MAX := 1.15
 
 enum Overlay { NONE, HEAT }
 
@@ -104,6 +107,8 @@ var _atlas: Texture2D
 var _pick_img: Image
 var _pick_sheet: String = ""
 var _core_img: Image
+## The yard the view was last framed for.
+var _yard := Vector2i.ZERO
 ## 1 the moment the Core comes online, falling to 0.
 var _core_flash: float = 0.0
 var _tiles: Texture2D
@@ -152,7 +157,10 @@ func _ready() -> void:
 	Sim.depth_changed.connect(func(d: int):
 		_band_target = band_tint(d)
 		if d > 0:
-			_dive = 1.0)
+			_dive = 1.0
+		# A bigger yard is more to frame.
+		if _yard != BuildArea.size_at(Sim.max_depth, Sim.collapses):
+			frame_board())
 	resized.connect(_on_resized)
 	_on_stats()
 
@@ -178,9 +186,15 @@ func frame_board() -> void:
 	if size.x < 8.0 or size.y < 8.0:
 		return
 	cam.set_viewport(size)
+	_yard = BuildArea.size_at(Sim.max_depth, Sim.collapses)
 	var fr: Rect2 = free_rect if free_rect.size.x > 8.0 else Rect2(Vector2.ZERO, size)
 	var scale: float = 1.0
 	cam.fit(frame_rect(), fr, scale)
+	# A first yard is small; fitted to a tablet it would fill the screen and
+	# hide the world it stands in.
+	if cam.zoom > YARD_ZOOM_MAX and not BuildArea.is_whole_board(Sim.max_depth, Sim.collapses):
+		scale = YARD_ZOOM_MAX / cam.zoom
+		cam.fit(frame_rect(), fr, scale)
 	while scale > 0.6 and board_under_panel():
 		scale *= 0.97
 		cam.fit(frame_rect(), fr, scale)
@@ -195,7 +209,7 @@ func frame_board() -> void:
 ## minute").
 func board_under_panel() -> bool:
 	var corners := PackedVector2Array()
-	for p in Iso.board_corners():
+	for p in yard_corners():
 		corners.append(cam.world_to_screen(p))
 	for r: Rect2 in avoid_rects:
 		var box := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end,
@@ -205,9 +219,32 @@ func board_under_panel() -> bool:
 	return false
 
 
-## The board and the Core together: what the first look has to contain.
+## What the first look has to contain: the Core and the yard -- the whole
+## board once the yard is the whole board. While the yard is smaller the view
+## closes in on the Core and the ground the player can build on, with a strip
+## of the ground still to come on either side (BuildArea).
 func frame_rect() -> Rect2:
-	return board_frame_rect().merge(core_rect().grow(8.0))
+	if BuildArea.is_whole_board(Sim.max_depth, Sim.collapses):
+		return board_frame_rect().merge(core_rect().grow(8.0))
+	var y: PackedVector2Array = yard_corners()
+	var r := Rect2(y[0], Vector2.ZERO)
+	for p in y:
+		r = r.expand(p)
+	# A machine an older save left outside the yard is still the player's.
+	for cell: int in Sim.grid.cells:
+		if not Sim.is_open(cell):
+			r = r.expand(Iso.cell_center(cell))
+	r = r.grow_individual(Iso.TW * 0.6, machine_rise() + 6.0, Iso.TW * 0.6, 24.0)
+	return r.merge(core_rect().grow(8.0))
+
+
+## The yard's diamond, as world points: back, right, front, left.
+func yard_corners() -> PackedVector2Array:
+	var o: Vector2i = Iso.board_offset()
+	var out := PackedVector2Array()
+	for c: Vector2i in BuildArea.corners(Sim.max_depth, Sim.collapses):
+		out.append(Iso.slab_top(c.x + o.x, c.y + o.y))
+	return out
 
 
 ## The world rectangle the default view has to show: the board, plus exactly
@@ -220,12 +257,16 @@ func frame_rect() -> Rect2:
 ## board's left corner so it no longer sets the height, the board is 22% of
 ## the screen and a cell is 34 dp (docs/AUDIT.md, "The default view").
 static func board_frame_rect() -> Rect2:
+	var r: Rect2 = Iso.board_rect()
+	return r.grow_individual(Iso.TW * 0.2, machine_rise() + 6.0, Iso.TW * 0.2, 24.0)
+
+
+## How far the tallest machine picture rises above its tile's top corner.
+static func machine_rise() -> float:
 	var sheet: Dictionary = IsoArt.sheet(Themes.DEFAULT)
 	var s: float = Iso.TW * float(IsoArt.placement().get("footprint", 0.8)) \
 		/ IsoArt.base_px(sheet)
-	var rise: float = maxf(IsoArt.anchor(sheet).y * s - Iso.TH * 0.5, 0.0)
-	var r: Rect2 = Iso.board_rect()
-	return r.grow_individual(Iso.TW * 0.2, rise + 6.0, Iso.TW * 0.2, 24.0)
+	return maxf(IsoArt.anchor(sheet).y * s - Iso.TH * 0.5, 0.0)
 
 
 ## The zoom the default view settles on, for the touch-target report.
@@ -672,6 +713,7 @@ func _draw_floor() -> void:
 	_draw_tiles(ci)
 	var tris := Tris.new()
 	_draw_rim(ci, bc, tris)
+	_draw_yard_edge(ci)
 	for cell: int in Strata.blocked_cells(Sim.depth):
 		_rubble(tris, cell)
 	tris.flush(ci)
@@ -798,6 +840,9 @@ func _draw_tiles(ci: CanvasItem) -> void:
 			c = Color(0.35, 0.33, 0.36)
 		elif overlay == Overlay.HEAT:
 			c = c.lerp(Palette.heat_color(Sim.grid.heat_at(cell)), 0.55)
+		if not Sim.is_open(cell):
+			# Ground the yard has not reached yet: there, but not the player's.
+			c = Color(c.r * 0.42, c.g * 0.42, c.b * 0.50, 1.0)
 		var shade: float = 1.0 - 0.05 * float(pxy.x + pxy.y) / float(Grid.W + Grid.H)
 		c = Color(c.r * shade, c.g * shade, c.b * shade, 1.0)
 		var i0: int = pts.size()
@@ -828,6 +873,21 @@ func _draw_rim(ci: CanvasItem, bc: PackedVector2Array, tris: Tris) -> void:
 			tris.dot(a.lerp(b, float(i) / float(cells)), 3.0, brass)
 
 
+## The yard's edge, where it stops short of the rim: a lit line, so the
+## ground the player can build on reads at a glance. Nothing to draw once the
+## yard is the whole board -- the rim is its edge then.
+func _draw_yard_edge(ci: CanvasItem) -> void:
+	if BuildArea.is_whole_board(Sim.max_depth, Sim.collapses):
+		return
+	var y: PackedVector2Array = yard_corners()
+	# The two inner edges: back-right (back to right corner) and right-front.
+	var inner := PackedVector2Array([y[0], y[1], y[2]])
+	ci.draw_polyline(inner, Color(0.05, 0.06, 0.09, 0.8), 8.0, true)
+	var lit: Color = Palette.ACCENT
+	lit.a = 0.75 + 0.15 * sin(_anim * 2.0)
+	ci.draw_polyline(inner, lit, 3.5, true)
+
+
 func _diamond(cell: int, grow: float) -> PackedVector2Array:
 	var c: Vector2 = Iso.cell_center(cell)
 	var hw: float = Iso.TW * 0.5 * grow
@@ -844,7 +904,7 @@ func _draw_floor_marks(ci: CanvasItem) -> void:
 		var ghost: Color = Palette.machine_light(arm_id)
 		ghost.a = 0.22 + 0.10 * pulse
 		for cell in range(Grid.W * Grid.H):
-			if not Sim.grid.is_empty(cell) or Sim.is_blocked(cell):
+			if not Sim.grid.is_empty(cell) or Sim.is_blocked(cell) or not Sim.is_open(cell):
 				continue
 			if not (Sim.grid.cells.is_empty() or _touches_machine(cell)):
 				continue
@@ -867,7 +927,8 @@ func _draw_floor_marks(ci: CanvasItem) -> void:
 			ci.draw_polyline(_diamond(nb, 0.9), c2, 2.0, true)
 	if _dragging and selected_cell >= 0:
 		var target: int = cell_at_screen(_drag_pos)
-		if target >= 0 and Sim.grid.is_empty(target) and not Sim.is_blocked(target):
+		if target >= 0 and Sim.grid.is_empty(target) and not Sim.is_blocked(target) \
+				and Sim.is_open(target):
 			ci.draw_colored_polygon(_diamond(target, 0.94).slice(0, 4),
 				Color(Palette.GOOD, 0.35))
 	if _pressed and not _panning and not _dragging and _press_cell >= 0:
