@@ -1007,6 +1007,15 @@ func _on_unlocked(ids: Array) -> void:
 		col.alignment = BoxContainer.ALIGNMENT_CENTER
 		col.add_theme_constant_override("separation", 6)
 		col.add_child(Chips.MachineSprite.new(String(id), 190.0, true))
+		# Its name and one line of what it is for: the reward is knowing
+		# what the new thing does.
+		var um: Dictionary = MachineDB.get_machine(String(id))
+		var un := _label(String(um["name"]), 28, Palette.TEXT)
+		un.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(un)
+		var us := _label(String(um.get("short", "")), 19, Palette.TEXT_DIM)
+		us.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(us)
 		var line := HBoxContainer.new()
 		line.alignment = BoxContainer.ALIGNMENT_CENTER
 		line.add_theme_constant_override("separation", 8)

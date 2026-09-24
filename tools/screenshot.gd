@@ -478,6 +478,7 @@ func _run_first() -> void:
 ##   ui_research  a line finished, lines to buy, lines short of research and
 ##                lines that need Cores first
 ##   ui_collapse, ui_collapse_locked  the trade, and the locked card
+##   ui_codex_makers, ui_codex_boosters, ui_codex_rules  the Codex
 func _run_ui() -> void:
 	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
 	_apply_build("hero")
@@ -502,6 +503,22 @@ func _run_ui() -> void:
 	await _audit_shot("ui_collapse_locked")
 	_main.call("_close_overlay")
 	Sim.max_depth = keep_depth
+	# The Codex: the Makers, the Boosters (one open, one still locked at
+	# stratum 7), and the rules.
+	_main.call("_open_codex")
+	await _settle(0.8)
+	var cx: Node = null
+	for c in _main.get_children():
+		if c.get_script() != null and String(c.get_script().resource_path).ends_with("codex.gd"):
+			cx = c
+	if cx != null:
+		for t: Array in [[MachineDB.Group.MAKE, "ui_codex_makers"],
+				[MachineDB.Group.BOOST, "ui_codex_boosters"], [-1, "ui_codex_rules"]]:
+			cx.call("show_tab", int(t[0]))
+			await _settle(0.8)
+			await _audit_shot(String(t[1]))
+		cx.queue_free()
+		await _settle(0.2)
 	print("wrote the panel screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 

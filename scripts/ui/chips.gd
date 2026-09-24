@@ -118,6 +118,59 @@ static func recipe(id: String, px: float) -> Control:
 		row.add_child(_icon("credits", px * 1.1))
 	if ins.is_empty() and outs.is_empty() and not sink:
 		row.add_child(_icon("energy", px * 1.1))
+	return _centred(row)
+
+
+## What goes in, the machine, and what comes out, left to right: "gravel
+## goes into a Smelter and ingots come out". A machine with no recipe shows
+## what it does to its neighbours instead -- heat, cold, speed, a double.
+static func flow(id: String, px: float) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var m: Dictionary = MachineDB.get_machine(id)
+	var ins: Dictionary = m.get("inputs", {})
+	var outs: Dictionary = m.get("outputs", {})
+	var tags: Array = m.get("tags", [])
+	if tags.has("sink"):
+		for res in MachineDB.Res.values():
+			row.add_child(Gem.new(int(res), 1, px * 0.42))
+		row.add_child(Arrow.new(px * 0.8))
+	elif not ins.is_empty():
+		for res: int in ins:
+			row.add_child(Gem.new(res, int(ins[res]), px))
+		row.add_child(Arrow.new(px * 0.8))
+	row.add_child(MachineSprite.new(id, px * 1.6))
+	row.add_child(Arrow.new(px * 0.8))
+	for res: int in outs:
+		row.add_child(Gem.new(res, int(outs[res]), px))
+	if tags.has("sink"):
+		row.add_child(_icon("credits", px * 1.1))
+	if tags.has("research"):
+		row.add_child(_icon("research", px * 1.1))
+	if tags.has("heat"):
+		row.add_child(_icon("heat", px * 1.1))
+	if tags.has("cool"):
+		row.add_child(_icon("cold", px * 1.1))
+	if tags.has("amplify"):
+		row.add_child(_icon("energy", px * 1.1))
+	if tags.has("duplicate"):
+		var x2 := Label.new()
+		x2.text = "x2"
+		x2.add_theme_font_size_override("font_size", int(px * 0.8))
+		x2.add_theme_color_override("font_color", Palette.CORE)
+		x2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(x2)
+	return _centred(row)
+
+
+## Each picture at its own size, centred on the row: a gem draws to its
+## height, so one stretched to a tall neighbour would fill the card.
+static func _centred(row: HBoxContainer) -> HBoxContainer:
+	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	for c in row.get_children():
+		(c as Control).size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return row
 
 

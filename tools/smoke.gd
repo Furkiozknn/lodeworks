@@ -140,6 +140,36 @@ func _run() -> void:
 		_failures.append("the codex did not instantiate")
 	else:
 		await _shot("04_codex")
+		# A key per group and one for the rules; every machine on its
+		# group's page, once; every page the player has reached on the rules.
+		var keys: int = 0
+		for n: Node in codex.find_children("*", "Button", true, false):
+			if n.has_meta("tab"):
+				keys += 1
+		if keys != MachineDB.GROUPS.size() + 1:
+			_failures.append("the codex has %d tab keys for %d groups" % [keys, MachineDB.GROUPS.size()])
+		var codex_cards: int = 0
+		for g in range(MachineDB.GROUPS.size()):
+			codex.call("show_tab", g)
+			await _settle(0.1)
+			for n: Node in codex.find_children("*", "PanelContainer", true, false):
+				if n.has_meta("machine_id") and not n.is_queued_for_deletion():
+					codex_cards += 1
+					if MachineDB.group_of(String(n.get_meta("machine_id"))) != g:
+						_failures.append("%s is on the wrong codex page" % n.get_meta("machine_id"))
+		if codex_cards != MachineDB.ORDER.size():
+			_failures.append("the codex shows %d machine cards for %d machines" % [codex_cards, MachineDB.ORDER.size()])
+		codex.call("show_tab", -1)
+		await _settle(0.3)
+		await _shot("04_codex_rules")
+		var pages: int = 0
+		for n: Node in codex.find_children("*", "PanelContainer", true, false):
+			if n.has_meta("page_id") and not n.is_queued_for_deletion():
+				pages += 1
+		var want_pages: int = int((load("res://scripts/ui/codex.gd") as GDScript).call("unlocked_count"))
+		if pages != want_pages:
+			_failures.append("the codex shows %d rule pages, the player has reached %d" % [pages, want_pages])
+		print("  codex: %d keys, %d machine cards, %d rule pages" % [keys, codex_cards, pages])
 		codex.queue_free()
 	await _settle(0.4)
 

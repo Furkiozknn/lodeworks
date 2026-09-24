@@ -730,6 +730,32 @@ group's picture in each key's corner. Each group is in unlock order, so a
 new game's tray is still Drill, Crusher, Vault. Every machine also has a
 short line now, such as "Crushes ore into gravel", which the Codex shows.
 
+**The Codex** (`ui_codex_makers.png`, `ui_codex_boosters.png`,
+`ui_codex_rules.png`) was twelve pages of rules, each a running board
+with two sentences under it. It is now filed by group. A row of keys
+along the top has one key per group, with the tray's picture, and one for
+"How it works".
+- **A group's page** shows its machines as cards. Each card has the
+  machine big and moving (200 units, the unlock card's size), its name,
+  one short line such as "Melts gravel into ingots", and a flame or
+  snowflake if it wants heat or cold. The flame appears when the machine's
+  best heat is 1 or more, the snowflake when it chokes past 3 heat.
+- **The flow row** at the bottom of each card shows what goes in, the
+  machine, and what comes out, in the board's own gem colours. A machine
+  with no recipe shows what it does to its neighbours instead: heat, cold,
+  speed, or x2.
+- **A machine not reached yet** is a dark shape with a lock and the
+  stratum it opens at. The Codex also shows what is coming.
+- **How it works** keeps the running boards, 96 units a tile instead of
+  64. Each page has a title of a few words and one plain line, such as
+  "Too much heat slows a Press down". The old two sentences are behind the
+  "?".
+- **The unlock card** now names the new machine and gives its one line.
+
+Tests check that every page has a short line and a short title. The smoke
+test checks one key per group, every machine on its own group's page
+exactly once, and every reached rule page shown.
+
 ### The 12-point comparison with the reference
 
 Reference: the user's concept `ref2.png` and the generated target mock

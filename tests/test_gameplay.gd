@@ -352,6 +352,12 @@ func test_codex_pages_are_short() -> void:
 			"the '%s' page is a wall of text" % page["id"])
 		runner.lt(float(String(page["watch"]).length()), 64.0,
 			"the '%s' page's caption should fit one line" % page["id"])
+		# What the page says before the "?": one line, in plain words.
+		var short: String = String(page.get("short", ""))
+		runner.check(short != "" and short.length() <= 70,
+			"the '%s' page needs a one-line version for the page itself" % page["id"])
+		runner.lt(float(String(page["title"]).length()), 32.0,
+			"the '%s' page's title should be a few words" % page["id"])
 
 
 ## --- placement preview -----------------------------------------------------

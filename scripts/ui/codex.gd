@@ -1,23 +1,28 @@
 extends Control
 
-## The Codex: optional, short, and mostly not words.
+## The Codex: pictures first, then one short line, and the words behind a
+## "?".
 ##
-## Every page is a title, a **running** two-to-five tile board, one line of
-## what to look at, and at most two sentences. The boards are real
-## simulations, so a page cannot describe a rule the game does not have.
+## A row of keys along the top, one per machine group (`MachineDB.GROUPS`,
+## the same pictures the tray uses) and one for how the factory works:
 ##
-## Pages unlock as the player meets the thing they are about. That is not
-## gating for its own sake: the alternative is a list of twenty entries on a
-## first launch, which is a wall of text with a scrollbar, and nobody reads it.
+##   a group       its machines, big and running, each with what goes in and
+##                 what comes out and whether it likes heat or cold. One the
+##                 player has not reached is a dark shape with a lock and the
+##                 stratum it opens at, so the Codex also shows what is coming.
+##   How it works  one rule per page, each on a small board that is really
+##                 running: a `Simulation` with a real `Grid`, so a page
+##                 cannot describe a rule the game does not have.
 ##
-## Adding a machine adds a page here the same way it adds a row anywhere else
-## — `PAGES` is data, and the board on the page is the same `[x, y, id]` list
-## the rest of the project uses.
+## Rule pages unlock as the player meets what they are about, so a first
+## launch is not a manual. Adding a machine adds its card here by itself:
+## its group is read off what it does.
 
 const PAGES := [
 	{
 		"id": "adjacency",
-		"title": "Machines feed what they touch",
+		"title": "Side by side",
+		"short": "Machines hand things to the machines they touch.",
 		"unlock": 0,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "vault"]],
 		"watch": "Watch the ore cross each gap.",
@@ -25,7 +30,8 @@ const PAGES := [
 	},
 	{
 		"id": "refining",
-		"title": "Every step is worth more",
+		"title": "Every step pays more",
+		"short": "Crushed ore sells for more than raw ore.",
 		"unlock": 0,
 		"board": [[0, 0, "drill"], [1, 0, "vault"],
 			[0, 1, "drill"], [1, 1, "crusher"], [2, 1, "vault"]],
@@ -34,7 +40,8 @@ const PAGES := [
 	},
 	{
 		"id": "support",
-		"title": "Some machines are worth more than the tile they cost",
+		"title": "Helpers let things through",
+		"short": "Heaters, Coolers and Boosters let things pass through them.",
 		"unlock": 1,
 		"board": [[0, 0, "drill"], [1, 0, "amplifier"], [2, 0, "drill"],
 			[0, 1, "crusher"], [1, 1, "crusher"], [2, 1, "crusher"],
@@ -44,7 +51,8 @@ const PAGES := [
 	},
 	{
 		"id": "serving",
-		"title": "A support machine is worth what it touches",
+		"title": "Helpers boost what they touch",
+		"short": "The more machines a Booster touches, the more it helps.",
 		"unlock": 2,
 		"board": [[1, 0, "drill"],
 			[0, 1, "drill"], [1, 1, "amplifier"], [2, 1, "drill"],
@@ -54,7 +62,8 @@ const PAGES := [
 	},
 	{
 		"id": "status",
-		"title": "The lights point at the problem",
+		"title": "The lights show the problem",
+		"short": "Green: working. Amber: nowhere to send it. Red: nothing coming in.",
 		"unlock": 0,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"]],
 		"watch": "Amber on the left, red on the right.",
@@ -62,7 +71,8 @@ const PAGES := [
 	},
 	{
 		"id": "heat_helps",
-		"title": "Heat is a tool",
+		"title": "Heat can help",
+		"short": "A Smelter likes heat. Put a Boiler next to it.",
 		"unlock": 1,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
 			[2, 1, "boiler"], [3, 0, "vault"]],
@@ -71,7 +81,8 @@ const PAGES := [
 	},
 	{
 		"id": "heat_hurts",
-		"title": "Heat is also a tax",
+		"title": "Heat can hurt",
+		"short": "Too much heat slows a Press down.",
 		"unlock": 2,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
 			[3, 0, "press"], [2, 1, "boiler"], [4, 0, "vault"]],
@@ -80,7 +91,8 @@ const PAGES := [
 	},
 	{
 		"id": "cooling",
-		"title": "Cooling costs a tile",
+		"title": "Cooling",
+		"short": "A Coolant Cell cools the machines around it.",
 		"unlock": 2,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
 			[3, 0, "press"], [2, 1, "boiler"], [3, 1, "coolant"],
@@ -91,6 +103,7 @@ const PAGES := [
 	{
 		"id": "chain",
 		"title": "The long chain",
+		"short": "Ore, gravel, ingot, plate, part: one step at a time.",
 		"unlock": 3,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
 			[3, 0, "press"], [4, 0, "assembler"], [5, 0, "vault"]],
@@ -99,7 +112,8 @@ const PAGES := [
 	},
 	{
 		"id": "research",
-		"title": "Research survives the collapse",
+		"title": "Research lasts",
+		"short": "A Lab turns parts into research. Research stays after a collapse.",
 		"unlock": 4,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
 			[3, 0, "press"], [4, 0, "assembler"], [5, 0, "lab"]],
@@ -108,7 +122,8 @@ const PAGES := [
 	},
 	{
 		"id": "amplify",
-		"title": "Some machines only matter next to others",
+		"title": "Faster together",
+		"short": "An Amplifier makes the machines it touches faster.",
 		"unlock": 4,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "amplifier"],
 			[3, 0, "crusher"], [4, 0, "vault"], [2, 1, "drill"]],
@@ -117,7 +132,8 @@ const PAGES := [
 	},
 	{
 		"id": "depth",
-		"title": "Deeper rock is not just richer",
+		"title": "Deeper is different",
+		"short": "Deeper rock pays more and runs hotter.",
 		"unlock": 5,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "vault"]],
 		"ambient": 2.6,
@@ -126,8 +142,16 @@ const PAGES := [
 	},
 ]
 
+
+## The tab that shows how the factory works rather than a group of machines.
+const RULES_TAB := -1
+
 var _on_close: Callable
-var _list: VBoxContainer
+var _tab: int = 0
+var _tabs: Array[Button] = []
+var _scroll: ScrollContainer
+var _content: VBoxContainer
+var _popup: Control
 
 
 func _ready() -> void:
@@ -157,7 +181,7 @@ static func unlocked_count() -> int:
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.03, 0.04, 0.05, 0.94)
+	dim.color = Color(0.03, 0.04, 0.05, 0.95)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -168,18 +192,31 @@ func _build() -> void:
 	add_child(margin)
 
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
+	col.add_theme_constant_override("separation", 12)
 	margin.add_child(col)
 
+	# One row: the title, a key per group and one for the rules, and close.
 	var head := HBoxContainer.new()
-	var title := _label("Codex", 27, Palette.TEXT)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_theme_constant_override("separation", 10)
+	var title := _label("Codex", 30, Palette.TEXT)
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(title)
-	var close := Button.new()
-	close.text = "✕"
-	close.flat = true
-	close.custom_minimum_size = Vector2(52, 52)
-	close.add_theme_font_size_override("font_size", 22)
+	var tab_scroll := ScrollContainer.new()
+	tab_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tab_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	var tab_row := HBoxContainer.new()
+	tab_row.add_theme_constant_override("separation", 6)
+	tab_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	tab_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab_scroll.add_child(tab_row)
+	for g in range(MachineDB.GROUPS.size()):
+		var info: Dictionary = MachineDB.GROUPS[g]
+		tab_row.add_child(_tab_key(String(info["icon"]), String(info["name"]), g))
+	tab_row.add_child(_tab_key("codex", "How it works", RULES_TAB))
+	head.add_child(tab_scroll)
+	var close := _key("✕", Palette.PANEL_HI)
+	close.custom_minimum_size = Vector2(96, 96)
 	close.pressed.connect(func():
 		if _on_close.is_valid():
 			_on_close.call()
@@ -187,73 +224,334 @@ func _build() -> void:
 	head.add_child(close)
 	col.add_child(head)
 
-	var intro := HBoxContainer.new()
-	intro.add_theme_constant_override("separation", 10)
-	var cx_badge := Foreman.Badge.new(Foreman.Pose.POINT, 62.0)
-	cx_badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	intro.add_child(cx_badge)
-	var intro_lbl: Label = _label(
-		"Small boards that are actually running. Nothing here is a diagram.",
-		15, Palette.TEXT_FAINT)
-	intro_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	intro_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	intro.add_child(intro_lbl)
-	col.add_child(intro)
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(_scroll)
+	_content = VBoxContainer.new()
+	_content.add_theme_constant_override("separation", 16)
+	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_content)
+	show_tab(0)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	col.add_child(scroll)
 
-	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 14)
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_list)
+## A key along the top: the group's picture, and its name small beneath.
+func _tab_key(icon: String, caption: String, tab: int) -> Button:
+	var b := _key("", Palette.PANEL)
+	b.toggle_mode = true
+	b.custom_minimum_size = Vector2(122, 96)
+	b.set_meta("tab", tab)
+	var sb: StyleBoxFlat = (b.get_theme_stylebox("pressed") as StyleBoxFlat).duplicate()
+	sb.bg_color = Palette.PANEL_HI.lerp(Palette.ACCENT, 0.25)
+	sb.border_color = Palette.ACCENT
+	sb.set_border_width_all(3)
+	b.add_theme_stylebox_override("pressed", sb)
+	b.add_theme_stylebox_override("hover_pressed", sb)
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 0)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ic := _icon(icon, 50)
+	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(ic)
+	var l := _label(caption, 15, Palette.TEXT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(l)
+	b.add_child(box)
+	b.pressed.connect(func():
+		Juice.tap()
+		show_tab(tab))
+	_tabs.append(b)
+	return b
 
-	var shown: int = 0
+
+func show_tab(tab: int) -> void:
+	_tab = tab
+	for b: Button in _tabs:
+		b.set_pressed_no_signal(int(b.get_meta("tab")) == tab)
+	for c in _content.get_children():
+		_content.remove_child(c)
+		c.queue_free()
+	if tab == RULES_TAB:
+		_rules()
+	else:
+		_group(tab)
+	_scroll.scroll_vertical = 0
+
+
+## --- a group: its machines, big and working --------------------------------
+
+func _group(g: int) -> void:
+	var info: Dictionary = MachineDB.GROUPS[g]
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 14)
+	head.add_child(_icon(String(info["icon"]), 60))
+	var words := VBoxContainer.new()
+	words.alignment = BoxContainer.ALIGNMENT_CENTER
+	words.add_child(_label(String(info["name"]), 28, Palette.TEXT))
+	words.add_child(_label(String(info["short"]), 19, Palette.TEXT_DIM))
+	head.add_child(words)
+	_content.add_child(head)
+
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 14)
+	row.add_theme_constant_override("v_separation", 14)
+	row.alignment = FlowContainer.ALIGNMENT_CENTER
+	for id: String in MachineDB.by_group(MachineDB.ORDER):
+		if MachineDB.group_of(id) == g:
+			row.add_child(_machine_card(id))
+	_content.add_child(row)
+
+
+## One machine: the machine itself, big and running; its name and one line;
+## what goes in and what comes out; whether it likes heat or cold; and the
+## words behind a "?". One the player has not reached is a dark shape with
+## the stratum it opens at, so the Codex also says what is coming.
+func _machine_card(id: String) -> Control:
+	var m: Dictionary = MachineDB.get_machine(id)
+	var opens: int = int(m["unlock_depth"])
+	var open: bool = opens <= Sim.max_depth
+
+	var card := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = Palette.PANEL_HI if open else Palette.PANEL
+	box.set_corner_radius_all(int(Palette.RADIUS) + 4)
+	box.border_color = Color(Palette.machine_light(id), 0.55) if open else Palette.LINE
+	box.border_width_top = 3
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 10
+	box.content_margin_bottom = 12
+	card.add_theme_stylebox_override("panel", box)
+	card.custom_minimum_size = Vector2(330, 0)
+	card.set_meta("machine_id", id)
+	card.set_meta("open", open)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	card.add_child(col)
+
+	var pic_box := Control.new()
+	pic_box.custom_minimum_size = Vector2(302, 200)
+	var pic := Chips.MachineSprite.new(id, 200.0, open)
+	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pic_box.add_child(pic)
+	if not open:
+		pic.modulate = Color(0.12, 0.13, 0.17, 0.95)
+		var lock := _icon("lock", 84)
+		lock.set_anchors_preset(Control.PRESET_CENTER)
+		lock.offset_left = -42
+		lock.offset_top = -42
+		lock.offset_right = 42
+		lock.offset_bottom = 42
+		pic_box.add_child(lock)
+		# Where it opens: the Descend sign and the stratum.
+		var when := HBoxContainer.new()
+		when.add_theme_constant_override("separation", 4)
+		when.position = Vector2(4, 4)
+		when.add_child(_icon("descend", 44))
+		when.add_child(_label(str(opens), 30, Palette.TEXT))
+		pic_box.add_child(when)
+	col.add_child(pic_box)
+	# The words, in the picture's corner: the picture is the card.
+	var help := _help(String(m["name"]), func() -> String:
+		var t: String = MachineDB.recipe_text(id)
+		var lines: Array[String] = []
+		if t != "":
+			lines.append(t)
+		lines.append(String(m["desc"]))
+		match MachineDB.heat_liking(id):
+			1:
+				lines.append("It runs best warm: around %.1f heat." % float(m["heat_optimum"]))
+			-1:
+				lines.append("It runs best cool, and slows down past %.1f heat." % float(m["heat_tolerance"]))
+		if not open:
+			lines.append("It opens at stratum %d." % opens)
+		return "
+
+".join(lines))
+	help.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	help.offset_left = -96
+	help.offset_right = 0
+	help.offset_top = 0
+	help.offset_bottom = 96
+	pic_box.add_child(help)
+
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 8)
+	var name_lbl := _label(String(m["name"]), 26, Palette.TEXT if open else Palette.TEXT_DIM)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(name_lbl)
+	var liking: int = MachineDB.heat_liking(id)
+	if liking != 0:
+		name_row.add_child(_icon("heat" if liking > 0 else "cold", 38))
+	col.add_child(name_row)
+	var short := _label(String(m.get("short", "")), 19, Palette.TEXT_DIM)
+	short.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	short.custom_minimum_size = Vector2(302, 0)
+	col.add_child(short)
+
+	# What goes in, the machine, and what comes out.
+	var flow: Control = Chips.flow(id, 42.0)
+	flow.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(flow)
+	return card
+
+
+## --- the rules, each on a small board that is really running ---------------
+
+func _rules() -> void:
 	for page: Dictionary in PAGES:
 		if int(page.get("unlock", 0)) > Sim.max_depth:
 			continue
-		_list.add_child(_page(page))
-		shown += 1
-	var locked: int = PAGES.size() - shown
+		_content.add_child(_page(page))
+	var locked: int = PAGES.size() - unlocked_count()
 	if locked > 0:
-		_list.add_child(_label(
-			"%d more pages open as you go deeper." % locked, 15,
-			Palette.TEXT_FAINT))
+		# The pages still to come, as a lock and a count.
+		var more := HBoxContainer.new()
+		more.alignment = BoxContainer.ALIGNMENT_CENTER
+		more.add_theme_constant_override("separation", 10)
+		more.add_child(_icon("lock", 48))
+		more.add_child(_label("+%d" % locked, 28, Palette.TEXT_DIM))
+		more.add_child(_icon("descend", 48))
+		_content.add_child(more)
 
 
 func _page(page: Dictionary) -> Control:
 	var panel := PanelContainer.new()
 	var box := StyleBoxFlat.new()
 	box.bg_color = Palette.PANEL
-	box.content_margin_left = 12
-	box.content_margin_right = 12
-	box.content_margin_top = 10
-	box.content_margin_bottom = 10
+	box.set_corner_radius_all(int(Palette.RADIUS) + 4)
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 12
+	box.content_margin_bottom = 12
 	panel.add_theme_stylebox_override("panel", box)
+	panel.set_meta("page_id", String(page["id"]))
 
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 6)
-	panel.add_child(col)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 22)
+	panel.add_child(row)
 
-	col.add_child(_label(String(page["title"]), 21, Palette.TEXT))
-
-	var scroll := ScrollContainer.new()
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# The board first and big: it is the page.
 	var mini: Control = (load("res://scripts/ui/mini_board.gd") as GDScript).new()
-	scroll.add_child(mini)
-	col.add_child(scroll)
-	mini.call("setup", page["board"], float(page.get("ambient", 0.0)))
-	# Exactly as tall as the board it holds. A fixed height leaves a page
-	# that is mostly empty, which reads as something failing to load.
-	scroll.custom_minimum_size = Vector2(0, mini.custom_minimum_size.y + 4.0)
+	mini.call("setup", page["board"], float(page.get("ambient", 0.0)), 96.0)
+	var board_scroll := ScrollContainer.new()
+	board_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	board_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	board_scroll.add_child(mini)
+	board_scroll.custom_minimum_size = Vector2(minf(mini.custom_minimum_size.x, 600.0),
+		mini.custom_minimum_size.y + 4.0)
+	row.add_child(board_scroll)
 
-	col.add_child(_label(String(page["watch"]), 16, Palette.ACCENT))
-	var body := _label(String(page["body"]), 16, Palette.TEXT_DIM)
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(body)
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.alignment = BoxContainer.ALIGNMENT_CENTER
+	words.add_theme_constant_override("separation", 8)
+	words.add_child(_label(String(page["title"]), 26, Palette.TEXT))
+	var short := _label(String(page.get("short", "")), 20, Palette.TEXT)
+	short.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(short)
+	var watch := _label(String(page["watch"]), 17, Palette.ACCENT)
+	watch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(watch)
+	row.add_child(words)
+	var body: String = String(page["body"])
+	var help := _help(String(page["title"]), func() -> String: return body)
+	help.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(help)
 	return panel
+
+
+## --- the words, one tap away --------------------------------------------------
+
+func _help(title: String, text: Callable) -> Button:
+	var b := _key("?", Palette.LINE)
+	b.add_theme_color_override("font_color", Palette.ACCENT)
+	b.add_theme_font_size_override("font_size", 32)
+	b.custom_minimum_size = Vector2(96, 96)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_END
+	b.size_flags_vertical = Control.SIZE_SHRINK_END
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var sb: StyleBox = b.get_theme_stylebox(state)
+		if sb is StyleBoxFlat:
+			(sb as StyleBoxFlat).set_corner_radius_all(48)
+	b.pressed.connect(func():
+		Juice.tap()
+		_say(title, String(text.call())))
+	return b
+
+
+func _say(title: String, text: String) -> void:
+	if _popup != null and is_instance_valid(_popup):
+		_popup.queue_free()
+	_popup = Control.new()
+	_popup.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_popup.size = size
+	add_child(_popup)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(e):
+		if (e is InputEventScreenTouch or e is InputEventMouseButton) and e.pressed:
+			_popup.queue_free())
+	_popup.add_child(dim)
+	var card := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = Palette.PANEL_HI
+	box.set_corner_radius_all(int(Palette.RADIUS) + 4)
+	for side: String in ["left", "right", "top", "bottom"]:
+		box.set("content_margin_" + side, 18)
+	card.add_theme_stylebox_override("panel", box)
+	var w: float = minf(760.0, size.x - 64.0)
+	card.custom_minimum_size = Vector2(w, 0)
+	card.position = Vector2((size.x - w) * 0.5, size.y * 0.18)
+	_popup.add_child(card)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	card.add_child(col)
+	var head := HBoxContainer.new()
+	var t := _label(title, 28, Palette.TEXT)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	var close := _key("✕", Palette.PANEL)
+	close.custom_minimum_size = Vector2(96, 96)
+	close.pressed.connect(func(): _popup.queue_free())
+	head.add_child(close)
+	col.add_child(head)
+	var l := _label(text, 20, Palette.TEXT_DIM)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(l)
+
+
+## --- building blocks -----------------------------------------------------------
+
+func _key(text: String, col: Color) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.add_theme_font_size_override("font_size", 30)
+	b.add_theme_color_override("font_color", Palette.TEXT)
+	for state in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = col if state != "pressed" else col.darkened(0.18)
+		if state == "hover":
+			sb.bg_color = col.lightened(0.08)
+		sb.set_corner_radius_all(int(Palette.RADIUS) + 2)
+		sb.border_width_top = 2
+		sb.border_color = sb.bg_color.lerp(Color.WHITE, 0.25)
+		b.add_theme_stylebox_override(state, sb)
+	return b
+
+
+func _icon(name: String, px: float) -> TextureRect:
+	var ic := TextureRect.new()
+	ic.texture = IsoArt.icon(name)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.custom_minimum_size = Vector2(px, px)
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return ic
 
 
 func _label(text: String, size_px: int, col: Color) -> Label:
