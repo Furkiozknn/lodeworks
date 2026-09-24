@@ -67,8 +67,9 @@ func _ready() -> void:
 	var main: Control = get_parent().get_node("Main")
 	await tree.process_frame
 	main.call("_close_overlay")
-	_set_state("board")
-	print("%-18s %-12s %9s %9s %8s %s" % ["screen", "canvas", "cell dp", "max dp", "board%", "notes"])
+	_set_state("board", main)
+	print("%-18s %-12s %9s %9s %8s %6s %s" % ["screen", "canvas", "cell dp", "max dp", "board%",
+		"hud%", "notes"])
 	print("(cell dp = a cell's height at the default and the closest zoom; 0 = no density, desktop window)")
 	for s: Array in SIZES:
 		tree.root.size = s[1]
@@ -79,9 +80,9 @@ func _ready() -> void:
 			_check(main, String(s[0]), Vector2(s[1]), int(s[2]), inset,
 				s.size() < 4 or bool(s[3]))
 	print("")
-	_set_state("yard")
+	_set_state("yard", main)
 	print("a new game: the Core dark, the first yard")
-	print("%-18s %-12s %9s %8s %s" % ["screen", "canvas", "cell dp", "yard%", "notes"])
+	print("%-18s %-12s %9s %8s %6s %s" % ["screen", "canvas", "cell dp", "yard%", "hud%", "notes"])
 	for s: Array in SIZES:
 		tree.root.size = s[1]
 		for inset: Vector4 in INSETS:
@@ -161,20 +162,29 @@ func _check(main: Control, name: String, window: Vector2, dpi: int, inset: Vecto
 		if canvas.x > canvas.y and share < MIN_BOARD_SHARE:
 			_fail.append("%s: the board is %.1f%% of the screen, under %.0f%%" % [tag, share,
 				MIN_BOARD_SHARE])
-		print("%-18s %-12s %9.1f %9.1f %7.1f%% %s" % [name, "%dx%d" % [int(canvas.x), int(canvas.y)],
-			cell_dp, max_dp, share,
-			"zoom %.2f, %.2f px/unit" % [view.cam.zoom, scale_px]])
+		print("%-18s %-12s %9.1f %9.1f %7.1f%% %5.1f%% %s" % [name,
+			"%dx%d" % [int(canvas.x), int(canvas.y)], cell_dp, max_dp, share,
+			_hud_share(rects, canvas), "zoom %.2f, %.2f px/unit" % [view.cam.zoom, scale_px]])
 
 
 ## "board": a shaft that has collapsed once, so the whole board is open --
 ## what the board-share numbers have always measured. "yard": a new game.
-func _set_state(state: String) -> void:
+func _set_state(state: String, main: Control) -> void:
 	Sim.grid.clear()
 	Sim.depth = 0
 	Sim.max_depth = 0
+	Sim.research = 0.0
+	Sim.cores = 0
+	Sim.upgrade_levels = {}
 	Sim.collapses = 1 if state == "board" else 0
 	Sim.core_online = state == "board"
+	Sim._tutorial_step = Tutorial.count() if state == "board" else 0
+	Sim.unlocked.clear()
 	Sim._recompute()
+	# The interface shows what the state has grown into (main._show_what_matters),
+	# and the tray holds what that stratum has unlocked.
+	main.call("_rebuild_palette")
+	main.call("_refresh")
 
 
 func _check_yard(main: Control, name: String, window: Vector2, dpi: int,
@@ -205,15 +215,29 @@ func _check_yard(main: Control, name: String, window: Vector2, dpi: int,
 			_fail.append("%s: the %s panel covers part of the yard" % [tag, k])
 		if r.grow(8.0).has_point(tap):
 			_fail.append("%s: the %s panel covers the Core's tap point" % [tag, k])
+	if inset == Vector4.ZERO and OS.get_environment("LODEWORKS_LAYOUT_RECTS") == "1":
+		for k: String in rects:
+			print("    %-10s %s" % [k, str(rects[k])])
 	if inset == Vector4.ZERO:
 		var dp_per_unit: float = 0.0
 		if dpi > 0:
 			dp_per_unit = (minf(window.x, window.y) / minf(canvas.x, canvas.y)) \
 				/ (float(dpi) / 160.0)
-		print("%-18s %-12s %9.1f %7.1f%% %s" % [name, "%dx%d" % [int(canvas.x), int(canvas.y)],
-			Iso.TH * view.cam.zoom * dp_per_unit,
-			100.0 * absf(_poly_area(corners)) / (canvas.x * canvas.y),
+		print("%-18s %-12s %9.1f %7.1f%% %5.1f%% %s" % [name,
+			"%dx%d" % [int(canvas.x), int(canvas.y)], Iso.TH * view.cam.zoom * dp_per_unit,
+			100.0 * absf(_poly_area(corners)) / (canvas.x * canvas.y), _hud_share(rects, canvas),
 			"zoom %.2f, Core tap at %s" % [view.cam.zoom, str(tap.round())]])
+
+
+## Percent of the screen the interface's panels cover. They never overlap
+## (the check above fails if they do), so their areas add up.
+func _hud_share(rects: Dictionary, canvas: Vector2) -> float:
+	var a: float = 0.0
+	var screen := Rect2(Vector2.ZERO, canvas)
+	for k: String in rects:
+		var r: Rect2 = (rects[k] as Rect2).intersection(screen)
+		a += r.size.x * r.size.y
+	return 100.0 * a / (canvas.x * canvas.y)
 
 
 func _poly_area(p: PackedVector2Array) -> float:

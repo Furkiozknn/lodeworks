@@ -29,11 +29,12 @@ extends Control
 const PANEL_FADE := 0.14
 ## The interface's own margin inside the safe area.
 const M := 14.0
-const TOP_H := 78.0
-const BOTTOM_H := 124.0
-const ACTION_W := 100.0
+const TOP_H := 66.0
+## The bottom bar: a 96-unit key and the tray's margin round it.
+const BOTTOM_H := 110.0
+const ACTION_W := 96.0
 const TOOL_W := 96.0
-const DESCEND_W := 236.0
+const DESCEND_W := 204.0
 ## Android's 48dp touch floor, in canvas units, on the phone where a canvas
 ## unit is smallest: a 16:9 1080p phone at 420 dpi, whose canvas grows to
 ## 1440x810, so one unit is 1080/810 px = 0.51 dp and 48 dp is 95 units.
@@ -43,6 +44,13 @@ const MIN_TOUCH := 96.0
 var iso_view: IsoView
 var _hud: Control
 var _stratum_card: Control
+## Parts of the interface a new player has no use for yet. They appear when
+## they first mean something (_refresh): the world first, the interface as
+## the game grows into it.
+var _pill_research: Control
+var _pill_cores: Control
+var _btn_research: Button
+var _btn_collapse: Button
 var _resources: Control
 var _tools: Control
 var _actions: Control
@@ -289,10 +297,10 @@ func _panel(col: Color = Palette.PANEL, alpha: float = 0.86) -> PanelContainer:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(col, alpha)
 	sb.set_corner_radius_all(int(Palette.RADIUS) + 4)
-	sb.content_margin_left = 12
-	sb.content_margin_right = 12
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
 	sb.border_width_top = 2
 	sb.border_width_bottom = 1
 	sb.border_width_left = 1
@@ -340,7 +348,7 @@ func _button(text: String, col: Color) -> Button:
 ## A square key with a picture on it and a word under the picture.
 func _icon_button(icon_name: String, caption: String, col: Color) -> Button:
 	var b := _button("", col)
-	b.custom_minimum_size = Vector2(ACTION_W, MIN_TOUCH + 4.0)
+	b.custom_minimum_size = Vector2(ACTION_W, MIN_TOUCH)
 	b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -351,10 +359,10 @@ func _icon_button(icon_name: String, caption: String, col: Color) -> Button:
 	ic.texture = IsoArt.icon(icon_name)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.custom_minimum_size = Vector2(0, 52)
+	ic.custom_minimum_size = Vector2(0, 46)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(ic)
-	var l := _label(caption, 14, Palette.TEXT)
+	var l := _label(caption, 13, Palette.TEXT)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(l)
 	b.add_child(box)
@@ -376,21 +384,21 @@ func _build_stratum_card() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	p.add_child(row)
-	row.add_child(_icon_rect("descend", 56))
+	row.add_child(_icon_rect("descend", 44))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
-	col.custom_minimum_size = Vector2(250, 0)
+	col.custom_minimum_size = Vector2(212, 0)
 	row.add_child(col)
 	var top := HBoxContainer.new()
-	_lbl_depth = _label("Stratum 0", 22, Palette.TEXT)
+	_lbl_depth = _label("Stratum 0", 20, Palette.TEXT)
 	_lbl_depth.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_lbl_depth)
-	_lbl_band = _label("", 15, Palette.CORE)
+	_lbl_band = _label("", 14, Palette.CORE)
 	top.add_child(_lbl_band)
 	col.add_child(top)
 	_quota_bar = ProgressBar.new()
 	_quota_bar.show_percentage = false
-	_quota_bar.custom_minimum_size = Vector2(0, 10)
+	_quota_bar.custom_minimum_size = Vector2(0, 8)
 	_quota_bar.min_value = 0.0
 	_quota_bar.max_value = 1.0
 	var fill := StyleBoxFlat.new()
@@ -403,11 +411,11 @@ func _build_stratum_card() -> Control:
 	_quota_bar.add_theme_stylebox_override("background", back)
 	_quota_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_quota_bar)
-	_lbl_quota = _label("", 14, Palette.TEXT_DIM)
+	_lbl_quota = _label("", 13, Palette.TEXT_DIM)
 	col.add_child(_lbl_quota)
 	_lbl_mods = _label("", 13, Palette.WARN)
 	_lbl_mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_lbl_mods.custom_minimum_size = Vector2(250, 0)
+	_lbl_mods.custom_minimum_size = Vector2(212, 0)
 	col.add_child(_lbl_mods)
 	return p
 
@@ -417,7 +425,7 @@ func _pill(icon_name: String, value: Label, sub: Label = null) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	p.add_child(row)
-	row.add_child(_icon_rect(icon_name, 40))
+	row.add_child(_icon_rect(icon_name, 34))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", -4)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -433,19 +441,21 @@ func _build_resources() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_lbl_credits = _label("0", 26, Palette.CORE)
-	_lbl_rate = _label("0 /s", 14, Palette.TEXT_DIM)
+	_lbl_credits = _label("0", 24, Palette.CORE)
+	_lbl_rate = _label("0 /s", 13, Palette.TEXT_DIM)
 	var money := _pill("credits", _lbl_credits, _lbl_rate)
-	money.custom_minimum_size = Vector2(170, 0)
+	money.custom_minimum_size = Vector2(146, 0)
 	row.add_child(money)
-	_lbl_research = _label("0", 22, Palette.RESEARCH)
-	row.add_child(_pill("research", _lbl_research))
-	_lbl_cores = _label("0", 22, Palette.CORE)
-	row.add_child(_pill("cores", _lbl_cores))
+	_lbl_research = _label("0", 20, Palette.RESEARCH)
+	_pill_research = _pill("research", _lbl_research)
+	row.add_child(_pill_research)
+	_lbl_cores = _label("0", 20, Palette.CORE)
+	_pill_cores = _pill("cores", _lbl_cores)
+	row.add_child(_pill_cores)
 	var menu := _button("", Palette.PANEL_HI)
 	menu.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	menu.size_flags_horizontal = Control.SIZE_SHRINK_END
-	var ic := _icon_rect("settings", 50)
+	var ic := _icon_rect("settings", 42)
 	ic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(ic)
 	menu.pressed.connect(_show_settings)
@@ -455,13 +465,13 @@ func _build_resources() -> Control:
 
 func _build_tools() -> Control:
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
+	col.add_theme_constant_override("separation", 8)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	_btn_heat = _button("", Palette.PANEL_HI)
 	_btn_heat.toggle_mode = true
 	_btn_heat.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
-	var hic := _icon_rect("heat", 54)
+	var hic := _icon_rect("heat", 46)
 	hic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_btn_heat.add_child(hic)
 	_btn_heat.tooltip_text = "Heat view"
@@ -476,7 +486,7 @@ func _build_tools() -> Control:
 	# One key: in to the middle of the screen, or back out to the whole
 	# factory. The pinch and the wheel do everything in between.
 	_btn_zoom = _button("+", Palette.PANEL_HI)
-	_btn_zoom.add_theme_font_size_override("font_size", 40)
+	_btn_zoom.add_theme_font_size_override("font_size", 34)
 	_btn_zoom.add_theme_color_override("font_color", Palette.TEXT)
 	_btn_zoom.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
 	_btn_zoom.tooltip_text = "Zoom"
@@ -494,7 +504,7 @@ func _build_tools() -> Control:
 	# camera glides to it. The count is on the key.
 	_btn_problems = _button("", Palette.PANEL_HI)
 	_btn_problems.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
-	var wic := _icon_rect("warning", 50)
+	var wic := _icon_rect("warning", 42)
 	wic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_btn_problems.add_child(wic)
 	_lbl_problem_count = _label("", 16, Palette.TEXT)
@@ -516,12 +526,12 @@ func _build_actions() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var research_btn := _icon_button("research", "Research", Palette.PANEL_HI)
-	research_btn.pressed.connect(_show_research)
-	row.add_child(research_btn)
-	var collapse_btn := _icon_button("cores", "Collapse", Palette.PANEL_HI)
-	collapse_btn.pressed.connect(_show_collapse)
-	row.add_child(collapse_btn)
+	_btn_research = _icon_button("research", "Research", Palette.PANEL_HI)
+	_btn_research.pressed.connect(_show_research)
+	row.add_child(_btn_research)
+	_btn_collapse = _icon_button("cores", "Collapse", Palette.PANEL_HI)
+	_btn_collapse.pressed.connect(_show_collapse)
+	row.add_child(_btn_collapse)
 	# The Codex is one tap from the board because its whole job is to be
 	# reachable at the moment a player is confused.
 	var codex := _icon_button("codex", "Codex", Palette.PANEL_HI)
@@ -533,7 +543,8 @@ func _build_actions() -> Control:
 func _build_tray() -> Control:
 	var p := _panel(Palette.PANEL, 0.80)
 	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	# Drag to scroll a long tray; no bar, which would make the tray taller.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
 	p.add_child(scroll)
@@ -552,13 +563,13 @@ func _build_descend() -> Control:
 	row.offset_right = -10
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 8)
-	row.add_child(_icon_rect("descend", 70))
+	row.add_child(_icon_rect("descend", 56))
 	var col := VBoxContainer.new()
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_theme_constant_override("separation", -2)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(_label("DESCEND", 26, Palette.BG))
-	_lbl_descend_sub = _label("", 15, Color(Palette.BG, 0.8))
+	col.add_child(_label("DESCEND", 22, Palette.BG))
+	_lbl_descend_sub = _label("", 14, Color(Palette.BG, 0.8))
 	col.add_child(_lbl_descend_sub)
 	row.add_child(col)
 	_btn_descend.add_child(row)
@@ -648,8 +659,11 @@ func _layout_hud() -> void:
 	_place(_descend_box, Vector2(r - DESCEND_W, b - BOTTOM_H))
 	var tray_l: float = l + as_.x + 12.0
 	var tray_r: float = r - DESCEND_W - 12.0
+	# As wide as the machines in it, not the whole bar: three machines are a
+	# short tray, and the world shows either side of it.
+	var tray_w: float = _palette_row.get_combined_minimum_size().x + 26.0
 	_tray.position = Vector2(tray_l, b - BOTTOM_H)
-	_tray.size = Vector2(maxf(tray_r - tray_l, 120.0), BOTTOM_H)
+	_tray.size = Vector2(clampf(tray_w, 120.0, maxf(tray_r - tray_l, 120.0)), BOTTOM_H)
 	var sheet_h: float = BOTTOM_H + 70.0
 	_sheet.position = Vector2(tray_l, b - sheet_h)
 	_sheet.size = Vector2(maxf(tray_r - tray_l, 120.0), sheet_h)
@@ -814,7 +828,7 @@ class MachineSprite extends Control:
 func _make_palette_button(id: String) -> Control:
 	var m: Dictionary = MachineDB.get_machine(id)
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(98, BOTTOM_H - 20.0)
+	b.custom_minimum_size = Vector2(98, MIN_TOUCH)
 	b.toggle_mode = true
 	b.tooltip_text = "%s\n%s\n%s" % [m["name"],
 		MachineDB.recipe_text(id), m["desc"]]
@@ -839,7 +853,7 @@ func _make_palette_button(id: String) -> Control:
 	col.add_theme_constant_override("separation", -2)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var chip := MachineSprite.new(id, 64.0)
+	var chip := MachineSprite.new(id, 58.0)
 	chip.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(chip)
 	var name_lbl: Label = _label(String(m["name"]), 13, Palette.TEXT)
@@ -1034,6 +1048,7 @@ func _refresh() -> void:
 	_lbl_rate.text = "+%s /s" % Economy.fmt(Sim.credits_per_sec)
 	_lbl_research.text = Economy.fmt(Sim.research)
 	_lbl_cores.text = str(Sim.cores)
+	_show_what_matters()
 
 	var s: Dictionary = Sim.stratum()
 	_lbl_depth.text = "Stratum %d" % Sim.depth
@@ -1075,6 +1090,26 @@ func _refresh() -> void:
 			1.0 if afford else 0.45)
 	if _stratum_card != null:
 		_layout_hud()
+
+
+## The interface a player has grown into. A new game shows the Stratum,
+## credits, the settings key, the zoom key, the Codex, the tray and Descend;
+## research, Cores, the collapse, the heat view and the problem list appear
+## the first time they mean something, and stay.
+func _show_what_matters() -> void:
+	var veteran: bool = Sim.collapses > 0
+	var research: bool = veteran or Sim.research > 0.0 or Sim.is_unlocked("lab") \
+		or not Sim.upgrade_levels.is_empty()
+	var cores: bool = veteran or Sim.cores > 0 or Economy.can_collapse(Sim.max_depth)
+	var step: int = Sim.tutorial_step()
+	var heat: bool = veteran or Tutorial.is_done(step) or step >= Tutorial.index_of("see_heat") \
+		or Sim.tutorial_saw_heat
+	_pill_research.visible = research
+	_btn_research.visible = research
+	_pill_cores.visible = cores
+	_btn_collapse.visible = cores
+	_btn_heat.visible = heat
+	_btn_problems.visible = veteran or not Sim.grid.cells.is_empty()
 
 
 ## --- undo ------------------------------------------------------------------

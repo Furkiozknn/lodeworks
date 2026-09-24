@@ -105,6 +105,14 @@ static func count() -> int:
 	return STEPS.size()
 
 
+## Where the step with this id is in the chapter, or past its end.
+static func index_of(id: String) -> int:
+	for i in range(STEPS.size()):
+		if String(STEPS[i]["id"]) == id:
+			return i
+	return STEPS.size()
+
+
 static func step(index: int) -> Dictionary:
 	if index < 0 or index >= STEPS.size():
 		return {}

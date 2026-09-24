@@ -331,6 +331,38 @@ shapes instead of 32–34. On tablets the view stops at zoom 1.15 so the
 world stays in sight. A shaft with the whole board open frames exactly as
 before: 21.5% of a 2:1 screen.
 
+### The interface steps back
+
+The panels covered 26% of a 2:1 screen, on a new game as much as on a deep
+one. The layout check now prints the share (`hud%`), for a shaft with the
+whole board and for a new game.
+
+| | new game, 2:1 | whole board, 2:1 | whole board, 16:9 | board share, 2:1 |
+|---|---|---|---|---|
+| before | 26.0% | 26.0% | 23.1% | 21.5% |
+| after | 11.6% | 16.9% | 20.2% | 22.6% |
+
+**Parts appear when they first mean something.** A new game shows the
+stratum, the credits, the settings key, the zoom key, the Codex, the tray
+and Descend. The rest appears when it first matters, and stays:
+- **Research** (the counter and the key): once there is any research, a Lab,
+  an upgrade, or a collapse behind the player.
+- **Cores and Collapse**: once a collapse is possible or has happened.
+- **The heat view**: from the tutorial step that asks for it.
+- **The problem list**: once there is a machine that could have one.
+
+**The tray is as wide as what is in it.** Three machines make a short tray,
+and the world shows either side of it. It scrolls by dragging, with no
+scroll bar to make it taller.
+
+**Everything is a little smaller, and no key is.** The bottom bar is 110
+units instead of 124, and Descend 204 wide instead of 236. Pictures, type
+and panel margins are smaller. Every key is still 96 units square, the 48 dp
+floor the layout check enforces.
+
+The whole-board figure depends on how many machines the tray holds. It is
+measured at stratum 0.
+
 ### Touch: a tap takes the machine it is on
 
 A machine's picture stands well above its own tile: the upper half covers
