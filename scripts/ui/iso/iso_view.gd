@@ -215,21 +215,35 @@ func frame_board() -> void:
 	_framed = true
 
 
-## Does any panel cover part of the board, as the camera frames it now?
+## Does any panel cover part of the yard -- the board, once the yard is the
+## whole board -- as the camera frames it now? While the Core is dark its
+## picture must be clear of panels too: it is the one thing to tap.
 ##
-## The Core is left out on purpose. Keeping it clear of the stratum card too
-## stepped the view back until the board was 14% of a 2:1 screen instead of
-## 21.5%; the card is what has to make room (docs/AUDIT.md, "The first
-## minute").
+## Once it is online it is left out on purpose. Keeping it clear of the
+## stratum card as well stepped the view back until the board was 14% of a
+## 2:1 screen instead of 21.5%, and a four-strata yard came out at 27 dp
+## tiles instead of 35 (docs/AUDIT.md, "The first minute").
 func board_under_panel() -> bool:
+	var polys: Array[PackedVector2Array] = []
 	var corners := PackedVector2Array()
 	for p in yard_corners():
 		corners.append(cam.world_to_screen(p))
+	polys.append(corners)
+	if not Sim.core_online:
+		var cr: Rect2 = core_rect()
+		# The picture, less the clear margin its rectangle carries.
+		cr = cr.grow_individual(-cr.size.x * 0.2, -cr.size.y * 0.02, -cr.size.x * 0.2, 0.0)
+		var core := PackedVector2Array()
+		for p in [cr.position, Vector2(cr.end.x, cr.position.y), cr.end,
+				Vector2(cr.position.x, cr.end.y)]:
+			core.append(cam.world_to_screen(p))
+		polys.append(core)
 	for r: Rect2 in avoid_rects:
 		var box := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end,
 			Vector2(r.position.x, r.end.y)])
-		if not Geometry2D.intersect_polygons(corners, box).is_empty():
-			return true
+		for poly in polys:
+			if not Geometry2D.intersect_polygons(poly, box).is_empty():
+				return true
 	return false
 
 
@@ -1019,6 +1033,7 @@ func _draw_floor_glow() -> void:
 		var c: Vector2 = Iso.cell_center(cell)
 		ci.draw_texture_rect(g, Rect2(c - Vector2(Iso.TW, Iso.TH) * 0.95,
 			Vector2(Iso.TW, Iso.TH) * 1.9), false, col)
+	_draw_core_conduits(ci)
 	# The ring round a dark Core's base: the one thing to tap.
 	if highlight_core:
 		var n: float = float(IsoArt.placement().get("core_size", 3))
@@ -1087,12 +1102,26 @@ func core_center() -> Vector2:
 	return Iso.slab_top(float(cc[0]) + n * 0.5, float(cc[1]) + n * 0.5)
 
 
+## The Core grows with its shaft: level 1 as a shaft opens, one more for
+## each stratum it has been taken down, 5 from the fourth. The level is only
+## what the Core looks like -- its size, its light, the conduits it runs into
+## the yard -- and it reads the depth the shaft has already reached, so it
+## asks nothing new of the player.
+const CORE_LEVELS := 5
+
+
+static func core_level() -> int:
+	return 1 + clampi(Sim.max_depth, 0, CORE_LEVELS - 1)
+
+
 func core_rect() -> Rect2:
 	var info: Dictionary = IsoArt.layout().get("core", {})
 	if info.is_empty():
 		return Rect2(core_center(), Vector2.ZERO)
 	var n: float = float(IsoArt.placement().get("core_size", 3))
-	var s: float = n * Iso.TW * 0.86 / IsoArt.base_px(info)
+	# A level-1 Core is 84% of the full one; each level adds 4%.
+	var grow: float = 0.84 + 0.04 * float(core_level() - 1)
+	var s: float = n * Iso.TW * 0.86 / IsoArt.base_px(info) * grow
 	var cell: Array = info["cell"]
 	var a: Vector2 = IsoArt.anchor(info)
 	return Rect2(core_center() - a * s, Vector2(float(cell[0]), float(cell[1])) * s)
@@ -1361,6 +1390,50 @@ func _draw_work(ci: CanvasItem, g: Texture2D) -> void:
 				_mote(ci, g, c - Vector2(0, 56), 16.0 + 8.0 * pl, col)
 
 
+## What a Core's level looks like beyond its size: from level 2 a halo at
+## its base, from level 3 motes of energy circling it, one more per level,
+## and at level 5 a slow flare from its crystal. All light, all in this
+## layer.
+func _draw_core_level(ci: CanvasItem, g: Texture2D, cr: Rect2) -> void:
+	var lvl: int = core_level()
+	var base: Vector2 = core_center()
+	if lvl >= 2:
+		var halo := Color(0.45, 0.85, 1.0, 0.10 + 0.04 * float(lvl))
+		ci.draw_texture_rect(g, Rect2(base - Vector2(170, 90), Vector2(340, 180)), false, halo)
+	if lvl >= 3:
+		var mid: Vector2 = cr.position + cr.size * Vector2(0.5, 0.45)
+		for k in range(lvl - 1):
+			var a: float = _anim * 0.9 + TAU * float(k) / float(lvl - 1)
+			var p: Vector2 = mid + Vector2(cos(a) * cr.size.x * 0.42, sin(a) * cr.size.x * 0.16)
+			_mote(ci, g, p, 9.0, Color(0.55, 0.9, 1.0, 0.55))
+	if lvl >= 5:
+		var tip := Vector2(cr.get_center().x, cr.position.y + cr.size.y * 0.12)
+		var f: float = maxf(sin(_anim * 0.8), 0.0)
+		_mote(ci, g, tip, 60.0 + 50.0 * f, Color(0.6, 0.9, 1.0, 0.25 * f))
+
+
+## The Core's conduits into the yard, from level 2: lit lines on the floor
+## from its base to the tiles beside it, with light running along them -- the
+## Core powering the ground the factory stands on.
+func _draw_core_conduits(ci: CanvasItem) -> void:
+	if not Sim.core_online:
+		return
+	var n: int = mini(core_level() - 1, 3)
+	var base: Vector2 = core_center()
+	var tris := Tris.new()
+	for k in range(n):
+		var cell: int = Grid.idx(0, Grid.H - 1 - k)
+		var to: Vector2 = Iso.cell_center(cell) - Vector2(Iso.TW * 0.25, 0)
+		var lit: Color = Palette.ACCENT
+		lit.a = 0.35
+		tris.band(base, to, 5.0, lit)
+		var t: float = fposmod(_anim * 0.7 + float(k) * 0.33, 1.0)
+		var bead: Color = Palette.ACCENT.lerp(Color.WHITE, 0.4)
+		bead.a = 0.9 * sin(t * PI)
+		tris.dot(base.lerp(to, t), 5.0, bead)
+	tris.flush(ci)
+
+
 ## A soft round of light at `p`.
 func _mote(ci: CanvasItem, g: Texture2D, p: Vector2, r: float, col: Color) -> void:
 	ci.draw_texture_rect(g, Rect2(p - Vector2(r, r), Vector2(r, r) * 2.0), false, col)
@@ -1430,6 +1503,7 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 		var tip := Vector2(cr.get_center().x, cr.position.y + cr.size.y * 0.16)
 		var col3 := Color(0.45, 0.85, 1.0, (0.35 + 0.15 * sin(_anim * 2.2)) * k2)
 		ci.draw_texture_rect(g, Rect2(tip - Vector2(70, 70), Vector2(140, 140)), false, col3)
+		_draw_core_level(ci, g, cr)
 	# Dust in the lamp light: a fixed set of motes on slow loops over the slab.
 	var slab: PackedVector2Array = Iso.slab_corners()
 	var left: float = slab[3].x

@@ -1251,10 +1251,13 @@ func _on_core_tapped() -> void:
 		_refresh()
 		_refresh_hint()
 		return
-	_info("Factory Core", ("The heart of this shaft. It gave you the credits for your "
-		+ "first Drill and Vault; everything since, the board has earned.\n\n"
-		+ "Stratum %d. Descend to take it deeper: every stratum is richer rock, "
-		+ "and new machines open on the way down.") % Sim.depth)
+	var lvl: int = IsoView.core_level()
+	var next: String = "It is as big as it gets." if lvl >= IsoView.CORE_LEVELS \
+		else "Descend to take it deeper: at stratum %d it grows to level %d." % [lvl, lvl + 1]
+	_info("Factory Core, level %d" % lvl, ("The heart of this shaft. It gave you the "
+		+ "credits for your first Drill and Vault; everything since, the board has "
+		+ "earned.\n\nStratum %d. %s Every stratum is richer rock, and new machines "
+		+ "open on the way down.") % [Sim.depth, next])
 
 
 ## Some steps have their answer on a button rather than on the board.

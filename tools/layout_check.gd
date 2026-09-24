@@ -67,7 +67,9 @@ func _ready() -> void:
 	var main: Control = get_parent().get_node("Main")
 	await tree.process_frame
 	main.call("_close_overlay")
-	_set_state("board", main)
+	_set_state("board", main, 0)
+	await tree.process_frame
+	await tree.process_frame
 	print("%-18s %-12s %9s %9s %8s %6s %s" % ["screen", "canvas", "cell dp", "max dp", "board%",
 		"hud%", "notes"])
 	print("(cell dp = a cell's height at the default and the closest zoom; 0 = no density, desktop window)")
@@ -80,17 +82,25 @@ func _ready() -> void:
 			_check(main, String(s[0]), Vector2(s[1]), int(s[2]), inset,
 				s.size() < 4 or bool(s[3]))
 	print("")
-	_set_state("yard", main)
-	print("a new game: the Core dark, the first yard")
-	print("%-18s %-12s %9s %8s %6s %s" % ["screen", "canvas", "cell dp", "yard%", "hud%", "notes"])
-	for s: Array in SIZES:
-		tree.root.size = s[1]
-		for inset: Vector4 in INSETS:
-			main.call("set_safe_insets", inset)
-			for i in range(3):
-				await tree.process_frame
-			_check_yard(main, String(s[0]), Vector2(s[1]), int(s[2]), inset)
-	print("")
+	# A new game, then the first shaft two and four strata down: the yard
+	# and the Core it grows beside, at three of the yard's sizes.
+	for yd: int in [0, 1, 3]:
+		_set_state("yard", main, yd)
+		# The old tray's keys are freed at the end of a frame.
+		await tree.process_frame
+		await tree.process_frame
+		print("first shaft, stratum %d: yard %s, Core level %d" % [yd,
+			str(BuildArea.size_at(yd, 0)), IsoView.core_level()])
+		print("%-18s %-12s %9s %8s %6s %s" % ["screen", "canvas", "cell dp", "yard%", "hud%",
+			"notes"])
+		for s: Array in SIZES:
+			tree.root.size = s[1]
+			for inset: Vector4 in INSETS:
+				main.call("set_safe_insets", inset)
+				for i in range(3):
+					await tree.process_frame
+				_check_yard(main, String(s[0]), Vector2(s[1]), int(s[2]), inset)
+		print("")
 	if _fail.is_empty():
 		print("=== layout check passed: %d screens x %d safe areas ===" % [SIZES.size(), INSETS.size()])
 		tree.quit(0)
@@ -169,15 +179,16 @@ func _check(main: Control, name: String, window: Vector2, dpi: int, inset: Vecto
 
 ## "board": a shaft that has collapsed once, so the whole board is open --
 ## what the board-share numbers have always measured. "yard": a new game.
-func _set_state(state: String, main: Control) -> void:
+func _set_state(state: String, main: Control, depth: int = 0) -> void:
 	Sim.grid.clear()
-	Sim.depth = 0
-	Sim.max_depth = 0
+	Sim.depth = depth
+	Sim.max_depth = depth
 	Sim.research = 0.0
 	Sim.cores = 0
 	Sim.upgrade_levels = {}
 	Sim.collapses = 1 if state == "board" else 0
-	Sim.core_online = state == "board"
+	# Dark only in a new game: by the first descent it has long been online.
+	Sim.core_online = state == "board" or depth > 0
 	Sim._tutorial_step = Tutorial.count() if state == "board" else 0
 	Sim.unlocked.clear()
 	Sim._recompute()
@@ -213,8 +224,11 @@ func _check_yard(main: Control, name: String, window: Vector2, dpi: int,
 			Vector2(r.position.x, r.end.y)])
 		if not Geometry2D.intersect_polygons(corners, box).is_empty():
 			_fail.append("%s: the %s panel covers part of the yard" % [tag, k])
-		if r.grow(8.0).has_point(tap):
+		if r.grow(8.0).has_point(tap) and not Sim.core_online:
 			_fail.append("%s: the %s panel covers the Core's tap point" % [tag, k])
+		if view.board_under_panel():
+			_fail.append("%s: a panel covers the yard or the Core" % tag)
+			break
 	if inset == Vector4.ZERO and OS.get_environment("LODEWORKS_LAYOUT_RECTS") == "1":
 		for k: String in rects:
 			print("    %-10s %s" % [k, str(rects[k])])

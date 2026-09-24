@@ -339,6 +339,37 @@ shapes instead of 32–34. On tablets the view stops at zoom 1.15 so the
 world stays in sight. A shaft with the whole board open frames exactly as
 before: 21.5% of a 2:1 screen.
 
+### The Core grows with its shaft
+
+The Factory Core now has a level, from 1 as a shaft opens to 5 at the
+fourth stratum. The level reads the depth the shaft has already reached, so
+it asks nothing new of the player. It only changes how the Core looks:
+- **Size.** A level-1 Core is 84% of the full picture, and each level adds 4%.
+- **Level 2.** A halo at the Core's base, and lit conduits with light running
+  along them from the Core into the tiles beside it. One conduit at level 2,
+  up to three from level 4.
+- **Level 3.** Motes of energy circle the Core, one more for each level
+  above.
+- **Level 5.** A slow flare from the Core's crystal.
+
+Tapping an online Core names its level and the stratum at which it grows
+next.
+
+**The dark Core stays clear of every panel; an online one may not.** Only
+the dark Core, the thing a new game asks the player to tap, is kept clear
+of every panel. Keeping an online Core clear as well cost too much: a
+four-strata yard came out at 27 dp tiles instead of 36 on 18:9.
+
+The layout check now runs the yard at three sizes. On 18:9 at the default
+zoom:
+
+| state | yard | tile |
+|---|---|---|
+| a new game | 4 x 4, 8% of the screen | 44 dp |
+| stratum 1 | 5 x 7 | 42 dp |
+| stratum 3 | 7 x 8 | 36 dp |
+| whole board | 7 x 10 | 35 dp |
+
 ### The interface steps back
 
 The panels covered 26% of a 2:1 screen, on a new game as much as on a deep
