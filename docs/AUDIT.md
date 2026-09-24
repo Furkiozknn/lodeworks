@@ -954,6 +954,13 @@ two products sit side by side on a screen 1,100 units wide or more, and one
 above the other on a narrower one. Its close key and its Buy key are 96
 units, where they were 52. Restore purchases is 80 units, where it was 46.
 
+**The machine sheet has a Remove key** (`04_machine_closeup.png`). A
+machine could only be removed with a long press, which a new player has
+no way to discover. Selecting a machine now shows a bin key beside its
+"?". It opens the same Remove card as the long press, with the machine,
+an arrow and the credits that come back. Builder games do it the same
+way: select, see, then act.
+
 ### The store icon
 
 The launcher icon (`store/icon-192.png`, the adaptive foreground) and the

@@ -892,6 +892,21 @@ func _build_sheet() -> void:
 
 	# The words, for whoever wants them.
 	row.add_child(_help_button("", func() -> String: return _sheet_help))
+	# Remove, in plain sight: select, then act, as every builder game does.
+	# The long press still works; this is the key a new player can find.
+	var rm := _button("", Palette.PANEL)
+	rm.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
+	rm.size_flags_horizontal = Control.SIZE_SHRINK_END
+	rm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var bin := Chips.Glyph.new("bin", 60.0)
+	bin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rm.add_child(bin)
+	rm.tooltip_text = "Remove"
+	rm.pressed.connect(func():
+		if iso_view.selected_cell >= 0:
+			Juice.tap()
+			_on_cell_long_pressed(iso_view.selected_cell))
+	row.add_child(rm)
 
 	var close := _button("✕", Palette.PANEL)
 	close.add_theme_color_override("font_color", Palette.TEXT)

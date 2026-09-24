@@ -122,7 +122,7 @@ class Switch extends Control:
 
 ## A sign drawn in lines, for the few things the icon sheet has no picture of:
 ## "speaker", "wave", "screen", "sparkle", "battery", "hand", "vibrate",
-## "person", "zoom", "motion".
+## "person", "zoom", "motion", "bin".
 class Glyph extends Control:
 	var kind: String = ""
 	var col := Palette.TEXT
@@ -193,6 +193,16 @@ class Glyph extends Control:
 				draw_line(_p(0.6, 0.6), _p(0.84, 0.84), col, w * 1.6)
 				draw_line(_p(0.3, 0.42), _p(0.54, 0.42), acc, w)
 				draw_line(_p(0.42, 0.3), _p(0.42, 0.54), acc, w)
+			"bin":
+				var red := Palette.BAD
+				draw_line(_p(0.22, 0.26), _p(0.78, 0.26), red, w * 1.3)
+				draw_line(_p(0.42, 0.18), _p(0.58, 0.18), red, w * 1.3)
+				draw_colored_polygon(PackedVector2Array([_p(0.28, 0.32), _p(0.72, 0.32),
+					_p(0.66, 0.84), _p(0.34, 0.84)]), Color(red, 0.25))
+				draw_polyline(PackedVector2Array([_p(0.28, 0.32), _p(0.34, 0.84), _p(0.66, 0.84),
+					_p(0.72, 0.32)]), red, w, true)
+				for x in [0.42, 0.5, 0.58]:
+					draw_line(_p(x, 0.42), _p(x, 0.74), red, w * 0.8)
 			"motion":
 				draw_circle(_p(0.66, 0.5), s * 0.16, acc)
 				for k in range(3):
