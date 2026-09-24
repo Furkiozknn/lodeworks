@@ -623,6 +623,9 @@ Duplicates and dead systems found:
   the launcher icon showed machines the game no longer has. Later that
   night the icon and feature graphic were redrawn from the Core and the
   machine sheet, and `MachineArt` was removed (below, "The store icon").
+  Its leftovers in `Palette` went too (`d9e3574`): the glyphs, silhouette
+  families, resource marks and the face/block lighting helpers, about 200
+  lines that nothing called. Two unused dialogs in `main.gd` went as well.
 - **Blueprints.** The simulation, a research line and the Licence all add
   blueprint slots, but no screen saves or loads a blueprint. It is listed
   under "What is still UNKNOWN" as the owner's decision.
