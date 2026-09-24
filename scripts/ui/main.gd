@@ -1737,12 +1737,6 @@ func _info(title: String, text: String) -> void:
 	_open_overlay(title, l, [])
 
 
-func _confirm(title: String, text: String, ok: String, cb: Callable) -> void:
-	var l := _label(text, 20, Palette.TEXT_DIM)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_open_overlay(title, l, [{"text": ok, "color": Palette.BAD, "cb": cb}])
-
-
 func _toast_msg(text: String) -> void:
 	_toast.text = text
 	_toast_time = 2.2
@@ -1839,15 +1833,6 @@ func _show_cell_info(cell: int) -> void:
 
 	_tray.visible = false
 	_sheet.visible = true
-
-
-func _stat_row(name: String, value: String) -> Control:
-	var row := HBoxContainer.new()
-	var a := _label(name, 15, Palette.TEXT_DIM)
-	a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(a)
-	row.add_child(_label(value, 15, Palette.TEXT))
-	return row
 
 
 ## What each research line is drawn as: the thing it acts on (a machine, the
