@@ -1071,6 +1071,35 @@ KB, and the feature graphic is 1024 x 500 with no alpha. With the icon
 redrawn, nothing used `MachineArt` any more. It was removed, and its test
 now checks that every machine has a picture in the machine sheet.
 
+### Planned: a different look per depth
+
+The brief asked for each depth to differ in camera, colour, light,
+ground, crystals, decoration, danger, resources and machine behaviour, or
+at least in some of them. Today a depth differs in these ways:
+- **Colour and light.** Each of the four bands tints the world, the ground
+  and the props, and the plunge into a new band is longer, with the band's
+  name.
+- **Rules.** Each stratum has its own modifiers, now explained on the
+  stratum card.
+- **Room.** The yard widens, and the Core gains a level.
+
+The rest needs new art, so it is planned rather than done:
+
+| band | ground | props | what it costs |
+|---|---|---|---|
+| Surface (0-3) | today's tiles | today's crystals, crates, lamps | nothing |
+| Workings (4-9) | worn tiles with timber and rail | lanterns, carts, copper ore | one prop sheet, one tile sheet |
+| Deep (10-16) | dark red rock, glowing cracks | red crystals, lava vents | one prop sheet, one tile sheet |
+| Abyss (17+) | black basalt, violet veins | violet crystals, bone-white rock | one prop sheet, one tile sheet |
+
+Each sheet would go through `tools/art_build.py` like the existing ones,
+from a prompt that references the current sheet's job so the camera and
+light hold (`docs/ART.md` section 1). At the last round's prices that is
+six Higgsfield images, about 17 to 26 credits. `layout.json` would gain a
+sheet per band, and `IsoView` would pick the sheet by `Palette.band_at`.
+The same new art is what would close the colour gap measured below,
+because it brings more than one hue into the ground.
+
 ### What the overnight round cost the frame
 
 The perf probe (`LODEWORKS_SOAK=20`, hero board) was run on `9d82995`,
