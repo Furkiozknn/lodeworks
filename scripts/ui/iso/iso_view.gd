@@ -945,10 +945,13 @@ func _draw_tiles(ci: CanvasItem) -> void:
 		elif overlay == Overlay.HEAT:
 			c = c.lerp(Palette.heat_color(Sim.grid.heat_at(cell)), 0.55)
 		if not Sim.is_open(cell):
-			# Ground the yard has not reached yet: there, but not the player's.
-			c = Color(c.r * 0.42, c.g * 0.42, c.b * 0.50, 1.0)
+			# Ground the yard has not reached yet: marked out, not laid. The
+			# slabs are drawn faint and grey over the island's own rock, so
+			# the future ground reads as ground rather than as a dark hole.
+			var l: float = (c.r + c.g + c.b) / 3.0 * 0.70
+			c = Color(l, l, l * 1.06, 0.45)
 		var shade: float = 1.0 - 0.05 * float(pxy.x + pxy.y) / float(Grid.W + Grid.H)
-		c = Color(c.r * shade, c.g * shade, c.b * shade, 1.0)
+		c = Color(c.r * shade, c.g * shade, c.b * shade, c.a)
 		var i0: int = pts.size()
 		for j in range(4):
 			pts.append(p[(j + 3) % 4])

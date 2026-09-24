@@ -95,7 +95,9 @@ Core is drawn at 84% of its picture and each level adds 4%. From level 2 it
 has a halo and conduits of light into the yard beside it, from level 3
 orbiting motes, and at level 5 a slow flare.
 
-**The yard.** Ground outside the yard is drawn at about 45% brightness.
+**The yard.** Ground outside the yard is drawn as faint grey slabs at 45%
+opacity over the island's own rock: marked out, not yet laid. It first went
+in at 45% brightness, which read as a dark hole over a third of the screen.
 The yard's inner edge is a lit accent line. When the yard grows, the new
 tiles flare in a wave outwards from the old edge.
 
