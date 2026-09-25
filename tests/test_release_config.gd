@@ -527,17 +527,14 @@ func test_machine_light_colours_are_distinct() -> void:
 func test_the_shaft_changes_with_depth() -> void:
 	# Descending has to look like going somewhere. Four bands, and the rock at
 	# the bottom must not be the rock at the top.
-	var top: Dictionary = Palette.shaft(0)
-	var bottom: Dictionary = Palette.shaft(22)
-	var a: Color = top["rock"]
-	var b: Color = bottom["rock"]
-	runner.gt(absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b), 0.10,
-		"stratum 22 looks like stratum 0")
-	runner.near(float(top["ember"]), 0.0, 0.001,
-		"the surface does not glow on its own")
-	runner.gt(float(bottom["ember"]), 0.5,
-		"the abyssal band does")
-	for d: int in [0, 5, 12, 20, 40]:
-		var s: Dictionary = Palette.shaft(d)
-		runner.check(s.has("rock") and s.has("fleck") and s.has("vein"),
-			"depth %d has no description" % d)
+	# The world is tinted per band (IsoView.band_tint).
+	var last: Color = IsoView.band_tint(0)
+	for d: int in [4, 10, 17]:
+		var c: Color = IsoView.band_tint(d)
+		runner.gt(absf(c.r - last.r) + absf(c.g - last.g) + absf(c.b - last.b), 0.05,
+			"stratum %d looks like the band above it" % d)
+		last = c
+	var top: Color = IsoView.band_tint(0)
+	var bottom: Color = IsoView.band_tint(22)
+	runner.gt(top.get_luminance() - bottom.get_luminance(), 0.2,
+		"the bottom of the shaft is darker than the surface")

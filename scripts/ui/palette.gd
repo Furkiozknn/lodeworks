@@ -25,10 +25,6 @@ const PANEL := Color("161d29")
 const PANEL_HI := Color("222c3b")
 const LINE := Color("33415a")
 const CELL := Color("1a2331")
-const CELL_BLOCKED := Color("0b0e12")
-## The colour the empty rock tends towards at the bottom of the shaft. Warmer
-## and redder, so depth is visible in the ground rather than only in a label.
-const ROCK_DEEP := Color("2a1c26")
 
 const TEXT := Color("e6edf5")
 const TEXT_DIM := Color("8b9bb0")
@@ -121,19 +117,14 @@ const KEY_TINT := Color("ffe9c4")
 ## --- the shaft, by depth -----------------------------------------------------
 ##
 ## Descending has to look like going somewhere, not like the same board with a
-## bigger number on it. Four bands, each with its own rock, its own mineral and
-## its own light, blended continuously so a descent is a slide rather than a
-## cut:
+## bigger number on it. Four bands, each with its own light (IsoView.band_tint
+## tints the world by them) and its own vein colour, for the band's banner and
+## the dust in the air:
 ##
-##   0-3   SURFACE   cool blue-grey stone, pale quartz, daylight leaking in
-##   4-9   WORKINGS  warmer worked rock, copper flecks, lamp light
-##   10-16 DEEP      dark iron-red, violet crystal, heat in the cracks
-##   17+   ABYSSAL   near-black basalt, bright veins, everything lit from below
-##
-## The theme's own `rock_deep` is the destination the ramp walks towards, so a
-## purchased palette still changes the shaft rather than being overruled by it.
-const BAND_ROCK := ["1e2a3a", "2a2a33", "33222a", "2a1820"]
-const BAND_FLECK := ["9fb6cc", "c9a173", "c08a9a", "e0b0ff"]
+##   0-3   SURFACE   daylight
+##   4-9   WORKINGS  lamp light, amber
+##   10-16 DEEP      red, embers
+##   17+   ABYSSAL   violet, lit from below
 const BAND_VEIN := ["4fc3f7", "ffb454", "ff7a3d", "c26bff"]
 
 
@@ -145,26 +136,6 @@ static func band_at(depth: int) -> Array:
 		if d < EDGES[i + 1]:
 			return [i, clampf((d - EDGES[i]) / (EDGES[i + 1] - EDGES[i]), 0.0, 1.0)]
 	return [3, clampf((d - EDGES[3]) / (EDGES[4] - EDGES[3]), 0.0, 1.0)]
-
-
-## The rock, the mineral in it and the light coming out of it, at this depth.
-static func shaft(depth: int) -> Dictionary:
-	var b: Array = band_at(depth)
-	var i: int = int(b[0])
-	var t: float = float(b[1])
-	var j: int = mini(i + 1, 3)
-	var rock: Color = Color(BAND_ROCK[i]).lerp(Color(BAND_ROCK[j]), t)
-	# The theme still gets the last word on how deep rock reads, so a bought
-	# palette changes the shaft instead of being painted over by it.
-	rock = rock.lerp(rock_deep(), 0.35 * clampf(float(depth) / 20.0, 0.0, 1.0))
-	return {
-		"rock": rock,
-		"fleck": Color(BAND_FLECK[i]).lerp(Color(BAND_FLECK[j]), t),
-		"vein": Color(BAND_VEIN[i]).lerp(Color(BAND_VEIN[j]), t),
-		# How much the rock itself glows. Nothing at the surface; by the
-		# abyssal band the ground is a light source.
-		"ember": clampf((float(depth) - 8.0) / 16.0, 0.0, 1.0),
-	}
 
 
 ## The colour a machine glows. Its light signature -- the thing that tells you
@@ -266,12 +237,6 @@ static func heat_color(heat: float) -> Color:
 	if h <= 3.0:
 		return cold.lerp(warm, h / 3.0)
 	return warm.lerp(hot, clampf((h - 3.0) / 5.0, 0.0, 1.0))
-
-
-## The colour the empty rock tends towards at the bottom of the shaft, for the
-## selected theme.
-static func rock_deep() -> Color:
-	return Themes.rock_deep(_theme)
 
 
 ## Heat error to colour, relative to what this particular machine wants.

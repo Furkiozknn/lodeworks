@@ -215,15 +215,8 @@ static func blocked_cells(depth: int) -> Dictionary:
 ## Both were copy-paste omissions rather than mistakes in reasoning, which is
 ## exactly the failure a single entry point removes. A new stratum field is
 ## now wired in one place or in none.
-static func configure(sim: Simulation, grid: Grid, depth: int,
-		upgrade_levels: Dictionary = {}) -> Dictionary:
-	var st: Dictionary = describe(depth)
-	var mu: Dictionary = Economy.multipliers(upgrade_levels)
-	apply(sim, grid, st, mu)
-	return st
-
-
-## The same thing when the caller already holds the stratum and multipliers.
+## The one way a simulation is set up for a stratum, from the stratum and
+## the research multipliers.
 static func apply(sim: Simulation, grid: Grid, st: Dictionary,
 		mu: Dictionary) -> void:
 	if grid != null:

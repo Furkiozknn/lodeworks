@@ -136,11 +136,22 @@ mid-term, P3 a future system, P4 not needed now.
   excluded from export. Move it to `_eski/` or delete it with the owner's
   word.
 - F3 orphan `tools/_probe2.gd.uid` and `tools/_statdump.gd.uid`.
+  **DONE**: moved to `_eski/tools-orphans/`.
 - F4 dead code: `Palette.shaft`, `BAND_ROCK`, `BAND_FLECK` and
   `rock_deep` (used by one test only); `CELL_BLOCKED` and `ROCK_DEEP`;
   `Strata.configure`; unused `_collapses` parameters; the unreachable
   `P_REROLL_STRATUM` and `P_EXTRA_BLUEPRINT` placements.
-- F5 duplicate icon files in `store/` and `store/brand/`.
+  **DONE** for `Palette.shaft`, `BAND_ROCK`, `BAND_FLECK`,
+  `Palette.rock_deep`, `CELL_BLOCKED`, `ROCK_DEEP` and `Strata.configure`
+  (the shaft test now checks `IsoView.band_tint`, which is what draws).
+  Kept on purpose: the two ad placements (RELEASE §6: written, tested,
+  unreachable until one is chosen) and the `_collapses` parameters (part
+  of `BuildArea`'s call signature, harmless).
+- F5 duplicate icon files in `store/` and `store/brand/`. **DONE**: the
+  Android presets take the launcher icons from `store/brand/`, where
+  `tools/brand.gd` writes them (the copies in `store/` would have gone
+  stale at the next render); the copies are in `_eski/`, and the test
+  checks the presets point at `store/brand/`.
 - F6 stale docs: ART §2 zoom range, ART §3 slab counts, Core levels 1-5,
   RELEASE §6-§8 CI and screenshots, BALANCE's 7x10 tables.
 

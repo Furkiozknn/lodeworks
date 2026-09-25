@@ -1065,7 +1065,7 @@ say "descend at 3.95K".
 
 ### The store icon
 
-The launcher icon (`store/icon-192.png`, the adaptive foreground) and the
+The launcher icon (`store/brand/icon-192.png`, the adaptive foreground) and the
 store icon and feature graphic were still the rectangle machines from
 before the art. That icon is the first picture of the game anyone sees,
 on the phone's home screen, and it showed a game that no longer exists.
