@@ -141,7 +141,10 @@ tools/build-android.sh
 ```
 
 The script runs the tests and the self test first, injects the signing block
-into `[preset.0.options]` of a throwaway copy of the preset, exports the AAB,
+into `[preset.0.options]` of a throwaway copy of the preset, sets its
+`version/code` to the commit count of the branch (Play refuses a bundle whose
+versionCode is not above the last one; `LODEWORKS_VERSION_CODE` overrides
+it), exports the AAB,
 checks the result is actually a bundle rather than an empty file, and restores
 the clean preset afterwards. Godot writes keystore passwords into
 `export_presets.cfg` in plain text, which is why that file is committed with

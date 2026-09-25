@@ -69,7 +69,7 @@ mid-term, P3 a future system, P4 not needed now.
 | A3 | **Analytics sink** | `Analytics.endpoint = ""`: events never leave the device | a sink decision; then `first_machine`, `language_change`, `heat_problem`... | P1 before closed testing |
 | A4 | **Landscape store screenshots, tablet shots, preview video** | `store/screenshots*` are 1080x1920 portrait from 23 Sep; `tools/store-assets.sh` still captures portrait | re-shoot at 1920x1080 from the `ui`/`field` captures. **FIXED**: CI renders all store assets at the exact sizes and checks them, the listing is rewritten, a Turkish listing added (B-4) | P1, release |
 | A5 | ~~Store listing text~~ **FIXED** (B-4) | `store/listing.md` described the old small-grid game; English only | rewritten for the landscape game; a Turkish listing; every field's length checked | done |
-| A6 | **Release items needing a person** | privacy-policy contact is a placeholder; no keystore, no signed AAB; versionCode fixed at 1 | owner actions; a versionCode bump step | P1 |
+| A6 | **Release items needing a person** | privacy-policy contact is a placeholder; no keystore, no signed AAB; versionCode fixed at 1 | owner actions. The versionCode step is **DONE**: `tools/build-android.sh` sets it to the branch's commit count on its throwaway preset copy (or `LODEWORKS_VERSION_CODE`) | P1 (the rest is the owner's) |
 | A7 | ~~Some sounds~~ **FIXED** | `Juice.income()` was never played; no sound for Descend ready or a new band | the credits chime now plays once when the quota is met and Descend opens. A new band arrives with the Descend sound already playing, so a second cue there would be noise; none added | done |
 | A8 | Right-to-left layout | `Loc.is_rtl` exists; nothing mirrors | layout mirroring before Arabic | P4 |
 

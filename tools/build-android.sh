@@ -30,6 +30,25 @@ trap 'mv -f export_presets.cfg.bak export_presets.cfg' EXIT
 python3 tools/_inject_keystore.py \
   "$LODEWORKS_KEYSTORE" "$LODEWORKS_KEYSTORE_USER" "$LODEWORKS_KEYSTORE_PASSWORD"
 
+# Play refuses a bundle whose versionCode is not above the last one it took,
+# and the committed preset says 1. The commit count only grows along the
+# branch a release is built from; LODEWORKS_VERSION_CODE overrides it.
+CODE="${LODEWORKS_VERSION_CODE:-$(git rev-list --count HEAD)}"
+python3 - "$CODE" <<'PY'
+import sys
+code, section, out, done = sys.argv[1], None, [], False
+for line in open("export_presets.cfg", encoding="utf-8"):
+    if line.startswith("["):
+        section = line.strip()
+    if section == "[preset.0.options]" and line.startswith("version/code=") and not done:
+        line, done = "version/code=%d\n" % int(code), True
+    out.append(line)
+if not done:
+    sys.exit("version/code not found in [preset.0.options]")
+open("export_presets.cfg", "w", encoding="utf-8").write("".join(out))
+PY
+echo "==> versionCode $CODE"
+
 echo "==> tests"
 "$GODOT" --headless --path . --script res://tests/test_runner.gd
 
