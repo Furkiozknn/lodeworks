@@ -151,9 +151,14 @@ materials; a line at its working heat; research; rock reached. Then it opens
 the next era: deeper strata and the machines found there, higher limits for
 machine and research levels, a bigger store. The card lists every condition
 with a tap that goes and does it, and **What now?** puts the next one first.
-Played by a scripted player, Core 2 falls at 11 minutes, Core 3 at 22 and
-Core 4 at 45. [docs/PROGRESSION.md](docs/PROGRESSION.md) is the design, the
-graph and the measurements.
+Under the store stands the **Dispatch board**: three contracts for stored
+materials, each paying credits or research, printed before it is filled,
+with no clock on any of them.
+Played by a scripted player, Core 2 falls at 7 minutes, Core 3 at 15,
+Core 4 at 31 and Core 5 at 1 h 18. [docs/PROGRESSION.md](docs/PROGRESSION.md)
+is the design, the graph and the measurements, and
+[docs/research/feature-pool.md](docs/research/feature-pool.md) what comes
+next, drawn from five reference games.
 
 Every stratum is generated from its depth — the same stratum 14 for everybody,
 no server involved — with up to two modifiers drawn from a table of twelve,

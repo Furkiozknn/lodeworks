@@ -164,6 +164,14 @@ msgid "The Core is level %d. The shaft can go down to stratum %d, and machines u
 msgstr "Çekirdek seviye %d. Kuyu %d. katmana kadar inebilir; makinelerin sınırı seviye %d."
 
 #: res://scripts/ui/main.gd
+msgid "Contract filled: +%s credits"
+msgstr "Sözleşme teslim edildi: +%s kredi"
+
+#: res://scripts/ui/main.gd
+msgid "Contract filled: +%s research"
+msgstr "Sözleşme teslim edildi: +%s araştırma"
+
+#: res://scripts/ui/main.gd
 msgid "%s active. Thank you."
 msgstr "%s etkin. Teşekkürler."
 
@@ -408,6 +416,34 @@ msgid "The Vault's level is the Core's store."
 msgstr "Kasa'nın seviyesi Çekirdeğin deposudur."
 
 #: res://scripts/ui/main.gd
+msgid "Contracts"
+msgstr "Sözleşmeler"
+
+#: res://scripts/ui/main.gd
+msgid "A new contract after %d more units in the store"
+msgstr "Depoya %d birim daha girince yeni sözleşme"
+
+#: res://scripts/ui/main.gd
+msgid "%d %s"
+msgstr "%d %s"
+
+#: res://scripts/ui/main.gd
+msgid "Fill"
+msgstr "Teslim et"
+
+#: res://scripts/ui/main.gd
+msgid "Drop this contract. A new one comes after %d more units in the store."
+msgstr "Bu sözleşmeyi bırak. Depoya %d birim daha girince yenisi gelir."
+
+#: res://scripts/ui/main.gd
+msgid "pays %s research"
+msgstr "%s araştırma öder"
+
+#: res://scripts/ui/main.gd
+msgid "pays %s credits"
+msgstr "%s kredi öder"
+
+#: res://scripts/ui/main.gd
 msgid "Credits, paid when the Core grows"
 msgstr "Kredi, Çekirdek büyüyünce ödenir"
 
@@ -502,6 +538,10 @@ msgstr "%s yükseltmesi: seviye %d"
 #: res://scripts/ui/main.gd
 msgid "Paid in credits and in materials from the Core's store."
 msgstr "Kredi ve Çekirdeğin deposundaki malzemelerle ödenir."
+
+#: res://scripts/ui/main.gd
+msgid "Fill a contract: %d %s"
+msgstr "Sözleşme teslim et: %d %s"
 
 #: res://scripts/ui/main.gd
 msgid "What it buys stays, even after a collapse."

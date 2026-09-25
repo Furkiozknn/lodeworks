@@ -17,7 +17,8 @@ extends RefCounted
 ##   3. the way down is open            (Sim.can_descend)
 ##   4. what the Core's next level still needs, first of its rows
 ##   5. a machine level that can be bought, the one the Core asks for first
-##   6. research that can be bought     (the Research key's own count)
+##   6. research that can be bought     (the Research key's own count),
+##      then a contract on the Dispatch board that can be filled
 ##   7. a collapse that opens research  (the Collapse card's own rule)
 ##   8. a machine unlocked but never built, first of the tray's order
 ##   9. a step further along the chain than any that works now, where it
@@ -38,7 +39,8 @@ const HIDDEN := ["blueprint_slots"]
 
 ## The list for this shaft: [{"kind", ...}], in the order above.
 ## kind "problems": n; "core_grow": level; "descend": stratum; "core_need": st
-## (a CoreLevels.status row); "upgrade": id, level; "research": n; "collapse": cores,
+## (a CoreLevels.status row); "upgrade": id, level; "research": n; "contract": i
+## (a Dispatch slot that can be filled); "collapse": cores,
 ## lines; "first": id; "extend": id, feeder, cell, outlet; "place": id,
 ## cells; "quota": missing credits.
 static func of(state: Object) -> Array:
@@ -67,6 +69,11 @@ static func of(state: Object) -> Array:
 	var ready: int = research_ready(state)
 	if ready > 0:
 		out.append({"kind": "research", "n": ready})
+	if state.has_method("can_fill_contract"):
+		for i in range(Dispatch.SLOTS):
+			if bool(state.call("can_fill_contract", i)):
+				out.append({"kind": "contract", "i": i})
+				break
 	if bool(state.call("can_collapse")):
 		var opens: Array[String] = cores_open(state, int(state.call("pending_cores")))
 		if not opens.is_empty():

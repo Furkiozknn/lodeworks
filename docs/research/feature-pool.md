@@ -190,6 +190,19 @@ waits for an owner decision named in its entry.
   - Keeping the board from becoming a checklist.
 - *Vision:* no timer, no expiry, no energy (V3 kept).
 - *Decisions:* D2 is kept (never daily or weekly; no resets). D1 is kept (pays credits or progress, not a currency).
+- *Status:* **built, first version (25 Sep 2026).**
+  - What there is:
+    - `scripts/core/dispatch.gd`;
+    - the board on the Core card;
+    - a "What now?" line;
+    - `tests/test_dispatch.gd`.
+  - How it works:
+    - Three slots, dealt deterministically for materials the shaft can make, sized to the store.
+    - Paid in credits (2× the Vault, at least 12 s of income) or research (1.25× a Lab).
+    - A filled contract is replaced at once. A dropped one rests for 25 units into the store.
+    - A collapse deals a new board and keeps the lifetime count.
+  - Not yet: big three-tier contracts, the bulk buyer (FP-15), rewards for the ledger count.
+  - Balance: a 45-second floor paid more than all of a played factory's Vaults; it is now 12 seconds (docs/PROGRESSION.md, "Balance history").
 
 **FP-07 · Descent readiness**
 

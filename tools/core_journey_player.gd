@@ -121,16 +121,17 @@ func act() -> void:
 		S.descend()
 		_event("depth%d" % S.depth, "stratum %d" % S.depth)
 	_research()
+	_contracts()
 	var reserve: float = _follow_plans()
-	_repair()
+	var building: bool = reserve > 0.0
 	var open: Array = S.core_status().filter(func(st: Dictionary) -> bool: return not bool(st["met"]))
-	if reserve <= 0.0:
-		for st: Dictionary in open:
-			_pursue(st)
 	# Saving for the Core: when what is left is bought with credits -- its
-	# price, its machine levels, a bigger store -- spend nothing else.
+	# price, its machine levels, a bigger store -- spend nothing else, not
+	# even on repairs (a player does not rebuild while saving).
 	var buying: Array = [CoreLevels.Req.CREDITS, CoreLevels.Req.STOCK, CoreLevels.Req.MACHINE]
-	if not open.is_empty() and open.all(func(st: Dictionary) -> bool: return buying.has(int(st["req"][0]))):
+	var saving: bool = not open.is_empty() \
+		and open.all(func(st: Dictionary) -> bool: return buying.has(int(st["req"][0])))
+	if saving:
 		for st: Dictionary in open:
 			match int(st["req"][0]):
 				CoreLevels.Req.CREDITS:
@@ -140,8 +141,14 @@ func act() -> void:
 				CoreLevels.Req.STOCK:
 					if int(st["cap"]) < int(st["need"]):
 						reserve += float(S.machine_upgrade_cost("vault")["credits"])
-	_spare_upgrades()
-	_tidy()
+	else:
+		_repair()
+		_tidy()
+	if not building:
+		for st: Dictionary in open:
+			_pursue(st)
+	if not saving:
+		_spare_upgrades()
 	if S.credits > reserve:
 		_grow()
 	for id: String in S.machine_levels:
@@ -151,6 +158,26 @@ func act() -> void:
 	for cell: int in S.grid.cells:
 		var id: String = S.grid.machine_at(cell)
 		_event("m" + id, "first " + id)
+
+
+## Fill a contract on the Dispatch board when the store can spare it: what
+## the Core's own next level asks for stays in the store.
+func _contracts() -> void:
+	var keep: Dictionary = {}
+	for st: Dictionary in S.core_status():
+		if int(st["req"][0]) == CoreLevels.Req.STOCK:
+			keep[int(st["req"][1])] = int(st["need"])
+	for i in range(Dispatch.SLOTS):
+		if not S.can_fill_contract(i):
+			continue
+		var c: Dictionary = S.contract(i)
+		var res: int = int(c["res"])
+		if S.stock_of(res) - int(c["n"]) >= int(keep.get(res, 0)):
+			S.fill_contract(i)
+			var n: int = S.contracts_lifetime
+			if n == 1 or n % 10 == 0:
+				_event("contract%d" % n, "contract %d filled (%s)" % [n, String(c["pays"])])
+			return
 
 
 func _research() -> void:
@@ -711,7 +738,8 @@ func snapshot() -> Dictionary:
 		"lifetime": S.lifetime_credits, "stock": S.stock.duplicate(), "store": S.stock_cap(),
 		"levels": S.machine_levels.duplicate(), "research": S.upgrade_levels.duplicate(),
 		"open": open, "research_left": research_left, "upgrades_left": upgrades_left,
-		"locked": locked, "strata_left": S.depth_cap() - S.depth}
+		"locked": locked, "strata_left": S.depth_cap() - S.depth,
+		"contracts": S.contracts_lifetime}
 
 
 func _req_text(st: Dictionary) -> String:

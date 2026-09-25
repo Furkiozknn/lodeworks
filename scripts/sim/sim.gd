@@ -14,6 +14,9 @@ signal collapsed(cores_gained: int)
 signal core_upgraded(level: int)
 ## Every machine of type `id` is now at `level`.
 signal machine_upgraded(id: String, level: int)
+## Contract `index` of the Dispatch board was filled and paid `paid` in
+## `pays` ("credits" or "research").
+signal contract_filled(index: int, paid: float, pays: String)
 signal offline_earnings(report: Dictionary)
 
 const AUTOSAVE_SECONDS := 20.0
@@ -52,6 +55,15 @@ var machine_levels: Dictionary = {}
 ## {res: count}, up to what the Vault's level holds (`stock_cap`). Machine
 ## levels and the Core's own levels are paid from it.
 var stock: Dictionary = {}
+## The Dispatch board (Dispatch): Dispatch.SLOTS slots, each a contract
+## {"res", "n", "pays", "serial"}, or {"rest": units} while a dropped
+## contract's slot waits for that many more units in the store, or {}.
+var contracts: Array = []
+## How many contracts this shaft has been dealt, and has filled; and how
+## many every shaft has filled (a collapse keeps it).
+var dispatch_serial: int = 0
+var contracts_filled: int = 0
+var contracts_lifetime: int = 0
 var blueprints: Array = []
 var unlocked: Array[String] = []
 var settings: Dictionary = {"sound": true, "haptics": true}
@@ -333,10 +345,22 @@ func _collect_stock() -> void:
 	if sim.core_took.is_empty():
 		return
 	var cap: int = stock_cap()
+	var units: int = 0
 	for res: int in sim.core_took:
 		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), cap)
+		units += int(sim.core_took[res])
 	sim.core_took.clear()
 	_sync_core()
+	# A dropped contract's slot comes back after units into the store.
+	var dealt: bool = false
+	for i in range(contracts.size()):
+		var c: Dictionary = contracts[i]
+		if c.has("rest"):
+			var left: int = int(c["rest"]) - units
+			contracts[i] = {} if left <= 0 else {"rest": left}
+			dealt = dealt or left <= 0
+	if dealt:
+		_deal_board()
 
 
 ## Tell the simulation how much room the store has for each material.
@@ -349,6 +373,72 @@ func _sync_core() -> void:
 		if stock_of(int(res)) < cap:
 			room[int(res)] = cap - stock_of(int(res))
 	sim.core_wants = room
+
+
+## --- the Dispatch board ------------------------------------------------------------
+
+## Deal a contract into every empty slot, once something the store keeps
+## can be made. A slot that is resting stays empty.
+func _deal_board() -> void:
+	while contracts.size() < Dispatch.SLOTS:
+		contracts.append({})
+	for i in range(contracts.size()):
+		if not (contracts[i] as Dictionary).is_empty():
+			continue
+		var c: Dictionary = Dispatch.deal(core_level, depth + 100 * collapses, dispatch_serial,
+			unlocked, stock_cap())
+		if c.is_empty():
+			return
+		contracts[i] = c
+		dispatch_serial += 1
+
+
+func contract(i: int) -> Dictionary:
+	return contracts[i] if i >= 0 and i < contracts.size() else {}
+
+
+## What contract `i` pays now (credit contracts follow the measured income).
+func contract_pay(i: int) -> float:
+	var c: Dictionary = contract(i)
+	return 0.0 if not c.has("res") else Dispatch.payout(c, offline_rate())
+
+
+func can_fill_contract(i: int) -> bool:
+	var c: Dictionary = contract(i)
+	return c.has("res") and stock_of(int(c["res"])) >= int(c["n"])
+
+
+## Fill contract `i` from the store: it pays, and a new one is dealt.
+func fill_contract(i: int) -> bool:
+	if not can_fill_contract(i):
+		return false
+	var c: Dictionary = contract(i)
+	var paid: float = contract_pay(i)
+	_take_stock({int(c["res"]): int(c["n"])})
+	if String(c["pays"]) == "research":
+		research += paid
+	else:
+		credits += paid
+		lifetime_credits += paid
+	contracts_filled += 1
+	contracts_lifetime += 1
+	contracts[i] = {}
+	_deal_board()
+	contract_filled.emit(i, paid, String(c["pays"]))
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## Drop contract `i`: free, and its slot is dealt again after
+## Dispatch.REST_UNITS more units go into the store.
+func drop_contract(i: int) -> bool:
+	if not contract(i).has("res"):
+		return false
+	contracts[i] = {"rest": Dispatch.REST_UNITS}
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
 
 
 ## --- machine levels ------------------------------------------------------------
@@ -462,6 +552,10 @@ func collapse() -> int:
 	core_level = 1
 	machine_levels = {}
 	stock = {}
+	# A new shaft's board is dealt afresh; the lifetime count stays.
+	contracts = []
+	dispatch_serial = 0
+	contracts_filled = 0
 	# The next shaft's Core starts dark again, and its reserve is what the
 	# empty board is rebuilt from.
 	core_online = false
@@ -559,6 +653,7 @@ func _recompute() -> void:
 	for id in newly:
 		if not unlocked.has(id):
 			unlocked.append(id)
+	_deal_board()
 	_reset_rate_window()
 
 
@@ -691,6 +786,10 @@ func to_dict() -> Dictionary:
 		"core_level": core_level,
 		"machine_levels": machine_levels,
 		"stock": stock,
+		"contracts": contracts,
+		"dispatch_serial": dispatch_serial,
+		"contracts_filled": contracts_filled,
+		"contracts_lifetime": contracts_lifetime,
 		"upgrades": upgrade_levels,
 		"blueprints": blueprints,
 		"grid": grid.to_dict(),
@@ -728,6 +827,20 @@ func from_dict(d: Dictionary) -> void:
 	for res in kept:
 		if MachineDB.STOCKED.has(int(res)):
 			stock[int(res)] = mini(int(kept[res]), cap)
+	# The Dispatch board; JSON brings every number back as a float.
+	contracts = []
+	for c in (d.get("contracts", []) as Array):
+		var e: Dictionary = c
+		if e.has("rest"):
+			contracts.append({"rest": int(e["rest"])})
+		elif e.has("res"):
+			contracts.append({"res": int(e["res"]), "n": int(e["n"]), "pays": String(e["pays"]),
+				"serial": int(e["serial"])})
+		else:
+			contracts.append({})
+	dispatch_serial = int(d.get("dispatch_serial", 0))
+	contracts_filled = int(d.get("contracts_filled", 0))
+	contracts_lifetime = int(d.get("contracts_lifetime", 0))
 	upgrade_levels = d.get("upgrades", {})
 	blueprints = d.get("blueprints", [])
 	settings = d.get("settings", {"sound": true, "haptics": true})

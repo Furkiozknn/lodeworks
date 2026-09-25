@@ -445,39 +445,47 @@ that barely run, and works from the Core's rows and "What now?". It plays
 actively for six hours (`LODEWORKS_CORE_HOURS=6`); a human plans slower
 and has offline time on top.
 
-Firsts (run of 25 September 2026, after the Core-row legibility round):
+Firsts (run of 25 September 2026, with the Dispatch board, and a
+scripted player that stops repairing and building while it saves for the
+Core):
 
 | Core level | Reached | Earning then |
 |---|---|---|
-| Core 2 | 9 min 30 s | 54/s |
-| Core 3 | 18 min 45 s | 449/s |
-| Core 4 | 33 min 49 s | 2.3K/s |
-| Core 5 | 2 h 06 min | 5.0K/s |
+| Core 2 | 6 min 45 s | 35/s |
+| Core 3 | 15 min 10 s | 411/s |
+| Core 4 | 30 min 39 s | 2.0K/s |
+| Core 5 | 1 h 18 min | 4.2K/s |
 
 Snapshots:
 
-- **30 min:** Core 3, stratum 6, 126 machines, 1.9K/s. Open: credits only.
-- **1 h:** Core 4, stratum 9, 164 machines, 3.9K/s. Open: credits (0.5M of
-  10M); every machine type at its level-5 limit.
-- **2 h:** Core 4, 5.0K/s, 8.0M of 10M credits saved.
-- **3-6 h:** Core 5, stratum 12, about 173 machines, 5.1K/s. Open: 60M
-  credits and stable 60, which stays at 0 because stratum 12 is hot enough
-  that something is always overheating; 23 research levels open.
-- **Longest stretch with no new first:** 1 h 57 min at the end.
+- **30 min:** Core 3, stratum 6, 125 machines, 2.0K/s. Open: credits only
+  (1.14M of 1.2M).
+- **1 h:** Core 4, stratum 9, 164 machines, 4.0K/s. Open: credits (5.5M of
+  10M).
+- **2-6 h:** Core 5, stratum 12, about 145 machines, 3.8K/s. Open: 60M
+  credits (28.6M saved by 6 h), a Duplicator serving 3, and stable 60. The
+  stability row stays at 0: stratum 12 (ambient heat 2.2) is hot enough
+  that something is always overheating.
+- **Contracts:** 13 filled in 6 h. The scripted player fills one only when
+  the Core's next level does not need that material, and from Core 4 the
+  Core wants the same Plates and Components the contracts ask for.
+- **Longest stretch with no new first:** 1 h 59 min, at the end.
+
+An earlier run in the same round measured Core 5 at 2 h 07 min. Its
+scripted player kept repairing and re-laying machines while it saved, and
+the churn ate its income; the table above is the player that saves.
 
 **What the six hours say.**
 
-- **Nothing to do?** No point in the run had nothing left to do: the Core's
-  next level and 21-23 research levels were always open, and every stratum
-  under the Core was reached.
-- **Waiting between Core 4 and Core 5.** From about 1 h every machine type
-  sat at its limit and the rest was saving 10M credits: roughly an hour
-  with nothing to build. This is the gap the feature pool's Dispatch board
-  (FP-06) and Overdrive (FP-12) are for.
-- **Stability.** Stability at the hot strata (ambient 2.2 at stratum 12)
-  is where the scripted player stops. It cools one tile at a time and
-  never gets every machine under its tolerance. For a human this is the
-  first row that asks for rebuilding a hot factory, and it is unmeasured.
+- **Nothing to do?** Something was always open: the Core's next level and
+  more than 20 research levels.
+- **The wall is heat.** Past Core 5 the scripted player stops at the
+  stability row on the hot strata. It is the first row that asks the
+  player to rebuild a hot factory, not add to it, and no played run has
+  cleared it yet.
+- **Credits after Core 5.** At 3.8K/s, Core 6's 60M is about four hours of
+  income. If a human's factory earns no more than this, Core 6 needs a
+  lower price or more to do while saving.
 - **Unmeasured:** a human's time at any level; levels 6-8.
 
 **Balance history** (all from `core_journey` runs):
@@ -493,6 +501,11 @@ Snapshots:
   about 110). It is now 40 for Core 5, and 60, 80 and 100 for Cores 6-8.
 - **Core 5's price:** 6M left the player with nothing but stability to do.
   15M left over an hour of saving. It is now 10M.
+- **Contracts:** at first a credit contract paid at least 45 seconds of
+  the factory's income. Played, a factory that filled contracts as fast as
+  its store refilled earned more from them than from all its Vaults. The
+  floor is now 12 seconds, and a research contract pays 1.25 times what a
+  Lab would learn.
 
 **Core rows that say what holds them back** (built in the same round).
 
@@ -508,16 +521,15 @@ Snapshots:
 
 ## 12. Next single priority
 
-**The Dispatch board** ([`research/feature-pool.md`](research/feature-pool.md),
-FP-06). Played, the longest gap is between Core levels, once every machine
-type sits at its limit and only credits are left to save.
+**Heat control on the hot strata** ([`research/feature-pool.md`](research/feature-pool.md),
+FP-08 and FP-11). Played, the Core stops at the stability row from
+stratum 12: something is always overheating.
 
-- **What it is:** contracts that pull materials from the Core's store, with
-  no clock.
-- **What it fills:** the short-term layer in that gap. It also makes old
-  materials worth making again.
-- **Before it:** the save migration step (TD1) and lifetime counters (TD2).
-- **Measured:** by a contract-filling player in `core_journey`.
+- **What the player lacks:** a lever. Today a heat problem can only be
+  solved by moving tiles.
+- **FP-08:** machines that name their heat cause.
+- **FP-11:** a Coolant and Boiler mode that trades output for heat.
+- **Measured:** by the scripted player reaching Core 6.
 
 ---
 

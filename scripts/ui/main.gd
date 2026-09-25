@@ -174,6 +174,10 @@ func _ready() -> void:
 		iso_view.pulse_core()
 		_say(Loc.t("The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d.")
 			% [level, Sim.depth_cap(), Sim.machine_level_cap()], Foreman.Pose.CHEER, 5.5))
+	Sim.contract_filled.connect(func(_i: int, paid: float, pays: String):
+		Juice.income()
+		_toast_msg(Loc.t("Contract filled: +%s credits") % Economy.fmt(paid) if pays == "credits"
+			else Loc.t("Contract filled: +%s research") % Economy.fmt(paid)))
 	Sim.machine_upgraded.connect(func(id: String, level: int):
 		Juice.upgrade()
 		if iso_view.selected_cell >= 0 and Sim.grid.machine_at(iso_view.selected_cell) == id:
@@ -1977,6 +1981,9 @@ func _show_core() -> void:
 		return Loc.t("The heart of this shaft. Its level decides how deep the shaft may go, how far machines and research may be upgraded, and what the Vault may store.\n\nIt does not grow for credits alone: each level asks the factory to have grown -- materials in its store, handed to it by machines touching it; machines upgraded; a line at its working heat; research; rock reached. Tap a line below to go and do it.")))
 	body.add_child(top)
 	body.add_child(_core_store())
+	var board: Control = _core_contracts()
+	if board != null:
+		body.add_child(board)
 	body.add_child(_core_next())
 
 	# The factory in four numbers.
@@ -2127,6 +2134,79 @@ func _core_store() -> Control:
 	row.add_child(b)
 	row.set_meta("store", Sim.stock.duplicate())
 	return row
+
+
+## The Dispatch board (Dispatch): each contract as a row -- the material and
+## how many, what it pays, a key that fills it from the store, and a key
+## that drops it. A dropped contract's slot says how many more units the
+## store has to take before it is dealt again. null before the shaft can
+## make anything the store keeps.
+func _core_contracts() -> Control:
+	var any: bool = false
+	for c: Dictionary in Sim.contracts:
+		any = any or not c.is_empty()
+	if not any:
+		return null
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	box.set_meta("contracts", Sim.contracts.duplicate(true))
+	var head := _label(Loc.t("Contracts"), 24, Palette.TEXT)
+	box.add_child(head)
+	for i in range(Sim.contracts.size()):
+		box.add_child(_contract_row(i))
+	return box
+
+
+func _contract_row(i: int) -> Control:
+	var c: Dictionary = Sim.contract(i)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	if c.has("rest"):
+		var wait := _label(Loc.t("A new contract after %d more units in the store") % int(c["rest"]),
+			TEXT_MIN, Palette.TEXT_DIM)
+		wait.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		wait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(wait)
+		return row
+	if not c.has("res"):
+		return row
+	var res: int = int(c["res"])
+	row.add_child(Chips.Gem.new(res, 1, 40.0))
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.add_theme_constant_override("separation", 0)
+	words.add_child(_label(Loc.t("%d %s") % [int(c["n"]), Loc.t(String(MachineDB.RES_NAME[res]))], 22,
+		Palette.TEXT))
+	words.add_child(_label("%d / %d  ·  %s" % [mini(Sim.stock_of(res), int(c["n"])), int(c["n"]),
+		_contract_pay_words(i)], TEXT_MIN, Palette.TEXT_DIM))
+	row.add_child(words)
+	var fill := _button(Loc.t("Fill"), Palette.CORE if Sim.can_fill_contract(i) else Palette.PANEL)
+	fill.custom_minimum_size = Vector2(120, MIN_TOUCH)
+	fill.disabled = not Sim.can_fill_contract(i)
+	fill.set_meta("contract", i)
+	fill.pressed.connect(func():
+		if Sim.fill_contract(i):
+			_close_overlay()
+			_show_core())
+	row.add_child(fill)
+	var drop := _button("✕", Palette.PANEL)
+	drop.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
+	drop.tooltip_text = Loc.t("Drop this contract. A new one comes after %d more units in the store.") \
+		% Dispatch.REST_UNITS
+	drop.pressed.connect(func():
+		if Sim.drop_contract(i):
+			_close_overlay()
+			_show_core())
+	row.add_child(drop)
+	return row
+
+
+## What contract `i` pays, in words.
+func _contract_pay_words(i: int) -> String:
+	var c: Dictionary = Sim.contract(i)
+	if String(c.get("pays", "")) == "research":
+		return Loc.t("pays %s research") % Economy.fmt(Sim.contract_pay(i))
+	return Loc.t("pays %s credits") % Economy.fmt(Sim.contract_pay(i))
 
 
 ## One of the next level's requirements: its picture, its words, how far
@@ -2379,6 +2459,14 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Upgrade the %s to level %d") % [MachineDB.name_of(uid), int(e["level"])]
 			sub = Loc.t("Paid in credits and in materials from the Core's store.")
 			go = func() -> void: _select_type(uid)
+		"contract":
+			var ci: int = int(e["i"])
+			var cc: Dictionary = Sim.contract(ci)
+			pic = Chips.Gem.new(int(cc["res"]), 1, 44.0)
+			title = Loc.t("Fill a contract: %d %s") % [int(cc["n"]),
+				Loc.t(String(MachineDB.RES_NAME[int(cc["res"])]))]
+			sub = _contract_pay_words(ci)
+			go = _show_core
 		"research":
 			var n2: int = int(e["n"])
 			pic = _icon_rect("research", 52)

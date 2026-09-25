@@ -492,6 +492,16 @@ TR = {
     "%d too hot": "%d çok sıcak",
     "%d too cold": "%d çok soğuk",
     "%d idle": "%d boşta",
+    "Contracts": "Sözleşmeler",
+    "Fill": "Teslim et",
+    "Fill a contract: %d %s": "Sözleşme teslim et: %d %s",
+    "Contract filled: +%s credits": "Sözleşme teslim edildi: +%s kredi",
+    "Contract filled: +%s research": "Sözleşme teslim edildi: +%s araştırma",
+    "A new contract after %d more units in the store": "Depoya %d birim daha girince yeni sözleşme",
+    "Drop this contract. A new one comes after %d more units in the store.": "Bu sözleşmeyi bırak. Depoya %d birim daha girince yenisi gelir.",
+    "pays %s research": "%s araştırma öder",
+    "pays %s credits": "%s kredi öder",
+    "%d %s": "%d %s",
 }
 
 

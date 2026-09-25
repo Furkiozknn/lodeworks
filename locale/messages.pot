@@ -163,6 +163,14 @@ msgid "The Core is level %d. The shaft can go down to stratum %d, and machines u
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Contract filled: +%s credits"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Contract filled: +%s research"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "%s active. Thank you."
 msgstr ""
 
@@ -407,6 +415,34 @@ msgid "The Vault's level is the Core's store."
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Contracts"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A new contract after %d more units in the store"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Fill"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Drop this contract. A new one comes after %d more units in the store."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "pays %s research"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "pays %s credits"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Credits, paid when the Core grows"
 msgstr ""
 
@@ -500,6 +536,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Paid in credits and in materials from the Core's store."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Fill a contract: %d %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd

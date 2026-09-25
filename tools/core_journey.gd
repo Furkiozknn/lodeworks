@@ -71,6 +71,7 @@ func _snapshot(s: Dictionary) -> void:
 	print("  the Core's next level still asks for: %s" % (", ".join(s["open"]) if not (s["open"] as Array).is_empty() else "nothing -- it can grow"))
 	print("  left to do: %d research levels open, %d machine levels open, %d machines not found, %d strata under the Core"
 		% [int(s["research_left"]), int(s["upgrades_left"]), int(s["locked"]), int(s["strata_left"])])
+	print("  contracts filled: %d" % int(s["contracts"]))
 
 
 func _clock(s: float) -> String:
