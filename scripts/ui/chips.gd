@@ -219,8 +219,10 @@ class Glyph extends Control:
 				# arrow, up in green or down in red -- the shape says it too.
 				var good: bool = kind == "up"
 				var c: Color = Palette.GOOD if good else Palette.BAD
-				draw_circle(_p(0.5, 0.5), s * 0.48, Color(Palette.BG, 0.92))
-				draw_arc(_p(0.5, 0.5), s * 0.45, 0.0, TAU, 24, c, w, true)
+				# A ring as two discs, not an arc: a tray can show eight of these,
+				# and plain polygons batch where an antialiased arc does not.
+				draw_circle(_p(0.5, 0.5), s * 0.49, c)
+				draw_circle(_p(0.5, 0.5), s * 0.49 - w, Color(Palette.BG, 0.95))
 				var tri: PackedVector2Array = PackedVector2Array([_p(0.5, 0.2), _p(0.8, 0.64),
 					_p(0.2, 0.64)]) if good else PackedVector2Array([_p(0.5, 0.8), _p(0.8, 0.36),
 					_p(0.2, 0.36)])

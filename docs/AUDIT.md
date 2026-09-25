@@ -1440,6 +1440,60 @@ larger text. `tools/screenshot.gd` now clears the switches a capture may
 flip before it starts, and saves the setting back as it found it. The
 README pictures were taken again.
 
+### What the night cost the frame
+
+The perf probe (`LODEWORKS_SOAK=20`, hero board, the same desktop, Intel
+UHD) on `531a9ed`, where the night started, and at its end:
+
+| | 531a9ed | end of the night |
+|---|---|---|
+| idle frame p50 / p95 | 11.98 / 15.68 ms | 11.06 / 14.68 ms |
+| 20 s soak p50 / p95 | 11.67 / 15.63 ms | 10.80 / 14.63 ms |
+| draw calls, idle (stratum 7) | 165 | 179 before the glyph change below, 177 after |
+| draw calls, soak (stratum 8) | 165 | 205 before, 193 after |
+| static memory | 47.2 MB | 47.5 MB |
+| nodes | 210 | 218 |
+
+The frame is faster than when the night started, because the props'
+fixed facts are no longer worked out every frame. The draw calls are
+higher. The soak runs at stratum 8, where Brittle Rock puts an arrow on
+seven tray keys, and each arrow is its own canvas item. Drawing the
+arrow's ring as two discs instead of an antialiased arc took the soak
+from 205 to 193. The rest is the Core's outline, the machines drawn over
+the Core, the Research count and more props between the machines. A
+phone is still UNKNOWN.
+
+### Toward more than one factory (not built)
+
+Nothing tonight builds a second factory or talks to a network (D3 still
+stands). The pieces added were written so they would not need rewriting
+if one comes:
+- `ResourceNodes` knows kinds and words, and nothing of any Core.
+- `FactoryReport.of(grid, sim, max_depth, blocked)` sums up whichever
+  board it is handed.
+- `Strata.effect_on` and `Simulation.links_if_placed` are pure: a
+  stratum and a board in, an answer out. Strata were already the same
+  for every player at a given depth, so two players' stratum 14 and its
+  arrows are the same and can be compared.
+- `Grid` and `Simulation` were already per instance: the Codex runs a
+  dozen at once.
+
+What ties the game to one factory is `Sim`. It holds one board, its
+depth, its Core and tutorial state, and also the player's credits,
+research, Cores, upgrades and settings, all in one save (`"v": 1`).
+Beside it, `BuildArea.CORE` is a constant, and `IsoView` reads `Sim`
+directly. If the owner wants more than one factory, the order that keeps
+every step testable and reversible is:
+1. Split the save into the player and `factories[0]`, with a v1 to v2
+   migration and a round-trip test. Whether credits belong to the player
+   or to each factory is an economy decision, and it comes first.
+2. `Sim` exposes the active factory, and the interface reads through it.
+3. `IsoView` draws a factory it is given, and `BuildArea` takes the
+   Core's block from that factory.
+4. Only then a second factory. Visiting another player's factory, read
+   only, would be a `FactoryReport` plus a board snapshot, and it needs a
+   server.
+
 ### Follow-ups from the audits
 
 - **Resource nodes with a use**: needs the owner's decision (above).

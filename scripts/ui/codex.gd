@@ -26,7 +26,7 @@ const PAGES := [
 		"unlock": 0,
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "vault"]],
 		"watch": "Watch the ore cross each gap.",
-		"body": "There are no belts. A machine hands what it makes to any orthogonal neighbour that wants it, and splits it evenly if several do.",
+		"body": "There are no belts. A machine hands what it makes to any orthogonal neighbour that wants it, and splits it evenly if several do. While you place one, the green tiles are where it would be fed and could hand its work on.",
 	},
 	{
 		"id": "refining",
