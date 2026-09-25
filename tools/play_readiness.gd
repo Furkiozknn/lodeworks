@@ -291,15 +291,17 @@ func _check_chain() -> void:
 	for f: String in [".github/workflows/ci.yml", ".github/workflows/android.yml",
 			"tools/build-android.sh", "tools/push-to-github.sh"]:
 		_row("chain", f, DONE if _exists("res://" + f) else MANUAL, "present")
-	_row("chain", "CI has run", UNKNOWN,
-		"the repository has never been pushed, so no workflow has ever "
-		+ "executed -- nothing about the Android build is verified")
-	_row("chain", "an APK or AAB has been produced", UNKNOWN,
-		"no Android SDK, no Gradle repositories and no export templates are "
-		+ "reachable from here; dl.google.com and maven.google.com both fail")
+	_row("chain", "CI has run", MANUAL,
+		"this tool cannot see GitHub: the latest ci.yml and android.yml runs "
+		+ "on the Actions page are the evidence (docs/CI.md)")
+	_row("chain", "an APK or AAB has been produced", DONE if _exists(
+		"res://.github/workflows/android.yml") else MANUAL,
+		"android.yml exports a debug APK and a debug AAB through Gradle and "
+		+ "checks each holds classes.dex and an arm64 library; a release AAB "
+		+ "needs the upload keystore")
 	_row("chain", "installed and run on a real Android device", UNKNOWN,
-		"no device. docs/DEVICE-TEST.md lists the 25 checks to run when "
-		+ "there is one, 18 of which the on-device self test automates")
+		"no device. docs/DEVICE-TEST.md lists what to check when there is "
+		+ "one; the on-device self test automates part of it")
 
 
 ## --- generated paperwork ----------------------------------------------------

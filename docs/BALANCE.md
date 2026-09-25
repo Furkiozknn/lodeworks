@@ -4,6 +4,13 @@ Measured on 23 September 2026 with `tools/layout_lab.gd` and
 `tools/layout_search.gd`, at stratum 9 with a mid-game research set, over a
 25-second warm-up and a 40-second sample.
 
+> **Dated.** Every layout and number below is from the 7 x 10 board the game
+> had before the landscape round. The board is now 44 x 44 with a yard that
+> widens with depth, and these layouts were not measured again on it. The
+> findings about chains, back-pressure and heat still hold; the numbers are
+> history. The current long-game numbers are in docs/AUDIT.md, "Collapse
+> after collapse, played".
+
 Both tools are in the repository because the finding below could not have been
 reached by reading the numbers. It came from adding a per-tile duty-cycle
 readout to the simulation and then noticing that half the showcase board was

@@ -10,7 +10,7 @@ extends RefCounted
 ## decides where on the screen a cell is drawn and which cell a finger is on.
 ##
 ## The board sits on a square slab of `slab_cells` cells, offset by
-## `board_offset`. What is left of the slab around the 7 x 10 board is
+## `board_offset`. What is left of the slab around the 44 x 44 board is
 ## ground the factory does not own yet: drawn, locked, and deliberately not
 ## part of any rule.
 

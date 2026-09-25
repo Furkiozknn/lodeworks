@@ -153,7 +153,11 @@ mid-term, P3 a future system, P4 not needed now.
   stale at the next render); the copies are in `_eski/`, and the test
   checks the presets point at `store/brand/`.
 - F6 stale docs: ART §2 zoom range, ART §3 slab counts, Core levels 1-5,
-  RELEASE §6-§8 CI and screenshots, BALANCE's 7x10 tables.
+  RELEASE §6-§8 CI and screenshots, BALANCE's 7x10 tables. **DONE**: ART's zoom
+  range, slab and Core levels match the code; RELEASE and the readiness
+  report say what CI builds (a debug APK and AAB, checked) instead of
+  "never run"; BALANCE is marked as dated rather than rewritten, because
+  its layouts were never measured on the new board.
 
 ---
 

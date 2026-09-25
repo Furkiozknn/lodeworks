@@ -47,7 +47,7 @@ inconsistency the eye catches first.
 - **Pan** 1:1 with the finger (no easing while it is down), a **fling** that
   coasts after release, **pinch** and **wheel** zoom about the point under
   them, the zoom key gliding between the whole factory and a close view.
-- **Zoom** 0.42 to 1.6. While the yard (the ground a shaft may build on,
+- **Zoom** 0.22 to 1.6 (`IsoCamera.zoom_floor`, `zoom_max`). While the yard (the ground a shaft may build on,
   `BuildArea`) is smaller than the board, the default frames the Core and
   the yard, up to zoom 1.15; after that it frames the board and the Core in the
   space the HUD leaves free.
@@ -58,10 +58,12 @@ inconsistency the eye catches first.
   camera's speed and scales by zoom^0.82, never below what covers the
   screen, so the island reads as floating over the canyon.
 
-Readability before show: a cell at the default zoom is 32-34 dp tall on a
-1080p phone (measured by `tools/layout_check.tscn`), which is enough to see
-the factory and too small to aim at precisely; at the closest zoom it is
-52-61 dp, above Android's 48 dp floor. A machine must be picked (tapped)
+Readability before show: a cell at a new shaft's default zoom is 32-34 dp
+tall on a 1080p phone (measured by `tools/layout_check.tscn`), which is
+enough to see the factory and too small to aim at precisely; as the yard
+widens the default zooms out, to about 19-22 dp in the widest yards
+(docs/GAP-AUDIT.md B8). At the closest zoom a cell is 52-61 dp, above
+Android's 48 dp floor. A machine must be picked (tapped)
 before it can be dragged, so a pan never moves a machine by accident.
 
 ## 3. The world
@@ -72,27 +74,26 @@ Back to front, each a layer of `IsoView`:
 |---|---|---|
 | painting | `world/workings.jpg`, 3840x2160 | tinted per depth band; a light haze over it separates it from the island |
 | island | `world/island.webp` | its flat top stretched to the board's 2:1 so the stone around the board is in the same plane |
-| floor | the slab's two front faces, 70 floor slabs, the iron rim with brass rivets, the expansion plot, marks, contact shadows, pipes | one textured and two untextured batches |
+| floor | the yard's edge, the Core's footprint, the tiles, the iron rim with brass rivets, marks, contact shadows, pipes | one textured and two untextured batches |
 | floor light | each working machine's light pool, hot machines' orange pool, the rim lamps | additive |
 | things | machines, props and the Core, sorted by slab depth | one atlas: the machines batch |
 | light | machine cores, flow along seams, each machine's own work (dust, stamps, sparks, mist, coins, welding, pulses), steam, embers, crystals, the Core's crystal and level, dust | additive |
 | overlay | badges, flow beads, notches, previews, numbers, the selected machine's links | screen space, fixed size |
 
-**The slab** is 12 x 12 cells. The board sits at slab (4, 1); the Factory
-Core stands on the 4 x 4 block in the middle of the board (BuildArea.CORE;
-slab 22..25), where nothing is built, and takes
-no board cell (`test_the_board_sits_on_the_island_and_inside_the_world`).
-It stood behind the back corner until the default view was tightened; there
-it set the view's height (docs/AUDIT.md, "The default view").
-Slab (1..3, 1..7) is **the expansion plot**: dimmed, outlined in dashes,
-with a padlocked barrier at each end. It is visual only -- no rule reads
-it -- and it is where a future expansion mechanic would open ground.
+**The slab** is 48 x 48 cells (`layout.json` `placement.slab_cells`). The
+44 x 44 board sits at slab (2, 2); the Factory Core stands on the 4 x 4
+block in the middle of the board (BuildArea.CORE; slab 22..25), where
+nothing is built (`test_the_board_sits_on_the_island_and_inside_the_world`).
+The expansion plot the old 7 x 10 board had is gone: `placement.expansion`
+is empty, and the yard that widens with depth took its place.
 
 **The Core's states.** A shaft opens with its Core dark (cool grey, no
 crystal light, a target pulsing on its body). A tap brings it online with a
 flare.
 
-**The Core's levels.** Levels run from 1 to 5, one per stratum. A level-1
+**The Core's levels.** Levels run from 1 to 8, one per ring of the yard
+(`IsoView.core_level`, from `BuildArea.radius_at`); 6 to 8 add a column of
+light (docs/AUDIT.md, the Core). A level-1
 Core is drawn at 84% of its picture and each level adds 4%. From level 2 it
 has a halo and conduits of light into the yard beside it, from level 3
 orbiting motes, and at level 5 a slow flare.
