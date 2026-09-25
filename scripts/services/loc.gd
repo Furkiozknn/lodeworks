@@ -38,15 +38,25 @@ const LANGUAGES := [
 ## The language used when the device's is not one of the ready ones.
 const FALLBACK := "en"
 
+## Whether a language has been chosen (`apply`). Until one is, the words are
+## English, whatever the machine speaks: the game chooses before it builds
+## (main._apply_language), and a tool or a test that never chooses reads
+## the English it compares against, not this computer's language.
+static var _chosen: bool = false
+
 
 ## A message in the current language.
 static func t(message: String) -> String:
+	if not _chosen:
+		apply(FALLBACK)
 	return String(TranslationServer.translate(message))
 
 
 ## A message that depends on a count: `singular` for one, `plural` for any
 ## other number, in the current language's own plural rule.
 static func tn(singular: String, plural: String, n: int) -> String:
+	if not _chosen:
+		apply(FALLBACK)
 	var s: String = String(TranslationServer.translate_plural(singular, plural, n))
 	# The engine's plural lookup skips the pseudo-language; the checks need it.
 	if TranslationServer.pseudolocalization_enabled and not s.begins_with("["):
@@ -99,6 +109,7 @@ const PSEUDO := "pseudo"
 
 
 static func apply(code: String) -> void:
+	_chosen = true
 	var pseudo: bool = code == PSEUDO
 	if TranslationServer.pseudolocalization_enabled != pseudo:
 		if pseudo:
