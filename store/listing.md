@@ -261,11 +261,11 @@ text stay in `store/`. The portrait set that went before is in
 
 | file | shows | what it proves |
 |---|---|---|
-| `01_line.png` | a full production line at stratum 9 | that the game has a mid-game worth reaching |
+| `01_line.png` | the whole ring round the Core at stratum 6, its heat handled (a Boiler outside every Smelter) and nothing in trouble | that the game has a mid-game worth reaching |
 | `02_heat.png` | the heat overlay, every tile labelled with its own error | the mechanic, as a number and not only a colour |
 | `03_bottleneck.png` | a board with a starved machine and a backed-up one, counted on the warning key | the readability feature no competitor in this genre ships by default |
 | `04_place.png` | a boiler mid-placement, each neighbour showing what it would gain or lose | the decision the whole game is made of |
-| `05_detail.png` | the detail sheet, naming the fault and the direction to look | that the game explains itself in words |
+| `05_detail.png` | a smelter's detail sheet: what it takes, what it makes, its heat and its work rate | that the game explains itself in pictures and words |
 | `06_research.png` | the permanent research tree | that there is something to keep |
 | `07_offline.png` | the welcome-back panel with its three numbers | that the offline maths is shown, not asserted |
 | `08_first_line.png` | the first machines, the tutorial's one line, and the tiles it is pointing at | the first minute, with nothing to read |

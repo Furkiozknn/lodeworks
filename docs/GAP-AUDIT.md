@@ -307,9 +307,12 @@ lab by a player who follows only the list.
   `screenshots` artifact rather than in the repository (about 60 MB a
   render); the portrait set moved to `_eski/`. Still a person's: choosing
   the shots, the YouTube upload of the preview, and whether to list in
-  Turkish at all. A follow-up: the "full" board the shots use has 31
-  machines in trouble, which the hero shot and Welcome back show; a
-  better-built board would sell the game better (B-4b, P2).
+  Turkish at all. B-4b (**DONE**): the "full" board the shots use had
+  31 machines in trouble at stratum 9 (29 Drills too hot), shown on the
+  hero shot and in Welcome back. It is now the ring at stratum 6 with its
+  heat handled -- the chain runs outward and a Boiler stands outside each
+  Smelter -- and earns more (474 against 431 credits a second at the same
+  depth) with nothing in trouble when measured.
 
 **B-5 — The blueprint decision (P1 decision memo).**
 - Research: layouts shared by code are valuable (Factory Tours).

@@ -33,8 +33,8 @@ const SHOTS := [
 		"alt": "Two machines flagged as starved and backed up, with a count above the board."},
 	{"name": "04_place", "build": "heat", "wait": 1.5, "press": [23, 18], "arm": "boiler",
 		"alt": "Placing a boiler, previewing the heat it will add to each neighbour."},
-	{"name": "05_detail", "build": "full", "wait": 2.0, "select": [21, 19],
-		"alt": "The detail sheet for a smelter, naming what is wrong and which way to look."},
+	{"name": "05_detail", "build": "full", "wait": 2.0, "select": [21, 17],
+		"alt": "The detail sheet for a smelter: what it takes, what it makes, its heat and how hard it works."},
 	{"name": "06_research", "build": "full", "wait": 1.0, "panel": "research",
 		"alt": "The permanent research tree, bought with Cores."},
 	{"name": "07_offline", "build": "full", "wait": 1.0, "panel": "offline",
@@ -52,7 +52,7 @@ const REEL := [
 	{"build": "full", "seconds": 2.0, "overlay": true},
 	{"build": "heat", "seconds": 3.0, "grow": true},
 	{"build": "broken", "seconds": 2.5},
-	{"build": "full", "seconds": 2.5, "select": [21, 19]},
+	{"build": "full", "seconds": 2.5, "select": [21, 17]},
 ]
 
 var _main: Control
@@ -255,15 +255,18 @@ func _apply_build(kind: String) -> void:
 			Sim.upgrade_levels = {"throughput_1": 1, "yield_1": 1}
 			_ring(["front", "right"])
 		"full":
-			# Every tile of the stratum-9 yard: the whole ring round the Core.
-			Sim.depth = 9
-			Sim.max_depth = 9
+			# The whole ring round the Core at stratum 6, with its heat handled:
+			# a Boiler outside every Smelter and the Drills away from both, so
+			# nothing on the store's first picture is in trouble. At 9 the
+			# same ring had 29 Drills too hot (measured 25 Sep 2026).
+			Sim.depth = 6
+			Sim.max_depth = 6
 			Sim.cores = 14
 			Sim.research = 820.0
 			Sim.credits = 186000.0
 			Sim.upgrade_levels = {"throughput_1": 3, "yield_1": 2, "value_1": 2,
 				"research_1": 1, "heat_tolerance": 1}
-			_ring(["back", "front", "left", "right"])
+			_ring(["back", "front", "left", "right"], true)
 	Sim.unlocked.clear()
 	# A new game's Core is still dark; every other board has long been running.
 	Sim.set("core_online", kind != "new")
@@ -303,7 +306,11 @@ func _place_shifted(list: Array, top: int) -> void:
 ## Drills beside it in the middle row; Vaults over those middle Drills and
 ## all along the inner row -- every fourth place a Smelter instead, selling
 ## ingots through the Vaults either side of it.
-func _ring(sides: Array) -> void:
+##
+## `warm`: the chain runs outward instead -- Drills on the inner row by the
+## Core, Smelters on the outer one -- and a Boiler stands outside each
+## Smelter, which wants heat, where no Drill, which does not, can feel it.
+func _ring(sides: Array, warm: bool = false) -> void:
 	var c: Rect2i = BuildArea.CORE
 	for side: String in sides:
 		var along: int = 10 if side == "back" or side == "front" else 4
@@ -311,6 +318,20 @@ func _ring(sides: Array) -> void:
 			var kinds: Array = ["vault", "drill", "vault"]
 			if i % 2 == 0:
 				kinds = ["drill", "crusher", "smelter" if i % 4 == 0 else "vault"]
+			if warm:
+				kinds.reverse()
+				if i % 4 == 0:
+					var q: Vector2i
+					match side:
+						"back":
+							q = Vector2i(c.position.x - 3 + i, c.position.y - 4)
+						"front":
+							q = Vector2i(c.position.x - 3 + i, c.end.y + 3)
+						"left":
+							q = Vector2i(c.position.x - 4, c.position.y + i)
+						"right":
+							q = Vector2i(c.end.x + 3, c.position.y + i)
+					Sim.grid.place(Grid.idx(q.x, q.y), "boiler")
 			for k in range(3):
 				var p: Vector2i
 				match side:
