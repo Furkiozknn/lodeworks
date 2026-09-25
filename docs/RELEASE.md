@@ -282,8 +282,9 @@ screenshots, and seven tags where five is the maximum.
   resolves both from the GitHub release API at build time; it has not been run,
   because the development container cannot reach that API. The versions in the
   table above came from research, not from a download.
-- **Blueprints are saved and loaded but have no UI yet.** The research tree
-  already sells slots for them.
+- **Blueprints have no screen.** The save keeps an empty list that nothing
+  writes; the research line and the Licence bullet that would sell slots are
+  hidden until there is one (docs/GAP-AUDIT.md, B-5).
 - **Never run on hardware.** Performance figures for a real device: **UNKNOWN**.
   The renderer is set to `gl_compatibility`, which maximises device reach — note
   that switching to the Mobile/Vulkan renderer is

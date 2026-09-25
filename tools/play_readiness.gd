@@ -324,15 +324,29 @@ func _write_data_safety() -> void:
 	lines.append("")
 	lines.append("## Collected by the game")
 	lines.append("")
+	# "Collected" in Play's form means sent off the device. With no endpoint
+	# set, the events stay in memory on the phone, so this build collects
+	# nothing; setting one flips the row, and re-running this tool says so.
+	var sends: bool = an != null and String(an.get("endpoint")) != ""
 	lines.append("| Data type | Collected | Shared | Purpose | Optional |")
 	lines.append("|---|---|---|---|---|")
-	lines.append("| App interactions | Yes | No | Analytics | Yes — a switch in settings |")
+	if sends:
+		lines.append("| App interactions | Yes | No | Analytics | Yes — a switch in settings |")
+	else:
+		lines.append("| App interactions | No | No | — | — |")
 	lines.append("| Other app performance data | No | No | — | — |")
 	lines.append("| Device or other IDs | No | No | — | — |")
 	lines.append("")
+	if not sends:
+		lines.append("**This build sends no analytics.** `Analytics.endpoint` is empty, so")
+		lines.append("the events below are kept in memory on the device and never leave")
+		lines.append("it. When an endpoint is set, re-run `tools/play_readiness.gd`: the")
+		lines.append("App interactions row becomes Yes, and the form has to be updated")
+		lines.append("before that build ships.")
+		lines.append("")
 	lines.append("The game records exactly %d kinds of event and no others. The list is" % events.size())
-	lines.append("fixed in `scripts/services/analytics.gd`; anything not on it is dropped")
-	lines.append("rather than sent, and `tests/test_monetization.gd` asserts that.")
+	lines.append("fixed in `scripts/services/analytics.gd`; anything not on it is dropped,")
+	lines.append("and `tests/test_monetization.gd` asserts that.")
 	lines.append("")
 	for e: String in events:
 		lines.append("- `%s`" % e)

@@ -68,7 +68,7 @@ mid-term, P3 a future system, P4 not needed now.
 | A2 | **Resource-node economy** | `ResourceNodes` holds words only; nodes vanish when the yard reaches them | any production effect | P3, owner |
 | A3 | **Analytics sink** | `Analytics.endpoint = ""`: events never leave the device | a sink decision; then `first_machine`, `language_change`, `heat_problem`... | P1 before closed testing |
 | A4 | **Landscape store screenshots, tablet shots, preview video** | `store/screenshots*` are 1080x1920 portrait from 23 Sep; `tools/store-assets.sh` still captures portrait | re-shoot at 1920x1080 from the `ui`/`field` captures. **FIXED**: CI renders all store assets at the exact sizes and checks them, the listing is rewritten, a Turkish listing added (B-4) | P1, release |
-| A5 | **Store listing text** | `store/listing.md` describes the old small-grid game; English only | rewrite; translate | P1, release |
+| A5 | ~~Store listing text~~ **FIXED** (B-4) | `store/listing.md` described the old small-grid game; English only | rewritten for the landscape game; a Turkish listing; every field's length checked | done |
 | A6 | **Release items needing a person** | privacy-policy contact is a placeholder; no keystore, no signed AAB; versionCode fixed at 1 | owner actions; a versionCode bump step | P1 |
 | A7 | Some sounds | `Juice.income()` never played; no sound for Descend ready or a new band | two or three cues, rate-limited | P2 |
 | A8 | Right-to-left layout | `Loc.is_rtl` exists; nothing mirrors | layout mirroring before Arabic | P4 |
@@ -95,7 +95,7 @@ mid-term, P3 a future system, P4 not needed now.
 |---|---|---|---|---|
 | C1 | ~~Analytics opt-out does not persist~~ **FIXED** | the choice is kept in `user://analytics_off`, read before the first event of every launch (`Analytics._load_consent`); test and smoke switch | — | done |
 | C2 | ~~Offline rate can be saved as zero~~ **FIXED** | a Descend keeps the last measured rate for offline (`Sim.offline_rate`); a collapse still banks zero for its empty board; `test_a_descend_does_not_throw_away_the_offline_rate` | — | done |
-| C3 | Docs that overstate | README advertises "reroll a stratum" ads and blueprints that "save and load"; the data-safety form declares collection that does not happen | correct the words | P2 |
+| C3 | ~~Docs that overstate~~ **FIXED** | README advertised a "reroll a stratum" ad that ships unreachable, "one IAP" where there are two, and blueprints that "save and load"; RELEASE said the tree "sells slots"; the data-safety form declared analytics collection that never happens | corrected; the form now follows `Analytics.endpoint` (empty: "not collected", with the note to re-run when one is set). Left for the owner: the privacy policy still describes statistics as if they may be sent, which is right only once an endpoint exists | done |
 | C4 | CI | `ci` runs on push to `main` only; this branch runs by hand | run on this branch's pushes too | P2 |
 | C5 | Settings audio switches | Sounds and Volume not in the smoke test | add them | P3 |
 

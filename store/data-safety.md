@@ -17,13 +17,19 @@ no cloud save and no server of its own.
 
 | Data type | Collected | Shared | Purpose | Optional |
 |---|---|---|---|---|
-| App interactions | Yes | No | Analytics | Yes — a switch in settings |
+| App interactions | No | No | — | — |
 | Other app performance data | No | No | — | — |
 | Device or other IDs | No | No | — | — |
 
+**This build sends no analytics.** `Analytics.endpoint` is empty, so
+the events below are kept in memory on the device and never leave
+it. When an endpoint is set, re-run `tools/play_readiness.gd`: the
+App interactions row becomes Yes, and the form has to be updated
+before that build ships.
+
 The game records exactly 13 kinds of event and no others. The list is
-fixed in `scripts/services/analytics.gd`; anything not on it is dropped
-rather than sent, and `tests/test_monetization.gd` asserts that.
+fixed in `scripts/services/analytics.gd`; anything not on it is dropped,
+and `tests/test_monetization.gd` asserts that.
 
 - `first_launch`
 - `session_start`

@@ -194,12 +194,14 @@ are synthesised from arithmetic at startup.
 ## Monetisation, designed in rather than bolted on
 
 - **Rewarded video only. No interstitials, anywhere.** Every ad is opt-in and
-  additive: double what you already earned while away, reroll a stratum you
-  already reached. Nothing is taken away to be sold back.
-- **One IAP.** "Foreman's Licence" — removes ads and adds 4 hours of offline
-  banking. It unlocks no machine, no stratum, no upgrade. The whole game is
-  reachable without it. It also carries 2 blueprint slots, which the shop
-  does not advertise while blueprints have no screen.
+  additive. One placement ships: double what you already earned while away.
+  Two more (reroll a stratum, an extra blueprint) are written and tested but
+  unreachable. Nothing is taken away to be sold back.
+- **Two one-time purchases.** "Foreman's Licence" removes ads and adds 4
+  hours of offline banking; "Foundry Colours" is six palettes. Neither
+  unlocks a machine, a stratum or an upgrade, and the whole game is
+  reachable without them. The Licence also carries 2 blueprint slots, which
+  the shop does not advertise while blueprints have no screen.
 - **Neither one can move an economy number**, and that is a test rather than a
   promise: the suite runs the same board licensed and unlicensed and requires
   identical output. If the ad SDK is missing, broken, or hangs mid-ad, the game
@@ -351,8 +353,11 @@ nothing behind it:
 - **The store screenshots and preview video are the old portrait ones** and
   no longer show the game; the landscape capture is automated, choosing and
   uploading is not.
-- No music, and blueprints save and load but have no UI, so the research
-  line and the shop bullet that sell blueprint slots are hidden.
+- No music. Blueprints have no screen: the save keeps an empty list that
+  nothing writes, so the research line and the shop bullet that would sell
+  slots are hidden (docs/GAP-AUDIT.md, B-5).
+- Anonymous statistics are recorded but **sent nowhere**: no endpoint is
+  set, so the Data safety answers say the game collects nothing.
 
 See [docs/RELEASE.md](docs/RELEASE.md) §6 for claim-by-claim evidence and §7
 for what needs a human.
