@@ -102,7 +102,9 @@ a green or red arrow -- the simulation's own answer for that machine on
 that rock -- and the stratum's card shows the same machines under each
 rule. Holding Descend (or tapping it before the quota) shows the next
 stratum's rules, machines and ground before you go. Settings has a
-**Larger text** switch that makes every word a quarter bigger.
+**Larger text** switch that makes every word a quarter bigger, and a
+**Language** row: English and Turkish, the device's language by default,
+switched on the spot.
 
 | The Factory Core | What lies below |
 |---|---|
@@ -212,7 +214,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 290 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 296 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -300,7 +302,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            290 tests, no framework dependency
+tests/            296 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs

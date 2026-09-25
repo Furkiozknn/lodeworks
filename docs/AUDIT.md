@@ -1463,6 +1463,85 @@ from 205 to 193. The rest is the Core's outline, the machines drawn over
 the Core, the Research count and more props between the machines. A
 phone is still UNKNOWN.
 
+### Languages: English and Turkish (25 September 2026)
+
+Before this, every word the player reads was written into the code in
+English: 0 calls to `tr()`, no translation files. Now:
+
+- **How it works.** Every message goes through `Loc.t("...")` or
+  `Loc.tn("one", "many", n)` (`scripts/services/loc.gd`). The English text
+  is the key. A language that has no translation for a message shows the
+  English. The data tables (machines, research, strata, the tutorial, the
+  Codex, the shop, themes) keep their English, and the interface
+  translates them where it shows them (`MachineDB.name_of`,
+  `Strata.modifier_name`, `MonetizationDB.title_of`...). Translations are
+  gettext files: `locale/tr.po`, registered in project.godot and included
+  in the export. The interface turns Godot's auto-translation off, so a
+  word never gets translated twice.
+- **The messages.** `tools/loc_extract.gd` finds 369 messages: the
+  `Loc.t` calls in the code, and the fields of the data tables
+  (`tools/loc_catalog.gd`). It writes `locale/messages.pot` and keeps each
+  language's file in step. A new message is added empty, and a message no
+  longer used is kept, commented out. Turkish: 369 of 369, 4 of them with
+  singular and plural forms. The first Turkish was seeded from a
+  glossary (`tools/loc_tr_seed.py`). From now on `tr.po` itself is the
+  translation.
+- **Choosing.** Settings, Game, **Language** (the first row, with a
+  globe): "Device language" or a language, each written in itself. The
+  default is the device's language when it is translated, and English
+  otherwise (`Loc.pick`). A change rebuilds the interface on the spot, with
+  no restart. The game itself lives in `Sim` and is not touched.
+- **Turkish capitals.** `Loc.upper` writes "i" as "İ" (the band banner).
+  Godot's `to_upper` does not.
+- **What stays English on purpose.** The game's name and version. Each
+  language's own name. The device self test (`diagnostics.gd`,
+  `selftest.gd`): it is a technical report, and it reads the same from
+  every phone. Number suffixes (K, M) are kept too.
+- **Checks.**
+  - `tests/test_localization.gd` (6 tests) checks that every message has
+    Turkish, with the same format signs in the same order. It checks
+    plural forms, the English fallback, the dotted capital, the language
+    choice rule, and that the font draws every letter (ç ğ ı İ ö ş ü).
+    It also lints the interface scripts for text handed to a label, key,
+    toast, the Foreman or a panel without going through Loc.
+  - `tools/loc_check.tscn` opens 30 screens: the board, every Settings
+    tab, the language list, Research, Collapse locked and ready, the Core,
+    what lies below, the stratum, new machines, welcome back, the machine
+    sheet and its words, removing, a resource node, every Codex tab, the
+    shop. It runs in two languages:
+    - in Turkish it fails on any English word Turkish translates;
+    - in a pseudo-language it fails on any word without the bracket every
+      translated word gets. That pseudo-language is a third longer and
+      accented, which catches a word written past Loc and a word too wide
+      for its key.
+    In both it fails on any word off the screen or wider than its key.
+    It passed in both languages, with and without Larger text, at
+    1440x720, 1280x720, 2400x1080 and 720x1440. CI runs it in the smoke
+    job on all six shapes.
+  - The layout check runs a second time in Turkish (11 shapes x 3 safe
+    areas, passed).
+- **Found and fixed by the checks.** "DERİNE İN" ran off the Descend key.
+  Turkish now says "İNİŞ", and the key reads "kota %67". At a third longer
+  with Larger text, "Research" and "Collapse" were wider than their
+  96-unit keys and "DESCEND" ran off its key. Words on a fixed-size key
+  now shrink a step at a time to fit (`main._fit`, never under 11). Keys'
+  words (`_button`, the actions under a panel, the shop's Buy and
+  Restore), the board's numbers and the shop's drawn words now follow
+  Larger text as well. The panel words that were 14-15 units are now
+  16.
+- **Not done.**
+  - Right-to-left: `Loc.is_rtl` knows Arabic, but nothing mirrors the
+    layout yet.
+  - CJK and Arabic need a fallback font. Open Sans draws Latin, Greek and
+    Cyrillic only.
+  - The store listing and the data-safety text are English only.
+  - A `language_change` event waits for the analytics sink decision (no
+    event leaves the device today).
+  - German, French, Spanish, Brazilian Portuguese, Russian, Japanese,
+    Korean, Simplified Chinese and Arabic are on the list, not ready. A
+    new language is a `locale/<code>.po` file, its code in
+    `loc_extract.gd` `LANGS`, and `ready: true` in `Loc.LANGUAGES`.
+
 ### Toward more than one factory (not built)
 
 Nothing tonight builds a second factory or talks to a network (D3 still

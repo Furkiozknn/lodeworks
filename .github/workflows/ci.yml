@@ -54,6 +54,13 @@ jobs:
           timeout 300 ./godot --headless --path . tools/layout_check.tscn | tee layout-check.txt
           grep -q "=== layout check passed" layout-check.txt
 
+      # The same corners in Turkish: longer words must not push a panel off
+      # its place or over another.
+      - name: Landscape layout in Turkish
+        run: |
+          LODEWORKS_LOCALE=tr timeout 300 ./godot --headless --path . tools/layout_check.tscn | tee layout-check-tr.txt
+          grep -q "=== layout check passed" layout-check-tr.txt
+
       # Repo, package and estimated VRAM for every picture, and every picture
       # traced to a recorded generation. Fails over 40 MB or on an unsourced
       # file.
@@ -207,6 +214,18 @@ jobs:
         run: |
           xvfb-run -a ./godot --path . --resolution ${{ matrix.resolution }} \
             --rendering-driver opengl3 tools/smoke.tscn
+      # Every screen in Turkish, then in a made-up language that brackets
+      # every translated word and makes it a third longer (with Larger text):
+      # a bare word was written past Loc, a word too wide for its key would
+      # be cut in a longer language (tools/loc_check.gd).
+      - name: Every screen in Turkish and in the pseudo-language
+        run: |
+          LODEWORKS_LOCALE=tr xvfb-run -a ./godot --path . --resolution ${{ matrix.resolution }} \
+            --rendering-driver opengl3 tools/loc_check.tscn | tee loc-tr.txt
+          grep -q "=== loc check passed" loc-tr.txt
+          LODEWORKS_LOCALE=pseudo LODEWORKS_LARGE=1 xvfb-run -a ./godot --path . --resolution ${{ matrix.resolution }} \
+            --rendering-driver opengl3 tools/loc_check.tscn | tee loc-pseudo.txt
+          grep -q "=== loc check passed" loc-pseudo.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
