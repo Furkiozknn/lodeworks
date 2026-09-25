@@ -233,6 +233,7 @@ func _process(delta: float) -> void:
 		_btn_zoom.text = "−" if iso_view.cam.zoom > iso_view.default_zoom() * 1.15 else "+"
 	_swell_alarm(delta)
 	_place_pointer()
+	_place_node_card()
 
 
 ## The lit tile the arrow picks while a tutorial step is about the board:
@@ -344,9 +345,11 @@ func _build() -> void:
 	iso_view.cell_tapped.connect(_on_cell_tapped)
 	iso_view.cell_long_pressed.connect(_on_cell_long_pressed)
 	iso_view.ground_tapped.connect(func():
+		_close_node_card()
 		if iso_view.selected_cell >= 0:
 			_close_sheet())
 	iso_view.core_tapped.connect(_on_core_tapped)
+	iso_view.node_tapped.connect(_on_node_tapped)
 	iso_view.machine_moved.connect(func(from_cell: int, to_cell: int):
 		_push_undo({"kind": "move", "cell": to_cell, "from": from_cell})
 		_maybe_advance_tutorial()
@@ -1132,6 +1135,7 @@ func _arm(id: String) -> void:
 
 
 func _on_cell_tapped(cell: int) -> void:
+	_close_node_card()
 	if Sim.is_blocked(cell):
 		Juice.blocked()
 		_toast_msg("This part of the shaft has collapsed.")
@@ -1551,6 +1555,7 @@ func _refresh_hint() -> void:
 ## the first thing a new game, and every shaft after a collapse, asks for.
 ## Online, a tap says what it is.
 func _on_core_tapped() -> void:
+	_close_node_card()
 	if Sim.power_core():
 		iso_view.core_powered()
 		Juice.reward()
@@ -1644,6 +1649,112 @@ func _band_banner(band: int) -> void:
 ## A centred card over a dimmed world. Sized from the screen, and its body
 ## scrolls, because a landscape phone is 720 units tall and some of these
 ## (research, the offline report) are longer than that.
+## --- resource nodes --------------------------------------------------------
+##
+## A tap on a crystal, an ore vein or a heat vent round the yard: a small
+## card over it says what it is in a few plain words, whether a machine makes
+## its resource, and at which stratum the yard reaches it. Clutter says
+## nothing. The words come from `ResourceNodes`; the reach from `BuildArea`.
+
+var _node_card: PanelContainer
+var _node_index: int = -1
+
+
+func _on_node_tapped(index: int) -> void:
+	var props: Array = IsoArt.placement().get("props", [])
+	if index < 0 or index >= props.size():
+		return
+	var pr: Array = props[index]
+	var info: Dictionary = ResourceNodes.info(String(pr[2]))
+	if info.is_empty():
+		return
+	Juice.tap()
+	_close_sheet()
+	_close_node_card()
+	_node_index = index
+	iso_view.selected_node = index
+
+	_node_card = _panel(Palette.PANEL_HI, 0.95)
+	_node_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_node_card.add_child(row)
+	row.add_child(_prop_picture(String(pr[2]), 72.0))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 2)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(_label(String(info["name"]), 21, Palette.CORE))
+	col.add_child(_label(String(info["line"]), 16, Palette.TEXT))
+	# What uses it: a machine only where one really makes its resource.
+	var use := HBoxContainer.new()
+	use.add_theme_constant_override("separation", 6)
+	use.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if String(info["machine"]) != "":
+		use.add_child(Chips.MachineSprite.new(String(info["machine"]), 34.0))
+	use.add_child(_label(String(info["use"]), 15, Palette.TEXT_DIM))
+	col.add_child(use)
+	# When the yard gets there.
+	var o: Vector2i = Iso.board_offset()
+	var gx: int = int(pr[0]) - o.x
+	var gy: int = int(pr[1]) - o.y
+	if Grid.in_bounds(gx, gy):
+		var when := HBoxContainer.new()
+		when.add_theme_constant_override("separation", 6)
+		when.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		when.add_child(_icon_rect("descend", 26))
+		when.add_child(_label("Your yard reaches it at stratum %d." % BuildArea.opens_at(
+			Grid.idx(gx, gy)), 15, Palette.TEXT_DIM))
+		col.add_child(when)
+	row.add_child(col)
+	_hud.add_child(_node_card)
+	_place_node_card()
+
+
+func _close_node_card() -> void:
+	if _node_card != null and is_instance_valid(_node_card):
+		_node_card.queue_free()
+	_node_card = null
+	_node_index = -1
+	if iso_view != null:
+		iso_view.selected_node = -1
+
+
+## The card stands over its node and follows it as the world moves, kept on
+## the screen.
+func _place_node_card() -> void:
+	if _node_card == null or not is_instance_valid(_node_card) or _node_index < 0:
+		return
+	if _overlay.visible:
+		_close_node_card()
+		return
+	var pr: Array = IsoArt.placement().get("props", [])[_node_index]
+	var r: Rect2 = iso_view.prop_rect(pr)
+	var top: Vector2 = iso_view.get_global_transform() * iso_view.cam.world_to_screen(
+		r.position + Vector2(r.size.x * 0.5, 0.0))
+	var sz: Vector2 = _node_card.get_combined_minimum_size()
+	_node_card.size = sz
+	var p := Vector2(top.x - sz.x * 0.5, top.y - sz.y - 18.0)
+	p.x = clampf(p.x, _safe.x + M, size.x - _safe.z - M - sz.x)
+	p.y = clampf(p.y, _safe.y + TOP_H + M, size.y - _safe.w - BOTTOM_H - M - sz.y)
+	_node_card.position = p
+
+
+## A prop's own picture, for the card: the same one the world draws.
+func _prop_picture(kind: String, px: float) -> TextureRect:
+	var info: Dictionary = IsoArt.layout().get("props", {})
+	var a := AtlasTexture.new()
+	a.atlas = IsoArt.texture(String(info.get("file", "")))
+	a.region = IsoArt.region(info, (info.get("order", []) as Array).find(kind))
+	var t := TextureRect.new()
+	t.texture = a
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.custom_minimum_size = Vector2(px, px * 1.2)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
+
 func _open_overlay(title: String, body: Control, actions: Array,
 		max_w: float = 820.0, head_extra: Control = null) -> void:
 	_close_overlay()

@@ -39,6 +39,9 @@ signal machine_moved(from_cell: int, to_cell: int)
 signal ground_tapped()
 ## A tap on the Factory Core.
 signal core_tapped()
+## A resource node on the ground round the yard (an index into the layout's
+## props), tapped.
+signal node_tapped(index: int)
 
 ## What pick_at_screen returns for the Factory Core, which is on no cell.
 const CORE := -2
@@ -55,6 +58,19 @@ const LONG_PRESS_SECONDS := 0.45
 const DRAG_THRESHOLD := 14.0
 
 var selected_cell: int = -1
+## The resource node whose card is open (an index into placement.props), or -1.
+var selected_node: int = -1
+var _press_node: int = -1
+var _props_mask: BitMap
+## Each prop's fixed facts (_props_now), and the yard they were worked out for.
+var _prop_facts: Array = []
+var _prop_facts_depth: int = -1
+## Yard cells the Core's tower hides from the camera, for the Core's current
+## level (cells_behind_core), and how opaque the Core is drawn: it thins
+## while the player is placing or dragging into one of them.
+var _hidden: Array[int] = []
+var _hidden_level: int = -1
+var _core_alpha: float = 1.0
 var highlight_cells: Array[int] = []
 var arm_id: String = ""
 ## Pulse a ring round the Core's base: it is the thing to tap.
@@ -111,7 +127,7 @@ var _sheet: Dictionary = {}
 var _atlas: Texture2D
 var _pick_img: Image
 var _pick_sheet: String = ""
-var _core_img: Image
+var _core_mask: BitMap
 ## The yard the view was last framed for.
 var _yard := Vector2i.ZERO
 ## Ground the yard has just reached, lighting up in a wave: cell -> seconds
@@ -469,6 +485,10 @@ func pick_at_screen(p: Vector2) -> int:
 	var placing: bool = arm_id != ""
 	var cell: int = IsoArt.pick(w, Sim.grid, _sheet, _pick_image(), placing)
 	if not _on_core(w):
+		# The Core's own sixteen cells are its foundation, not ground: a tap
+		# on one is a tap on the Core.
+		if cell >= 0 and BuildArea.is_core(cell):
+			return CORE
 		return cell
 	if cell < 0:
 		return CORE
@@ -481,7 +501,58 @@ func pick_at_screen(p: Vector2) -> int:
 	var o: Vector2i = Iso.board_offset()
 	if drawn and float(p2.x + o.x + p2.y + o.y) > _core_depth():
 		return cell
+	# Behind the tower, but drawn through it (_draw_things): the machine the
+	# player can see is the one they get.
+	if drawn and cells_behind_core().has(cell):
+		return cell
 	return CORE
+
+
+## The yard cells the Core's tower hides from the camera: at least half of
+## a cell's diamond under the Core's opaque picture. They are ordinary yard
+## cells -- open, buildable, the same rules as any other -- and the view
+## makes them usable: while a machine is armed their outlines are drawn over
+## the Core, the Core thins while a finger places or drags into one, and a
+## machine standing in one is drawn through the Core and tapped through it.
+## Cached per Core level, the only thing that changes the Core's size.
+func cells_behind_core() -> Array[int]:
+	var lvl: int = core_level()
+	if lvl == _hidden_level:
+		return _hidden
+	_hidden_level = lvl
+	_hidden = []
+	var r: Rect2 = core_rect()
+	if r.size.x <= 0.0:
+		return _hidden
+	for cell in range(Grid.W * Grid.H):
+		if BuildArea.is_core(cell):
+			continue
+		var c: Vector2 = Iso.cell_center(cell)
+		if not r.grow(Iso.TW).has_point(c):
+			continue
+		var n: int = 0
+		var hit: int = 0
+		for i in range(-4, 5):
+			for j in range(-4, 5):
+				if absi(i) + absi(j) > 4:
+					continue
+				n += 1
+				if _on_core(c + Vector2(float(i) * Iso.TW * 0.11, float(j) * Iso.TH * 0.11)):
+					hit += 1
+		if hit * 2 >= n:
+			_hidden.append(cell)
+	return _hidden
+
+
+## Whether the Core should be drawn thin: something the player is working
+## on is behind it.
+func _see_through_core() -> bool:
+	if _dragging:
+		return true
+	if _pressed and arm_id != "" and _press_cell >= 0 and cells_behind_core().has(_press_cell):
+		return true
+	return selected_cell >= 0 and not Sim.grid.is_empty(selected_cell) \
+		and cells_behind_core().has(selected_cell)
 
 
 ## Is the Core's picture opaque at world point `w`?
@@ -490,19 +561,30 @@ func _on_core(w: Vector2) -> bool:
 	if not r.has_point(w):
 		return false
 	var info: Dictionary = IsoArt.layout().get("core", {})
-	if _core_img == null:
-		var tex: Texture2D = IsoArt.texture(String(info.get("file", "")))
-		if tex == null:
+	if _core_mask == null:
+		_core_mask = _alpha_mask(String(info.get("file", "")))
+		if _core_mask == null:
 			return false
-		_core_img = tex.get_image()
-		if _core_img == null:
-			return false
-		if _core_img.is_compressed():
-			_core_img.decompress()
-		_core_img.clear_mipmaps()
 	var region: Rect2 = IsoArt.region(info, 0)
 	var q: Vector2 = region.position + (w - r.position) / r.size * region.size
-	return _core_img.get_pixelv(Vector2i(q)).a >= 0.5
+	return _core_mask.get_bitv(Vector2i(q))
+
+
+## A sheet's opaque pixels, one bit each: all a tap test needs, at a
+## thirty-second of the decompressed picture's memory.
+static func _alpha_mask(file: String) -> BitMap:
+	var tex: Texture2D = IsoArt.texture(file)
+	if tex == null:
+		return null
+	var img: Image = tex.get_image()
+	if img == null:
+		return null
+	if img.is_compressed():
+		img.decompress()
+	img.clear_mipmaps()
+	var m := BitMap.new()
+	m.create_from_image_alpha(img, 0.5)
+	return m
 
 
 ## The Core's place in the drawing order (see _draw_things).
@@ -580,6 +662,7 @@ func _process(delta: float) -> void:
 	if not hold_effects:
 		_dive = maxf(_dive - delta / _dive_seconds, 0.0)
 	_core_flash = maxf(_core_flash - delta / 1.6, 0.0)
+	_core_alpha = move_toward(_core_alpha, 0.4 if _see_through_core() else 1.0, delta * 4.0)
 
 	if _pressed and not _panning and not _dragging and not _long_fired \
 			and _press_cell >= 0 and not Sim.grid.is_empty(_press_cell):
@@ -720,6 +803,8 @@ func _press(pos: Vector2, pan_only: bool) -> void:
 	_samples.clear()
 	_samples.append([Time.get_ticks_msec(), pos])
 	_press_cell = -1 if pan_only else pick_at_screen(pos)
+	# A node is for looking at, not building on: only when nothing is armed.
+	_press_node = node_at_screen(pos) if not pan_only and arm_id == "" else -1
 
 
 func _move(pos: Vector2, rel: Vector2) -> void:
@@ -769,6 +854,12 @@ func _release(pos: Vector2) -> void:
 		cam.release(_fling_velocity())
 		return
 	var cell: int = pick_at_screen(pos)
+	# A resource node, unless a machine or the Core is what is drawn there.
+	var machine_here: bool = cell >= 0 and not Sim.grid.is_empty(cell)
+	if _press_node >= 0 and not machine_here and cell != CORE \
+			and node_at_screen(pos) == _press_node:
+		node_tapped.emit(_press_node)
+		return
 	if cell >= 0 and cell == from_cell:
 		cell_tapped.emit(cell)
 	elif cell == CORE and from_cell == CORE:
@@ -870,6 +961,7 @@ func _draw_ground() -> void:
 func _draw_floor() -> void:
 	var ci: CanvasItem = _floor
 	_draw_yard_edge(ci)
+	_draw_core_footprint(ci)
 	_draw_floor_marks(ci)
 
 	# Contact shadows: a machine that casts nothing floats.
@@ -993,7 +1085,12 @@ func _draw_tiles(ci: CanvasItem) -> void:
 			c = Color(0.35, 0.33, 0.36)
 		elif overlay == Overlay.HEAT:
 			c = c.lerp(Palette.heat_color(Sim.grid.heat_at(cell)), 0.55)
-		if not Sim.is_open(cell):
+		if BuildArea.is_core(cell):
+			# The Core's own foundation: steel under its plate, never ground
+			# the yard has yet to reach.
+			c = Color(0.52, 0.53, 0.60) * (0.92 + 0.08 * k)
+			c.a = 1.0
+		elif not Sim.is_open(cell):
 			# Ground the yard has not reached yet: marked out, not laid. The
 			# slabs are drawn faint and grey over the island's own rock, so
 			# the future ground reads as ground rather than as a dark hole.
@@ -1042,6 +1139,21 @@ func _draw_yard_edge(ci: CanvasItem) -> void:
 	var lit: Color = Palette.ACCENT
 	lit.a = 0.75 + 0.15 * sin(_anim * 2.0)
 	ci.draw_polyline(inner, lit, 3.5, true)
+
+
+## The Core's footprint: a brass edge round its sixteen cells, so what the
+## Core occupies reads apart from the yard round it.
+func _draw_core_footprint(ci: CanvasItem) -> void:
+	var c: Rect2i = BuildArea.CORE
+	var o: Vector2i = Iso.board_offset()
+	var pts := PackedVector2Array([
+		Iso.slab_top(c.position.x + o.x, c.position.y + o.y),
+		Iso.slab_top(c.end.x + o.x, c.position.y + o.y),
+		Iso.slab_top(c.end.x + o.x, c.end.y + o.y),
+		Iso.slab_top(c.position.x + o.x, c.end.y + o.y),
+		Iso.slab_top(c.position.x + o.x, c.position.y + o.y)])
+	ci.draw_polyline(pts, Color(0.05, 0.05, 0.08, 0.7), 7.0, true)
+	ci.draw_polyline(pts, Color(0.86, 0.66, 0.30, 0.9), 3.0, true)
 
 
 func _diamond(cell: int, grow: float) -> PackedVector2Array:
@@ -1162,9 +1274,12 @@ func _draw_things() -> void:
 	for cell: int in Sim.grid.cells:
 		var p: Vector2i = Grid.xy(cell)
 		items.append([float(p.x + o.x + p.y + o.y), 0, cell])
-	var props: Array = IsoArt.placement().get("props", [])
-	for pr: Array in props:
-		items.append([float(int(pr[0]) + int(pr[1])) - 0.25, 2, pr])
+	# Only the props on screen: each one out of sight would still be drawn,
+	# and would split the machines' batch where it sorts between them.
+	var seen: Rect2 = cam.visible_world().grow(Iso.TW)
+	for f: Array in _props_now():
+		if not f[2] and seen.intersects(f[1]):
+			items.append([f[3] - 0.25, 2, f])
 	var cc: Array = IsoArt.placement().get("core_cell", [])
 	if cc.size() == 2:
 		var n: int = int(IsoArt.placement().get("core_size", 3))
@@ -1181,6 +1296,14 @@ func _draw_things() -> void:
 				_draw_prop(ci, it[2])
 			3:
 				_draw_core(ci)
+	# Machines the Core's tower hides, drawn again faintly over it: what
+	# stands behind the Core can be seen, and tapped (pick_at_screen).
+	for cell: int in cells_behind_core():
+		var hid: String = Sim.grid.machine_at(cell)
+		if hid != "" and not (_dragging and cell == selected_cell):
+			# A cool, see-through tint: it reads as "behind", not as a
+			# smudge on the Core.
+			_draw_sprite(ci, hid, Iso.cell_center(cell), Color(0.6, 0.88, 1.0, 0.5), 1.0)
 	if _dragging and selected_cell >= 0 and not Sim.grid.is_empty(selected_cell):
 		var w: Vector2 = cam.screen_to_world(_drag_pos)
 		_draw_sprite(ci, Sim.grid.machine_at(selected_cell), w + Vector2(0, Iso.TH * 0.2),
@@ -1258,6 +1381,7 @@ func _draw_core(ci: CanvasItem) -> void:
 		# Dark and cold: built, not yet running.
 		mod = Color(0.42, 0.45, 0.55)
 	mod = mod.lerp(Color(1.5, 1.5, 1.5), _core_flash * 0.6)
+	mod.a = _core_alpha
 	ci.draw_texture_rect_region(tex, r, IsoArt.region(info, 0), mod)
 
 
@@ -1269,22 +1393,83 @@ func _prop_cleared(pr: Array) -> bool:
 	return Grid.in_bounds(x, y) and Sim.is_open(Grid.idx(x, y))
 
 
-func _draw_prop(ci: CanvasItem, pr: Array) -> void:
-	if _prop_cleared(pr):
+## `f` is one of _props_now()'s entries.
+func _draw_prop(ci: CanvasItem, f: Array) -> void:
+	var tex: Texture2D = IsoArt.texture(String(IsoArt.layout().get("props", {}).get("file", "")))
+	if tex == null or f[4] == Rect2():
 		return
+	ci.draw_texture_rect_region(tex, f[1], f[4], Color.WHITE.lerp(_band_tint, 0.3))
+
+
+## Each prop's fixed facts, worked out once: [the layout's entry, where it
+## is drawn, whether the yard has cleared it, its depth in the drawing
+## order, its picture on the sheet, the point it stands on]. The props never move while the game
+## runs, and only a growing yard clears one, so this is redone only then.
+## Worked out afresh every frame, a hundred props cost a millisecond.
+func _props_now() -> Array:
+	if _prop_facts_depth == Sim.max_depth and not _prop_facts.is_empty():
+		return _prop_facts
+	_prop_facts_depth = Sim.max_depth
+	_prop_facts = []
 	var info: Dictionary = IsoArt.layout().get("props", {})
-	var tex: Texture2D = IsoArt.texture(String(info.get("file", "")))
-	if tex == null:
-		return
-	var k: int = (info.get("order", []) as Array).find(String(pr[2]))
-	if k < 0:
-		return
+	var order: Array = info.get("order", [])
+	for pr: Array in IsoArt.placement().get("props", []):
+		var k: int = order.find(String(pr[2]))
+		_prop_facts.append([pr, prop_rect(pr), _prop_cleared(pr),
+			float(int(pr[0]) + int(pr[1])), IsoArt.region(info, k) if k >= 0 else Rect2(),
+			Iso.slab_top(float(pr[0]) + 0.5, float(pr[1]) + 0.5)])
+	return _prop_facts
+
+
+## A prop's size: the layout's fourth number, or 1. Resource fields far out
+## are drawn a little larger than the starters by the yard.
+static func prop_scale(pr: Array) -> float:
+	return clampf(float(pr[3]), 0.5, 1.5) if pr.size() > 3 else 1.0
+
+
+## Where a prop's picture is drawn, in world units: standing on its cell.
+func prop_rect(pr: Array) -> Rect2:
+	var info: Dictionary = IsoArt.layout().get("props", {})
 	var at: Vector2 = Iso.slab_top(float(pr[0]) + 0.5, float(pr[1]) + 0.5)
-	var s: float = Iso.TW * 0.78 / IsoArt.base_px(info)
-	var a: Vector2 = IsoArt.anchor(info)
-	var region: Rect2 = IsoArt.region(info, k)
-	ci.draw_texture_rect_region(tex, Rect2(at - a * s, region.size * s), region,
-		Color.WHITE.lerp(_band_tint, 0.3))
+	var s: float = Iso.TW * 0.78 / IsoArt.base_px(info) * prop_scale(pr)
+	var cell: Array = info.get("cell", [1, 1])
+	return Rect2(at - IsoArt.anchor(info) * s, Vector2(float(cell[0]), float(cell[1])) * s)
+
+
+## The resource node drawn at world point `w`, nearest the camera first, or
+## -1. Clutter (rubble, crates, lamps) is never a node, and a node the yard
+## has cleared is gone.
+func node_at(w: Vector2) -> int:
+	var props: Array = IsoArt.placement().get("props", [])
+	var info: Dictionary = IsoArt.layout().get("props", {})
+	var order: Array = (info.get("order", []) as Array)
+	var best: int = -1
+	var best_depth: float = -INF
+	for i in range(props.size()):
+		var pr: Array = props[i]
+		if not ResourceNodes.is_node(String(pr[2])) or _prop_cleared(pr):
+			continue
+		var r: Rect2 = prop_rect(pr)
+		if not r.has_point(w):
+			continue
+		var depth: float = float(int(pr[0]) + int(pr[1]))
+		if depth <= best_depth:
+			continue
+		if _props_mask == null:
+			_props_mask = _alpha_mask(String(info.get("file", "")))
+		if _props_mask != null:
+			var region: Rect2 = IsoArt.region(info, order.find(String(pr[2])))
+			var q: Vector2 = region.position + (w - r.position) / r.size * region.size
+			if not _props_mask.get_bitv(Vector2i(q)):
+				continue
+		best = i
+		best_depth = depth
+	return best
+
+
+func node_at_screen(p: Vector2) -> int:
+	return node_at(cam.screen_to_world(p))
+
 
 
 func _rubble(tris: Tris, cell: int) -> void:
@@ -1630,11 +1815,12 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 			var r: float = (7.0 if hot else 11.0) + t * 16.0
 			ci.draw_texture_rect(g, Rect2(top + drift - Vector2(r, r), Vector2(r, r) * 2.0),
 				false, col)
-	# Crystals and lamps on the slab.
-	var props: Array = IsoArt.placement().get("props", [])
-	for pr: Array in props:
-		if _prop_cleared(pr):
+	# Crystals and lamps on the slab, the ones on screen.
+	var seen: Rect2 = cam.visible_world().grow(Iso.TW)
+	for f: Array in _props_now():
+		if f[2] or not seen.intersects(f[1]):
 			continue
+		var pr: Array = f[0]
 		var kind: String = String(pr[2])
 		var col2: Color
 		match kind:
@@ -1643,10 +1829,11 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 			"ore_vein": col2 = Color(1.0, 0.55, 0.2)
 			"lamp": col2 = Color(1.0, 0.75, 0.4)
 			_: continue
-		var at: Vector2 = Iso.slab_top(float(pr[0]) + 0.5, float(pr[1]) + 0.5) - Vector2(0, 30)
+		var ks: float = prop_scale(pr)
+		var at: Vector2 = f[5] - Vector2(0, 30 * ks)
 		var breathe: float = 0.5 + 0.5 * sin(_anim * 1.7 + float(int(pr[0]) * 3 + int(pr[1])))
-		col2.a = 0.22 + 0.18 * breathe
-		ci.draw_texture_rect(g, Rect2(at - Vector2(46, 40), Vector2(92, 80)), false, col2)
+		col2.a = 0.17 + 0.14 * breathe
+		ci.draw_texture_rect(g, Rect2(at - Vector2(46, 40) * ks, Vector2(92, 80) * ks), false, col2)
 	# The Core's crystal, brighter the more of the board is running.
 	var cr: Rect2 = core_rect()
 	if cr.size.x > 0.0 and Sim.core_online:
@@ -1709,6 +1896,38 @@ func _draw_over() -> void:
 				p = cam.world_to_screen(Iso.cell_center(cell)
 					+ _badge_side(cell, false) * Iso.TW * 0.32 - Vector2(0, Iso.TH * 0.55))
 		_badge(ov, p, r, shown)
+
+	# While a machine is armed or being moved, the yard cells behind the
+	# Core are outlined over it: they are there, and they take machines.
+	if (arm_id != "" or _dragging) and overlay != Overlay.HEAT:
+		var edge: Color = Palette.ACCENT
+		edge.a = 0.6 + 0.25 * sin(_anim * 3.4)
+		for hc: int in cells_behind_core():
+			if not Sim.is_open(hc) or not Sim.grid.is_empty(hc) or Sim.is_blocked(hc):
+				continue
+			var d: PackedVector2Array = _diamond(hc, 0.9)
+			for e in range(4):
+				ov.band(cam.world_to_screen(d[e]), cam.world_to_screen(d[e + 1]), 2.5, edge)
+
+	# The resource node the player tapped: its ground ringed, a marker over it.
+	if selected_node >= 0:
+		var props: Array = IsoArt.placement().get("props", [])
+		if selected_node < props.size() and not _prop_cleared(props[selected_node]):
+			var pr: Array = props[selected_node]
+			var base: Vector2 = Iso.slab_top(float(pr[0]) + 0.5, float(pr[1]) + 0.5)
+			var ring: Color = Palette.CORE
+			ring.a = 0.7 + 0.25 * sin(_anim * 4.0)
+			var hw: float = Iso.TW * 0.46
+			var hh: float = Iso.TH * 0.46
+			var dm := PackedVector2Array([base + Vector2(0, -hh), base + Vector2(hw, 0),
+				base + Vector2(0, hh), base + Vector2(-hw, 0), base + Vector2(0, -hh)])
+			for e in range(4):
+				ov.band(cam.world_to_screen(dm[e]), cam.world_to_screen(dm[e + 1]), 3.0, ring)
+			var tip: Vector2 = cam.world_to_screen(prop_rect(pr).position
+				+ Vector2(prop_rect(pr).size.x * 0.5, 0.0)) + Vector2(0, sin(_anim * 4.0) * 4.0 - 4.0)
+			var mw: float = clampf(11.0 * z, 8.0, 15.0)
+			ov.tri(tip + Vector2(-mw, -mw * 1.4), tip + Vector2(mw, -mw * 1.4),
+				tip + Vector2(0, -mw * 0.15), Palette.CORE)
 
 	# A dark Core is the one thing to tap: a target pulsing on its body, in
 	# screen space so it is the same size at any zoom.

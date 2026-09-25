@@ -87,6 +87,10 @@ func _run() -> void:
 		await _run_ui()
 		get_tree().quit()
 		return
+	if OS.get_environment("LODEWORKS_CAPTURE") == "field":
+		await _run_field()
+		get_tree().quit()
+		return
 	for s: Dictionary in SHOTS:
 		_apply_build(String(s["build"]))
 		_set_overlay(bool(s.get("overlay", false)))
@@ -562,6 +566,104 @@ func _run_ui() -> void:
 	print("  core level %d at stratum %d" % [IsoView.core_level(), Sim.max_depth])
 	Sim.max_depth = 7
 	print("wrote the panel screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
+
+
+## The ground round the yard, at the window's own size (1440x720 for 18:9,
+## 1280x720 for 16:9; LODEWORKS_SHOT_TAG names the files), into the audit
+## folder:
+##   field_a_new       a new game, the dark Core, as it opens
+##   field_b_core      stratum 1, a first line beside the Core
+##   field_c_behind    a machine behind the Core and a Drill armed: the cells
+##                     behind outlined, the machine drawn through the Core
+##   field_e_placing   a finger down on a cell behind the Core: the Core thins
+##   field_d_far       zoomed out over the resource fields
+##   field_f_close / field_f_default  the closest zoom and the opening one
+##   field_g_node      a resource node tapped, its card open
+func _run_field() -> void:
+	DirAccess.make_dir_recursive_absolute(AUDIT_DIR)
+	var gv: IsoView = _main.get("iso_view")
+	var tag: String = OS.get_environment("LODEWORKS_SHOT_TAG")
+	if tag == "":
+		tag = "_%dx%d" % [int(get_viewport().get_visible_rect().size.x),
+			int(get_viewport().get_visible_rect().size.y)]
+	_apply_build("new")
+	_main.call("_close_overlay")
+	_main.call("_refresh_hint")
+	gv.frame_board()
+	await _settle(2.0)
+	await _audit_shot("field_a_new" + tag)
+
+	# Stratum 1, as a first descent leaves it: a Drill and a Vault by the Core.
+	_apply_build("new")
+	Sim.depth = 1
+	Sim.max_depth = 1
+	Sim.set("core_online", true)
+	Sim._tutorial_step = Tutorial.count()
+	Sim.credits = 400.0
+	Sim.unlocked.clear()
+	Sim._recompute()
+	Sim.grid.place(Grid.idx(24, 21), "drill")
+	Sim.grid.place(Grid.idx(24, 22), "vault")
+	_main.call("_rebuild_palette")
+	_main.call("_refresh")
+	_main.call("_refresh_hint")
+	_main.call("_close_overlay")
+	# The new game's "tap the Core" line, which a real tap would have
+	# replaced, is not part of this picture.
+	_main.set("_foreman_time", 0.0)
+	(_main.get("_foreman") as Control).visible = false
+	gv.frame_board()
+	await _settle(2.0)
+	await _audit_shot("field_b_core" + tag)
+
+	# A machine behind the Core, and a Drill armed.
+	Sim.grid.place(Grid.idx(19, 19), "crusher")
+	_main.call("_arm", "drill")
+	await _settle(1.0)
+	await _audit_shot("field_c_behind" + tag)
+
+	# A finger down on another cell behind the Core.
+	var target: int = Grid.idx(20, 19)
+	gv.set("_pressed", true)
+	gv.set("_press_pos", gv.cam.world_to_screen(Iso.cell_center(target)))
+	gv.set("_press_cell", target)
+	await _settle(1.0)
+	await _audit_shot("field_e_placing" + tag)
+	gv.set("_pressed", false)
+	gv.set("_press_cell", -1)
+	_main.call("_arm", "drill")
+	await _settle(0.6)
+
+	gv.cam.focus(gv.core_rect().get_center() + Vector2(0, 120), 0.42)
+	await _settle(1.4)
+	await _audit_shot("field_d_far" + tag)
+	gv.cam.focus(gv.core_rect().get_center() + Vector2(0, 160), gv.cam.zoom_max)
+	await _settle(1.4)
+	await _audit_shot("field_f_close" + tag)
+	gv.frame_board()
+	await _settle(1.4)
+	await _audit_shot("field_f_default" + tag)
+
+	# A resource node tapped: the nearest ore vein to the yard that is shown.
+	var props: Array = IsoArt.placement().get("props", [])
+	var pick: int = -1
+	var best: int = 99
+	var o: Vector2i = Iso.board_offset()
+	for i in range(props.size()):
+		var pr: Array = props[i]
+		if String(pr[2]) != "ore_vein" or gv.call("_prop_cleared", pr):
+			continue
+		var x: int = int(pr[0]) - o.x
+		var y: int = int(pr[1]) - o.y
+		if Grid.in_bounds(x, y) and BuildArea.reach(Grid.idx(x, y)) < best:
+			best = BuildArea.reach(Grid.idx(x, y))
+			pick = i
+	if pick >= 0:
+		_main.call("_on_node_tapped", pick)
+		await _settle(0.8)
+		await _audit_shot("field_g_node" + tag)
+		_main.call("_close_node_card")
+	print("wrote the field screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 
 func _audit_shot(name: String) -> void:

@@ -637,3 +637,163 @@ func test_the_core_grows_with_its_yard_all_the_way_down() -> void:
 		runner.eq(IsoView.level_at(d), lv, "level %d arrives at stratum %d" % [lv, d])
 		runner.eq(BuildArea.radius_at(d) > BuildArea.radius_at(d - 1), true,
 			"and that is a stratum where the yard widens")
+
+
+## --- the field round the yard: the cells behind the Core, the resource nodes
+
+func _field_view(depth: int) -> IsoView:
+	Sim._ensure()
+	Sim.grid.clear()
+	Sim.depth = depth
+	Sim.max_depth = depth
+	Sim.collapses = 0
+	Sim.core_online = true
+	Sim.unlocked.clear()
+	Sim._recompute()
+	var v := IsoView.new()
+	v.cam = _cam(Vector2(1440, 720))
+	v.call("_refresh_sheet")
+	return v
+
+
+func test_the_cells_behind_the_core_are_yard_cells_the_player_can_use() -> void:
+	# The Core's tower stands over the yard cells behind it. They are
+	# ordinary yard: the view has to let a player reach them.
+	var v := _field_view(1)
+	var hidden: Array[int] = v.cells_behind_core()
+	for xy: Vector2i in [Vector2i(19, 19), Vector2i(18, 18), Vector2i(20, 19), Vector2i(19, 20)]:
+		runner.check(hidden.has(Grid.idx(xy.x, xy.y)),
+			"(%d,%d) is found behind the Core at stratum 1" % [xy.x, xy.y])
+	v.arm_id = "drill"
+	for cell: int in hidden:
+		runner.check(not BuildArea.is_core(cell), "a cell behind the Core is not the Core's own")
+		runner.check(Sim.is_open(cell), "a cell behind the Core is yard")
+		runner.eq(v.pick_at_screen(v.cam.world_to_screen(Iso.cell_center(cell))), cell,
+			"placing reaches cell %d through the Core" % cell)
+	v.arm_id = ""
+	# A machine built there is drawn through the Core and tapped through it.
+	var back: int = Grid.idx(19, 19)
+	Sim.credits = 10000.0
+	runner.check(Sim.try_place(back, "drill"), "a machine can be built behind the Core")
+	runner.eq(v.pick_at_screen(v.cam.world_to_screen(Iso.cell_center(back))), back,
+		"and a tap on it, through the Core, selects it")
+	Sim.grid.clear()
+	v.free()
+	Save.wipe()
+
+
+func test_the_cores_foundation_is_the_core_not_ground() -> void:
+	# The Core's sixteen cells are drawn as its foundation; a tap on any of
+	# them is a tap on the Core, never "the yard reaches here".
+	var v := _field_view(1)
+	for x in range(BuildArea.CORE.position.x, BuildArea.CORE.end.x):
+		for y in range(BuildArea.CORE.position.y, BuildArea.CORE.end.y):
+			runner.eq(v.pick_at_screen(v.cam.world_to_screen(Iso.cell_center(Grid.idx(x, y)))),
+				IsoView.CORE, "a tap on the Core's cell (%d,%d) is the Core" % [x, y])
+	v.free()
+
+
+func test_resource_nodes_say_only_what_is_true() -> void:
+	var order: Array = IsoArt.layout()["props"]["order"]
+	for kind: String in ResourceNodes.KINDS:
+		runner.check(order.has(kind), "%s is drawn from the prop sheet" % kind)
+		var info: Dictionary = ResourceNodes.info(kind)
+		for k: String in ["name", "line", "use"]:
+			var t: String = String(info[k])
+			runner.check(t != "" and t.length() <= 48, "%s: its %s is a few plain words" % [kind, k])
+		var m: String = String(info["machine"])
+		if m != "":
+			runner.check(MachineDB.exists(m), "%s names a machine that exists" % kind)
+			var outs: Dictionary = MachineDB.get_machine(m).get("outputs", {})
+			runner.check(outs.has(int(info["res"])),
+				"%s: the %s really makes the resource it is named for" % [kind, m])
+		else:
+			runner.eq(int(info["res"]), -1, "%s claims no resource no machine makes" % kind)
+	for kind: String in ["rubble", "crate", "lamp", "lock"]:
+		runner.check(not ResourceNodes.is_node(kind), "%s is clutter, not a node" % kind)
+
+
+func test_a_resource_node_is_picked_where_it_is_drawn_and_clutter_is_not() -> void:
+	var v := _field_view(1)
+	var props: Array = IsoArt.placement().get("props", [])
+	var picked: int = 0
+	var nodes: int = 0
+	for i in range(props.size()):
+		var pr: Array = props[i]
+		if v.call("_prop_cleared", pr):
+			continue
+		var r: Rect2 = v.prop_rect(pr)
+		var body: Vector2 = r.position + r.size * Vector2(0.5, 0.7)
+		var got: int = v.node_at(body)
+		if ResourceNodes.is_node(String(pr[2])):
+			nodes += 1
+			picked += 1 if got == i else 0
+		else:
+			runner.check(got != i, "clutter (%s) never answers as a node" % pr[2])
+	runner.gt(float(nodes), 30.0, "there are nodes round the stratum-1 yard")
+	runner.gt(float(picked) / float(nodes), 0.8, "a tap on a node's body finds that node")
+	# Once the yard reaches a node it is cleared, and a tap finds nothing.
+	Sim.max_depth = 60
+	for i in range(props.size()):
+		var pr2: Array = props[i]
+		if ResourceNodes.is_node(String(pr2[2])) and v.call("_prop_cleared", pr2):
+			var r2: Rect2 = v.prop_rect(pr2)
+			runner.check(v.node_at(r2.position + r2.size * Vector2(0.5, 0.7)) != i,
+				"a node the yard has cleared is gone")
+	Sim.max_depth = 1
+	v.free()
+
+
+func test_the_props_ring_the_yard_in_clusters_and_leave_ground_bare() -> void:
+	# tools/props_layout.py writes the props; these are the rules it keeps.
+	var props: Array = IsoArt.placement().get("props", [])
+	var order: Array = IsoArt.layout()["props"]["order"]
+	var o: Vector2i = Iso.board_offset()
+	var on_board: Array[Vector2i] = []
+	var kinds: Array[String] = []
+	for pr: Array in props:
+		runner.check(order.has(String(pr[2])), "%s is a prop the sheet has" % pr[2])
+		var sc: float = IsoView.prop_scale(pr)
+		runner.check(sc >= 0.8 and sc <= 1.25, "a prop is drawn at 0.8 to 1.25 of its size")
+		var x: int = int(pr[0]) - o.x
+		var y: int = int(pr[1]) - o.y
+		if not Grid.in_bounds(x, y):
+			continue
+		var cell: int = Grid.idx(x, y)
+		runner.check(not BuildArea.is_core(cell), "no prop stands on the Core")
+		runner.gte(float(BuildArea.reach(cell)), 2.0, "no prop inside the first yard")
+		if BuildArea.reach(cell) < 7:
+			runner.check(not (x + y > 46 and absi(x - y) < 8),
+				"nothing near the Core's front, where it would stand over the yard's edge")
+		for q: Vector2i in on_board:
+			runner.check(maxi(absi(q.x - x), absi(q.y - y)) >= 2, "props keep a tile apart")
+		on_board.append(Vector2i(x, y))
+		kinds.append(String(pr[2]))
+	# The ground a young factory looks out on: some of it holds something,
+	# most of it is left for the factory to grow into.
+	var band: int = 0
+	for cell in range(Grid.W * Grid.H):
+		var r: int = BuildArea.reach(cell)
+		if r >= 3 and r <= 10:
+			band += 1
+	var held: int = 0
+	for q: Vector2i in on_board:
+		var r2: int = BuildArea.reach(Grid.idx(q.x, q.y))
+		if r2 >= 3 and r2 <= 10:
+			held += 1
+	var share: float = float(held) / float(band)
+	runner.gt(share, 0.06, "the middle ground is not empty")
+	runner.lt(share, 0.15, "and not filled either")
+	# Nodes gather: most have another of their kind within three tiles.
+	var nodes: int = 0
+	var kin: int = 0
+	for i in range(on_board.size()):
+		if not ResourceNodes.is_node(kinds[i]):
+			continue
+		nodes += 1
+		for j in range(on_board.size()):
+			if i != j and kinds[j] == kinds[i] \
+					and maxi(absi(on_board[i].x - on_board[j].x), absi(on_board[i].y - on_board[j].y)) <= 3:
+				kin += 1
+				break
+	runner.gt(float(kin) / float(nodes), 0.6, "nodes gather in clusters of one kind")
