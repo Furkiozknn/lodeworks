@@ -690,7 +690,8 @@ func _show_below() -> void:
 		if not now.has(id) and not Sim.unlocked.has(id):
 			opens.add_child(Chips.MachineSprite.new(id, 56.0))
 	if opens.get_child_count() > 0:
-		opens.add_child(_label("New machines down there.", 20, Palette.TEXT_DIM))
+		opens.add_child(_label("A new machine down there." if opens.get_child_count() == 1
+			else "New machines down there.", 20, Palette.TEXT_DIM))
 		body.add_child(opens)
 	if d > Sim.max_depth and BuildArea.size_at(d) != BuildArea.size_at(Sim.max_depth):
 		var grow := HBoxContainer.new()

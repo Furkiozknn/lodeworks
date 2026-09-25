@@ -673,6 +673,11 @@ func _run_field() -> void:
 	await _settle(0.8)
 	await _audit_shot("field_h_core" + tag)
 	_main.call("_close_overlay")
+	# What lies below the hero board's stratum 7.
+	_main.call("_show_below")
+	await _settle(0.8)
+	await _audit_shot("field_m_below" + tag)
+	_main.call("_close_overlay")
 
 	# Stratum 8, Brittle Rock: its rules move machines both ways -- arrows on
 	# the tray, and under each rule on the stratum's card.

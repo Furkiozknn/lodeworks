@@ -21,8 +21,9 @@ standing in the middle.
 pays for the first Drill and Vault. The one-tile ring round it is all the
 ground there is to build on at first. Deeper strata widen the ring, and
 the Core grows with it, until the whole board is open. The ground the
-factory has not reached is strewn with crystals, ore and rubble, and the
-growing yard clears them as it goes.
+factory has not reached holds crystal fields, ore seams and heat vents in
+clusters, with bare ground left in front of the Core, and the growing yard
+clears them as it goes.
 
 Drag to pan, pinch or wheel to zoom, tap to place, tap a machine to select
 it and drag it to move it, or press the bin on its panel to remove it. The
@@ -94,13 +95,18 @@ four numbers -- machines, how many are working, how many need help (the
 warning key's own count, with a key that goes to the first one), and what
 it earns -- with how much of the yard is built and what the next stratum
 brings. Tapping a crystal, an ore vein or a heat vent round the yard says
-what it is, what uses it, and when the yard will reach it. On a stratum
-whose rules help or hold back a machine, its tray key carries a green or
-red arrow -- the simulation's own answer for that machine on that rock --
-and the stratum's card shows the same machines under each rule. Holding Descend (or
-tapping it before the quota) shows the next stratum's rules, machines and
-ground before you go. Settings has a
+what it is, what uses it, and when the yard will reach it.
+
+On a stratum whose rules help or hold back a machine, its tray key carries
+a green or red arrow -- the simulation's own answer for that machine on
+that rock -- and the stratum's card shows the same machines under each
+rule. Holding Descend (or tapping it before the quota) shows the next
+stratum's rules, machines and ground before you go. Settings has a
 **Larger text** switch that makes every word a quarter bigger.
+
+| The Factory Core | What lies below |
+|---|---|
+| ![The Factory Core's card: level 5, 42 machines, 24 working, 18 need help, 166 credits a second, the yard 42 of 180 tiles built](docs/media/core-card.jpg) | ![The next stratum before descending: Cramped and Brittle Rock, with an arrow on each machine the rule moves](docs/media/below.jpg) |
 
 The heat button glows before it is pressed when some machine is too hot, or
 shows frost when one is too cold. Pressed, it relabels every tile with how far
