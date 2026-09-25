@@ -99,6 +99,8 @@ var _btn_heat: Button
 var _btn_zoom: Button
 ## "What now?": the Worklist, one tap away.
 var _btn_worklist: Button
+## Tiles an "extend" line pointed at, outlined until they are built on.
+var _work_hint: Array[int] = []
 var _btn_descend: Button
 var _lbl_descend_sub: Label
 ## What the next stratum brings, drawn on the Descend key: the machines it
@@ -1829,13 +1831,19 @@ func _refresh_hint() -> void:
 	# be bought until it is online.
 	iso_view.highlight_core = not Sim.core_online
 	if not Sim.core_online:
+		_work_hint.clear()
 		_say(Loc.t(Tutorial.CORE_LINE), Foreman.Pose.POINT, 9999.0)
 		iso_view.highlight_cells = []
 		_pulse_control("")
 		return
 	var step: int = Sim.tutorial_step()
 	if Tutorial.is_done(step):
-		iso_view.highlight_cells = []
+		var left: Array[int] = []
+		for c: int in _work_hint:
+			if Sim.grid.is_empty(c):
+				left.append(c)
+		_work_hint = left
+		iso_view.highlight_cells = _work_hint
 		_pulse_control("")
 		if _foreman_time <= 0.0:
 			_foreman.visible = false
@@ -2035,6 +2043,13 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Build your first %s") % MachineDB.name_of(id)
 			sub = MachineDB.short_of(id)
 			go = func() -> void: _arm_only(id)
+		"extend":
+			var id3: String = String(e["id"])
+			pic = Chips.MachineSprite.new(id3, 52.0)
+			title = Loc.t("Add a %s to the chain") % MachineDB.name_of(id3)
+			sub = Loc.t("Beside the %s, with a Vault next to it.") \
+				% MachineDB.name_of(String(e["feeder"]))
+			go = func() -> void: _show_extension(e)
 		"place":
 			var id2: String = String(e["id"])
 			var cells: int = int(e["cells"])
@@ -2057,6 +2072,15 @@ func _work_row(e: Dictionary) -> Button:
 		_close_overlay()
 		go.call())
 	return b
+
+
+## An "extend" line: the machine armed, the view on its tile, and the tile
+## and the Vault's beside it outlined until both are built on.
+func _show_extension(e: Dictionary) -> void:
+	_work_hint = [int(e["cell"]), int(e["outlet"])]
+	_arm_only(String(e["id"]))
+	iso_view.focus_cell(int(e["cell"]))
+	_refresh_hint()
 
 
 ## Arm a machine for placing, without toggling it off if it already is: the

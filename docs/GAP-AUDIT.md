@@ -265,6 +265,16 @@ tile but is fed on one with an empty tile beside it, the list says
 "Place a Crusher beside a Drill, with a Vault next to it", and the
 placement preview marks those tiles in a second colour. Tested in the
 lab by a player who follows only the list.
+- STATUS: **DONE**, with the outline instead of a second colour.
+  `Worklist.extension` names the furthest unlocked step that works
+  nowhere but would be fed on a tile with an open tile beside it: "Add a
+  Crusher to the chain / Beside the Drill, with a Vault next to it." A tap
+  arms it, moves the view there and outlines both tiles (the tutorial's
+  outline) until they are built on. It replaces "Build your first ..."
+  for the same machine. The collapse lab's player now follows this line
+  itself instead of the lab's own copy of the rule; a unit test builds
+  the Drill-over-Vault board and checks the Crusher runs once built as
+  told.
 
 **B-2 — A collapse lab (P1, measurement).**
 - WHY: the payout decision (§4) needs real multi-collapse numbers, not

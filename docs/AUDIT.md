@@ -1563,9 +1563,13 @@ one fixed order, at most five lines:
 3. research that can be bought, with the Research key's own count;
 4. a collapse, only when its Cores open a research line;
 5. a machine unlocked and never built, first in the tray's order;
-6. the machine furthest along the chain that would work (fed, and
-   handing its work on) on some empty tile right now, and on how many;
-7. otherwise, how many credits are left to the quota.
+6. a step further along the chain that works nowhere yet but would be fed
+   on a tile with an open tile beside it: that step there, and a Vault
+   beside it (a tap outlines both);
+7. the machine furthest along the chain that would work (fed, and
+   handing its work on) on some empty tile right now, and on how many
+   (a Vault only when nothing else would);
+8. otherwise, how many credits are left to the quota.
 
 A key at the top of the right-hand column (a clipboard with ticks)
 opens them as rows; a tap on a row does what it says: goes to the first

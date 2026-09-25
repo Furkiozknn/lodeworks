@@ -404,6 +404,14 @@ msgid "Build your first %s"
 msgstr "İlk kez kur: %s"
 
 #: res://scripts/ui/main.gd
+msgid "Add a %s to the chain"
+msgstr "Zincire ekle: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Beside the %s, with a Vault next to it."
+msgstr "%s ile beslenir; yanına bir Kasa koy."
+
+#: res://scripts/ui/main.gd
 msgid "Place a %s"
 msgstr "Yerleştir: %s"
 

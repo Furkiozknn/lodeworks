@@ -403,6 +403,14 @@ msgid "Build your first %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Add a %s to the chain"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Beside the %s, with a Vault next to it."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Place a %s"
 msgstr ""
 

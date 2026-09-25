@@ -52,7 +52,8 @@ func test_the_order_is_trouble_the_way_down_research_then_building() -> void:
 	runner.eq(int(items[1]["stratum"]), 1, "to the next stratum")
 	runner.eq(kinds[2], "research", "then research")
 	runner.eq(int(items[2]["n"]), Worklist.research_ready(Sim), "with the Research key's count")
-	runner.check(kinds.has("first"), "and a machine unlocked but never built")
+	runner.check(kinds.has("first") or kinds.has("extend"),
+		"and a machine unlocked but never built")
 	runner.lte(float(items.size()), float(Worklist.MAX), "never longer than MAX")
 	Save.wipe()
 
@@ -62,7 +63,8 @@ func test_a_first_machine_is_the_earliest_unbuilt_one_that_can_be_paid_for() -> 
 	Sim.power_core()
 	Sim.try_place(Grid.idx(19, 21), "drill")
 	Sim.try_place(Grid.idx(19, 22), "vault")
-	Sim.credits = 1000.0
+	# Enough for a Crusher, not for a Crusher and its Vault (see below).
+	Sim.credits = MachineDB.cost_for("crusher", 0) + 5.0
 	var firsts: Array = Worklist.of(Sim).filter(func(e): return e["kind"] == "first")
 	runner.eq(firsts.size(), 1, "one line")
 	runner.eq(String(firsts[0]["id"]), "crusher", "the Crusher: the Drill and the Vault are built")
@@ -125,4 +127,34 @@ func test_a_collapse_line_appears_only_when_its_cores_open_something() -> void:
 	Sim.cores = 100000
 	runner.eq(Worklist.of(Sim).filter(func(e): return e["kind"] == "collapse").size(), 0,
 		"and none when the Cores already there open everything they could")
+	Save.wipe()
+
+
+func test_a_step_that_works_nowhere_is_named_with_room_for_its_vault() -> void:
+	# A Drill above a Vault: no empty tile touches both, so a Crusher works
+	# nowhere, and a list that only named machines that work would never
+	# name it (GAP-AUDIT B-1b).
+	_new_game()
+	Sim.power_core()
+	Sim.try_place(Grid.idx(19, 21), "drill")
+	Sim.try_place(Grid.idx(19, 22), "vault")
+	Sim.credits = 1000.0
+	var items: Array = Worklist.of(Sim)
+	var ext: Array = items.filter(func(e): return e["kind"] == "extend")
+	runner.eq(ext.size(), 1, "one extend line")
+	var e: Dictionary = ext[0]
+	runner.eq(String(e["id"]), "crusher", "for the Crusher")
+	runner.eq(String(e["feeder"]), "drill", "beside the Drill that feeds it")
+	var cell: int = int(e["cell"])
+	var outlet: int = int(e["outlet"])
+	var l: Dictionary = Sim.sim.links_if_placed(cell, "crusher")
+	runner.check(bool(l["fed"]) and not bool(l["delivers"]), "fed there, with nothing yet to take gravel")
+	runner.check(Sim.grid.neighbours(cell).has(outlet) and Sim.grid.is_empty(outlet)
+		and Sim.is_open(outlet), "and an open tile beside it for the Vault")
+	runner.check(items.filter(func(x): return x["kind"] == "first").is_empty(),
+		"it takes the place of 'build your first Crusher'")
+	# Built as it says, the chain runs.
+	runner.check(Sim.try_place(cell, "crusher") and Sim.try_place(outlet, "vault"), "both placed")
+	Sim.sim.run_ticks(300)
+	runner.eq(Sim.sim.status_of(cell), Simulation.Status.RUNNING, "and the Crusher works")
 	Save.wipe()

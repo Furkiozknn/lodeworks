@@ -75,15 +75,19 @@ class Run extends RefCounted:
 	func is_blocked(cell: int) -> bool:
 		return blocked().has(cell)
 
-	## Place what "What now?" names, on the first tile where it says it
-	## works -- unless a step further along the chain is unlocked and has no
-	## such tile, in which case the next step goes where it is fed, with a
-	## Vault beside it for what it makes (what the Codex's chains teach).
-	## false when there is nothing this run can pay for.
+	## Place what "What now?" names: a step further along the chain with
+	## its Vault, where the list says (Worklist.extension), else the machine
+	## on the first tile where it says it works. false when it names
+	## nothing this run can pay for.
 	func try_follow() -> bool:
 		var best: Dictionary = Worklist.best_placement(self)
-		var at: int = -1 if best.is_empty() else MachineDB.ORDER.find(String(best["id"]))
-		if try_extend(at):
+		var ext: Dictionary = Worklist.extension(self, best)
+		if not ext.is_empty():
+			var both: float = cost(String(ext["id"])) + cost("vault")
+			grid.place(int(ext["cell"]), String(ext["id"]))
+			grid.place(int(ext["outlet"]), "vault")
+			credits -= both
+			placed += 2
 			return true
 		if best.is_empty():
 			return false
@@ -94,32 +98,6 @@ class Run extends RefCounted:
 		credits -= price
 		placed += 1
 		return true
-
-	## The furthest unlocked step past ORDER[after] that is fed on some empty
-	## tile with an empty tile beside it: the step there, a Vault beside it.
-	func try_extend(after: int) -> bool:
-		var yard: Array[int] = BuildArea.cells(max_depth)
-		for k in range(MachineDB.ORDER.size() - 1, after, -1):
-			var id: String = String(MachineDB.ORDER[k])
-			var m: Dictionary = MachineDB.get_machine(id)
-			if not unlocked.has(id) or (m["inputs"] as Dictionary).is_empty() 					or (m["outputs"] as Dictionary).is_empty():
-				continue
-			if credits < cost(id) + cost("vault"):
-				continue
-			for cell: int in yard:
-				if not grid.is_empty(cell) or is_blocked(cell):
-					continue
-				if not bool(sim.links_if_placed(cell, id)["fed"]):
-					continue
-				for u: int in grid.neighbours(cell):
-					if yard.has(u) and grid.is_empty(u) and not is_blocked(u):
-						var price: float = cost(id) + cost("vault")
-						grid.place(cell, id)
-						grid.place(u, "vault")
-						credits -= price
-						placed += 2
-						return true
-		return false
 
 	var _quota: float = -1.0
 	var _quota_depth: int = -1
@@ -477,7 +455,8 @@ func _long_game() -> void:
 ## The long game above plays one run and projects the rest. This plays them:
 ## every run from a dark Core and its reserve (the tutorial's Drill and
 ## Vault), then a player who builds only what the game's own "What now?"
-## names, where it says it works (Worklist.best_placement), Research spent as
+## names, where it says (Worklist.extension, Worklist.best_placement),
+## Research spent as
 ## it arrives, and the Cores spent the moment they buy a level -- so a run is
 ## faster than the one before it by exactly what the tree bought. The player
 ## collapses when the quota has stalled for STALL seconds of play. Lines the

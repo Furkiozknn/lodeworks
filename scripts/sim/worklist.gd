@@ -17,9 +17,11 @@ extends RefCounted
 ##   3. research that can be bought     (the Research key's own count)
 ##   4. a collapse that opens research  (the Collapse card's own rule)
 ##   5. a machine unlocked but never built, first of the tray's order
-##   6. the furthest step of the chain that would work on some empty tile
+##   6. a step further along the chain than any that works now, where it
+##      would be fed, with an empty tile beside it for a Vault
+##   7. the furthest step of the chain that would work on some empty tile
 ##      right now (Simulation.links_if_placed), affordable, one line
-##   7. otherwise: how much is left to the quota
+##   8. otherwise: how much is left to the quota
 ## At most MAX lines.
 
 const MAX := 5
@@ -30,7 +32,8 @@ const HIDDEN := ["blueprint_slots"]
 
 ## The list for this shaft: [{"kind", ...}], in the order above.
 ## kind "problems": n; "descend": stratum; "research": n; "collapse": cores,
-## lines; "first": id; "place": id, cells; "quota": missing credits.
+## lines; "first": id; "extend": id, feeder, cell, outlet; "place": id,
+## cells; "quota": missing credits.
 static func of(state: Object) -> Array:
 	var out: Array = []
 	var sim: Simulation = state.get("sim")
@@ -59,6 +62,13 @@ static func of(state: Object) -> Array:
 			out.append({"kind": "first", "id": id})
 			break
 	var best: Dictionary = best_placement(state)
+	var ext: Dictionary = extension(state, best)
+	if not ext.is_empty():
+		# It names the same machine better than "build your first" would.
+		out = out.filter(func(e: Dictionary) -> bool:
+			return not (String(e["kind"]) == "first" and String(e["id"]) == String(ext["id"])))
+		if out.size() < MAX:
+			out.append(ext)
 	if not best.is_empty() and out.size() < MAX:
 		var dup: bool = false
 		for e: Dictionary in out:
@@ -96,6 +106,51 @@ static func cores_open(state: Object, gained: int) -> Array[String]:
 		if need > cores and need <= cores + gained:
 			out.append(id)
 	return out
+
+
+## A step further along the chain than `best` (best_placement; any step
+## when that is empty or only a Vault) that works on no tile now but would
+## be fed on one with an empty tile beside it -- the step
+## there, a Vault beside it: {"kind": "extend", "id", "feeder", "cell",
+## "outlet"}, or {}. Placing only where a machine works right now can build
+## Drills and Vaults in a checkerboard, and on that board no tile touches
+## both, so a Crusher works nowhere and the list would never name it
+## (docs/GAP-AUDIT.md B-1b, found by tools/journey_lab.gd).
+static func extension(state: Object, best: Dictionary) -> Dictionary:
+	var after: int = -1
+	if not best.is_empty() and not (MachineDB.get_machine(String(best["id"]))
+			.get("tags", []) as Array).has("sink"):
+		after = MachineDB.ORDER.find(String(best["id"]))
+	var grid: Grid = state.get("grid")
+	var unlocked: Array = state.get("unlocked")
+	var depth: int = int(state.get("max_depth"))
+	var credits: float = float(state.get("credits"))
+	var vault: float = MachineDB.cost_for("vault", grid.count_of("vault"))
+	for k in range(MachineDB.ORDER.size() - 1, after, -1):
+		var id: String = String(MachineDB.ORDER[k])
+		var m: Dictionary = MachineDB.get_machine(id)
+		var ins: Dictionary = m["inputs"]
+		if not unlocked.has(id) or ins.is_empty() or (m["outputs"] as Dictionary).is_empty():
+			continue
+		if credits < MachineDB.cost_for(id, grid.count_of(id)) + vault:
+			continue
+		for cell: int in BuildArea.cells(depth):
+			if not grid.is_empty(cell) or bool(state.call("is_blocked", cell)):
+				continue
+			var feeder: String = ""
+			for n: int in grid.bridged_machines(cell):
+				var nm: Dictionary = MachineDB.get_machine(grid.machine_at(n))
+				for res: int in (nm.get("outputs", {}) as Dictionary):
+					if ins.has(res):
+						feeder = grid.machine_at(n)
+			if feeder == "":
+				continue
+			for u: int in grid.neighbours(cell):
+				if grid.is_empty(u) and BuildArea.is_open(u, depth) \
+						and not bool(state.call("is_blocked", u)):
+					return {"kind": "extend", "id": id, "feeder": feeder, "cell": cell,
+						"outlet": u}
+	return {}
 
 
 ## The affordable machine furthest along the chain (the tray's order) that

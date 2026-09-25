@@ -433,6 +433,8 @@ TR = {
     "Grey plant, coloured cargo. Shape does the work.": "Gri fabrika, renkli yük. İşi şekil görür.",
     # The Worklist (25 Sep 2026).
     "What now?": "Şimdi ne yapmalı?",
+    "Add a %s to the chain": "Zincire ekle: %s",
+    "Beside the %s, with a Vault next to it.": "%s ile beslenir; yanına bir Kasa koy.",
     "%d machine needs help": ("%d makine yardım bekliyor", "%d makine yardım bekliyor"),
     "A tap takes you to the first one.": "Bir dokunuş seni ilkine götürür.",
     "Go down to stratum %d": "%d. katmana in",

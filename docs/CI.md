@@ -54,7 +54,7 @@ godot --headless --path . --import
 
 | job | what it proves |
 |---|---|
-| tests | the unit suite (305 tests at the time of writing), the device self test's non-hardware rows, the balance, layout, journey, strategy and money tools, Play readiness (with a check that the data-safety form still matches the code), **the landscape layout on eleven screen shapes and three safe areas** (in English and again in Turkish), and **the art budget** (fails over 40 MB or on a picture with no recorded source) |
+| tests | the unit suite (306 tests at the time of writing), the device self test's non-hardware rows, the balance, layout, journey, strategy and money tools, Play readiness (with a check that the data-safety form still matches the code), **the landscape layout on eleven screen shapes and three safe areas** (in English and again in Turkish), and **the art budget** (fails over 40 MB or on a picture with no recorded source) |
 | screenshots render | the store screenshots at 1920x1080 and **the four audit screens** (main, zoomed, whole world, one machine) from the running game |
 | readability | every machine sprite distinguishable from every other at 44/72/110 px, in colour and greyscale, for the free palette and Slate |
 | ui smoke | the real game boots and its screens open, at 1440x720, 1920x1080, 2400x1080, 1280x720 and the portrait windows 720x1440 and 360x720 |
