@@ -1584,6 +1584,52 @@ interface already offers.
   language: on a Turkish computer they had started the game in Turkish
   and failed their English checks.
 
+### Collapse after collapse, played (25 September 2026)
+
+The long-game numbers above were one run and a projection. The collapse
+lab plays them (`LODEWORKS_JOURNEY=collapses godot --headless --path .
+--script res://tools/journey_lab.gd`, about 25 minutes of one core for
+four runs): every run from a dark Core and its reserve, a player who
+builds what "What now?" names where it says it works (and, when a step
+further along is unlocked but works nowhere, that step where it is fed
+with a Vault beside it), Research spent as it arrives, Cores spent the
+moment they buy a level, and a collapse after a 15-minute stall. Lines
+the game does not offer (Drafting Table) are neither bought nor counted:
+the tree on offer is 8 lines, 351 Cores.
+
+| run | length | deepest | lifetime credits | Cores | Cores/hour | tree levels (lines maxed) | played |
+|---|---|---|---|---|---|---|---|
+| 1 | 1h 18m | 15 | 5.96M | 76 | 58 | 20 (0/8) | 1h 18m |
+| 2 | 54m | 19 | 69.2M | 167 | 184 | 34 (4/8) | 2h 12m |
+| 3 | 53m | 19 | 76.6M | 236 | 265 | 42 (6/8) | 3h 06m |
+| 4 | 51m | 19 | 69.4M | 301 | 354 | 45 (8/8) | 3h 57m |
+
+**The permanent tree is finished after 4 collapses and 3h 57m of active
+play**, not after about 6 collapses and 9 hours as projected. Each run
+after the first is shorter and pays more (x2.2, then x1.4, then x1.3),
+because the tree it bought compounds, and Seismic Survey makes the Cores
+themselves compound. The depth plateaus at stratum 19: past it the quota
+outruns a board the yard can hold. The boards held 257 to 372 machines,
+every one of them placed again by hand after each collapse.
+
+Against the reference games (docs/research/prestige-pacing.md): the
+first collapse at 78 active minutes and the growth per run sit inside
+genre norms, and the second collapse's +220% is just above the one
+primary-source reset rule (+50-200%). The outlier is the tree's size:
+351 Cores is 4.6 first payouts, where the reference trees are priced
+across many orders of magnitude or open a next layer. **PROPOSED, the
+owner's decision** (an economy change): (1) repeatable or geometric top
+nodes so the tree outlasts the payout; (2) a root on the Cores formula,
+which slows the growth without changing the first run; (3) a second
+layer that opens near the tree's end. The lab is the check for any of
+them. Blueprints (GAP-AUDIT B-5) would shorten every rebuild and so
+finish the tree sooner still.
+
+What the model is not: it is active play without offline earnings, one
+seed, one fixed collapse rule, and a builder no smarter than the list it
+follows. A player who collapses earlier, or builds better, finishes
+sooner; one who plays in short sessions takes more calendar days.
+
 ### Toward more than one factory (not built)
 
 Nothing tonight builds a second factory or talks to a network (D3 still

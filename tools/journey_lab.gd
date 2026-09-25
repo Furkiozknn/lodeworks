@@ -36,6 +36,8 @@ class Run extends RefCounted:
 	var elapsed: float = 0.0
 	var placed: int = 0
 	var collapses: int = 0
+	## The machines this run has reached, as Sim.unlocked (Worklist reads it).
+	var unlocked: Array = []
 	var _blocked: Dictionary = {}
 	var _blocked_depth: int = -1
 
@@ -64,6 +66,60 @@ class Run extends RefCounted:
 
 	func recompute() -> void:
 		Strata.apply(sim, grid, Strata.describe(depth), mult())
+		unlocked = MachineDB.unlocked_at(max_depth)
+
+	## Sim's own questions, so Worklist can read a Run as it reads Sim.
+	func can_afford(id: String) -> bool:
+		return credits >= cost(id)
+
+	func is_blocked(cell: int) -> bool:
+		return blocked().has(cell)
+
+	## Place what "What now?" names, on the first tile where it says it
+	## works -- unless a step further along the chain is unlocked and has no
+	## such tile, in which case the next step goes where it is fed, with a
+	## Vault beside it for what it makes (what the Codex's chains teach).
+	## false when there is nothing this run can pay for.
+	func try_follow() -> bool:
+		var best: Dictionary = Worklist.best_placement(self)
+		var at: int = -1 if best.is_empty() else MachineDB.ORDER.find(String(best["id"]))
+		if try_extend(at):
+			return true
+		if best.is_empty():
+			return false
+		var id: String = String(best["id"])
+		var price: float = cost(id)
+		if not grid.place(int(best["cell"]), id):
+			return false
+		credits -= price
+		placed += 1
+		return true
+
+	## The furthest unlocked step past ORDER[after] that is fed on some empty
+	## tile with an empty tile beside it: the step there, a Vault beside it.
+	func try_extend(after: int) -> bool:
+		var yard: Array[int] = BuildArea.cells(max_depth)
+		for k in range(MachineDB.ORDER.size() - 1, after, -1):
+			var id: String = String(MachineDB.ORDER[k])
+			var m: Dictionary = MachineDB.get_machine(id)
+			if not unlocked.has(id) or (m["inputs"] as Dictionary).is_empty() 					or (m["outputs"] as Dictionary).is_empty():
+				continue
+			if credits < cost(id) + cost("vault"):
+				continue
+			for cell: int in yard:
+				if not grid.is_empty(cell) or is_blocked(cell):
+					continue
+				if not bool(sim.links_if_placed(cell, id)["fed"]):
+					continue
+				for u: int in grid.neighbours(cell):
+					if yard.has(u) and grid.is_empty(u) and not is_blocked(u):
+						var price: float = cost(id) + cost("vault")
+						grid.place(cell, id)
+						grid.place(u, "vault")
+						credits -= price
+						placed += 2
+						return true
+		return false
 
 	var _quota: float = -1.0
 	var _quota_depth: int = -1
@@ -416,6 +472,116 @@ func _long_game() -> void:
 	print("   (projected from the measured yield above at a fixed depth;")
 	print("    a player who descends further finishes sooner.)")
 
+## --- 3b. collapse after collapse, played ----------------------------------
+##
+## The long game above plays one run and projects the rest. This plays them:
+## every run from a dark Core and its reserve (the tutorial's Drill and
+## Vault), then a player who builds only what the game's own "What now?"
+## names, where it says it works (Worklist.best_placement), Research spent as
+## it arrives, and the Cores spent the moment they buy a level -- so a run is
+## faster than the one before it by exactly what the tree bought. The player
+## collapses when the quota has stalled for STALL seconds of play. Lines the
+## game does not offer (Worklist.HIDDEN) are neither bought nor counted.
+##
+##   LODEWORKS_JOURNEY=collapses godot --headless --path . --script res://tools/journey_lab.gd
+##   LODEWORKS_COLLAPSES=n (default 8), LODEWORKS_COLLAPSE_STALL=seconds (default 900)
+
+func _collapses() -> void:
+	var runs_max: int = maxi(int(OS.get_environment("LODEWORKS_COLLAPSES")), 0)
+	if runs_max == 0:
+		runs_max = 8
+	var stall_limit: float = float(OS.get_environment("LODEWORKS_COLLAPSE_STALL"))
+	if stall_limit <= 0.0:
+		stall_limit = 900.0
+	print("\n== COLLAPSE AFTER COLLAPSE, played (stall %s, up to %d runs) =="
+		% [Economy.fmt_duration(stall_limit), runs_max])
+	var lines: Array[String] = []
+	var tree_cores: int = 0
+	for id: String in Economy.TREE_ORDER:
+		if Worklist.HIDDEN.has(id):
+			continue
+		lines.append(id)
+		for lvl: int in range(int(Economy.RESEARCH_TREE[id]["max"])):
+			tree_cores += int(Economy.upgrade_cost(id, lvl)["cores"])
+	print("   the tree the game offers: %d lines, %d Cores in all" % [lines.size(), tree_cores])
+	print("   %-4s %-9s %-6s %-9s %-6s %-9s %-7s %s" % ["run", "length", "depth",
+		"lifetime", "Cores", "Cores/h", "levels", "played"])
+	var r := Run.new()
+	var played: float = 0.0
+	var spent_cores: int = 0
+	for run: int in range(1, runs_max + 1):
+		# The Core's reserve buys exactly the tutorial's Drill and Vault, beside
+		# the Core; from there the player follows the list.
+		r.grid.place(Grid.idx(19, 21), "drill")
+		r.grid.place(Grid.idx(19, 22), "vault")
+		r.placed = 2
+		var t: float = 0.0
+		var stalled: float = 0.0
+		var beat: int = 0
+		while t < 4.0 * 3600.0:
+			r.tick()
+			t += Simulation.TICK_DT
+			if r.try_descend():
+				stalled = 0.0
+			else:
+				stalled += Simulation.TICK_DT
+			beat += 1
+			# Every two seconds: spend what research buys, then up to three
+			# machines the list names.
+			if beat % 20 == 0:
+				while _buy_offered(r, lines) != "":
+					pass
+				for _k in range(3):
+					if not r.try_follow():
+						break
+			if stalled >= stall_limit and Economy.can_collapse(r.max_depth):
+				break
+		var depth: int = r.max_depth
+		var lifetime: float = r.lifetime
+		var board: Array[String] = []
+		for id: String in MachineDB.ORDER:
+			if r.grid.count_of(id) > 0:
+				board.append("%s %d" % [id, r.grid.count_of(id)])
+		var got: int = r.collapse()
+		played += t
+		var before: int = r.cores
+		while _buy_offered(r, lines) != "":
+			pass
+		spent_cores += before - r.cores
+		var levels: int = 0
+		var maxed: int = 0
+		for id: String in lines:
+			levels += int(r.upgrades.get(id, 0))
+			if int(r.upgrades.get(id, 0)) >= int(Economy.RESEARCH_TREE[id]["max"]):
+				maxed += 1
+		print("   %-4d %-9s %-6d %-9s %-6d %-9.1f %-7s %s" % [run, Economy.fmt_duration(t),
+			depth, Economy.fmt(lifetime), got, float(got) / (t / 3600.0),
+			"%d (%d/%d)" % [levels, maxed, lines.size()], Economy.fmt_duration(played)])
+		print("        board: " + ", ".join(board))
+		if maxed == lines.size():
+			print("   THE TREE IS DONE after %d collapses and %s of play." % [run,
+				Economy.fmt_duration(played)])
+			return
+	print("   after %d collapses: %d of %d Cores of the tree bought, %s of play."
+		% [runs_max, spent_cores, tree_cores, Economy.fmt_duration(played)])
+
+
+## The first line the game offers that the run can pay for, bought; "" if none.
+func _buy_offered(r: Run, lines: Array[String]) -> String:
+	for id: String in lines:
+		var lvl: int = int(r.upgrades.get(id, 0))
+		if lvl >= int(Economy.RESEARCH_TREE[id]["max"]):
+			continue
+		var c: Dictionary = Economy.upgrade_cost(id, lvl)
+		if r.research >= float(c["research"]) and r.cores >= int(c["cores"]):
+			r.research -= float(c["research"])
+			r.cores -= int(c["cores"])
+			r.upgrades[id] = lvl + 1
+			r.recompute()
+			return id
+	return ""
+
+
 ## --- 4. what is new at each depth -----------------------------------------
 
 func _novelty() -> void:
@@ -536,6 +702,10 @@ func _research_curve() -> void:
 func _initialize() -> void:
 	print("Lodeworks -- the player journey, measured")
 	print("model: %s" % MachineDB.ACTIVE_MODEL)
+	if OS.get_environment("LODEWORKS_JOURNEY") == "collapses":
+		_collapses()
+		quit()
+		return
 	_opening()
 	_first_session()
 	# LODEWORKS_JOURNEY=first: the first half hour and nothing after it.

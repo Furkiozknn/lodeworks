@@ -86,7 +86,7 @@ mid-term, P3 a future system, P4 not needed now.
 | B7 | Touch targets | HUD keys 96 units, enforced; tray "?" backed by hold-to-open | 43-44 dp on a 720p phone, reported only | P3 |
 | B8 | **Tile size at deep strata** | default zoom floor 0.6, about 19-22 dp; green tiles and picture picking help | a closer look while placing, if the device run shows mis-taps | P1 (P0 if the device run confirms) |
 | B9 | Save architecture | one flat save; `"v": 1` written, never read; migration only by defaults | a `_migrate(d)` step keyed on `v`; player and factory split later | P2 |
-| B10 | **Collapse economy measurement** | `journey_lab` plays one run and projects the rest | a lab that plays collapse after collapse with upgrades carried over | P1 (the payout decision waits on it) |
+| B10 | ~~Collapse economy measurement~~ **FIXED** (B-2) | `journey_lab` played one run and projected the rest | `LODEWORKS_JOURNEY=collapses` plays them: the tree is done after 4 collapses, 3h 57m active | done; the decision is the owner's |
 | B11 | **Welcome back panel** | credits, and now the research the Labs banked (it was added but never shown) | "what now": **FIXED** with the Worklist (B-1): its first line, as a row to tap | P1 |
 
 ### C — EXISTS BUT SHOULD IMPROVE
@@ -116,8 +116,10 @@ mid-term, P3 a future system, P4 not needed now.
 ### E — FUTURE
 
 - **E1 the long game.** Stratum 20 comes in about 12 hours. After depth 10
-  no machine is new. The permanent tree (372 Cores) is done after about
-  6 collapses, roughly 9 hours of play. Past that nothing is designed. The
+  no machine is new. The permanent tree the game offers (351 Cores) is
+  done after **4 collapses, 3h 57m of active play** (played by the
+  collapse lab, B-2; the earlier projection said about 6 and 9 hours).
+  Past that nothing is designed. The
   deferred C1-C4 ideas in AUDIT §2 (endless tier, challenge runs, stratum
   records, novelty past 10) each have a stated trigger. See §5 for a
   proposed map.
@@ -271,6 +273,12 @@ lab by a player who follows only the list.
   spent. It reports minutes per run, Cores per hour, and when the tree
   is done.
 - No economy change; the numbers go to AUDIT for the owner.
+- STATUS: **DONE** (AUDIT, "Collapse after collapse, played"). Played,
+  not projected: the tree the game offers (8 lines, 351 Cores) is
+  finished after **4 collapses and 3h 57m of active play**; runs take
+  78, 54, 53 and 51 minutes and pay 76, 167, 236 and 301 Cores. The
+  reference points are in `docs/research/prestige-pacing.md`. The payout
+  and tree-size decision is the owner's (PROPOSED options in AUDIT).
 
 **B-3 — CI on this branch (P2).** `ci.yml` also on pushes to
 `visual/**`.

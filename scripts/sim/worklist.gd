@@ -31,7 +31,7 @@ const HIDDEN := ["blueprint_slots"]
 ## The list for this shaft: [{"kind", ...}], in the order above.
 ## kind "problems": n; "descend": stratum; "research": n; "collapse": cores,
 ## lines; "first": id; "place": id, cells; "quota": missing credits.
-static func of(state: Node) -> Array:
+static func of(state: Object) -> Array:
 	var out: Array = []
 	var sim: Simulation = state.get("sim")
 	var grid: Grid = state.get("grid")
@@ -73,7 +73,7 @@ static func of(state: Node) -> Array:
 
 
 ## Research lines that can be bought now, as the Research key counts them.
-static func research_ready(state: Node) -> int:
+static func research_ready(state: Object) -> int:
 	var n: int = 0
 	for id: String in Economy.TREE_ORDER:
 		if not HIDDEN.has(id) and bool(state.call("can_buy_upgrade", id)):
@@ -83,7 +83,7 @@ static func research_ready(state: Node) -> int:
 
 ## Research lines whose next level needs more Cores than the player has, and
 ## no more than they would have with `gained` more (the Collapse card's row).
-static func cores_open(state: Node, gained: int) -> Array[String]:
+static func cores_open(state: Object, gained: int) -> Array[String]:
 	var out: Array[String] = []
 	var cores: int = int(state.get("cores"))
 	for id: String in Economy.TREE_ORDER:
@@ -100,16 +100,22 @@ static func cores_open(state: Node, gained: int) -> Array[String]:
 
 ## The affordable machine furthest along the chain (the tray's order) that
 ## would work -- be fed and hand its work on -- on at least one empty tile of
-## the yard right now, and on how many: {"id", "cells"}, or {}. Every step
-## pays more than the one before it (Codex, "Every step pays more"), so the
-## deeper step is the one worth pointing at. Support machines work by
-## standing beside others and are not ranked here.
-static func best_placement(state: Node) -> Dictionary:
+## the yard right now, on how many, and the first of them in reading order:
+## {"id", "cells", "cell"}, or {}. Every step pays more than the one before
+## it (Codex, "Every step pays more"), so the deeper step is the one worth
+## pointing at. A Vault is where the chain ends, not a step along it: it
+## "works" beside anything, so ranked by the tray's order it beat the Crusher
+## every time; it is named only when nothing else would work. Support
+## machines work by standing beside others and are not ranked here. `state`
+## is Sim, or anything with the same fields (tools/journey_lab.gd plays a
+## player who follows this list).
+static func best_placement(state: Object) -> Dictionary:
 	var grid: Grid = state.get("grid")
 	var sim: Simulation = state.get("sim")
 	var unlocked: Array = state.get("unlocked")
 	var yard: Array[int] = BuildArea.cells(int(state.get("max_depth")))
 	var best: Dictionary = {}
+	var sink: Dictionary = {}
 	for id: String in MachineDB.ORDER:
 		if not unlocked.has(id) or not bool(state.call("can_afford", id)):
 			continue
@@ -119,6 +125,7 @@ static func best_placement(state: Node) -> Dictionary:
 				and not tags.has("sink") and not tags.has("research"):
 			continue
 		var n: int = 0
+		var first: int = -1
 		for cell: int in yard:
 			if not grid.is_empty(cell) or bool(state.call("is_blocked", cell)):
 				continue
@@ -126,7 +133,12 @@ static func best_placement(state: Node) -> Dictionary:
 				continue
 			var l: Dictionary = sim.links_if_placed(cell, id)
 			if bool(l["fed"]) and bool(l["delivers"]):
+				if n == 0:
+					first = cell
 				n += 1
 		if n > 0:
-			best = {"id": id, "cells": n}
-	return best
+			if tags.has("sink"):
+				sink = {"id": id, "cells": n, "cell": first}
+			else:
+				best = {"id": id, "cells": n, "cell": first}
+	return sink if best.is_empty() else best
