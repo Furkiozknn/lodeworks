@@ -162,10 +162,12 @@ with no clock on any of them.
 The Core's seventh level opens **Overdrive**: a machine type at the level
 the Core before allowed can be driven past it, paid in Ingots, Plates and
 research rather than credits. Played by a scripted player, Core 2 falls at
-8 minutes, Core 3 at 16, Core 4 at 33, Core 5 at 1 h 18, Core 6 at 4 h 17
-and Core 7 at 10 h 57 of active play; the Core 6 → 7 stage asks for levels,
-the store, research, a Condenser and stability, and leaves 2% of it with
-only credits to wait for. [docs/PROGRESSION.md](docs/PROGRESSION.md)
+8 minutes, Core 3 at 16, Core 4 at 33, Core 5 at 46, Core 6 at 1 h 20 and
+Core 7 at 6 h 55 of active play; every stage asks for work in several
+systems at once, and the Core 6 → 7 stage leaves 4% of it with only credits
+to wait for. [docs/BENCHMARK.md](docs/BENCHMARK.md) takes stock of the
+player loop against Clash of Clans and the other benchmark games;
+[docs/PROGRESSION.md](docs/PROGRESSION.md)
 is the design, the graph and the measurements, and
 [docs/research/feature-pool.md](docs/research/feature-pool.md) what comes
 next, drawn from five reference games.
@@ -204,7 +206,7 @@ The result is deliberately close, not dominant:
 | 16 | raw ore | Cramped takes thirty tiles; no long chain fits |
 
 Near parity on credits — and a monopoly on Research, because Research comes
-from a Lab and a Lab only eats Components. So the question is not "which board
+from a Lab, and a Lab learns most from Components. So the question is not "which board
 earns more" but "credits now, or upgrades that outlast the shaft", and the
 stratum decides which board is even buildable.
 
@@ -246,7 +248,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 330 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 368 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -334,7 +336,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            330 tests, no framework dependency
+tests/            368 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs

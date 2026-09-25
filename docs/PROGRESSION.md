@@ -11,12 +11,14 @@ be connected to the graph below waits.
   Lab), `scripts/core/economy.gd` (research opened and capped by the Core),
   `scripts/sim/sim.gd` (the store, paid upgrades), `scripts/sim/worklist.gd`
   ("What now?").
+- Where the loop stands against the benchmark games: [`BENCHMARK.md`](BENCHMARK.md).
 - Measured with `tools/core_journey.gd` (a scripted player on the real game);
   the numbers in this file come from the run named beside them.
 
-Status, 25 September 2026: the vertical slice (sections 10 and 11) is built
+Status, 26 September 2026: the vertical slice (sections 10 and 11) is built
 and tested. Core levels 1-7 are measured with the scripted player; Core 7
-was redesigned from a price into a stage (section "Core 7"). Level 8 is
+was redesigned from a price into a stage (section "Core 7"), and Cores 5
+and 6 after it (section "Cores 5 and 6"). Level 8 is
 designed and graph-checked, not yet played. The features that come next
 are in [`research/feature-pool.md`](research/feature-pool.md).
 
@@ -101,10 +103,10 @@ requirement needs is shown in brackets.
 | **2 Processing** | Strata 3-4: Press (Plates, stratum 3) and Amplifier (4). Machine levels up to 3, store up to 256. Research: Deeper Bore, Standing Orders, Drafting Table. | 1,000 credits; 40 Ingots in the store (Vault 2); 2 Smelters at working heat; Crusher at level 2; Tighter Tolerances 1; stratum 2 |
 | **3 Fabrication** | Strata 5-6: Assembler (Components, stratum 5). Machine levels up to 4, store up to 819. Research: Refinery Contracts, Ceramic Lining, Seismic Survey. | 60,000 credits; 250 Plates and 250 Ingots (Vault 3); 2 Presses at working heat; Smelter at level 3; Deeper Bore 2; Tighter Tolerances 3; stratum 4 |
 | **4 Assembly** | Strata 7-9: Duplicator (stratum 8). Machine levels up to 5, store up to 2,621. Research: Field Notes. | 1.2M credits; 800 Components and 800 Plates (Vault 4); 3 Assemblers at working heat; Press 4 and Drill 4; an Amplifier serving 3; Refinery Contracts 2; Deeper Bore 4; stratum 6 |
-| **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 10M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Tighter Tolerances 6; 40 machines at working heat with none overheating; stratum 9 |
-| **6 Amplification** | Strata 13-15. Machine levels up to 7. Research: Resonant Frames. | 60M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; Tighter Tolerances 8; Drill 6; stable 60; stratum 12 |
-| **7 Deep works** | Strata 16-19. Machine levels up to 8. **Overdrive** (3 steps). | 75M credits; 25,000 Components and 25,000 Plates (Vault 7); Assembler 7; Coolant Cell 7; 8 Assemblers at working heat; Resonant Frames 2; a Condenser serving 3; stable 80; stratum 15 (see "Core 7") |
-| **8 The Abyss** | Strata 20-24. Machine levels up to 9. 3 more Overdrive steps. | 300M credits; 80,000 Components and 80,000 Plates (Vault 8); an Assembler driven 3 steps; an Amplifier serving 4; Resonant Frames 4; Assembler 8; stable 100; stratum 19 (designed, not played) |
+| **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 2M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Refinery Contracts 4; 40 machines at working heat with none overheating; stratum 9 (see "Cores 5 and 6") |
+| **6 Amplification** | Strata 13-15. Machine levels up to 7. Research: Resonant Frames. | 3M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; a Condenser serving 2; Field Notes 4; Drill 6; stable 60; stratum 12 |
+| **7 Deep works** | Strata 16-19. Machine levels up to 8. **Overdrive** (3 steps). | 15M credits; 25,000 Components and 25,000 Plates (Vault 7); Assembler 7; Coolant Cell 7; Resonant Frames 2; a Condenser serving 3; stable 80; stratum 15 (see "Core 7") |
+| **8 The Abyss** | Strata 20-24. Machine levels up to 9. 3 more Overdrive steps. | 60M credits; 80,000 Components and 80,000 Plates (Vault 8); an Assembler driven 3 steps; an Amplifier serving 4; Resonant Frames 4; Assembler 8; stable 100; stratum 19 (designed, not played) |
 | **9 and up** | 5 more strata each; machine limit +1 and 3 Overdrive steps each. | Level 8's pattern, with rising numbers: credits ×4 a level; store ×2.2 (capped at what the Vault can then hold); stable +20; one production machine at the limit and driven to the Overdrive limit, rotating; one research line, rotating |
 
 **Why these rows.**
@@ -161,9 +163,9 @@ never idle.
 | Lab | 2 | Ingot, Plate or Component | research: 0.25, 0.5 or 1.0 per cycle | yes | 4 at working heat (Core 5) |
 | Press | 3 | Ingot, kept cool | Plate | yes | 2 at working heat (Core 3); level 4 (Core 4) |
 | Amplifier | 4 | — | speeds its neighbours | — | serving 3 (Core 4), serving 4 (Core 8) |
-| Assembler | 5 | Plate | Component | yes | 3 at working heat (Core 4); level 5 (Core 5); level 7 and 8 at working heat (Core 7); level 8 and 3 Overdrive steps (Core 8) |
+| Assembler | 5 | Plate | Component | yes | 3 at working heat (Core 4); level 5 (Core 5); level 7 (Core 7); level 8 and 3 Overdrive steps (Core 8) |
 | Duplicator | 8 | — | sometimes doubles a neighbour's output | — | serving 3 (Core 6) |
-| Condenser | 10 | — | cools hard, speeds a little | — | serving 3 (Core 7) |
+| Condenser | 10 | — | cools hard, speeds a little | strength | serving 2 (Core 6), serving 3 (Core 7) |
 
 **Machine levels.**
 
@@ -192,15 +194,15 @@ line that fills the store and a Vault big enough to hold the materials.
 
 | Line | Opens at Core | Cost | The Core asks for it |
 |---|---|---|---|
-| Tighter Tolerances (speed) | 1 | Research | level 1 (Core 2), 3 (Core 3), 6 (Core 5), 8 (Core 6) |
+| Tighter Tolerances (speed) | 1 | Research | level 1 (Core 2), 3 (Core 3) |
 | Night Shift (offline hours) | 1 | Research + Cores | — |
 | Deeper Bore (yield) | 2 | Research | level 2 (Core 3), 4 (Core 4), 6 (Core 7) |
 | Standing Orders (offline rate) | 2 | Research + Cores | — |
 | Drafting Table (blueprints; hidden) | 2 | Research + Cores | — |
-| Refinery Contracts (value) | 3 | Research | level 2 (Core 4) |
+| Refinery Contracts (value) | 3 | Research | level 2 (Core 4), 4 (Core 5) |
 | Ceramic Lining (heat tolerance) | 3 | Research + Cores | — |
 | Seismic Survey (collapse yield) | 3 | Research + Cores | — |
-| Field Notes (Lab output) | 4 | Research | level 2 (Core 5) |
+| Field Notes (Lab output) | 4 | Research | level 2 (Core 5), 4 (Core 6) |
 | Resonant Frames (Boosters push harder) | 6 | Research | level 2 (Core 7), 4 (Core 8) |
 
 **How the Core limits research.** Each line may go up 2 levels for every Core
@@ -383,7 +385,8 @@ What it is in the game:
 ## 11. Test results
 
 **Tests.** `godot --headless --path . --script res://tests/test_runner.gd`
-reports **330 tests passed (126,679 assertions)**.
+reported **330 tests passed (126,679 assertions)** when the slice was built;
+the suite now has 368 (see the latest round's section).
 
 `tests/test_core_levels.gd` has 23 tests:
 
@@ -651,6 +654,57 @@ What happened at each wall:
   in Cores, and changing that moves the collapse economy.
 - **A mark on the board for a machine's mode.** The sheet and the heat card
   show it.
+
+---
+
+## Cores 5 and 6: the same disease, the same cure
+
+The round of 26 September 2026 (`BENCHMARK.md`, section 6). Measured on the
+old table, the two stages before Core 7 were mostly waiting:
+
+- **Core 4 → 5:** the other rows were met at 8 min, then 36 min of saving for 10M (82%).
+- **Core 5 → 6:** the other rows were met at 16 min, then 2 h 42 min of saving for 60M (91%).
+
+Each also asked for a research level the Core two levels down already
+allowed: Tighter Tolerances 6 and 8, open since Cores 3 and 4.
+
+**What changed, in the Core 7 model.**
+
+- **Core 5:** 2M credits, and Refinery Contracts 4 in Tighter Tolerances 6's place.
+- **Core 6:** 3M credits, Field Notes 4 in Tighter Tolerances 8's place, and a Condenser serving 2. The Condenser is the machine Core 5 opens; a newly opened building is asked for at the next level (pattern 4).
+
+Every other row stays. A test now checks every row of every written level
+for new work (`tests/test_core7.gd`), from Core 2 to Core 8.
+
+**Played (scripted player, a new game, credit-only waits fast-forwarded):**
+
+| | old table | new table |
+|---|---|---|
+| Core 4 → 5 | 44 min 31 s; 82% only credits | 12 min 34 s; 43% saving (5 min 25 s); a decision in 9 of 13 minutes |
+| Core 5 → 6 | 2 h 59 min; 91% only credits | 34 min; 52% saving (17 min 40 s, the Drill level and the Core); a decision in 23 of 35 minutes |
+| Core 6 reached | 4 h 17 min | 1 h 20 min |
+| Core 6 → 7 | 6 h 40 min; 2% only credits | 5 h 35 min; 4% only credits; a decision in 95 of 337 minutes |
+| Core 7 reached | 10 h 57 min | **6 h 55 min** |
+
+**The second shaft, after a collapse at Core 7** (the research tree and
+111 Cores kept):
+
+| | old table | new table |
+|---|---|---|
+| Core 6 reached | 3 h 50 min | 42 min |
+| Core 7 reached | not in 16 h | not in 16 h |
+
+In both runs the second shaft stalled at stratum 15's stability row.
+
+**The Core 7 era, as played on the new table.**
+
+- **Income:** it fell from 8.4K/s at Core 7 to 2.9K/s on stratum 19.
+- **Overdrive:** 14 steps were taken.
+- **Core 8's rows:** its Amplifier and stratum were met. Nine hours in, stability stood at 38-42 of 100, and the store's Components at 6.7K of 80K.
+- **Resonant Frames 4:** 937K research.
+
+That is the next wall: the rock's heat takes away more than the Core 7
+era adds (`BENCHMARK.md`, section 6).
 
 ---
 

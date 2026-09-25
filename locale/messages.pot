@@ -1743,7 +1743,7 @@ msgid "One of everything, one tile each."
 msgstr ""
 
 #: res://scripts/ui/codex.gd
-msgid "Each step takes one of the thing below it, so one supplier is enough. A full chain earns about what the same tiles of Drills and Crushers would — and it is the only thing that makes Components, which are the only thing a Lab will take."
+msgid "Each step takes one of the thing below it, so one supplier is enough. A full chain earns about what the same tiles of Drills and Crushers would — and it is the only thing that makes Components, which teach a Lab the most."
 msgstr ""
 
 #: res://scripts/ui/codex.gd
@@ -1751,7 +1751,7 @@ msgid "Research buys what lasts"
 msgstr ""
 
 #: res://scripts/ui/codex.gd
-msgid "A Lab turns parts into research. What it buys stays after a collapse."
+msgid "Labs turn materials into research. What it buys outlasts a collapse."
 msgstr ""
 
 #: res://scripts/ui/codex.gd
@@ -1759,7 +1759,7 @@ msgid "The Lab earns no credits at all."
 msgstr ""
 
 #: res://scripts/ui/codex.gd
-msgid "A Lab turns Components into Research, and Research buys upgrades that outlast the shaft. A board with no Lab is a board with no future, and a board that is only Labs has no present."
+msgid "A Lab turns Ingots, Plates or Components into Research -- most from a Component -- and Research buys upgrades that outlast the shaft. A board with no Lab is a board with no future, and a board that is only Labs has no present."
 msgstr ""
 
 #: res://scripts/ui/codex.gd

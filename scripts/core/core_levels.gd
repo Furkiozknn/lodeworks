@@ -79,23 +79,30 @@ const LEVELS := [
 		[Req.RESEARCH, "yield_1", 4],
 		[Req.DEPTH, 6],
 	]},
+	# Cores 5 and 6 as Core 7 is (docs/PROGRESSION.md, "Cores 5 and 6"):
+	# played, their other rows were met 8 and 16 minutes into the stage and
+	# the rest -- 36 minutes and 2 h 42 min -- was saving for 10M and 60M.
+	# Their prices are now what the factory earns while it does the rest,
+	# and each research row asks for a level the era before could not buy
+	# (Tighter Tolerances 6 and 8 had been open since Cores 3 and 4).
 	{"level": 5, "era": "Research", "depth_cap": 12, "machine_cap": 6, "requires": [
-		[Req.CREDITS, 10000000.0],
+		[Req.CREDITS, 2000000.0],
 		[Req.STOCK, MachineDB.Res.COMPONENT, 2500],
 		[Req.STOCK, MachineDB.Res.PLATE, 2500],
 		[Req.WORKING, "lab", 4],
 		[Req.MACHINE, "assembler", 5],
 		[Req.RESEARCH, "research_1", 2],
-		[Req.RESEARCH, "throughput_1", 6],
+		[Req.RESEARCH, "value_1", 4],
 		[Req.STABLE, 40],
 		[Req.DEPTH, 9],
 	]},
 	{"level": 6, "era": "Amplification", "depth_cap": 15, "machine_cap": 7, "requires": [
-		[Req.CREDITS, 60000000.0],
+		[Req.CREDITS, 3000000.0],
 		[Req.STOCK, MachineDB.Res.COMPONENT, 8000],
 		[Req.STOCK, MachineDB.Res.INGOT, 8000],
 		[Req.SERVES, "duplicator", 3],
-		[Req.RESEARCH, "throughput_1", 8],
+		[Req.SERVES, "condenser", 2],
+		[Req.RESEARCH, "research_1", 4],
 		[Req.MACHINE, "drill", 6],
 		[Req.STABLE, 60],
 		[Req.DEPTH, 12],

@@ -1744,24 +1744,24 @@ msgid "One of everything, one tile each."
 msgstr "Her şeyden bir tane, her biri bir karo."
 
 #: res://scripts/ui/codex.gd
-msgid "Each step takes one of the thing below it, so one supplier is enough. A full chain earns about what the same tiles of Drills and Crushers would — and it is the only thing that makes Components, which are the only thing a Lab will take."
-msgstr "Her adım bir alttakinden bir tane alır, bu yüzden bir tedarikçi yeter. Tam bir zincir, aynı karolardaki Matkap ve Kırıcılar kadar kazanır; ama Parça yapan tek şeydir ve Laboratuvarın aldığı tek şey Parçadır."
+msgid "Each step takes one of the thing below it, so one supplier is enough. A full chain earns about what the same tiles of Drills and Crushers would — and it is the only thing that makes Components, which teach a Lab the most."
+msgstr "Her adım bir alttakinden bir tane alır, bu yüzden bir tedarikçi yeter. Tam bir zincir, aynı karolardaki Matkap ve Kırıcılar kadar kazanır; ama Parça yapan tek şeydir ve Laboratuvar en çok Parçadan öğrenir."
 
 #: res://scripts/ui/codex.gd
 msgid "Research buys what lasts"
 msgstr "Araştırma kalıcı olanı alır"
 
 #: res://scripts/ui/codex.gd
-msgid "A Lab turns parts into research. What it buys stays after a collapse."
-msgstr "Laboratuvar parçaları araştırmaya çevirir. Onunla alınanlar çöküşten sonra da kalır."
+msgid "Labs turn materials into research. What it buys outlasts a collapse."
+msgstr "Laboratuvarlar malzemeleri araştırmaya çevirir. Onunla alınanlar çöküşten sonra da kalır."
 
 #: res://scripts/ui/codex.gd
 msgid "The Lab earns no credits at all."
 msgstr "Laboratuvar hiç kredi kazanmaz."
 
 #: res://scripts/ui/codex.gd
-msgid "A Lab turns Components into Research, and Research buys upgrades that outlast the shaft. A board with no Lab is a board with no future, and a board that is only Labs has no present."
-msgstr "Laboratuvar Parçaları Araştırmaya çevirir; Araştırma da kuyudan uzun ömürlü geliştirmeler alır. Laboratuvarı olmayan tahtanın geleceği, yalnızca Laboratuvarlardan oluşan tahtanın bugünü yoktur."
+msgid "A Lab turns Ingots, Plates or Components into Research -- most from a Component -- and Research buys upgrades that outlast the shaft. A board with no Lab is a board with no future, and a board that is only Labs has no present."
+msgstr "Laboratuvar Külçe, Levha ya da Parçayı Araştırmaya çevirir -- en çok Parçadan -- ve Araştırma kuyudan uzun ömürlü geliştirmeler alır. Laboratuvarı olmayan tahtanın geleceği, yalnızca Laboratuvarlardan oluşan tahtanın bugünü yoktur."
 
 #: res://scripts/ui/codex.gd
 msgid "Faster together"
@@ -1918,4 +1918,7 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
+
+#~ msgid "A Lab turns materials into research. What it buys stays after a collapse."
+#~ msgstr "Laboratuvar malzemeleri araştırmaya çevirir. Onunla alınanlar çöküşten sonra da kalır."
 

@@ -94,19 +94,21 @@ func _status(kind: int, id: Variant = null) -> Dictionary:
 ## an earlier level asked. A row the factory already had is not a row.
 func _new_work(level: int, r: Array) -> bool:
 	var before: int = level - 2
+	# Before the first Core level nothing is allowed past a new shaft's start.
+	var first: bool = before < 1
 	match int(r[0]):
 		CoreLevels.Req.CREDITS:
 			return true
 		CoreLevels.Req.STOCK:
-			return int(r[2]) > MachineDB.stock_cap(CoreLevels.machine_cap(before))
+			return int(r[2]) > MachineDB.stock_cap(1 if first else CoreLevels.machine_cap(before))
 		CoreLevels.Req.MACHINE:
-			return int(r[2]) > CoreLevels.machine_cap(before)
+			return int(r[2]) > (1 if first else CoreLevels.machine_cap(before))
 		CoreLevels.Req.RESEARCH:
-			return int(r[2]) > Economy.research_cap(String(r[1]), before)
+			return int(r[2]) > (0 if first else Economy.research_cap(String(r[1]), before))
 		CoreLevels.Req.DEPTH:
-			return int(r[1]) > CoreLevels.depth_cap(before)
+			return int(r[1]) > (0 if first else CoreLevels.depth_cap(before))
 		CoreLevels.Req.OVERDRIVE:
-			return int(r[2]) > CoreLevels.overdrive_cap(before)
+			return int(r[2]) > (0 if first else CoreLevels.overdrive_cap(before))
 	var most: int = -1
 	for l in range(2, level):
 		for e: Array in CoreLevels.requirements(l):
@@ -134,8 +136,12 @@ func test_every_row_of_core_7_is_work_the_core_6_era_does() -> void:
 	# Core 4, and was met five seconds into the stage it was meant to gate.
 	runner.check(not _new_work(7, [CoreLevels.Req.RESEARCH, "yield_1", 6]),
 		"a research level the Core 5 era already allowed is not a Core 7 row")
-	for r: Array in CoreLevels.requirements(8):
-		runner.check(_new_work(8, r), "Core 8's row %s is work for the Core 7 era" % str(r))
+	# Every level the table writes out, not only Core 7: Cores 5 and 6 asked
+	# for Tighter Tolerances 6 and 8, which the Core two levels down already
+	# allowed, until the round that fixed them.
+	for level in range(2, CoreLevels.LEVELS.size() + 1):
+		for r: Array in CoreLevels.requirements(level):
+			runner.check(_new_work(level, r), "Core %d's row %s is work for the era before it" % [level, str(r)])
 
 
 func test_the_checker_catches_broken_overdrive_and_resonance_rows() -> void:

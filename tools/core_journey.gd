@@ -10,6 +10,9 @@ extends SceneTree
 ##   LODEWORKS_CORE_DUMP=7:<file> ... writes the save of the factory the
 ##     moment every row of the Core's level 7 is met, before it grows: the
 ##     fixture tests/test_core7.gd plays from.
+##   LODEWORKS_CORE_CARRY=<file> ... a new game that starts with what a
+##     collapse keeps: {"upgrades": {line: level}, "cores": n} -- the second
+##     shaft, measured against the first.
 ##   LODEWORKS_CORE_KEEP=6:<file> ... writes the game and the player the
 ##     moment the Core reaches level 6; LODEWORKS_CORE_FROM=<file> plays on
 ##     from there. For trying a later level's rules without replaying the
@@ -47,6 +50,7 @@ var stage: Dictionary = {}
 var _board: Dictionary = {}
 var _levels: Dictionary = {}
 var _research: Dictionary = {}
+var _overdrive: Dictionary = {}
 var _contracts: int = 0
 var _depth: int = 0
 ## [t, lifetime credits, research] while only credits are left.
@@ -64,6 +68,15 @@ func _initialize() -> void:
 	var dump_level: int = int(dump.get_slice(":", 0)) if dump != "" else 0
 	P = load("res://tools/core_journey_player.gd").new(root.get_node("Sim"))
 	P.fresh()
+	var carry: String = OS.get_environment("LODEWORKS_CORE_CARRY")
+	if carry != "":
+		var kept: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(carry))
+		for id: String in (kept.get("upgrades", {}) as Dictionary):
+			P.S.upgrade_levels[id] = int(kept["upgrades"][id])
+		P.S.cores = int(kept.get("cores", 0))
+		P.S.collapses = 1
+		P.S._recompute()
+		print("  (a second shaft: the tree %s and %d Cores kept)" % [str(P.S.upgrade_levels), P.S.cores])
 	var keep: String = OS.get_environment("LODEWORKS_CORE_KEEP")
 	var keep_level: int = int(keep.get_slice(":", 0)) if keep != "" else 0
 	var from: String = OS.get_environment("LODEWORKS_CORE_FROM")
@@ -164,13 +177,17 @@ func _open_stage() -> void:
 		"decisions": {}, "minutes": {}, "rate0": P.rate(), "levels_spent": 0.0,
 		"upgrades_open": upgrades, "research_open": research_open,
 		"makers": makers, "opens": CoreLevels.opens(level + 1), "skipped": 0.0,
-		"research_bought": 0, "life0": float(S.lifetime_credits), "credits0": float(S.credits)}
+		"research_bought": 0, "life0": float(S.lifetime_credits), "credits0": float(S.credits),
+		"research_spent": 0.0, "research0": float(S.research), "overdrive": 0,
+		"collapse": Economy.cores_for_collapse(int(S.max_depth), float(S.lifetime_credits),
+			float(S.mult().get("core_yield", 0.0)))}
 	_wait_log.clear()
 
 
 func _close_stage(reached: bool) -> void:
 	stage["t1"] = P.t
 	stage["life1"] = float(P.S.lifetime_credits)
+	stage["research1"] = float(P.S.research)
 	# The Core's price was paid on the beat it grew; credits now are after it.
 	stage["credits1"] = float(P.S.credits)
 	stage["core_paid"] = 0.0
@@ -213,11 +230,24 @@ func _record(level_before: int) -> void:
 			stage["levels_spent"] = float(stage["levels_spent"]) + MachineDB.level_price(id, k)
 			n += 1
 	for id: String in S.upgrade_levels:
-		var up: int = int(S.upgrade_levels[id]) - int(_research.get(id, 0))
+		var was_r: int = int(_research.get(id, 0))
+		var up: int = int(S.upgrade_levels[id]) - was_r
 		if up > 0:
 			d["research"] = int(d.get("research", 0)) + up
 			stage["research_bought"] = int(stage["research_bought"]) + up
+			for k in range(was_r, int(S.upgrade_levels[id])):
+				stage["research_spent"] = float(stage["research_spent"]) \
+					+ float(Economy.upgrade_cost(id, k)["research"])
 			n += up
+	for id: String in S.overdrive:
+		var steps: int = int(S.overdrive[id]) - int(_overdrive.get(id, 0))
+		if steps > 0:
+			d["overdrive"] = int(d.get("overdrive", 0)) + steps
+			stage["overdrive"] = int(stage["overdrive"]) + steps
+			for k in range(int(_overdrive.get(id, 0)) + 1, int(S.overdrive[id]) + 1):
+				stage["research_spent"] = float(stage["research_spent"]) \
+					+ float(MachineDB.overdrive_cost(k)["research"])
+			n += steps
 	if int(S.contracts_lifetime) > _contracts:
 		d["contracts"] = int(d.get("contracts", 0)) + int(S.contracts_lifetime) - _contracts
 		n += int(S.contracts_lifetime) - _contracts
@@ -243,11 +273,37 @@ func _record(level_before: int) -> void:
 			only_credits = false
 	var credits_open: bool = status.any(func(s: Dictionary) -> bool:
 		return int(s["req"][0]) == CoreLevels.Req.CREDITS and not bool(s["met"]))
+	if _saving(status):
+		stage["saving"] = float(stage.get("saving", 0.0)) + P.BEAT
 	if only_credits and credits_open:
 		stage["wait"] = float(stage["wait"]) + P.BEAT
 		_wait_log.append([P.t, float(S.lifetime_credits), float(S.research)])
 	else:
 		_wait_log.clear()
+
+
+## Every row still open can be had for credits alone: the Core's price, or
+## a machine or Vault level short of nothing but credits.
+func _saving(status: Array) -> bool:
+	var S: Node = P.S
+	var any: bool = false
+	for st: Dictionary in status:
+		if bool(st["met"]):
+			continue
+		any = true
+		var r: Array = st["req"]
+		match int(r[0]):
+			CoreLevels.Req.CREDITS:
+				pass
+			CoreLevels.Req.MACHINE:
+				if S.machine_upgrade_blocker(String(r[1])) != "credits":
+					return false
+			CoreLevels.Req.STOCK:
+				if int(st["cap"]) >= int(st["need"]) or S.machine_upgrade_blocker("vault") != "credits":
+					return false
+			_:
+				return false
+	return any
 
 
 func _board_now() -> Dictionary:
@@ -262,6 +318,7 @@ func _remember() -> void:
 	var S: Node = P.S
 	_levels = S.machine_levels.duplicate()
 	_research = S.upgrade_levels.duplicate()
+	_overdrive = S.overdrive.duplicate()
 	_contracts = int(S.contracts_lifetime)
 	_depth = int(S.depth)
 
@@ -324,6 +381,9 @@ func _print_stages() -> void:
 		print("  every other row met after %s; only credits left for %s (%d%% of the stage)%s" % [
 			_clock(last_other), _clock(wait), int(round(100.0 * wait / dur)),
 			" -- %s of it fast-forwarded" % _clock(float(s["skipped"])) if float(s["skipped"]) > 0.0 else ""])
+		var saving: float = float(s.get("saving", 0.0)) + float(s["skipped"])
+		print("  saving -- only rows credits alone buy (the Core, a level) left: %s (%d%% of the stage)" % [
+			_clock(saving), int(round(100.0 * saving / dur))])
 		var parts: Array[String] = []
 		var total: int = 0
 		for k: String in s["decisions"]:
@@ -336,9 +396,14 @@ func _print_stages() -> void:
 		var earned: float = float(s["life1"]) - float(s["life0"])
 		var spent: float = earned - (float(s["credits1"]) - float(s["credits0"]))
 		var machines: float = spent - float(s["levels_spent"]) - float(s["core_paid"])
-		print("  income %s/s -> %s/s; earned %s: machine levels %s, the Core %s, machines %s" % [
-			Economy.fmt(float(s["rate0"])), Economy.fmt(float(s["rate1"])), Economy.fmt(earned),
-			Economy.fmt(float(s["levels_spent"])), Economy.fmt(float(s["core_paid"])), Economy.fmt(machines)])
+		print("  income %s/s -> %s/s (%s/s over the stage); earned %s: machine levels %s, the Core %s, machines %s" % [
+			Economy.fmt(float(s["rate0"])), Economy.fmt(float(s["rate1"])), Economy.fmt(earned / dur),
+			Economy.fmt(earned), Economy.fmt(float(s["levels_spent"])), Economy.fmt(float(s["core_paid"])),
+			Economy.fmt(machines)])
+		print("  research: %s made, %s spent on %d levels; Overdrive steps %d; a collapse at the start would have paid %d Cores" % [
+			Economy.fmt(float(s.get("research1", 0.0)) - float(s["research0"]) + float(s["research_spent"])),
+			Economy.fmt(float(s["research_spent"])), int(s["research_bought"]), int(s["overdrive"]),
+			int(s["collapse"])])
 
 
 func _row_text(r: Array) -> String:

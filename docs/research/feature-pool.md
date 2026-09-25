@@ -645,7 +645,7 @@ does not exist yet.
 | TD7 | **Share code** encode/decode with validation | none | FP-20 | small |
 | TD8 | **World-node effects**: nodes kept in the ring, claims, heat from sites | `ResourceNodes` words only; nodes vanish under the yard | FP-18 | large |
 | TD9 | **Android local notifications** (plugin, POST_NOTIFICATIONS) | none | a notification (section 7) | medium; release work |
-| TD10 | **core_journey hooks** for each new system (a contract-filling player, collapses) | the Core levels are played to Core 5 | every economy feature | per feature |
+| TD10 | **core_journey hooks** for each new system (a contract-filling player, collapses) | the Core levels are played to Core 7 (and the Core 7 era) | every economy feature | per feature |
 | TD11 | **Loc** in English and Turkish, and the loc width check | in place (`loc_extract`, `loc_tr_seed`, `loc_check`) | every UI feature | per feature |
 | TD12 | **Art**: glow, site sprites, era palettes | the art pipeline and budget exist (docs/ART.md) | FP-12, FP-18, eras | per feature; credit-free generation first |
 
