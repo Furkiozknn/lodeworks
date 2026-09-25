@@ -23,6 +23,9 @@ var _current: String = ""
 
 
 func _initialize() -> void:
+	# The tests read the game's English, whatever language this machine
+	# speaks; tests/test_localization.gd switches language on purpose.
+	TranslationServer.set_locale("en")
 	var files: Array[String] = _find_tests()
 	files.sort()
 	# LODEWORKS_TESTS=test_iso runs only the files whose name contains it.

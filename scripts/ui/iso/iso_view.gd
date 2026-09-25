@@ -2102,6 +2102,7 @@ func _badge(ov: Tris, p: Vector2, r: float, kind: int) -> void:
 
 func _num(ci: CanvasItem, font: Font, at: Vector2, text: String, col: Color, fs: int,
 		backing: bool = true) -> void:
+	fs = Palette.text_px(fs)
 	var ts: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 	var p: Vector2 = at + Vector2(-ts.x * 0.5, ts.y * 0.3)
 	if backing:
@@ -2144,7 +2145,7 @@ func _draw_placement_preview(ci: CanvasItem, font: Font) -> void:
 		var n: int = Sim.grid.serves_if_placed(cell)
 		var col: Color = Palette.GOOD if n >= 3 else (Palette.WARN if n >= 1 else Palette.BAD)
 		var at: Vector2 = cam.world_to_screen(Iso.cell_center(cell) - Vector2(0, Iso.TH * 1.6))
-		_num(ci, font, at, "serves %d  x%.1f" % [n, Grid.factor_for(n)], col, 16)
+		_num(ci, font, at, Loc.t("serves %d  x%.1f") % [n, Grid.factor_for(n)], col, 16)
 	for nb in Sim.grid.neighbours(cell):
 		var bleed: float = emitted * Sim.grid.heat_spread
 		if Sim.grid.is_empty(cell) and absf(bleed) < 0.001:

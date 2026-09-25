@@ -1,0 +1,492 @@
+"""The first Turkish translation, as a table, written into locale/tr.po.
+
+    python tools/loc_tr_seed.py        # fills every empty msgstr it has a line for
+
+Run once to seed the file; after that locale/tr.po is the translation and is
+edited directly (tools/loc_extract.gd keeps it in step with the code). This
+script never overwrites a translation already in the file.
+
+Glossary (keep these the same everywhere):
+  Factory Core = Fabrika Çekirdeği, Core = Çekirdek (the building),
+  Cores = Çekirdek (the currency), credits = kredi, Research = Araştırma,
+  stratum = katman, shaft = kuyu, yard = saha, quota = kota,
+  Collapse = Çöküş (to collapse = çökertmek), Descend = İn / Derine in,
+  Foreman = Ustabaşı, tile = karo, Codex = Kodeks, heat = ısı.
+  Machines: Drill = Matkap, Crusher = Kırıcı, Vault = Kasa,
+  Smelter = Ergitici, Boiler = Kazan, Coolant Cell = Soğutma Hücresi,
+  Press = Pres, Assembler = Montajcı, Amplifier = Güçlendirici,
+  Lab = Laboratuvar, Duplicator = Çoğaltıcı, Condenser = Yoğuşturucu.
+  Resources: Ore = Cevher, Gravel = Çakıl, Ingot = Külçe, Plate = Levha,
+  Component = Parça.
+"""
+import io
+import os
+import re
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PO = os.path.join(ROOT, "locale", "tr.po")
+
+TR = {
+    "%ds": "%d sn",
+    "%dm %ds": "%d dk %d sn",
+    "%dh %dm": "%d sa %d dk",
+    "Sells anything a neighbour hands it": "Komşusunun verdiği her şeyi satar",
+    "Research": "Araştırma",
+    "Changes what its neighbours do": "Komşularının işini değiştirir",
+    "nothing": "hiçbir şey",
+    "Google Play billing isn't available on this device.": "Bu cihazda Google Play ödemeleri kullanılamıyor.",
+    "That took too long. Nothing was charged.": "Çok uzun sürdü. Hiçbir ücret alınmadı.",
+    "That purchase is still waiting on your payment.": "Bu satın alma hâlâ ödemeni bekliyor.",
+    "Purchases aren't available in this build.": "Bu sürümde satın alma yok.",
+    "Can't reach Google Play right now. Try again in a moment.": "Şu an Google Play'e ulaşılamıyor. Birazdan yeniden dene.",
+    "That isn't available on this device.": "Bu, bu cihazda kullanılamıyor.",
+    "Waiting on your payment. The %s unlocks as soon as it clears.": "Ödemen bekleniyor. Ödeme onaylanınca %s açılır.",
+    "You already own that: restoring it now.": "Bu zaten sende: şimdi geri yükleniyor.",
+    "No connection to Google Play. Nothing was charged.": "Google Play bağlantısı yok. Hiçbir ücret alınmadı.",
+    "Purchases are misconfigured in this build.": "Bu sürümde satın alma ayarları hatalı.",
+    "That didn't go through. Nothing was charged.": "İşlem tamamlanmadı. Hiçbir ücret alınmadı.",
+    "Codex": "Kodeks",
+    "How it works": "Nasıl çalışır",
+    "It runs best warm: around %.1f heat.": "En iyi sıcakta çalışır: yaklaşık %.1f ısı.",
+    "It runs best cool, and slows down past %.1f heat.": "En iyi serinde çalışır; %.1f ısının üstünde yavaşlar.",
+    "It opens at stratum %d.": "%d. katmanda açılır.",
+    "serves %d  x%.1f": "%d makineye  x%.1f",
+    "A new machine down there.": ("Aşağıda yeni bir makine var.", "Aşağıda yeni makineler var."),
+    "You brought up %d Core.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did.":
+        ("%d Çekirdek çıkardın.\n\nÇekirdekler çöküşten sonra da kalır, araştırdığın her geliştirme de. Sonraki kuyu bundan daha derine ve daha hızlı iner.",
+         "%d Çekirdek çıkardın.\n\nÇekirdekler çöküşten sonra da kalır, araştırdığın her geliştirme de. Sonraki kuyu bundan daha derine ve daha hızlı iner."),
+    "You get %d Core.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one.":
+        ("%d Çekirdek alırsın.\n\nGiden: makineler, kredilerin, araştırma puanların ve derinliğin.\nKalan: Çekirdeklerin ve araştırdığın her geliştirme.\n\nDaha derine inmek de daha çok kazanmak da Çekirdeği artırır. Bir katman daha inmek, burada bir saat daha kalmaktan genelde daha değerlidir.",
+         "%d Çekirdek alırsın.\n\nGiden: makineler, kredilerin, araştırma puanların ve derinliğin.\nKalan: Çekirdeklerin ve araştırdığın her geliştirme.\n\nDaha derine inmek de daha çok kazanmak da Çekirdeği artırır. Bir katman daha inmek, burada bir saat daha kalmaktan genelde daha değerlidir."),
+    "These Cores open this research line.": ("Bu Çekirdekler bu araştırmayı açar.", "Bu Çekirdekler bu araştırmaları açar."),
+    "Stratum %d. The yard is bigger: more ground to build on.": "Katman %d. Saha büyüdü: kuracak daha çok yer var.",
+    "%s active. Thank you.": "%s etkin. Teşekkürler.",
+    "Waiting on your payment. It unlocks by itself.": "Ödemen bekleniyor. Kendiliğinden açılacak.",
+    "Undo": "Geri al",
+    "Stratum %d": "Katman %d",
+    "The yard grows to %d x %d.": "Saha %d x %d olur.",
+    "Descend": "Derine in",
+    "Below: stratum %d": "Aşağıda: %d. katman",
+    "Plain rock. No strange rules here.": "Sade kaya. Burada tuhaf kural yok.",
+    "+%s /s": "+%s /sn",
+    "Heat view": "Isı görünümü",
+    "Zoom": "Yakınlaştır",
+    "Problems": "Sorunlar",
+    "Collapse": "Çöküş",
+    "DESCEND": "DERİNE İN",
+    "Remove": "Kaldır",
+    "Nothing is stalled or overheating.": "Duran ya da aşırı ısınan makine yok.",
+    "This part of the shaft has collapsed.": "Kuyunun bu kısmı çökmüş.",
+    "The yard reaches this ground at stratum %d.": "Saha buraya %d. katmanda ulaşır.",
+    "Pick a machine below, then tap a tile.": "Aşağıdan bir makine seç, sonra bir karoya dokun.",
+    "Not enough credits for a %s.": "%s için yeterli kredi yok.",
+    "Remove?": "Kaldırılsın mı?",
+    "NEW!": "YENİ!",
+    "Helped here: %s. %s": "Burada yardım görür: %s. %s",
+    "Held back here: %s. %s": "Burada yavaşlar: %s. %s",
+    "The shaft collapses": "Kuyu çöküyor",
+    "+%s credits.": "+%s kredi.",
+    "Reward granted.": "Ödül verildi.",
+    "The ad did not play. Nothing was lost.": "Reklam oynamadı. Hiçbir şey kaybolmadı.",
+    "No ad available right now.": "Şu an reklam yok.",
+    "to stratum %d": "%d. katmana",
+    "%d%% of quota": "kotanın %%%d kadarı",
+    "next:": "sonraki:",
+    "That cannot be undone now.": "Bu artık geri alınamaz.",
+    "Something is overheating. The warning key finds it.": "Bir şey aşırı ısınıyor. Uyarı tuşu onu bulur.",
+    "%d starved": "%d aç",
+    "%d backed up": "%d tıkalı",
+    "%d off temperature": "%d yanlış ısıda",
+    "Everything is running.": "Her şey çalışıyor.",
+    "The Core is online: %s credits from its reserve.": "Çekirdek çalışıyor: yedeğinden %s kredi.",
+    "Online. Build the shaft back up.": "Çalışıyor. Kuyuyu yeniden kur.",
+    "LEVEL %d": "SEVİYE %d",
+    "It is as big as it gets.": "Olabileceği kadar büyük.",
+    "It grows with its yard: at stratum %d it reaches level %d.": "Sahasıyla birlikte büyür: %d. katmanda %d. seviyeye çıkar.",
+    "Factory Core": "Fabrika Çekirdeği",
+    "The heart of this shaft. It gave you the credits for your first Drill and Vault; everything since, the board has earned.\n\n%s Every stratum is richer rock, and new machines open on the way down.":
+        "Bu kuyunun kalbi. İlk Matkap ve Kasa için gereken krediyi o verdi; sonrasını hep fabrika kazandı.\n\n%s Her katman daha zengin kayadır ve aşağı indikçe yeni makineler açılır.",
+    "machines": "makine",
+    "working": "çalışıyor",
+    "need help": "yardım bekliyor",
+    "earning": "kazanç",
+    "Yard": "Saha",
+    "%d / %d tiles": "%d / %d karo",
+    "The yard covers all the ground there is.": "Saha bütün zemini kaplıyor.",
+    "Stratum %d: level %d, and the yard grows to %d x %d.": "Katman %d: seviye %d, saha %d x %d olur.",
+    "Stratum %d: the yard grows to %d x %d.": "Katman %d: saha %d x %d olur.",
+    "Show me": "Göster",
+    "Stratum %d. Richer rock, stranger rules.": "Katman %d. Daha zengin kaya, daha tuhaf kurallar.",
+    "Stratum %d: %s. The arrows on the tray show what changes.": "Katman %d: %s. Tepsideki oklar neyin değiştiğini gösterir.",
+    " and ": " ve ",
+    "Stratum %d: %s. The card at the top left says what changes.": "Katman %d: %s. Sol üstteki kart neyin değiştiğini söyler.",
+    "Your yard reaches it at stratum %d.": "Sahan buraya %d. katmanda ulaşır.",
+    "Starved: it is not being fed. Look UPSTREAM.": "Aç: ona bir şey gelmiyor. ÖNCESİNE bak.",
+    "Backed up: nothing takes its output. Look DOWNSTREAM.": "Tıkalı: ürününü alan yok. SONRASINA bak.",
+    "Idle. Nothing for it to do.": "Boşta. Yapacak işi yok.",
+    "Working by standing there. It has no cycle of its own.": "Orada durarak çalışır. Kendi üretim döngüsü yok.",
+    "Running, but too hot: giving up %d%% of its output.": "Çalışıyor ama çok sıcak: üretiminin %%%d kadarını kaybediyor.",
+    "Running, but too cold: giving up %d%% of its output.": "Çalışıyor ama çok soğuk: üretiminin %%%d kadarını kaybediyor.",
+    "Running well.": "İyi çalışıyor.",
+    "Temperature %.1f (wants %.1f) · thermal output %d%%": "Sıcaklık %.1f (istediği %.1f) · ısı verimi %%%d",
+    "Working %d%% of the time · cycle speed when fed %.2f/s": "Zamanın %%%d kadarında çalışıyor · beslenince hız %.2f/sn",
+    "Neighbour boost +%.0f%%": "Komşu desteği +%%%.0f",
+    "MAX": "MAKS",
+    "This one also costs Cores. You get Cores when you collapse the shaft.": "Bu, Çekirdek de ister. Çekirdeği kuyuyu çökertince alırsın.",
+    "Collapsing the shaft turns everything you have built into Cores, and Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You have reached %d.":
+        "Kuyuyu çökertmek, kurduğun her şeyi Çekirdeğe çevirir; Çekirdekler sonraki kuyuda da seninle kalır.\n\n%d. katmanda açılır. Şu an %d. katmana ulaştın.",
+    "Collapse the shaft": "Kuyuyu çökert",
+    "The shaft kept running.\n\nAway %s. Counted %s at %d%% of your live rate.":
+        "Kuyu çalışmaya devam etti.\n\nUzakta kaldığın süre: %s. Sayılan: %s, canlı hızının %%%d kadarıyla.",
+    "Your offline banking is full at %.0f hours. Night Shift in Research raises it.":
+        "Çevrimdışı birikim %.0f saatte doldu. Araştırmadaki Gece Vardiyası bunu artırır.",
+    "While you were away": "Sen yokken",
+    "Ad: x2": "Reklam: x2",
+    "The Foreman's Licence banks %.0f hours instead of %.0f, permanently, and removes ads.":
+        "Ustabaşı Ruhsatı %.0f yerine %.0f saat biriktirir, kalıcı olarak, ve reklamları kaldırır.",
+    "Supply Office": "Tedarik Ofisi",
+    "Welcome back": "Tekrar hoş geldin",
+    "Settings": "Ayarlar",
+    "Language": "Dil",
+    "Device language: %s": "Cihaz dili: %s",
+    "Every machine, and how the factory works": "Her makine ve fabrikanın nasıl çalıştığı",
+    "Two one-time purchases": "İki tek seferlik satın alma",
+    "Active: %s": "Etkin: %s",
+    "Anonymous statistics": "Anonim istatistikler",
+    "No account, no ad ID, nothing personal": "Hesap yok, reklam kimliği yok, kişisel hiçbir şey yok",
+    "Ad privacy": "Reklam gizliliği",
+    "The ad network's consent form": "Reklam ağının onay formu",
+    "The ad SDK did not offer a privacy form.": "Reklam SDK'sı bir gizlilik formu sunmadı.",
+    "Device self test": "Cihaz öz testi",
+    "Frame time, screen, save and plugins": "Kare süresi, ekran, kayıt ve eklentiler",
+    "Sounds": "Sesler",
+    "Taps, machines, descents": "Dokunuşlar, makineler, inişler",
+    "Ambience": "Ortam sesi",
+    "The hum of the shaft": "Kuyunun uğultusu",
+    "Machine effects": "Makine efektleri",
+    "Dust, sparks, steam and coins": "Toz, kıvılcım, buhar ve paralar",
+    "Battery saver": "Pil tasarrufu",
+    "30 frames a second instead of 60": "Saniyede 60 yerine 30 kare",
+    "Vibration": "Titreşim",
+    "A small buzz when you build": "Kurarken küçük bir titreşim",
+    "Zoom key": "Yakınlaştırma tuşu",
+    "A zoom key, for playing without pinching": "İki parmakla sıkıştırmadan oynamak için yakınlaştırma tuşu",
+    "Reduce motion": "Hareketi azalt",
+    "No swelling, flickering or plunging": "Şişme, titreme ve dalma efektleri yok",
+    "Larger text": "Büyük yazı",
+    "Every word a quarter bigger": "Her kelime dörtte bir daha büyük",
+    "Device language": "Cihaz dili",
+    "Volume": "Ses düzeyi",
+    "Without it": "Onsuz",
+    "Now": "Şimdi",
+    "You bank": "Biriktirdiğin",
+    "With the Licence": "Ruhsatla",
+    "%.0f h": "%.0f sa",
+    "%.1f more hours of production, every time you come back": "Her dönüşünde %.1f saat daha fazla üretim",
+    "%.1f hours of production more than the free cap, every time": "Her seferinde ücretsiz sınırdan %.1f saat daha fazla üretim",
+    "(+%s credits at your rate)": "(senin hızınla +%s kredi)",
+    "locked": "kilitli",
+    "Two things, bought once. Neither unlocks a machine, a stratum or an upgrade.": "Bir kez alınan iki şey. Hiçbiri makine, katman ya da geliştirme açmaz.",
+    "Restore purchases": "Satın almaları geri yükle",
+    "Already bought something? Restore brings it back on any device signed in to the same account.": "Daha önce bir şey mi aldın? Geri yükleme, aynı hesapla giriş yapılmış her cihazda onu geri getirir.",
+    "Owned. Thank you.": "Sende var. Teşekkürler.",
+    "Waiting on your payment": "Ödemen bekleniyor",
+    "Google Play is still processing it. This unlocks by itself the moment it clears: there is nothing to do and nothing to pay again.":
+        "Google Play hâlâ işliyor. Ödeme onaylandığı an kendiliğinden açılır: yapacak bir şey ya da yeniden ödenecek bir şey yok.",
+    "Buy": "Satın al",
+    "Checking the price with Google Play…": "Fiyat Google Play'den soruluyor…",
+    "Purchases only work in the Play Store build.": "Satın alma yalnızca Play Store sürümünde çalışır.",
+    "Can't reach Google Play right now. The game works exactly the same without it.": "Şu an Google Play'e ulaşılamıyor. Oyun onsuz da aynen çalışır.",
+    "Google Play hasn't confirmed this product yet. Nothing is wrong with your game.": "Google Play bu ürünü henüz onaylamadı. Oyununda bir sorun yok.",
+    "Not available on this device.": "Bu cihazda yok.",
+    "Tap a palette to wear it. The board changes underneath.": "Bir paleti giymek için ona dokun. Arkadaki tahta hemen değişir.",
+    "Drill": "Matkap",
+    "Digs ore out of the rock.": "Kayadan cevher kazar.",
+    "Pulls raw ore out of the stratum. Needs no input, so it is the only thing that works alone -- and the only thing that is boring alone.":
+        "Katmandan ham cevher çıkarır. Girdiye ihtiyacı yoktur; tek başına çalışan tek makinedir, ama tek başına en sıkıcı olanı da odur.",
+    "Crusher": "Kırıcı",
+    "Crushes ore into gravel.": "Cevheri kırıp çakıl yapar.",
+    "Two ore into one gravel. Runs a little better warm, which is the first hint that heat is a tool and not only a tax.":
+        "İki cevherden bir çakıl. Biraz sıcakta daha iyi çalışır: ısının yalnızca bir bedel değil, bir araç olduğunun ilk ipucu.",
+    "Vault": "Kasa",
+    "Sells anything it is given.": "Ona verilen her şeyi satar.",
+    "Sells whatever its neighbours hand it. Deeper resources are worth disproportionately more, so a Vault fed raw ore is a Vault wasted.":
+        "Komşularının verdiği her şeyi satar. İşlenmiş kaynaklar çok daha değerlidir; ham cevherle beslenen bir Kasa boşa harcanmış bir Kasadır.",
+    "Smelter": "Ergitici",
+    "Melts gravel into ingots.": "Çakılı eritip külçe yapar.",
+    "Wants to be hot, and says so. Build it a furnace. Then build the furnace a coolant loop.":
+        "Sıcak olmak ister ve bunu belli eder. Ona bir ocak kur. Sonra ocağa bir soğutma döngüsü kur.",
+    "Boiler": "Kazan",
+    "Warms the machines around it.": "Çevresindeki makineleri ısıtır.",
+    "Produces nothing. Heats everything around it, and lets material pass through. The first machine that is only worth placing because of what it is next to.":
+        "Hiçbir şey üretmez. Çevresindeki her şeyi ısıtır ve malzemenin içinden geçmesine izin verir. Yalnızca yanında ne olduğu için kurmaya değen ilk makine.",
+    "Coolant Cell": "Soğutma Hücresi",
+    "Cools the machines around it.": "Çevresindeki makineleri soğutur.",
+    "Negative heat, and material still passes through it. Costs you a tile of production but never a connection.":
+        "Eksi ısı verir ve malzeme yine içinden geçer. Sana bir üretim karosuna mal olur, ama asla bir bağlantıya değil.",
+    "Press": "Pres",
+    "Presses ingots into plates.": "Külçeleri preste levha yapar.",
+    "Squeezes ingots flat. Runs hot doing it and cannot take much in return, which is the whole problem with building deep.":
+        "Külçeleri ezip düzleştirir. Bunu yaparken ısınır ama kendisi fazla ısı kaldıramaz; derine kurmanın bütün derdi budur.",
+    "Assembler": "Montajcı",
+    "Builds plates into parts.": "Levhalardan parça yapar.",
+    "The end of the chain, and the hottest thing on the board. A component is worth more than everything that went into it -- if you can keep this cool enough to make one.":
+        "Zincirin sonu ve tahtadaki en sıcak makine. Bir parça, içine giren her şeyden daha değerlidir; tabii bunu bir tane yapacak kadar serin tutabilirsen.",
+    "Amplifier": "Güçlendirici",
+    "Speeds up the machines around it.": "Çevresindeki makineleri hızlandırır.",
+    "Every working neighbour runs 35% faster, and the more of them it touches the harder it pushes. Ore passes straight through it.":
+        "Çalışan her komşusu %35 daha hızlı çalışır; ne kadar çok komşuya dokunursa o kadar güçlü iter. Cevher içinden doğrudan geçer.",
+    "Lab": "Laboratuvar",
+    "Turns parts into research.": "Parçaları araştırmaya çevirir.",
+    "Turns components into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future.":
+        "Parçaları kredi yerine Araştırmaya çevirir. Araştırmayla alınanlar çöküşten sonra da kalır; Laboratuvarı olmayan bir tahtanın geleceği yoktur.",
+    "Duplicator": "Çoğaltıcı",
+    "Sometimes doubles what its neighbours make.": "Bazen komşularının ürettiğini ikiye katlar.",
+    "A chance that a neighbour's output comes out twice, larger the more neighbours it serves. Material passes straight through it.":
+        "Bir komşunun ürününün iki kez çıkma şansı; ne kadar çok komşuya hizmet ederse şans o kadar büyür. Malzeme içinden doğrudan geçer.",
+    "Condenser": "Yoğuşturucu",
+    "Cools the machines around it and speeds them up a little.": "Çevresindeki makineleri soğutur ve biraz hızlandırır.",
+    "Cools hard and amplifies weakly, and passes material through. The tile you place when you have run out of room to do both separately.":
+        "Güçlü soğutur, zayıf güçlendirir ve malzemeyi geçirir. İkisini ayrı ayrı yapacak yerin kalmadığında koyduğun karo.",
+    "Ore": "Cevher",
+    "Gravel": "Çakıl",
+    "Ingot": "Külçe",
+    "Plate": "Levha",
+    "Component": "Parça",
+    "Diggers": "Kazıcılar",
+    "They dig ore out of the rock.": "Kayadan cevher kazarlar.",
+    "Makers": "Üreticiler",
+    "They turn one thing into a better thing.": "Bir şeyi daha iyi bir şeye dönüştürürler.",
+    "Sellers": "Satıcılar",
+    "They sell what they are given.": "Onlara verileni satarlar.",
+    "Heaters": "Isıtıcılar",
+    "They warm the machines around them.": "Çevrelerindeki makineleri ısıtırlar.",
+    "Coolers": "Soğutucular",
+    "They cool the machines around them.": "Çevrelerindeki makineleri soğuturlar.",
+    "Boosters": "Destekçiler",
+    "They help the machines around them.": "Çevrelerindeki makinelere yardım ederler.",
+    "It turns parts into research.": "Parçaları araştırmaya çevirir.",
+    "Tighter Tolerances": "Hassas Ayar",
+    "Every machine works faster.": "Her makine daha hızlı çalışır.",
+    "All machines run 15% faster.": "Bütün makineler %15 daha hızlı çalışır.",
+    "Deeper Bore": "Derin Delme",
+    "Diggers and Makers turn out more.": "Kazıcılar ve Üreticiler daha çok çıkarır.",
+    "Every Digger and Maker turns out 20% more of what it makes. Labs and Vaults are not changed.":
+        "Her Kazıcı ve Üretici, ürettiğinden %20 daha fazla çıkarır. Laboratuvarlar ve Kasalar değişmez.",
+    "Refinery Contracts": "Rafineri Anlaşmaları",
+    "Everything sells for more.": "Her şey daha pahalıya satılır.",
+    "Everything sells for 18% more.": "Her şey %18 daha pahalıya satılır.",
+    "Field Notes": "Saha Notları",
+    "Labs make more research.": "Laboratuvarlar daha çok araştırma üretir.",
+    "Labs produce 25% more research.": "Laboratuvarlar %25 daha fazla araştırma üretir.",
+    "Ceramic Lining": "Seramik Kaplama",
+    "Machines can take more heat.": "Makineler daha çok ısıya dayanır.",
+    "Every machine tolerates 0.6 more heat before it chokes.": "Her makine tıkanmadan önce 0,6 daha fazla ısıya dayanır.",
+    "Night Shift": "Gece Vardiyası",
+    "The shaft works longer while you are away.": "Sen yokken kuyu daha uzun çalışır.",
+    "Offline production banks 2 more hours.": "Çevrimdışı üretim 2 saat daha birikir.",
+    "Standing Orders": "Sürekli Siparişler",
+    "The shaft works harder while you are away.": "Sen yokken kuyu daha sıkı çalışır.",
+    "Offline production runs at 12% more of your live rate.": "Çevrimdışı üretim, canlı hızının %12 daha fazlasıyla çalışır.",
+    "Seismic Survey": "Sismik Tarama",
+    "A collapse gives more Cores.": "Çöküş daha çok Çekirdek verir.",
+    "A collapse yields 25% more Cores. Compounds with every run.": "Çöküş %25 daha fazla Çekirdek verir. Her turda üst üste biner.",
+    "Drafting Table": "Çizim Masası",
+    "One more saved layout.": "Kayıtlı bir yerleşim daha.",
+    "One more blueprint slot for saved layouts.": "Kayıtlı yerleşimler için bir plan yuvası daha.",
+    "Thermal Vent": "Sıcak Baca",
+    "Ambient heat +2. Your smelters will love it. Your presses will not.": "Ortam ısısı +2. Ergiticilerin bayılacak. Preslerin hiç sevmeyecek.",
+    "Coolant Seep": "Soğuk Sızıntı",
+    "Ambient heat -1.5. Hot machines need their own boilers down here.": "Ortam ısısı -1,5. Burada sıcak seven makinelere kendi kazanları gerekir.",
+    "Brittle Rock": "Kırılgan Kaya",
+    "Drills run 35% faster, but everything downstream runs 15% slower.": "Matkaplar %35 daha hızlı çalışır ama sonraki bütün makineler %15 yavaşlar.",
+    "Dense Seam": "Yoğun Damar",
+    "Everything you sell is worth 45% more. Worth building a bigger line for.": "Sattığın her şey %45 daha değerli. Daha büyük bir hat kurmaya değer.",
+    "Unstable": "Dengesiz",
+    "Buffers hold 2 fewer items. Long chains choke; short ones are fine.": "Ara depolar 2 eşya daha az tutar. Uzun zincirler tıkanır; kısalar iyidir.",
+    "Conductive Strata": "İletken Katmanlar",
+    "Heat spreads further. Every heat decision you make is louder.": "Isı daha uzağa yayılır. Isıyla ilgili her kararın daha çok ses getirir.",
+    "Insulating Clay": "Yalıtkan Kil",
+    "Heat barely spreads. Boilers only help the tile they touch.": "Isı neredeyse yayılmaz. Kazanlar yalnızca dokundukları karoya yardım eder.",
+    "Rich Vein": "Zengin Damar",
+    "Drills yield double. The bottleneck moves to whatever you built next.": "Matkaplar iki kat verir. Darboğaz, sonra kurduğun makineye kayar.",
+    "Fossil Record": "Fosil Kaydı",
+    "Labs produce 80% more research. A depth worth stopping at.": "Laboratuvarlar %80 daha fazla araştırma üretir. Durmaya değer bir derinlik.",
+    "Cramped": "Dar Alan",
+    "The outer ring of the shaft is collapsed and cannot be built on.": "Kuyunun dış halkası çökmüş; üstüne kurulamaz.",
+    "Resonant": "Rezonans",
+    "Amplifiers are twice as strong. Suddenly they are worth the heat.": "Güçlendiriciler iki kat güçlüdür. Birden ısılarına değer hale gelirler.",
+    "Barren": "Çorak",
+    "Half the ore, but the quota to move on is halved too. A breather.": "Cevher yarıya iner ama geçmek için kota da yarıya iner. Bir nefes molası.",
+    "Tap a lit tile by the Core to build a DRILL.": "Çekirdeğin yanındaki ışıklı bir karoya dokun, bir MATKAP kur.",
+    "Now a VAULT touching it. Machines only reach what they touch.": "Şimdi ona değen bir KASA. Makineler yalnızca dokundukları yere ulaşır.",
+    "That is ore being sold. Watch the number.": "Bu, satılan cevher. Sayıyı izle.",
+    "Tap the Vault, then drag it one tile away. Moving is free.": "Kasaya dokun, sonra bir karo öteye sürükle. Taşımak bedava.",
+    "Put a CRUSHER in the gap. Gravel sells for more than ore.": "Aradaki boşluğa bir KIRICI koy. Çakıl cevherden pahalıya satılır.",
+    "Tap HEAT. Every machine has a temperature it wants.": "ISI tuşuna dokun. Her makinenin istediği bir sıcaklık var.",
+    "Build more until the bar at the top left is full.": "Sol üstteki çubuk dolana kadar daha çok kur.",
+    "DESCEND. Deeper rock is richer, hotter and stranger.": "DERİNE İN. Derindeki kaya daha zengin, daha sıcak ve daha tuhaftır.",
+    "Tap the FACTORY CORE to bring it online.": "Çalıştırmak için FABRİKA ÇEKİRDEĞİ'ne dokun.",
+    "You have Research. Spend it: what it buys stays, even after a collapse.": "Araştırman var. Harca: aldıkların çöküşten sonra bile kalır.",
+    "ORE VEIN": "CEVHER DAMARI",
+    "Ore runs through this rock.": "Bu kayanın içinden cevher geçiyor.",
+    "Drills dig ore.": "Matkaplar cevher kazar.",
+    "CRYSTAL VEIN": "KRİSTAL DAMARI",
+    "Purple crystal grows in the rock.": "Kayanın içinde mor kristal büyüyor.",
+    "No machine mines crystal yet.": "Henüz kristal kazan bir makine yok.",
+    "BLUE CRYSTAL": "MAVİ KRİSTAL",
+    "A rare blue crystal, deep in the rock.": "Kayanın derinlerinde nadir bir mavi kristal.",
+    "HEAT VENT": "ISI BACASI",
+    "Hot air rises from deep below.": "Derinlerden sıcak hava yükseliyor.",
+    "Nothing uses its heat yet.": "Henüz bu ısıyı kullanan bir şey yok.",
+    "Side by side": "Yan yana",
+    "Machines hand things to the machines they touch.": "Makineler, dokundukları makinelere bir şeyler verir.",
+    "Watch the ore cross each gap.": "Cevherin her boşluğu geçişini izle.",
+    "There are no belts. A machine hands what it makes to any orthogonal neighbour that wants it, and splits it evenly if several do. While you place one, the green tiles are where it would be fed and could hand its work on.":
+        "Bant yok. Bir makine ürettiğini, onu isteyen yan komşusuna verir; birkaç komşu isterse eşit paylaştırır. Makine yerleştirirken yeşil karolar, onun besleneceği ve ürününü verebileceği yerlerdir.",
+    "Every step pays more": "Her adım daha çok kazandırır",
+    "Crushed ore sells for more than raw ore.": "Kırılmış cevher, ham cevherden pahalıya satılır.",
+    "Two identical Drills. The lower line earns more.": "İki aynı Matkap. Alttaki hat daha çok kazanıyor.",
+    "Selling raw ore works and is never the best you can do. Each refining step trades throughput for value, and the trade is always worth making if you can keep the machine fed.":
+        "Ham cevher satmak işe yarar ama asla en iyisi değildir. Her işleme adımı hızdan verip değer kazandırır; makineyi besleyebildiğin sürece bu takasa hep değer.",
+    "Helpers let things through": "Yardımcılar malzemeyi geçirir",
+    "Heaters, Coolers and Boosters let things pass through them.": "Isıtıcılar, Soğutucular ve Destekçiler malzemenin içlerinden geçmesine izin verir.",
+    "Ore crosses the Amplifier as if it were not there.": "Cevher, Güçlendiriciyi yokmuş gibi geçer.",
+    "A Boiler, Coolant Cell, Amplifier, Duplicator or Condenser makes nothing — but material passes straight through it, so it costs you a tile of production and never a connection. Put one inside a working line, not beside it.":
+        "Kazan, Soğutma Hücresi, Güçlendirici, Çoğaltıcı ya da Yoğuşturucu hiçbir şey üretmez; ama malzeme içlerinden doğrudan geçer, bu yüzden sana bir üretim karosuna mal olurlar, asla bir bağlantıya değil. Birini çalışan bir hattın yanına değil, içine koy.",
+    "Helpers boost what they touch": "Yardımcılar dokunduklarını güçlendirir",
+    "The more machines a Booster touches, the more it helps.": "Bir Destekçi ne kadar çok makineye dokunursa o kadar çok yardım eder.",
+    "One Amplifier, four neighbours, all of them faster.": "Bir Güçlendirici, dört komşu, hepsi daha hızlı.",
+    "The boost grows with how many working machines a support tile touches: one neighbour is face value, four is two and a half times that. Vaults do not count — there is no rate to raise. Move it one tile and the number on the preview changes before you buy.":
+        "Destek, bir yardımcı karonun dokunduğu çalışan makine sayısıyla büyür: bir komşu tam değerdir, dört komşu bunun iki buçuk katı. Kasalar sayılmaz; artırılacak bir hızları yoktur. Bir karo kaydır, önizlemedeki sayı daha satın almadan değişir.",
+    "The lights show the problem": "Işıklar sorunu gösterir",
+    "Green: working. Amber: nowhere to send it. Red: nothing coming in.": "Yeşil: çalışıyor. Turuncu: gönderecek yer yok. Kırmızı: hiçbir şey gelmiyor.",
+    "Amber on the left, red on the right.": "Solda turuncu, sağda kırmızı.",
+    "Green is working. Amber means its output is backed up — look downstream. Red means it is not being fed — look upstream. The two point in opposite directions, so you can follow the colour to the culprit.":
+        "Yeşil çalışıyor demektir. Turuncu, ürününün tıkandığı demektir: sonrasına bak. Kırmızı, beslenmediği demektir: öncesine bak. İkisi ters yönleri gösterir; rengi izleyip suçluyu bulabilirsin.",
+    "Heat can help": "Isı yardım edebilir",
+    "A Smelter likes heat. Put a Boiler next to it.": "Ergitici ısıyı sever. Yanına bir Kazan koy.",
+    "The Smelter is hot, and fast.": "Ergitici sıcak ve hızlı.",
+    "A Smelter wants to be hot. A Boiler next to it gets it there. Every machine emits heat into its own tile and half of that into each neighbour.":
+        "Ergitici sıcak olmak ister. Yanındaki bir Kazan onu oraya taşır. Her makine kendi karosuna ısı verir, her komşusuna da bunun yarısını.",
+    "Heat can hurt": "Isı zarar verebilir",
+    "Too much heat slows a Press down.": "Fazla ısı bir Presi yavaşlatır.",
+    "The Press is choking on the Smelter's heat.": "Pres, Ergiticinin ısısında boğuluyor.",
+    "A Press wants to be cold and sits next to things that are not. That is the puzzle: the same Boiler that pays for one tile costs you the next one.":
+        "Pres soğuk olmak ister ama sıcak şeylerin yanında durur. Bulmaca da bu: bir karoya kazandıran aynı Kazan, yanındakini kaybettirir.",
+    "Cooling": "Soğutma",
+    "A Coolant Cell cools the machines around it.": "Soğutma Hücresi çevresindeki makineleri soğutur.",
+    "Same board, one Coolant Cell. The Press recovers.": "Aynı tahta, bir Soğutma Hücresi. Pres toparlanıyor.",
+    "A Coolant Cell produces nothing. It buys back the throughput the heat was taking, and it costs you a tile you would rather have filled. That trade is most of the late game.":
+        "Soğutma Hücresi hiçbir şey üretmez. Isının aldığı hızı geri kazandırır ve sana doldurmak isteyeceğin bir karoya mal olur. Oyunun sonlarının çoğu bu takastır.",
+    "The long chain": "Uzun zincir",
+    "Ore, gravel, ingot, plate, part: one step at a time.": "Cevher, çakıl, külçe, levha, parça: adım adım.",
+    "One of everything, one tile each.": "Her şeyden bir tane, her biri bir karo.",
+    "Each step takes one of the thing below it, so one supplier is enough. A full chain earns about what the same tiles of Drills and Crushers would — and it is the only thing that makes Components, which are the only thing a Lab will take.":
+        "Her adım bir alttakinden bir tane alır, bu yüzden bir tedarikçi yeter. Tam bir zincir, aynı karolardaki Matkap ve Kırıcılar kadar kazanır; ama Parça yapan tek şeydir ve Laboratuvarın aldığı tek şey Parçadır.",
+    "Research buys what lasts": "Araştırma kalıcı olanı alır",
+    "A Lab turns parts into research. What it buys stays after a collapse.": "Laboratuvar parçaları araştırmaya çevirir. Onunla alınanlar çöküşten sonra da kalır.",
+    "The Lab earns no credits at all.": "Laboratuvar hiç kredi kazanmaz.",
+    "A Lab turns Components into Research, and Research buys upgrades that outlast the shaft. A board with no Lab is a board with no future, and a board that is only Labs has no present.":
+        "Laboratuvar Parçaları Araştırmaya çevirir; Araştırma da kuyudan uzun ömürlü geliştirmeler alır. Laboratuvarı olmayan tahtanın geleceği, yalnızca Laboratuvarlardan oluşan tahtanın bugünü yoktur.",
+    "Faster together": "Birlikte daha hızlı",
+    "An Amplifier makes the machines it touches faster.": "Güçlendirici dokunduğu makineleri hızlandırır.",
+    "Both Crushers run faster than they should.": "İki Kırıcı da normalden hızlı çalışıyor.",
+    "An Amplifier produces nothing and speeds up every producing neighbour. It is the clearest case of the rule the whole board runs on: what a tile is worth depends on what is beside it.":
+        "Güçlendirici hiçbir şey üretmez ve üreten her komşusunu hızlandırır. Bütün tahtanın dayandığı kuralın en açık örneğidir: bir karonun değeri yanında ne olduğuna bağlıdır.",
+    "Deeper is different": "Derin farklıdır",
+    "Deeper rock pays more and runs hotter.": "Derindeki kaya daha çok kazandırır ve daha sıcaktır.",
+    "The same three tiles, nine strata down.": "Aynı üç karo, dokuz katman aşağıda.",
+    "Depth multiplies what every machine yields and raises the ambient heat of the whole board. Some strata stop heat spreading, some collapse a third of the grid, some double what Amplifiers do. The board that was right up there is rarely right down here. Hold Descend to see the next one first; arrows on the tray show what it does.":
+        "Derinlik her makinenin verimini artırır ve bütün tahtanın ortam ısısını yükseltir. Bazı katmanlar ısının yayılmasını durdurur, bazıları ızgaranın bir kısmını çökertir, bazıları Güçlendiricileri ikiye katlar. Yukarıda doğru olan tahta aşağıda nadiren doğrudur. Sonrakini önce görmek için İn tuşunu basılı tut; tepsideki oklar ne yaptığını gösterir.",
+    "The Surface": "Yüzey",
+    "The Workings": "Galeriler",
+    "The Deep": "Derinlik",
+    "The Abyss": "Uçurum",
+    "Game": "Oyun",
+    "Audio": "Ses",
+    "Graphics": "Görüntü",
+    "Controls": "Kontroller",
+    "Accessibility": "Erişilebilirlik",
+    "Foreman's Licence": "Ustabaşı Ruhsatı",
+    "Keep the night shift running.": "Gece vardiyası çalışmaya devam etsin.",
+    "No extra credits, no faster machines, nothing locked behind it.": "Ekstra kredi yok, daha hızlı makine yok, arkasında kilitli hiçbir şey yok.",
+    "Bank 8 hours offline instead of 4": "Çevrimdışıyken 4 yerine 8 saat biriktir",
+    "No ads, ever": "Hiç reklam yok",
+    "Foundry Colours": "Döküm Renkleri",
+    "Six ways for the shaft to look.": "Kuyu için altı görünüm.",
+    "Appearance only. The board earns the same in every palette.": "Yalnızca görünüm. Tahta her palette aynı kazanır.",
+    "Six palettes for machines, ore and rock": "Makineler, cevher ve kaya için altı palet",
+    "Switch whenever you like": "İstediğin zaman değiştir",
+    "Status lights keep their meaning": "Durum ışıkları anlamlarını korur",
+    "Shaft": "Kuyu",
+    "Cold rock, and heat the only warm thing in it.": "Soğuk kaya; içindeki tek sıcak şey ısı.",
+    "Brass Works": "Pirinç Atölye",
+    "Copper, lacquer and a shaft that never cooled.": "Bakır, cila ve hiç soğumamış bir kuyu.",
+    "Deep Frost": "Derin Ayaz",
+    "A plant built into ice that refuses to melt.": "Erimeyi reddeden buzun içine kurulmuş bir fabrika.",
+    "Verdant Seam": "Yeşil Damar",
+    "Something grew down here before you did.": "Burada senden önce bir şeyler büyümüş.",
+    "Ember Cut": "Kor Yarığı",
+    "Close enough to the magma to be a bad idea.": "Kötü bir fikir olacak kadar magmaya yakın.",
+    "Slate": "Arduvaz",
+    "Grey plant, coloured cargo. Shape does the work.": "Gri fabrika, renkli yük. İşi şekil görür.",
+}
+
+
+def po_unquote(s):
+    s = s.strip()
+    if s.startswith('"') and s.endswith('"'):
+        s = s[1:-1]
+    out, i = [], 0
+    while i < len(s):
+        c = s[i]
+        if c == "\\" and i + 1 < len(s):
+            n = s[i + 1]
+            out.append({"n": "\n", "t": "\t", '"': '"', "\\": "\\"}.get(n, n))
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def po_quote(s):
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t") + '"'
+
+
+def main():
+    lines = io.open(PO, encoding="utf-8").read().split("\n")
+    out, i, filled, missing = [], 0, 0, []
+    cur = None
+    while i < len(lines):
+        line = lines[i]
+        if line.startswith("msgid "):
+            cur = po_unquote(line[6:])
+            out.append(line)
+        elif line.startswith("msgstr ") and cur is not None and cur != "":
+            if po_unquote(line[7:]) == "" and cur in TR and isinstance(TR[cur], str):
+                out.append("msgstr " + po_quote(TR[cur]))
+                filled += 1
+            else:
+                out.append(line)
+                if po_unquote(line[7:]) == "" and cur not in TR:
+                    missing.append(cur)
+        elif line.startswith("msgstr[") and cur is not None:
+            k = int(line[7:line.index("]")])
+            if po_unquote(line[line.index("]") + 2:]) == "" and cur in TR and isinstance(TR[cur], tuple):
+                out.append("msgstr[%d] %s" % (k, po_quote(TR[cur][k])))
+                filled += 1
+            else:
+                out.append(line)
+        else:
+            out.append(line)
+        i += 1
+    io.open(PO, "w", encoding="utf-8", newline="\n").write("\n".join(out))
+    print("filled %d, without a line here: %d" % (filled, len(missing)))
+    for m in missing:
+        print("  " + m[:90])
+
+
+if __name__ == "__main__":
+    main()

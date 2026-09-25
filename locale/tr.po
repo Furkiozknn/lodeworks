@@ -1,0 +1,1493 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Lodeworks\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: res://scripts/core/economy.gd
+msgid "%ds"
+msgstr "%d sn"
+
+#: res://scripts/core/economy.gd
+msgid "%dm %ds"
+msgstr "%d dk %d sn"
+
+#: res://scripts/core/economy.gd
+msgid "%dh %dm"
+msgstr "%d sa %d dk"
+
+#: res://scripts/core/machine_db.gd
+msgid "Sells anything a neighbour hands it"
+msgstr "Komşusunun verdiği her şeyi satar"
+
+#: res://scripts/core/machine_db.gd res://scripts/ui/main.gd
+msgid "Research"
+msgstr "Araştırma"
+
+#: res://scripts/core/machine_db.gd
+msgid "Changes what its neighbours do"
+msgstr "Komşularının işini değiştirir"
+
+#: res://scripts/core/machine_db.gd
+msgid "nothing"
+msgstr "hiçbir şey"
+
+#: res://scripts/services/store.gd
+msgid "Google Play billing isn't available on this device."
+msgstr "Bu cihazda Google Play ödemeleri kullanılamıyor."
+
+#: res://scripts/services/store.gd
+msgid "That took too long. Nothing was charged."
+msgstr "Çok uzun sürdü. Hiçbir ücret alınmadı."
+
+#: res://scripts/services/store.gd
+msgid "That purchase is still waiting on your payment."
+msgstr "Bu satın alma hâlâ ödemeni bekliyor."
+
+#: res://scripts/services/store.gd
+msgid "Purchases aren't available in this build."
+msgstr "Bu sürümde satın alma yok."
+
+#: res://scripts/services/store.gd
+msgid "Can't reach Google Play right now. Try again in a moment."
+msgstr "Şu an Google Play'e ulaşılamıyor. Birazdan yeniden dene."
+
+#: res://scripts/services/store.gd
+msgid "That isn't available on this device."
+msgstr "Bu, bu cihazda kullanılamıyor."
+
+#: res://scripts/services/store.gd
+msgid "Waiting on your payment. The %s unlocks as soon as it clears."
+msgstr "Ödemen bekleniyor. Ödeme onaylanınca %s açılır."
+
+#: res://scripts/services/store.gd
+msgid "You already own that: restoring it now."
+msgstr "Bu zaten sende: şimdi geri yükleniyor."
+
+#: res://scripts/services/store.gd
+msgid "No connection to Google Play. Nothing was charged."
+msgstr "Google Play bağlantısı yok. Hiçbir ücret alınmadı."
+
+#: res://scripts/services/store.gd
+msgid "Purchases are misconfigured in this build."
+msgstr "Bu sürümde satın alma ayarları hatalı."
+
+#: res://scripts/services/store.gd
+msgid "That didn't go through. Nothing was charged."
+msgstr "İşlem tamamlanmadı. Hiçbir ücret alınmadı."
+
+#: res://scripts/ui/codex.gd res://scripts/ui/main.gd
+msgid "Codex"
+msgstr "Kodeks"
+
+#: res://scripts/ui/codex.gd
+msgid "How it works"
+msgstr "Nasıl çalışır"
+
+#: res://scripts/ui/codex.gd
+msgid "It runs best warm: around %.1f heat."
+msgstr "En iyi sıcakta çalışır: yaklaşık %.1f ısı."
+
+#: res://scripts/ui/codex.gd
+msgid "It runs best cool, and slows down past %.1f heat."
+msgstr "En iyi serinde çalışır; %.1f ısının üstünde yavaşlar."
+
+#: res://scripts/ui/codex.gd
+msgid "It opens at stratum %d."
+msgstr "%d. katmanda açılır."
+
+#: res://scripts/ui/iso/iso_view.gd
+msgid "serves %d  x%.1f"
+msgstr "%d makineye  x%.1f"
+
+#: res://scripts/ui/main.gd
+msgid "A new machine down there."
+msgid_plural "New machines down there."
+msgstr[0] "Aşağıda yeni bir makine var."
+msgstr[1] "Aşağıda yeni makineler var."
+
+#: res://scripts/ui/main.gd
+msgid "You brought up %d Core.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did."
+msgid_plural "You brought up %d Cores.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did."
+msgstr[0] "%d Çekirdek çıkardın.\n\nÇekirdekler çöküşten sonra da kalır, araştırdığın her geliştirme de. Sonraki kuyu bundan daha derine ve daha hızlı iner."
+msgstr[1] "%d Çekirdek çıkardın.\n\nÇekirdekler çöküşten sonra da kalır, araştırdığın her geliştirme de. Sonraki kuyu bundan daha derine ve daha hızlı iner."
+
+#: res://scripts/ui/main.gd
+msgid "You get %d Core.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one."
+msgid_plural "You get %d Cores.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one."
+msgstr[0] "%d Çekirdek alırsın.\n\nGiden: makineler, kredilerin, araştırma puanların ve derinliğin.\nKalan: Çekirdeklerin ve araştırdığın her geliştirme.\n\nDaha derine inmek de daha çok kazanmak da Çekirdeği artırır. Bir katman daha inmek, burada bir saat daha kalmaktan genelde daha değerlidir."
+msgstr[1] "%d Çekirdek alırsın.\n\nGiden: makineler, kredilerin, araştırma puanların ve derinliğin.\nKalan: Çekirdeklerin ve araştırdığın her geliştirme.\n\nDaha derine inmek de daha çok kazanmak da Çekirdeği artırır. Bir katman daha inmek, burada bir saat daha kalmaktan genelde daha değerlidir."
+
+#: res://scripts/ui/main.gd
+msgid "These Cores open this research line."
+msgid_plural "These Cores open these research lines."
+msgstr[0] "Bu Çekirdekler bu araştırmayı açar."
+msgstr[1] "Bu Çekirdekler bu araştırmaları açar."
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d. The yard is bigger: more ground to build on."
+msgstr "Katman %d. Saha büyüdü: kuracak daha çok yer var."
+
+#: res://scripts/ui/main.gd
+msgid "%s active. Thank you."
+msgstr "%s etkin. Teşekkürler."
+
+#: res://scripts/ui/main.gd
+msgid "Waiting on your payment. It unlocks by itself."
+msgstr "Ödemen bekleniyor. Kendiliğinden açılacak."
+
+#: res://scripts/ui/main.gd
+msgid "Undo"
+msgstr "Geri al"
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d"
+msgstr "Katman %d"
+
+#: res://scripts/ui/main.gd
+msgid "The yard grows to %d x %d."
+msgstr "Saha %d x %d olur."
+
+#: res://scripts/ui/main.gd
+msgid "Descend"
+msgstr "Derine in"
+
+#: res://scripts/ui/main.gd
+msgid "Below: stratum %d"
+msgstr "Aşağıda: %d. katman"
+
+#: res://scripts/ui/main.gd
+msgid "Plain rock. No strange rules here."
+msgstr "Sade kaya. Burada tuhaf kural yok."
+
+#: res://scripts/ui/main.gd
+msgid "+%s /s"
+msgstr "+%s /sn"
+
+#: res://scripts/ui/main.gd
+msgid "Heat view"
+msgstr "Isı görünümü"
+
+#: res://scripts/ui/main.gd
+msgid "Zoom"
+msgstr "Yakınlaştır"
+
+#: res://scripts/ui/main.gd
+msgid "Problems"
+msgstr "Sorunlar"
+
+#: res://scripts/ui/main.gd
+msgid "Collapse"
+msgstr "Çöküş"
+
+#: res://scripts/ui/main.gd
+msgid "DESCEND"
+msgstr "İNİŞ"
+
+#: res://scripts/ui/main.gd
+msgid "Remove"
+msgstr "Kaldır"
+
+#: res://scripts/ui/main.gd
+msgid "Nothing is stalled or overheating."
+msgstr "Duran ya da aşırı ısınan makine yok."
+
+#: res://scripts/ui/main.gd
+msgid "This part of the shaft has collapsed."
+msgstr "Kuyunun bu kısmı çökmüş."
+
+#: res://scripts/ui/main.gd
+msgid "The yard reaches this ground at stratum %d."
+msgstr "Saha buraya %d. katmanda ulaşır."
+
+#: res://scripts/ui/main.gd
+msgid "Pick a machine below, then tap a tile."
+msgstr "Aşağıdan bir makine seç, sonra bir karoya dokun."
+
+#: res://scripts/ui/main.gd
+msgid "Not enough credits for a %s."
+msgstr "%s için yeterli kredi yok."
+
+#: res://scripts/ui/main.gd
+msgid "Remove?"
+msgstr "Kaldırılsın mı?"
+
+#: res://scripts/ui/main.gd
+msgid "NEW!"
+msgstr "YENİ!"
+
+#: res://scripts/ui/main.gd
+msgid "Helped here: %s. %s"
+msgstr "Burada yardım görür: %s. %s"
+
+#: res://scripts/ui/main.gd
+msgid "Held back here: %s. %s"
+msgstr "Burada yavaşlar: %s. %s"
+
+#: res://scripts/ui/main.gd
+msgid "The shaft collapses"
+msgstr "Kuyu çöküyor"
+
+#: res://scripts/ui/main.gd
+msgid "+%s credits."
+msgstr "+%s kredi."
+
+#: res://scripts/ui/main.gd
+msgid "Reward granted."
+msgstr "Ödül verildi."
+
+#: res://scripts/ui/main.gd
+msgid "The ad did not play. Nothing was lost."
+msgstr "Reklam oynamadı. Hiçbir şey kaybolmadı."
+
+#: res://scripts/ui/main.gd
+msgid "No ad available right now."
+msgstr "Şu an reklam yok."
+
+#: res://scripts/ui/main.gd
+msgid "to stratum %d"
+msgstr "%d. katmana"
+
+#: res://scripts/ui/main.gd
+msgid "%d%% of quota"
+msgstr "kota %%%d"
+
+#: res://scripts/ui/main.gd
+msgid "next:"
+msgstr "sonraki:"
+
+#: res://scripts/ui/main.gd
+msgid "That cannot be undone now."
+msgstr "Bu artık geri alınamaz."
+
+#: res://scripts/ui/main.gd
+msgid "Something is overheating. The warning key finds it."
+msgstr "Bir şey aşırı ısınıyor. Uyarı tuşu onu bulur."
+
+#: res://scripts/ui/main.gd
+msgid "%d starved"
+msgstr "%d aç"
+
+#: res://scripts/ui/main.gd
+msgid "%d backed up"
+msgstr "%d tıkalı"
+
+#: res://scripts/ui/main.gd
+msgid "%d off temperature"
+msgstr "%d yanlış ısıda"
+
+#: res://scripts/ui/main.gd
+msgid "Everything is running."
+msgstr "Her şey çalışıyor."
+
+#: res://scripts/ui/main.gd
+msgid "The Core is online: %s credits from its reserve."
+msgstr "Çekirdek çalışıyor: yedeğinden %s kredi."
+
+#: res://scripts/ui/main.gd
+msgid "Online. Build the shaft back up."
+msgstr "Çalışıyor. Kuyuyu yeniden kur."
+
+#: res://scripts/ui/main.gd
+msgid "LEVEL %d"
+msgstr "SEVİYE %d"
+
+#: res://scripts/ui/main.gd
+msgid "It is as big as it gets."
+msgstr "Olabileceği kadar büyük."
+
+#: res://scripts/ui/main.gd
+msgid "It grows with its yard: at stratum %d it reaches level %d."
+msgstr "Sahasıyla birlikte büyür: %d. katmanda %d. seviyeye çıkar."
+
+#: res://scripts/ui/main.gd
+msgid "Factory Core"
+msgstr "Fabrika Çekirdeği"
+
+#: res://scripts/ui/main.gd
+msgid "The heart of this shaft. It gave you the credits for your first Drill and Vault; everything since, the board has earned.\n\n%s Every stratum is richer rock, and new machines open on the way down."
+msgstr "Bu kuyunun kalbi. İlk Matkap ve Kasa için gereken krediyi o verdi; sonrasını hep fabrika kazandı.\n\n%s Her katman daha zengin kayadır ve aşağı indikçe yeni makineler açılır."
+
+#: res://scripts/ui/main.gd
+msgid "machines"
+msgstr "makine"
+
+#: res://scripts/ui/main.gd
+msgid "working"
+msgstr "çalışıyor"
+
+#: res://scripts/ui/main.gd
+msgid "need help"
+msgstr "yardım bekliyor"
+
+#: res://scripts/ui/main.gd
+msgid "earning"
+msgstr "kazanç"
+
+#: res://scripts/ui/main.gd
+msgid "Yard"
+msgstr "Saha"
+
+#: res://scripts/ui/main.gd
+msgid "%d / %d tiles"
+msgstr "%d / %d karo"
+
+#: res://scripts/ui/main.gd
+msgid "The yard covers all the ground there is."
+msgstr "Saha bütün zemini kaplıyor."
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d: level %d, and the yard grows to %d x %d."
+msgstr "Katman %d: seviye %d, saha %d x %d olur."
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d: the yard grows to %d x %d."
+msgstr "Katman %d: saha %d x %d olur."
+
+#: res://scripts/ui/main.gd
+msgid "Show me"
+msgstr "Göster"
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d. Richer rock, stranger rules."
+msgstr "Katman %d. Daha zengin kaya, daha tuhaf kurallar."
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d: %s. The arrows on the tray show what changes."
+msgstr "Katman %d: %s. Tepsideki oklar neyin değiştiğini gösterir."
+
+#: res://scripts/ui/main.gd
+msgid " and "
+msgstr " ve "
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d: %s. The card at the top left says what changes."
+msgstr "Katman %d: %s. Sol üstteki kart neyin değiştiğini söyler."
+
+#: res://scripts/ui/main.gd
+msgid "Your yard reaches it at stratum %d."
+msgstr "Sahan buraya %d. katmanda ulaşır."
+
+#: res://scripts/ui/main.gd
+msgid "Starved: it is not being fed. Look UPSTREAM."
+msgstr "Aç: ona bir şey gelmiyor. ÖNCESİNE bak."
+
+#: res://scripts/ui/main.gd
+msgid "Backed up: nothing takes its output. Look DOWNSTREAM."
+msgstr "Tıkalı: ürününü alan yok. SONRASINA bak."
+
+#: res://scripts/ui/main.gd
+msgid "Idle. Nothing for it to do."
+msgstr "Boşta. Yapacak işi yok."
+
+#: res://scripts/ui/main.gd
+msgid "Working by standing there. It has no cycle of its own."
+msgstr "Orada durarak çalışır. Kendi üretim döngüsü yok."
+
+#: res://scripts/ui/main.gd
+msgid "Running, but too hot: giving up %d%% of its output."
+msgstr "Çalışıyor ama çok sıcak: üretiminin %%%d kadarını kaybediyor."
+
+#: res://scripts/ui/main.gd
+msgid "Running, but too cold: giving up %d%% of its output."
+msgstr "Çalışıyor ama çok soğuk: üretiminin %%%d kadarını kaybediyor."
+
+#: res://scripts/ui/main.gd
+msgid "Running well."
+msgstr "İyi çalışıyor."
+
+#: res://scripts/ui/main.gd
+msgid "Temperature %.1f (wants %.1f) · thermal output %d%%"
+msgstr "Sıcaklık %.1f (istediği %.1f) · ısı verimi %%%d"
+
+#: res://scripts/ui/main.gd
+msgid "Working %d%% of the time · cycle speed when fed %.2f/s"
+msgstr "Zamanın %%%d kadarında çalışıyor · beslenince hız %.2f/sn"
+
+#: res://scripts/ui/main.gd
+msgid "Neighbour boost +%.0f%%"
+msgstr "Komşu desteği +%%%.0f"
+
+#: res://scripts/ui/main.gd
+msgid "MAX"
+msgstr "MAKS"
+
+#: res://scripts/ui/main.gd
+msgid "This one also costs Cores. You get Cores when you collapse the shaft."
+msgstr "Bu, Çekirdek de ister. Çekirdeği kuyuyu çökertince alırsın."
+
+#: res://scripts/ui/main.gd
+msgid "Collapsing the shaft turns everything you have built into Cores, and Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You have reached %d."
+msgstr "Kuyuyu çökertmek, kurduğun her şeyi Çekirdeğe çevirir; Çekirdekler sonraki kuyuda da seninle kalır.\n\n%d. katmanda açılır. Şu an %d. katmana ulaştın."
+
+#: res://scripts/ui/main.gd
+msgid "Collapse the shaft"
+msgstr "Kuyuyu çökert"
+
+#: res://scripts/ui/main.gd
+msgid "The shaft kept running.\n\nAway %s. Counted %s at %d%% of your live rate."
+msgstr "Kuyu çalışmaya devam etti.\n\nUzakta kaldığın süre: %s. Sayılan: %s, canlı hızının %%%d kadarıyla."
+
+#: res://scripts/ui/main.gd
+msgid "Your offline banking is full at %.0f hours. Night Shift in Research raises it."
+msgstr "Çevrimdışı birikim %.0f saatte doldu. Araştırmadaki Gece Vardiyası bunu artırır."
+
+#: res://scripts/ui/main.gd
+msgid "While you were away"
+msgstr "Sen yokken"
+
+#: res://scripts/ui/main.gd
+msgid "Ad: x2"
+msgstr "Reklam: x2"
+
+#: res://scripts/ui/main.gd
+msgid "The Foreman's Licence banks %.0f hours instead of %.0f, permanently, and removes ads."
+msgstr "Ustabaşı Ruhsatı %.0f yerine %.0f saat biriktirir, kalıcı olarak, ve reklamları kaldırır."
+
+#: res://scripts/ui/main.gd res://scripts/ui/shop.gd
+msgid "Supply Office"
+msgstr "Tedarik Ofisi"
+
+#: res://scripts/ui/main.gd
+msgid "Welcome back"
+msgstr "Tekrar hoş geldin"
+
+#: res://scripts/ui/main.gd
+msgid "Settings"
+msgstr "Ayarlar"
+
+#: res://scripts/ui/main.gd
+msgid "Language"
+msgstr "Dil"
+
+#: res://scripts/ui/main.gd
+msgid "Device language: %s"
+msgstr "Cihaz dili: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Every machine, and how the factory works"
+msgstr "Her makine ve fabrikanın nasıl çalıştığı"
+
+#: res://scripts/ui/main.gd
+msgid "Two one-time purchases"
+msgstr "İki tek seferlik satın alma"
+
+#: res://scripts/ui/main.gd
+msgid "Active: %s"
+msgstr "Etkin: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Anonymous statistics"
+msgstr "Anonim istatistikler"
+
+#: res://scripts/ui/main.gd
+msgid "No account, no ad ID, nothing personal"
+msgstr "Hesap yok, reklam kimliği yok, kişisel hiçbir şey yok"
+
+#: res://scripts/ui/main.gd
+msgid "Ad privacy"
+msgstr "Reklam gizliliği"
+
+#: res://scripts/ui/main.gd
+msgid "The ad network's consent form"
+msgstr "Reklam ağının onay formu"
+
+#: res://scripts/ui/main.gd
+msgid "The ad SDK did not offer a privacy form."
+msgstr "Reklam SDK'sı bir gizlilik formu sunmadı."
+
+#: res://scripts/ui/main.gd
+msgid "Device self test"
+msgstr "Cihaz öz testi"
+
+#: res://scripts/ui/main.gd
+msgid "Frame time, screen, save and plugins"
+msgstr "Kare süresi, ekran, kayıt ve eklentiler"
+
+#: res://scripts/ui/main.gd
+msgid "Sounds"
+msgstr "Sesler"
+
+#: res://scripts/ui/main.gd
+msgid "Taps, machines, descents"
+msgstr "Dokunuşlar, makineler, inişler"
+
+#: res://scripts/ui/main.gd
+msgid "Ambience"
+msgstr "Ortam sesi"
+
+#: res://scripts/ui/main.gd
+msgid "The hum of the shaft"
+msgstr "Kuyunun uğultusu"
+
+#: res://scripts/ui/main.gd
+msgid "Machine effects"
+msgstr "Makine efektleri"
+
+#: res://scripts/ui/main.gd
+msgid "Dust, sparks, steam and coins"
+msgstr "Toz, kıvılcım, buhar ve paralar"
+
+#: res://scripts/ui/main.gd
+msgid "Battery saver"
+msgstr "Pil tasarrufu"
+
+#: res://scripts/ui/main.gd
+msgid "30 frames a second instead of 60"
+msgstr "Saniyede 60 yerine 30 kare"
+
+#: res://scripts/ui/main.gd
+msgid "Vibration"
+msgstr "Titreşim"
+
+#: res://scripts/ui/main.gd
+msgid "A small buzz when you build"
+msgstr "Kurarken küçük bir titreşim"
+
+#: res://scripts/ui/main.gd
+msgid "Zoom key"
+msgstr "Yakınlaştırma tuşu"
+
+#: res://scripts/ui/main.gd
+msgid "A zoom key, for playing without pinching"
+msgstr "İki parmakla sıkıştırmadan oynamak için yakınlaştırma tuşu"
+
+#: res://scripts/ui/main.gd
+msgid "Reduce motion"
+msgstr "Hareketi azalt"
+
+#: res://scripts/ui/main.gd
+msgid "No swelling, flickering or plunging"
+msgstr "Şişme, titreme ve dalma efektleri yok"
+
+#: res://scripts/ui/main.gd
+msgid "Larger text"
+msgstr "Büyük yazı"
+
+#: res://scripts/ui/main.gd
+msgid "Every word a quarter bigger"
+msgstr "Her kelime dörtte bir daha büyük"
+
+#: res://scripts/ui/main.gd
+msgid "Device language"
+msgstr "Cihaz dili"
+
+#: res://scripts/ui/main.gd
+msgid "Volume"
+msgstr "Ses düzeyi"
+
+#: res://scripts/ui/shop.gd
+msgid "Without it"
+msgstr "Onsuz"
+
+#: res://scripts/ui/shop.gd
+msgid "Now"
+msgstr "Şimdi"
+
+#: res://scripts/ui/shop.gd
+msgid "You bank"
+msgstr "Biriktirdiğin"
+
+#: res://scripts/ui/shop.gd
+msgid "With the Licence"
+msgstr "Ruhsatla"
+
+#: res://scripts/ui/shop.gd
+msgid "%.0f h"
+msgstr "%.0f sa"
+
+#: res://scripts/ui/shop.gd
+msgid "%.1f more hours of production, every time you come back"
+msgstr "Her dönüşünde %.1f saat daha fazla üretim"
+
+#: res://scripts/ui/shop.gd
+msgid "%.1f hours of production more than the free cap, every time"
+msgstr "Her seferinde ücretsiz sınırdan %.1f saat daha fazla üretim"
+
+#: res://scripts/ui/shop.gd
+msgid "(+%s credits at your rate)"
+msgstr "(senin hızınla +%s kredi)"
+
+#: res://scripts/ui/shop.gd
+msgid "locked"
+msgstr "kilitli"
+
+#: res://scripts/ui/shop.gd
+msgid "Two things, bought once. Neither unlocks a machine, a stratum or an upgrade."
+msgstr "Bir kez alınan iki şey. Hiçbiri makine, katman ya da geliştirme açmaz."
+
+#: res://scripts/ui/shop.gd
+msgid "Restore purchases"
+msgstr "Satın almaları geri yükle"
+
+#: res://scripts/ui/shop.gd
+msgid "Already bought something? Restore brings it back on any device signed in to the same account."
+msgstr "Daha önce bir şey mi aldın? Geri yükleme, aynı hesapla giriş yapılmış her cihazda onu geri getirir."
+
+#: res://scripts/ui/shop.gd
+msgid "Owned. Thank you."
+msgstr "Sende var. Teşekkürler."
+
+#: res://scripts/ui/shop.gd
+msgid "Waiting on your payment"
+msgstr "Ödemen bekleniyor"
+
+#: res://scripts/ui/shop.gd
+msgid "Google Play is still processing it. This unlocks by itself the moment it clears: there is nothing to do and nothing to pay again."
+msgstr "Google Play hâlâ işliyor. Ödeme onaylandığı an kendiliğinden açılır: yapacak bir şey ya da yeniden ödenecek bir şey yok."
+
+#: res://scripts/ui/shop.gd
+msgid "Buy"
+msgstr "Satın al"
+
+#: res://scripts/ui/shop.gd
+msgid "Checking the price with Google Play…"
+msgstr "Fiyat Google Play'den soruluyor…"
+
+#: res://scripts/ui/shop.gd
+msgid "Purchases only work in the Play Store build."
+msgstr "Satın alma yalnızca Play Store sürümünde çalışır."
+
+#: res://scripts/ui/shop.gd
+msgid "Can't reach Google Play right now. The game works exactly the same without it."
+msgstr "Şu an Google Play'e ulaşılamıyor. Oyun onsuz da aynen çalışır."
+
+#: res://scripts/ui/shop.gd
+msgid "Google Play hasn't confirmed this product yet. Nothing is wrong with your game."
+msgstr "Google Play bu ürünü henüz onaylamadı. Oyununda bir sorun yok."
+
+#: res://scripts/ui/shop.gd
+msgid "Not available on this device."
+msgstr "Bu cihazda yok."
+
+#: res://scripts/ui/shop.gd
+msgid "Tap a palette to wear it. The board changes underneath."
+msgstr "Bir paleti giymek için ona dokun. Arkadaki tahta hemen değişir."
+
+#: res://scripts/core/machine_db.gd
+msgid "Drill"
+msgstr "Matkap"
+
+#: res://scripts/core/machine_db.gd
+msgid "Digs ore out of the rock."
+msgstr "Kayadan cevher kazar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Pulls raw ore out of the stratum. Needs no input, so it is the only thing that works alone -- and the only thing that is boring alone."
+msgstr "Katmandan ham cevher çıkarır. Girdiye ihtiyacı yoktur; tek başına çalışan tek makinedir, ama tek başına en sıkıcı olanı da odur."
+
+#: res://scripts/core/machine_db.gd
+msgid "Crusher"
+msgstr "Kırıcı"
+
+#: res://scripts/core/machine_db.gd
+msgid "Crushes ore into gravel."
+msgstr "Cevheri kırıp çakıl yapar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Two ore into one gravel. Runs a little better warm, which is the first hint that heat is a tool and not only a tax."
+msgstr "İki cevherden bir çakıl. Biraz sıcakta daha iyi çalışır: ısının yalnızca bir bedel değil, bir araç olduğunun ilk ipucu."
+
+#: res://scripts/core/machine_db.gd
+msgid "Vault"
+msgstr "Kasa"
+
+#: res://scripts/core/machine_db.gd
+msgid "Sells anything it is given."
+msgstr "Ona verilen her şeyi satar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Sells whatever its neighbours hand it. Deeper resources are worth disproportionately more, so a Vault fed raw ore is a Vault wasted."
+msgstr "Komşularının verdiği her şeyi satar. İşlenmiş kaynaklar çok daha değerlidir; ham cevherle beslenen bir Kasa boşa harcanmış bir Kasadır."
+
+#: res://scripts/core/machine_db.gd
+msgid "Smelter"
+msgstr "Ergitici"
+
+#: res://scripts/core/machine_db.gd
+msgid "Melts gravel into ingots."
+msgstr "Çakılı eritip külçe yapar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Wants to be hot, and says so. Build it a furnace. Then build the furnace a coolant loop."
+msgstr "Sıcak olmak ister ve bunu belli eder. Ona bir ocak kur. Sonra ocağa bir soğutma döngüsü kur."
+
+#: res://scripts/core/machine_db.gd
+msgid "Boiler"
+msgstr "Kazan"
+
+#: res://scripts/core/machine_db.gd
+msgid "Warms the machines around it."
+msgstr "Çevresindeki makineleri ısıtır."
+
+#: res://scripts/core/machine_db.gd
+msgid "Produces nothing. Heats everything around it, and lets material pass through. The first machine that is only worth placing because of what it is next to."
+msgstr "Hiçbir şey üretmez. Çevresindeki her şeyi ısıtır ve malzemenin içinden geçmesine izin verir. Yalnızca yanında ne olduğu için kurmaya değen ilk makine."
+
+#: res://scripts/core/machine_db.gd
+msgid "Coolant Cell"
+msgstr "Soğutma Hücresi"
+
+#: res://scripts/core/machine_db.gd
+msgid "Cools the machines around it."
+msgstr "Çevresindeki makineleri soğutur."
+
+#: res://scripts/core/machine_db.gd
+msgid "Negative heat, and material still passes through it. Costs you a tile of production but never a connection."
+msgstr "Eksi ısı verir ve malzeme yine içinden geçer. Sana bir üretim karosuna mal olur, ama asla bir bağlantıya değil."
+
+#: res://scripts/core/machine_db.gd
+msgid "Press"
+msgstr "Pres"
+
+#: res://scripts/core/machine_db.gd
+msgid "Presses ingots into plates."
+msgstr "Külçeleri preste levha yapar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Squeezes ingots flat. Runs hot doing it and cannot take much in return, which is the whole problem with building deep."
+msgstr "Külçeleri ezip düzleştirir. Bunu yaparken ısınır ama kendisi fazla ısı kaldıramaz; derine kurmanın bütün derdi budur."
+
+#: res://scripts/core/machine_db.gd
+msgid "Assembler"
+msgstr "Montajcı"
+
+#: res://scripts/core/machine_db.gd
+msgid "Builds plates into parts."
+msgstr "Levhalardan parça yapar."
+
+#: res://scripts/core/machine_db.gd
+msgid "The end of the chain, and the hottest thing on the board. A component is worth more than everything that went into it -- if you can keep this cool enough to make one."
+msgstr "Zincirin sonu ve tahtadaki en sıcak makine. Bir parça, içine giren her şeyden daha değerlidir; tabii bunu bir tane yapacak kadar serin tutabilirsen."
+
+#: res://scripts/core/machine_db.gd
+msgid "Amplifier"
+msgstr "Güçlendirici"
+
+#: res://scripts/core/machine_db.gd
+msgid "Speeds up the machines around it."
+msgstr "Çevresindeki makineleri hızlandırır."
+
+#: res://scripts/core/machine_db.gd
+msgid "Every working neighbour runs 35% faster, and the more of them it touches the harder it pushes. Ore passes straight through it."
+msgstr "Çalışan her komşusu %35 daha hızlı çalışır; ne kadar çok komşuya dokunursa o kadar güçlü iter. Cevher içinden doğrudan geçer."
+
+#: res://scripts/core/machine_db.gd
+msgid "Lab"
+msgstr "Laboratuvar"
+
+#: res://scripts/core/machine_db.gd
+msgid "Turns parts into research."
+msgstr "Parçaları araştırmaya çevirir."
+
+#: res://scripts/core/machine_db.gd
+msgid "Turns components into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future."
+msgstr "Parçaları kredi yerine Araştırmaya çevirir. Araştırmayla alınanlar çöküşten sonra da kalır; Laboratuvarı olmayan bir tahtanın geleceği yoktur."
+
+#: res://scripts/core/machine_db.gd
+msgid "Duplicator"
+msgstr "Çoğaltıcı"
+
+#: res://scripts/core/machine_db.gd
+msgid "Sometimes doubles what its neighbours make."
+msgstr "Bazen komşularının ürettiğini ikiye katlar."
+
+#: res://scripts/core/machine_db.gd
+msgid "A chance that a neighbour's output comes out twice, larger the more neighbours it serves. Material passes straight through it."
+msgstr "Bir komşunun ürününün iki kez çıkma şansı; ne kadar çok komşuya hizmet ederse şans o kadar büyür. Malzeme içinden doğrudan geçer."
+
+#: res://scripts/core/machine_db.gd
+msgid "Condenser"
+msgstr "Yoğuşturucu"
+
+#: res://scripts/core/machine_db.gd
+msgid "Cools the machines around it and speeds them up a little."
+msgstr "Çevresindeki makineleri soğutur ve biraz hızlandırır."
+
+#: res://scripts/core/machine_db.gd
+msgid "Cools hard and amplifies weakly, and passes material through. The tile you place when you have run out of room to do both separately."
+msgstr "Güçlü soğutur, zayıf güçlendirir ve malzemeyi geçirir. İkisini ayrı ayrı yapacak yerin kalmadığında koyduğun karo."
+
+#: res://scripts/core/machine_db.gd
+msgid "Ore"
+msgstr "Cevher"
+
+#: res://scripts/core/machine_db.gd
+msgid "Gravel"
+msgstr "Çakıl"
+
+#: res://scripts/core/machine_db.gd
+msgid "Ingot"
+msgstr "Külçe"
+
+#: res://scripts/core/machine_db.gd
+msgid "Plate"
+msgstr "Levha"
+
+#: res://scripts/core/machine_db.gd
+msgid "Component"
+msgstr "Parça"
+
+#: res://scripts/core/machine_db.gd
+msgid "Diggers"
+msgstr "Kazıcılar"
+
+#: res://scripts/core/machine_db.gd
+msgid "They dig ore out of the rock."
+msgstr "Kayadan cevher kazarlar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Makers"
+msgstr "Üreticiler"
+
+#: res://scripts/core/machine_db.gd
+msgid "They turn one thing into a better thing."
+msgstr "Bir şeyi daha iyi bir şeye dönüştürürler."
+
+#: res://scripts/core/machine_db.gd
+msgid "Sellers"
+msgstr "Satıcılar"
+
+#: res://scripts/core/machine_db.gd
+msgid "They sell what they are given."
+msgstr "Onlara verileni satarlar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Heaters"
+msgstr "Isıtıcılar"
+
+#: res://scripts/core/machine_db.gd
+msgid "They warm the machines around them."
+msgstr "Çevrelerindeki makineleri ısıtırlar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Coolers"
+msgstr "Soğutucular"
+
+#: res://scripts/core/machine_db.gd
+msgid "They cool the machines around them."
+msgstr "Çevrelerindeki makineleri soğuturlar."
+
+#: res://scripts/core/machine_db.gd
+msgid "Boosters"
+msgstr "Destekçiler"
+
+#: res://scripts/core/machine_db.gd
+msgid "They help the machines around them."
+msgstr "Çevrelerindeki makinelere yardım ederler."
+
+#: res://scripts/core/machine_db.gd
+msgid "It turns parts into research."
+msgstr "Parçaları araştırmaya çevirir."
+
+#: res://scripts/core/economy.gd
+msgid "Tighter Tolerances"
+msgstr "Hassas Ayar"
+
+#: res://scripts/core/economy.gd
+msgid "Every machine works faster."
+msgstr "Her makine daha hızlı çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "All machines run 15% faster."
+msgstr "Bütün makineler %15 daha hızlı çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "Deeper Bore"
+msgstr "Derin Delme"
+
+#: res://scripts/core/economy.gd
+msgid "Diggers and Makers turn out more."
+msgstr "Kazıcılar ve Üreticiler daha çok çıkarır."
+
+#: res://scripts/core/economy.gd
+msgid "Every Digger and Maker turns out 20% more of what it makes. Labs and Vaults are not changed."
+msgstr "Her Kazıcı ve Üretici, ürettiğinden %20 daha fazla çıkarır. Laboratuvarlar ve Kasalar değişmez."
+
+#: res://scripts/core/economy.gd
+msgid "Refinery Contracts"
+msgstr "Rafineri Anlaşmaları"
+
+#: res://scripts/core/economy.gd
+msgid "Everything sells for more."
+msgstr "Her şey daha pahalıya satılır."
+
+#: res://scripts/core/economy.gd
+msgid "Everything sells for 18% more."
+msgstr "Her şey %18 daha pahalıya satılır."
+
+#: res://scripts/core/economy.gd
+msgid "Field Notes"
+msgstr "Saha Notları"
+
+#: res://scripts/core/economy.gd
+msgid "Labs make more research."
+msgstr "Laboratuvarlar daha çok araştırma üretir."
+
+#: res://scripts/core/economy.gd
+msgid "Labs produce 25% more research."
+msgstr "Laboratuvarlar %25 daha fazla araştırma üretir."
+
+#: res://scripts/core/economy.gd
+msgid "Ceramic Lining"
+msgstr "Seramik Kaplama"
+
+#: res://scripts/core/economy.gd
+msgid "Machines can take more heat."
+msgstr "Makineler daha çok ısıya dayanır."
+
+#: res://scripts/core/economy.gd
+msgid "Every machine tolerates 0.6 more heat before it chokes."
+msgstr "Her makine tıkanmadan önce 0,6 daha fazla ısıya dayanır."
+
+#: res://scripts/core/economy.gd
+msgid "Night Shift"
+msgstr "Gece Vardiyası"
+
+#: res://scripts/core/economy.gd
+msgid "The shaft works longer while you are away."
+msgstr "Sen yokken kuyu daha uzun çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "Offline production banks 2 more hours."
+msgstr "Çevrimdışı üretim 2 saat daha birikir."
+
+#: res://scripts/core/economy.gd
+msgid "Standing Orders"
+msgstr "Sürekli Siparişler"
+
+#: res://scripts/core/economy.gd
+msgid "The shaft works harder while you are away."
+msgstr "Sen yokken kuyu daha sıkı çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "Offline production runs at 12% more of your live rate."
+msgstr "Çevrimdışı üretim, canlı hızının %12 daha fazlasıyla çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "Seismic Survey"
+msgstr "Sismik Tarama"
+
+#: res://scripts/core/economy.gd
+msgid "A collapse gives more Cores."
+msgstr "Çöküş daha çok Çekirdek verir."
+
+#: res://scripts/core/economy.gd
+msgid "A collapse yields 25% more Cores. Compounds with every run."
+msgstr "Çöküş %25 daha fazla Çekirdek verir. Her turda üst üste biner."
+
+#: res://scripts/core/economy.gd
+msgid "Drafting Table"
+msgstr "Çizim Masası"
+
+#: res://scripts/core/economy.gd
+msgid "One more saved layout."
+msgstr "Kayıtlı bir yerleşim daha."
+
+#: res://scripts/core/economy.gd
+msgid "One more blueprint slot for saved layouts."
+msgstr "Kayıtlı yerleşimler için bir plan yuvası daha."
+
+#: res://scripts/core/strata.gd
+msgid "Thermal Vent"
+msgstr "Sıcak Baca"
+
+#: res://scripts/core/strata.gd
+msgid "Ambient heat +2. Your smelters will love it. Your presses will not."
+msgstr "Ortam ısısı +2. Ergiticilerin bayılacak. Preslerin hiç sevmeyecek."
+
+#: res://scripts/core/strata.gd
+msgid "Coolant Seep"
+msgstr "Soğuk Sızıntı"
+
+#: res://scripts/core/strata.gd
+msgid "Ambient heat -1.5. Hot machines need their own boilers down here."
+msgstr "Ortam ısısı -1,5. Burada sıcak seven makinelere kendi kazanları gerekir."
+
+#: res://scripts/core/strata.gd
+msgid "Brittle Rock"
+msgstr "Kırılgan Kaya"
+
+#: res://scripts/core/strata.gd
+msgid "Drills run 35% faster, but everything downstream runs 15% slower."
+msgstr "Matkaplar %35 daha hızlı çalışır ama sonraki bütün makineler %15 yavaşlar."
+
+#: res://scripts/core/strata.gd
+msgid "Dense Seam"
+msgstr "Yoğun Damar"
+
+#: res://scripts/core/strata.gd
+msgid "Everything you sell is worth 45% more. Worth building a bigger line for."
+msgstr "Sattığın her şey %45 daha değerli. Daha büyük bir hat kurmaya değer."
+
+#: res://scripts/core/strata.gd
+msgid "Unstable"
+msgstr "Dengesiz"
+
+#: res://scripts/core/strata.gd
+msgid "Buffers hold 2 fewer items. Long chains choke; short ones are fine."
+msgstr "Ara depolar 2 eşya daha az tutar. Uzun zincirler tıkanır; kısalar iyidir."
+
+#: res://scripts/core/strata.gd
+msgid "Conductive Strata"
+msgstr "İletken Katmanlar"
+
+#: res://scripts/core/strata.gd
+msgid "Heat spreads further. Every heat decision you make is louder."
+msgstr "Isı daha uzağa yayılır. Isıyla ilgili her kararın daha çok ses getirir."
+
+#: res://scripts/core/strata.gd
+msgid "Insulating Clay"
+msgstr "Yalıtkan Kil"
+
+#: res://scripts/core/strata.gd
+msgid "Heat barely spreads. Boilers only help the tile they touch."
+msgstr "Isı neredeyse yayılmaz. Kazanlar yalnızca dokundukları karoya yardım eder."
+
+#: res://scripts/core/strata.gd
+msgid "Rich Vein"
+msgstr "Zengin Damar"
+
+#: res://scripts/core/strata.gd
+msgid "Drills yield double. The bottleneck moves to whatever you built next."
+msgstr "Matkaplar iki kat verir. Darboğaz, sonra kurduğun makineye kayar."
+
+#: res://scripts/core/strata.gd
+msgid "Fossil Record"
+msgstr "Fosil Kaydı"
+
+#: res://scripts/core/strata.gd
+msgid "Labs produce 80% more research. A depth worth stopping at."
+msgstr "Laboratuvarlar %80 daha fazla araştırma üretir. Durmaya değer bir derinlik."
+
+#: res://scripts/core/strata.gd
+msgid "Cramped"
+msgstr "Dar Alan"
+
+#: res://scripts/core/strata.gd
+msgid "The outer ring of the shaft is collapsed and cannot be built on."
+msgstr "Kuyunun dış halkası çökmüş; üstüne kurulamaz."
+
+#: res://scripts/core/strata.gd
+msgid "Resonant"
+msgstr "Rezonans"
+
+#: res://scripts/core/strata.gd
+msgid "Amplifiers are twice as strong. Suddenly they are worth the heat."
+msgstr "Güçlendiriciler iki kat güçlüdür. Birden ısılarına değer hale gelirler."
+
+#: res://scripts/core/strata.gd
+msgid "Barren"
+msgstr "Çorak"
+
+#: res://scripts/core/strata.gd
+msgid "Half the ore, but the quota to move on is halved too. A breather."
+msgstr "Cevher yarıya iner ama geçmek için kota da yarıya iner. Bir nefes molası."
+
+#: res://scripts/sim/tutorial.gd
+msgid "Tap a lit tile by the Core to build a DRILL."
+msgstr "Çekirdeğin yanındaki ışıklı bir karoya dokun, bir MATKAP kur."
+
+#: res://scripts/sim/tutorial.gd
+msgid "Now a VAULT touching it. Machines only reach what they touch."
+msgstr "Şimdi ona değen bir KASA. Makineler yalnızca dokundukları yere ulaşır."
+
+#: res://scripts/sim/tutorial.gd
+msgid "That is ore being sold. Watch the number."
+msgstr "Bu, satılan cevher. Sayıyı izle."
+
+#: res://scripts/sim/tutorial.gd
+msgid "Tap the Vault, then drag it one tile away. Moving is free."
+msgstr "Kasaya dokun, sonra bir karo öteye sürükle. Taşımak bedava."
+
+#: res://scripts/sim/tutorial.gd
+msgid "Put a CRUSHER in the gap. Gravel sells for more than ore."
+msgstr "Aradaki boşluğa bir KIRICI koy. Çakıl cevherden pahalıya satılır."
+
+#: res://scripts/sim/tutorial.gd
+msgid "Tap HEAT. Every machine has a temperature it wants."
+msgstr "ISI tuşuna dokun. Her makinenin istediği bir sıcaklık var."
+
+#: res://scripts/sim/tutorial.gd
+msgid "Build more until the bar at the top left is full."
+msgstr "Sol üstteki çubuk dolana kadar daha çok kur."
+
+#: res://scripts/sim/tutorial.gd
+msgid "DESCEND. Deeper rock is richer, hotter and stranger."
+msgstr "İNİŞ'e dokun. Derindeki kaya daha zengin, daha sıcak ve daha tuhaftır."
+
+#: res://scripts/sim/tutorial.gd
+msgid "Tap the FACTORY CORE to bring it online."
+msgstr "Çalıştırmak için FABRİKA ÇEKİRDEĞİ'ne dokun."
+
+#: res://scripts/sim/tutorial.gd
+msgid "You have Research. Spend it: what it buys stays, even after a collapse."
+msgstr "Araştırman var. Harca: aldıkların çöküşten sonra bile kalır."
+
+#: res://scripts/core/resource_nodes.gd
+msgid "ORE VEIN"
+msgstr "CEVHER DAMARI"
+
+#: res://scripts/core/resource_nodes.gd
+msgid "Ore runs through this rock."
+msgstr "Bu kayanın içinden cevher geçiyor."
+
+#: res://scripts/core/resource_nodes.gd
+msgid "Drills dig ore."
+msgstr "Matkaplar cevher kazar."
+
+#: res://scripts/core/resource_nodes.gd
+msgid "CRYSTAL VEIN"
+msgstr "KRİSTAL DAMARI"
+
+#: res://scripts/core/resource_nodes.gd
+msgid "Purple crystal grows in the rock."
+msgstr "Kayanın içinde mor kristal büyüyor."
+
+#: res://scripts/core/resource_nodes.gd
+msgid "No machine mines crystal yet."
+msgstr "Henüz kristal kazan bir makine yok."
+
+#: res://scripts/core/resource_nodes.gd
+msgid "BLUE CRYSTAL"
+msgstr "MAVİ KRİSTAL"
+
+#: res://scripts/core/resource_nodes.gd
+msgid "A rare blue crystal, deep in the rock."
+msgstr "Kayanın derinlerinde nadir bir mavi kristal."
+
+#: res://scripts/core/resource_nodes.gd
+msgid "HEAT VENT"
+msgstr "ISI BACASI"
+
+#: res://scripts/core/resource_nodes.gd
+msgid "Hot air rises from deep below."
+msgstr "Derinlerden sıcak hava yükseliyor."
+
+#: res://scripts/core/resource_nodes.gd
+msgid "Nothing uses its heat yet."
+msgstr "Henüz bu ısıyı kullanan bir şey yok."
+
+#: res://scripts/ui/codex.gd
+msgid "Side by side"
+msgstr "Yan yana"
+
+#: res://scripts/ui/codex.gd
+msgid "Machines hand things to the machines they touch."
+msgstr "Makineler, dokundukları makinelere bir şeyler verir."
+
+#: res://scripts/ui/codex.gd
+msgid "Watch the ore cross each gap."
+msgstr "Cevherin her boşluğu geçişini izle."
+
+#: res://scripts/ui/codex.gd
+msgid "There are no belts. A machine hands what it makes to any orthogonal neighbour that wants it, and splits it evenly if several do. While you place one, the green tiles are where it would be fed and could hand its work on."
+msgstr "Bant yok. Bir makine ürettiğini, onu isteyen yan komşusuna verir; birkaç komşu isterse eşit paylaştırır. Makine yerleştirirken yeşil karolar, onun besleneceği ve ürününü verebileceği yerlerdir."
+
+#: res://scripts/ui/codex.gd
+msgid "Every step pays more"
+msgstr "Her adım daha çok kazandırır"
+
+#: res://scripts/ui/codex.gd
+msgid "Crushed ore sells for more than raw ore."
+msgstr "Kırılmış cevher, ham cevherden pahalıya satılır."
+
+#: res://scripts/ui/codex.gd
+msgid "Two identical Drills. The lower line earns more."
+msgstr "İki aynı Matkap. Alttaki hat daha çok kazanıyor."
+
+#: res://scripts/ui/codex.gd
+msgid "Selling raw ore works and is never the best you can do. Each refining step trades throughput for value, and the trade is always worth making if you can keep the machine fed."
+msgstr "Ham cevher satmak işe yarar ama asla en iyisi değildir. Her işleme adımı hızdan verip değer kazandırır; makineyi besleyebildiğin sürece bu takasa hep değer."
+
+#: res://scripts/ui/codex.gd
+msgid "Helpers let things through"
+msgstr "Yardımcılar malzemeyi geçirir"
+
+#: res://scripts/ui/codex.gd
+msgid "Heaters, Coolers and Boosters let things pass through them."
+msgstr "Isıtıcılar, Soğutucular ve Destekçiler malzemenin içlerinden geçmesine izin verir."
+
+#: res://scripts/ui/codex.gd
+msgid "Ore crosses the Amplifier as if it were not there."
+msgstr "Cevher, Güçlendiriciyi yokmuş gibi geçer."
+
+#: res://scripts/ui/codex.gd
+msgid "A Boiler, Coolant Cell, Amplifier, Duplicator or Condenser makes nothing — but material passes straight through it, so it costs you a tile of production and never a connection. Put one inside a working line, not beside it."
+msgstr "Kazan, Soğutma Hücresi, Güçlendirici, Çoğaltıcı ya da Yoğuşturucu hiçbir şey üretmez; ama malzeme içlerinden doğrudan geçer, bu yüzden sana bir üretim karosuna mal olurlar, asla bir bağlantıya değil. Birini çalışan bir hattın yanına değil, içine koy."
+
+#: res://scripts/ui/codex.gd
+msgid "Helpers boost what they touch"
+msgstr "Yardımcılar dokunduklarını güçlendirir"
+
+#: res://scripts/ui/codex.gd
+msgid "The more machines a Booster touches, the more it helps."
+msgstr "Bir Destekçi ne kadar çok makineye dokunursa o kadar çok yardım eder."
+
+#: res://scripts/ui/codex.gd
+msgid "One Amplifier, four neighbours, all of them faster."
+msgstr "Bir Güçlendirici, dört komşu, hepsi daha hızlı."
+
+#: res://scripts/ui/codex.gd
+msgid "The boost grows with how many working machines a support tile touches: one neighbour is face value, four is two and a half times that. Vaults do not count — there is no rate to raise. Move it one tile and the number on the preview changes before you buy."
+msgstr "Destek, bir yardımcı karonun dokunduğu çalışan makine sayısıyla büyür: bir komşu tam değerdir, dört komşu bunun iki buçuk katı. Kasalar sayılmaz; artırılacak bir hızları yoktur. Bir karo kaydır, önizlemedeki sayı daha satın almadan değişir."
+
+#: res://scripts/ui/codex.gd
+msgid "The lights show the problem"
+msgstr "Işıklar sorunu gösterir"
+
+#: res://scripts/ui/codex.gd
+msgid "Green: working. Amber: nowhere to send it. Red: nothing coming in."
+msgstr "Yeşil: çalışıyor. Turuncu: gönderecek yer yok. Kırmızı: hiçbir şey gelmiyor."
+
+#: res://scripts/ui/codex.gd
+msgid "Amber on the left, red on the right."
+msgstr "Solda turuncu, sağda kırmızı."
+
+#: res://scripts/ui/codex.gd
+msgid "Green is working. Amber means its output is backed up — look downstream. Red means it is not being fed — look upstream. The two point in opposite directions, so you can follow the colour to the culprit."
+msgstr "Yeşil çalışıyor demektir. Turuncu, ürününün tıkandığı demektir: sonrasına bak. Kırmızı, beslenmediği demektir: öncesine bak. İkisi ters yönleri gösterir; rengi izleyip suçluyu bulabilirsin."
+
+#: res://scripts/ui/codex.gd
+msgid "Heat can help"
+msgstr "Isı yardım edebilir"
+
+#: res://scripts/ui/codex.gd
+msgid "A Smelter likes heat. Put a Boiler next to it."
+msgstr "Ergitici ısıyı sever. Yanına bir Kazan koy."
+
+#: res://scripts/ui/codex.gd
+msgid "The Smelter is hot, and fast."
+msgstr "Ergitici sıcak ve hızlı."
+
+#: res://scripts/ui/codex.gd
+msgid "A Smelter wants to be hot. A Boiler next to it gets it there. Every machine emits heat into its own tile and half of that into each neighbour."
+msgstr "Ergitici sıcak olmak ister. Yanındaki bir Kazan onu oraya taşır. Her makine kendi karosuna ısı verir, her komşusuna da bunun yarısını."
+
+#: res://scripts/ui/codex.gd
+msgid "Heat can hurt"
+msgstr "Isı zarar verebilir"
+
+#: res://scripts/ui/codex.gd
+msgid "Too much heat slows a Press down."
+msgstr "Fazla ısı bir Presi yavaşlatır."
+
+#: res://scripts/ui/codex.gd
+msgid "The Press is choking on the Smelter's heat."
+msgstr "Pres, Ergiticinin ısısında boğuluyor."
+
+#: res://scripts/ui/codex.gd
+msgid "A Press wants to be cold and sits next to things that are not. That is the puzzle: the same Boiler that pays for one tile costs you the next one."
+msgstr "Pres soğuk olmak ister ama sıcak şeylerin yanında durur. Bulmaca da bu: bir karoya kazandıran aynı Kazan, yanındakini kaybettirir."
+
+#: res://scripts/ui/codex.gd
+msgid "Cooling"
+msgstr "Soğutma"
+
+#: res://scripts/ui/codex.gd
+msgid "A Coolant Cell cools the machines around it."
+msgstr "Soğutma Hücresi çevresindeki makineleri soğutur."
+
+#: res://scripts/ui/codex.gd
+msgid "Same board, one Coolant Cell. The Press recovers."
+msgstr "Aynı tahta, bir Soğutma Hücresi. Pres toparlanıyor."
+
+#: res://scripts/ui/codex.gd
+msgid "A Coolant Cell produces nothing. It buys back the throughput the heat was taking, and it costs you a tile you would rather have filled. That trade is most of the late game."
+msgstr "Soğutma Hücresi hiçbir şey üretmez. Isının aldığı hızı geri kazandırır ve sana doldurmak isteyeceğin bir karoya mal olur. Oyunun sonlarının çoğu bu takastır."
+
+#: res://scripts/ui/codex.gd
+msgid "The long chain"
+msgstr "Uzun zincir"
+
+#: res://scripts/ui/codex.gd
+msgid "Ore, gravel, ingot, plate, part: one step at a time."
+msgstr "Cevher, çakıl, külçe, levha, parça: adım adım."
+
+#: res://scripts/ui/codex.gd
+msgid "One of everything, one tile each."
+msgstr "Her şeyden bir tane, her biri bir karo."
+
+#: res://scripts/ui/codex.gd
+msgid "Each step takes one of the thing below it, so one supplier is enough. A full chain earns about what the same tiles of Drills and Crushers would — and it is the only thing that makes Components, which are the only thing a Lab will take."
+msgstr "Her adım bir alttakinden bir tane alır, bu yüzden bir tedarikçi yeter. Tam bir zincir, aynı karolardaki Matkap ve Kırıcılar kadar kazanır; ama Parça yapan tek şeydir ve Laboratuvarın aldığı tek şey Parçadır."
+
+#: res://scripts/ui/codex.gd
+msgid "Research buys what lasts"
+msgstr "Araştırma kalıcı olanı alır"
+
+#: res://scripts/ui/codex.gd
+msgid "A Lab turns parts into research. What it buys stays after a collapse."
+msgstr "Laboratuvar parçaları araştırmaya çevirir. Onunla alınanlar çöküşten sonra da kalır."
+
+#: res://scripts/ui/codex.gd
+msgid "The Lab earns no credits at all."
+msgstr "Laboratuvar hiç kredi kazanmaz."
+
+#: res://scripts/ui/codex.gd
+msgid "A Lab turns Components into Research, and Research buys upgrades that outlast the shaft. A board with no Lab is a board with no future, and a board that is only Labs has no present."
+msgstr "Laboratuvar Parçaları Araştırmaya çevirir; Araştırma da kuyudan uzun ömürlü geliştirmeler alır. Laboratuvarı olmayan tahtanın geleceği, yalnızca Laboratuvarlardan oluşan tahtanın bugünü yoktur."
+
+#: res://scripts/ui/codex.gd
+msgid "Faster together"
+msgstr "Birlikte daha hızlı"
+
+#: res://scripts/ui/codex.gd
+msgid "An Amplifier makes the machines it touches faster."
+msgstr "Güçlendirici dokunduğu makineleri hızlandırır."
+
+#: res://scripts/ui/codex.gd
+msgid "Both Crushers run faster than they should."
+msgstr "İki Kırıcı da normalden hızlı çalışıyor."
+
+#: res://scripts/ui/codex.gd
+msgid "An Amplifier produces nothing and speeds up every producing neighbour. It is the clearest case of the rule the whole board runs on: what a tile is worth depends on what is beside it."
+msgstr "Güçlendirici hiçbir şey üretmez ve üreten her komşusunu hızlandırır. Bütün tahtanın dayandığı kuralın en açık örneğidir: bir karonun değeri yanında ne olduğuna bağlıdır."
+
+#: res://scripts/ui/codex.gd
+msgid "Deeper is different"
+msgstr "Derin farklıdır"
+
+#: res://scripts/ui/codex.gd
+msgid "Deeper rock pays more and runs hotter."
+msgstr "Derindeki kaya daha çok kazandırır ve daha sıcaktır."
+
+#: res://scripts/ui/codex.gd
+msgid "The same three tiles, nine strata down."
+msgstr "Aynı üç karo, dokuz katman aşağıda."
+
+#: res://scripts/ui/codex.gd
+msgid "Depth multiplies what every machine yields and raises the ambient heat of the whole board. Some strata stop heat spreading, some collapse a third of the grid, some double what Amplifiers do. The board that was right up there is rarely right down here. Hold Descend to see the next one first; arrows on the tray show what it does."
+msgstr "Derinlik her makinenin verimini artırır ve bütün tahtanın ortam ısısını yükseltir. Bazı katmanlar ısının yayılmasını durdurur, bazıları ızgaranın bir kısmını çökertir, bazıları Güçlendiricileri ikiye katlar. Yukarıda doğru olan tahta aşağıda nadiren doğrudur. Sonrakini önce görmek için İNİŞ tuşunu basılı tut; tepsideki oklar ne yaptığını gösterir."
+
+#: res://scripts/ui/main.gd
+msgid "The Surface"
+msgstr "Yüzey"
+
+#: res://scripts/ui/main.gd
+msgid "The Workings"
+msgstr "Galeriler"
+
+#: res://scripts/ui/main.gd
+msgid "The Deep"
+msgstr "Derinlik"
+
+#: res://scripts/ui/main.gd
+msgid "The Abyss"
+msgstr "Uçurum"
+
+#: res://scripts/ui/main.gd
+msgid "Game"
+msgstr "Oyun"
+
+#: res://scripts/ui/main.gd
+msgid "Audio"
+msgstr "Ses"
+
+#: res://scripts/ui/main.gd
+msgid "Graphics"
+msgstr "Görüntü"
+
+#: res://scripts/ui/main.gd
+msgid "Controls"
+msgstr "Kontroller"
+
+#: res://scripts/ui/main.gd
+msgid "Accessibility"
+msgstr "Erişilebilirlik"
+
+#: res://scripts/core/monetization_db.gd
+msgid "Foreman's Licence"
+msgstr "Ustabaşı Ruhsatı"
+
+#: res://scripts/core/monetization_db.gd
+msgid "Keep the night shift running."
+msgstr "Gece vardiyası çalışmaya devam etsin."
+
+#: res://scripts/core/monetization_db.gd
+msgid "No extra credits, no faster machines, nothing locked behind it."
+msgstr "Ekstra kredi yok, daha hızlı makine yok, arkasında kilitli hiçbir şey yok."
+
+#: res://scripts/core/monetization_db.gd
+msgid "Bank 8 hours offline instead of 4"
+msgstr "Çevrimdışıyken 4 yerine 8 saat biriktir"
+
+#: res://scripts/core/monetization_db.gd
+msgid "No ads, ever"
+msgstr "Hiç reklam yok"
+
+#: res://scripts/core/monetization_db.gd
+msgid "Foundry Colours"
+msgstr "Döküm Renkleri"
+
+#: res://scripts/core/monetization_db.gd
+msgid "Six ways for the shaft to look."
+msgstr "Kuyu için altı görünüm."
+
+#: res://scripts/core/monetization_db.gd
+msgid "Appearance only. The board earns the same in every palette."
+msgstr "Yalnızca görünüm. Tahta her palette aynı kazanır."
+
+#: res://scripts/core/monetization_db.gd
+msgid "Six palettes for machines, ore and rock"
+msgstr "Makineler, cevher ve kaya için altı palet"
+
+#: res://scripts/core/monetization_db.gd
+msgid "Switch whenever you like"
+msgstr "İstediğin zaman değiştir"
+
+#: res://scripts/core/monetization_db.gd
+msgid "Status lights keep their meaning"
+msgstr "Durum ışıkları anlamlarını korur"
+
+#: res://scripts/ui/themes.gd
+msgid "Shaft"
+msgstr "Kuyu"
+
+#: res://scripts/ui/themes.gd
+msgid "Cold rock, and heat the only warm thing in it."
+msgstr "Soğuk kaya; içindeki tek sıcak şey ısı."
+
+#: res://scripts/ui/themes.gd
+msgid "Brass Works"
+msgstr "Pirinç Atölye"
+
+#: res://scripts/ui/themes.gd
+msgid "Copper, lacquer and a shaft that never cooled."
+msgstr "Bakır, cila ve hiç soğumamış bir kuyu."
+
+#: res://scripts/ui/themes.gd
+msgid "Deep Frost"
+msgstr "Derin Ayaz"
+
+#: res://scripts/ui/themes.gd
+msgid "A plant built into ice that refuses to melt."
+msgstr "Erimeyi reddeden buzun içine kurulmuş bir fabrika."
+
+#: res://scripts/ui/themes.gd
+msgid "Verdant Seam"
+msgstr "Yeşil Damar"
+
+#: res://scripts/ui/themes.gd
+msgid "Something grew down here before you did."
+msgstr "Burada senden önce bir şeyler büyümüş."
+
+#: res://scripts/ui/themes.gd
+msgid "Ember Cut"
+msgstr "Kor Yarığı"
+
+#: res://scripts/ui/themes.gd
+msgid "Close enough to the magma to be a bad idea."
+msgstr "Kötü bir fikir olacak kadar magmaya yakın."
+
+#: res://scripts/ui/themes.gd
+msgid "Slate"
+msgstr "Arduvaz"
+
+#: res://scripts/ui/themes.gd
+msgid "Grey plant, coloured cargo. Shape does the work."
+msgstr "Gri fabrika, renkli yük. İşi şekil görür."
+

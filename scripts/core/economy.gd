@@ -278,9 +278,9 @@ static func fmt(n: float) -> String:
 static func fmt_duration(seconds: float) -> String:
 	var s: int = int(maxf(seconds, 0.0))
 	if s < 60:
-		return "%ds" % s
+		return Loc.t("%ds") % s
 	if s < 3600:
-		return "%dm %ds" % [s / 60, s % 60]
+		return Loc.t("%dm %ds") % [s / 60, s % 60]
 	var h: int = s / 3600
 	var m: int = (s % 3600) / 60
-	return "%dh %dm" % [h, m]
+	return Loc.t("%dh %dm") % [h, m]

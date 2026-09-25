@@ -209,6 +209,20 @@ class Glyph extends Control:
 					_p(0.72, 0.32)]), red, w, true)
 				for x in [0.42, 0.5, 0.58]:
 					draw_line(_p(x, 0.42), _p(x, 0.74), red, w * 0.8)
+			"globe":
+				# A globe: a circle, its equator and two meridians. Languages.
+				draw_arc(_p(0.5, 0.5), s * 0.36, 0.0, TAU, 32, col, w, true)
+				draw_line(_p(0.14, 0.5), _p(0.86, 0.5), acc, w)
+				draw_arc(_p(0.5, 0.5), s * 0.36, -PI * 0.5, PI * 0.5, 16, acc, w, true)
+				var mer := PackedVector2Array()
+				for i in range(17):
+					var a: float = -PI * 0.5 + PI * float(i) / 16.0
+					mer.append(_p(0.5, 0.5) + Vector2(cos(a) * s * 0.16, sin(a) * s * 0.36))
+				draw_polyline(mer, acc, w, true)
+				var mer2 := PackedVector2Array()
+				for p in mer:
+					mer2.append(Vector2(2.0 * _p(0.5, 0.5).x - p.x, p.y))
+				draw_polyline(mer2, acc, w, true)
 			"text":
 				# A big letter and a small one: the size of the words.
 				var f: Font = get_theme_default_font()

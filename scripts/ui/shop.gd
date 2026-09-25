@@ -51,9 +51,9 @@ class OfflineBars extends Control:
 			return
 		var span: float = maxf(then_hours, 1.0)
 		var rows := [
-			{"label": "Without it" if owned else "Now", "h": now_hours,
+			{"label": Loc.t("Without it") if owned else Loc.t("Now"), "h": now_hours,
 				"col": Palette.TEXT_DIM, "fill": Palette.PANEL_HI},
-			{"label": "You bank" if owned else "With the Licence",
+			{"label": Loc.t("You bank") if owned else Loc.t("With the Licence"),
 				"h": then_hours, "col": Palette.CORE, "fill": Palette.CORE},
 		]
 		var bar_h: float = 26.0
@@ -63,22 +63,22 @@ class OfflineBars extends Control:
 			draw_rect(Rect2(12.0, y, size.x - 24.0, bar_h),
 				Palette.BG.lerp(Palette.LINE, 0.5), true)
 			draw_rect(Rect2(12.0, y, maxf(w, 3.0), bar_h), r["fill"], true)
-			var txt: String = "%s  %.0f h" % [String(r["label"]), float(r["h"])]
+			var txt: String = "%s  %s" % [String(r["label"]), Loc.t("%.0f h") % float(r["h"])]
 			draw_string(font, Vector2(20.0, y + bar_h - 8.0), txt,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, Palette.text_px(16),
 				Palette.BG if float(r["h"]) / span > 0.45 else Palette.TEXT)
 			y += bar_h + 10.0
 		# The honest translation: hours banked are not hours played.
 		var gained: float = maxf(then_hours - now_hours, 0.0) * 3600.0 * rate
-		var line: String = "%.1f more hours of production, every time you come back" \
+		var line: String = Loc.t("%.1f more hours of production, every time you come back") \
 			% (maxf(then_hours - now_hours, 0.0) * rate)
 		if owned:
-			line = "%.1f hours of production more than the free cap, every time" \
+			line = Loc.t("%.1f hours of production more than the free cap, every time") \
 				% (maxf(then_hours - now_hours, 0.0) * rate)
 		if credits_per_sec > 0.0:
-			line += "  (+%s credits at your rate)" % Economy.fmt(gained * credits_per_sec)
+			line += "  " + Loc.t("(+%s credits at your rate)") % Economy.fmt(gained * credits_per_sec)
 		draw_string(font, Vector2(12.0, y + 14.0), line,
-			HORIZONTAL_ALIGNMENT_LEFT, size.x - 24.0, 14, Palette.TEXT_FAINT)
+			HORIZONTAL_ALIGNMENT_LEFT, size.x - 24.0, Palette.text_px(16), Palette.TEXT_FAINT)
 
 
 ## A strip of real machine tiles in one theme's colours. This is the product.
@@ -130,9 +130,9 @@ class ThemeStrip extends Control:
 
 		var label: String = Themes.name_of(theme_id)
 		if locked:
-			label += "   locked"
+			label += "   " + Loc.t("locked")
 		draw_string(font, Vector2(10.0, size.y - 10.0), label,
-			HORIZONTAL_ALIGNMENT_LEFT, size.x - 20.0, 15,
+			HORIZONTAL_ALIGNMENT_LEFT, size.x - 20.0, Palette.text_px(16),
 			Palette.TEXT if not locked else Palette.TEXT_FAINT)
 		if selected:
 			draw_rect(Rect2(size.x - 20.0, 12.0, 10.0, 10.0), Palette.ACCENT, true)
@@ -182,7 +182,7 @@ func _build() -> void:
 	margin.add_child(col)
 
 	var head := HBoxContainer.new()
-	var title := _label("Supply Office", 30, Palette.TEXT)
+	var title := _label(Loc.t("Supply Office"), 30, Palette.TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(title)
@@ -210,7 +210,7 @@ func _build() -> void:
 	sh_badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	intro.add_child(sh_badge)
 	var intro_lbl: Label = _wrap(
-		"Two things, bought once. Neither unlocks a machine, a stratum or an upgrade.",
+		Loc.t("Two things, bought once. Neither unlocks a machine, a stratum or an upgrade."),
 		15, Palette.TEXT_FAINT)
 	intro_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	intro.add_child(intro_lbl)
@@ -239,9 +239,9 @@ func _build() -> void:
 		_list.add_child(_theme_picker())
 
 	var restore := Button.new()
-	restore.text = "Restore purchases"
+	restore.text = Loc.t("Restore purchases")
 	restore.custom_minimum_size = Vector2(0, 80)
-	restore.add_theme_font_size_override("font_size", 17)
+	restore.add_theme_font_size_override("font_size", Palette.text_px(17))
 	restore.add_theme_color_override("font_color", Palette.TEXT_DIM)
 	restore.flat = true
 	restore.pressed.connect(func():
@@ -249,7 +249,7 @@ func _build() -> void:
 		Store.restore())
 	_list.add_child(restore)
 	_list.add_child(_label(
-		"Already bought something? Restore brings it back on any device signed in to the same account.",
+		Loc.t("Already bought something? Restore brings it back on any device signed in to the same account."),
 		14, Palette.TEXT_FAINT))
 
 
@@ -282,7 +282,7 @@ func _card(key: String) -> Control:
 
 	var foot: String = MonetizationDB.footnote_of(key)
 	if foot != "":
-		v.add_child(_wrap(foot, 14, Palette.TEXT_FAINT))
+		v.add_child(_wrap(foot, 16, Palette.TEXT_FAINT))
 
 	v.add_child(_state_row(key))
 	return panel
@@ -328,23 +328,23 @@ func _state_row(key: String) -> Control:
 	v.add_theme_constant_override("separation", 6)
 
 	if Store.owns(key):
-		v.add_child(_label("Owned. Thank you.", 18, Palette.GOOD))
+		v.add_child(_label(Loc.t("Owned. Thank you."), 18, Palette.GOOD))
 		return v
 
 	if Store.is_pending(key):
 		# Play's delayed instruments -- a voucher, a bank transfer -- land
 		# here. Nothing is granted and nothing is charged twice.
-		v.add_child(_label("Waiting on your payment", 18, Palette.WARN))
+		v.add_child(_label(Loc.t("Waiting on your payment"), 18, Palette.WARN))
 		v.add_child(_wrap(
-			"Google Play is still processing it. This unlocks by itself the moment it clears — there is nothing to do and nothing to pay again.",
+			Loc.t("Google Play is still processing it. This unlocks by itself the moment it clears: there is nothing to do and nothing to pay again."),
 			14, Palette.TEXT_FAINT))
 		return v
 
 	var price: String = Store.price_text(key)
 	var buy := Button.new()
-	buy.text = "Buy" if price == "" else price
+	buy.text = Loc.t("Buy") if price == "" else price
 	buy.custom_minimum_size = Vector2(0, 96)
-	buy.add_theme_font_size_override("font_size", 26)
+	buy.add_theme_font_size_override("font_size", Palette.text_px(26))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Palette.CORE
 	style.set_corner_radius_all(int(Palette.RADIUS))
@@ -368,13 +368,13 @@ func _state_row(key: String) -> Control:
 	v.add_child(buy)
 
 	if not Store.can_purchase(key):
-		v.add_child(_wrap(_reason(key), 14, Palette.TEXT_FAINT))
+		v.add_child(_wrap(_reason(key), 16, Palette.TEXT_FAINT))
 	elif price == "":
-		v.add_child(_label("Checking the price with Google Play…", 14,
+		v.add_child(_label(Loc.t("Checking the price with Google Play…"), 16,
 			Palette.TEXT_FAINT))
 
 	if Store.last_player_message != "":
-		v.add_child(_wrap(Store.last_player_message, 15, Palette.WARN))
+		v.add_child(_wrap(Store.last_player_message, 16, Palette.WARN))
 	return v
 
 
@@ -385,11 +385,11 @@ func _state_row(key: String) -> Control:
 func _reason(key: String) -> String:
 	if not Store.is_available():
 		if OS.has_feature("editor") or not OS.has_feature("android"):
-			return "Purchases only work in the Play Store build."
-		return "Can't reach Google Play right now. The game works exactly the same without it."
+			return Loc.t("Purchases only work in the Play Store build.")
+		return Loc.t("Can't reach Google Play right now. The game works exactly the same without it.")
 	if not Store.product_confirmed(key):
-		return "Google Play hasn't confirmed this product yet. Nothing is wrong with your game."
-	return "Not available on this device."
+		return Loc.t("Google Play hasn't confirmed this product yet. Nothing is wrong with your game.")
+	return Loc.t("Not available on this device.")
 
 
 func _pick_theme(id: String) -> void:
@@ -404,7 +404,7 @@ func _pick_theme(id: String) -> void:
 func _theme_picker() -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
-	v.add_child(_label("Tap a palette to wear it. The board changes underneath.",
+	v.add_child(_label(Loc.t("Tap a palette to wear it. The board changes underneath."),
 		14, Palette.TEXT_FAINT))
 	return v
 

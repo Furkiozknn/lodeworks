@@ -452,22 +452,36 @@ static func recipe_text(id: String) -> String:
 		return ""
 	var tags: Array = m.get("tags", [])
 	if tags.has("sink"):
-		return "Sells anything a neighbour hands it"
+		return Loc.t("Sells anything a neighbour hands it")
 	var ins: Array[String] = []
 	for res: int in (m.get("inputs", {}) as Dictionary):
-		ins.append("%d %s" % [int(m["inputs"][res]), String(RES_NAME[res])])
+		ins.append("%d %s" % [int(m["inputs"][res]), Loc.t(String(RES_NAME[res]))])
 	var outs: Array[String] = []
 	for res: int in (m.get("outputs", {}) as Dictionary):
-		outs.append("%d %s" % [int(m["outputs"][res]), String(RES_NAME[res])])
+		outs.append("%d %s" % [int(m["outputs"][res]), Loc.t(String(RES_NAME[res]))])
 	if tags.has("research"):
-		outs.append("Research")
+		outs.append(Loc.t("Research"))
 	if ins.is_empty() and outs.is_empty():
-		return "Changes what its neighbours do"
+		return Loc.t("Changes what its neighbours do")
 	if ins.is_empty():
 		return "→ " + " + ".join(outs)
 	if outs.is_empty():
-		return " + ".join(ins) + " → nothing"
+		return " + ".join(ins) + " → " + Loc.t("nothing")
 	return " + ".join(ins) + " → " + " + ".join(outs)
+
+
+## A machine's name, its one line and its full description, in the player's
+## language. The table keeps the English; the English is the key.
+static func name_of(id: String) -> String:
+	return Loc.t(String(get_machine(id).get("name", id)))
+
+
+static func short_of(id: String) -> String:
+	return Loc.t(String(get_machine(id).get("short", "")))
+
+
+static func desc_of(id: String) -> String:
+	return Loc.t(String(get_machine(id).get("desc", "")))
 
 
 static func unlocked_at(depth: int) -> Array[String]:

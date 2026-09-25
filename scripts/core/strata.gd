@@ -303,9 +303,10 @@ static func _factor(id: String, st: Dictionary) -> float:
 	return f
 
 
+## A rule's name and words, in the player's language.
 static func modifier_name(id: String) -> String:
-	return String(MODIFIERS.get(id, {}).get("name", id))
+	return Loc.t(String(MODIFIERS.get(id, {}).get("name", id)))
 
 
 static func modifier_desc(id: String) -> String:
-	return String(MODIFIERS.get(id, {}).get("desc", ""))
+	return Loc.t(String(MODIFIERS.get(id, {}).get("desc", "")))

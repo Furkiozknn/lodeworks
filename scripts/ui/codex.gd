@@ -198,7 +198,7 @@ func _build() -> void:
 	# One row: the title, a key per group and one for the rules, and close.
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
-	var title := _label("Codex", 30, Palette.TEXT)
+	var title := _label(Loc.t("Codex"), 30, Palette.TEXT)
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(title)
 	var tab_scroll := ScrollContainer.new()
@@ -212,8 +212,8 @@ func _build() -> void:
 	tab_scroll.add_child(tab_row)
 	for g in range(MachineDB.GROUPS.size()):
 		var info: Dictionary = MachineDB.GROUPS[g]
-		tab_row.add_child(_tab_key(String(info["icon"]), String(info["name"]), g))
-	tab_row.add_child(_tab_key("codex", "How it works", RULES_TAB))
+		tab_row.add_child(_tab_key(String(info["icon"]), Loc.t(String(info["name"])), g))
+	tab_row.add_child(_tab_key("codex", Loc.t("How it works"), RULES_TAB))
 	head.add_child(tab_scroll)
 	var close := _key("✕", Palette.PANEL_HI)
 	close.custom_minimum_size = Vector2(96, 96)
@@ -255,8 +255,15 @@ func _tab_key(icon: String, caption: String, tab: int) -> Button:
 	var ic := _icon(icon, 50)
 	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(ic)
-	var l := _label(caption, 15, Palette.TEXT)
+	var l := _label(caption, 16, Palette.TEXT)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# The name fits its key in any language and at any text size: a little
+	# smaller when it would not (main._fit, the same rule).
+	var fs: int = Palette.text_px(16)
+	var font: Font = l.get_theme_font("font")
+	while fs > 11 and font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > 114.0:
+		fs -= 1
+	l.add_theme_font_size_override("font_size", fs)
 	box.add_child(l)
 	b.add_child(box)
 	b.pressed.connect(func():
@@ -289,8 +296,8 @@ func _group(g: int) -> void:
 	head.add_child(_icon(String(info["icon"]), 60))
 	var words := VBoxContainer.new()
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
-	words.add_child(_label(String(info["name"]), 28, Palette.TEXT))
-	words.add_child(_label(String(info["short"]), 19, Palette.TEXT_DIM))
+	words.add_child(_label(Loc.t(String(info["name"])), 28, Palette.TEXT))
+	words.add_child(_label(Loc.t(String(info["short"])), 19, Palette.TEXT_DIM))
 	head.add_child(words)
 	_content.add_child(head)
 
@@ -355,22 +362,20 @@ func _machine_card(id: String) -> Control:
 		pic_box.add_child(when)
 	col.add_child(pic_box)
 	# The words, in the picture's corner: the picture is the card.
-	var help := _help(String(m["name"]), func() -> String:
+	var help := _help(MachineDB.name_of(id), func() -> String:
 		var t: String = MachineDB.recipe_text(id)
 		var lines: Array[String] = []
 		if t != "":
 			lines.append(t)
-		lines.append(String(m["desc"]))
+		lines.append(MachineDB.desc_of(id))
 		match MachineDB.heat_liking(id):
 			1:
-				lines.append("It runs best warm: around %.1f heat." % float(m["heat_optimum"]))
+				lines.append(Loc.t("It runs best warm: around %.1f heat.") % float(m["heat_optimum"]))
 			-1:
-				lines.append("It runs best cool, and slows down past %.1f heat." % float(m["heat_tolerance"]))
+				lines.append(Loc.t("It runs best cool, and slows down past %.1f heat.") % float(m["heat_tolerance"]))
 		if not open:
-			lines.append("It opens at stratum %d." % opens)
-		return "
-
-".join(lines))
+			lines.append(Loc.t("It opens at stratum %d.") % opens)
+		return "\n\n".join(lines))
 	help.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	help.offset_left = -96
 	help.offset_right = 0
@@ -380,14 +385,14 @@ func _machine_card(id: String) -> Control:
 
 	var name_row := HBoxContainer.new()
 	name_row.add_theme_constant_override("separation", 8)
-	var name_lbl := _label(String(m["name"]), 26, Palette.TEXT if open else Palette.TEXT_DIM)
+	var name_lbl := _label(MachineDB.name_of(id), 26, Palette.TEXT if open else Palette.TEXT_DIM)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(name_lbl)
 	var liking: int = MachineDB.heat_liking(id)
 	if liking != 0:
 		name_row.add_child(_icon("heat" if liking > 0 else "cold", 38))
 	col.add_child(name_row)
-	var short := _label(String(m.get("short", "")), 19, Palette.TEXT_DIM)
+	var short := _label(MachineDB.short_of(id), 19, Palette.TEXT_DIM)
 	short.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	short.custom_minimum_size = Vector2(302, 0)
 	col.add_child(short)
@@ -449,16 +454,16 @@ func _page(page: Dictionary) -> Control:
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
 	words.add_theme_constant_override("separation", 8)
-	words.add_child(_label(String(page["title"]), 26, Palette.TEXT))
-	var short := _label(String(page.get("short", "")), 20, Palette.TEXT)
+	words.add_child(_label(Loc.t(String(page["title"])), 26, Palette.TEXT))
+	var short := _label(Loc.t(String(page.get("short", ""))), 20, Palette.TEXT)
 	short.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(short)
-	var watch := _label(String(page["watch"]), 17, Palette.ACCENT)
+	var watch := _label(Loc.t(String(page["watch"])), 17, Palette.ACCENT)
 	watch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(watch)
 	row.add_child(words)
-	var body: String = String(page["body"])
-	var help := _help(String(page["title"]), func() -> String: return body)
+	var body: String = Loc.t(String(page["body"]))
+	var help := _help(Loc.t(String(page["title"])), func() -> String: return body)
 	help.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(help)
 	return panel

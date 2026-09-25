@@ -120,6 +120,16 @@ func has_save() -> bool:
 	return FileAccess.file_exists(PATH) or FileAccess.file_exists(BACKUP)
 
 
+## The saved settings alone, without loading the game: the interface needs
+## the language before it builds, and the game loads after it is built.
+func saved_settings() -> Dictionary:
+	var d: Dictionary = _read(PATH)
+	if d.is_empty():
+		d = _read(BACKUP)
+	var s: Variant = d.get("settings", {})
+	return s if s is Dictionary else {}
+
+
 ## Deleting a save is destructive and irreversible, so it lives behind an
 ## explicit call rather than anywhere near normal flow.
 func wipe() -> void:

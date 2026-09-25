@@ -159,11 +159,12 @@ static func is_free(id: String) -> bool:
 
 
 static func name_of(id: String) -> String:
-	return String((THEMES.get(id, {}) as Dictionary).get("name", id))
+	return Loc.t(String((THEMES.get(id, {}) as Dictionary).get("name", id)))
 
 
 static func blurb_of(id: String) -> String:
-	return String((THEMES.get(id, {}) as Dictionary).get("blurb", ""))
+	var b: String = String((THEMES.get(id, {}) as Dictionary).get("blurb", ""))
+	return Loc.t(b) if b != "" else ""
 
 
 static func get_theme(id: String) -> Dictionary:

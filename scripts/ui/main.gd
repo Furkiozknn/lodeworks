@@ -139,6 +139,11 @@ var _safe := Vector4.ZERO
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Words are translated where they are written (Loc.t), never by the
+	# labels themselves: a word that did not come through Loc stays English,
+	# where the pseudo-language check (tools/smoke.gd) can see it.
+	auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_apply_language()
 	_build()
 	Sim.stats_changed.connect(_refresh)
 	Sim.stats_changed.connect(_tutorial_watch)
@@ -149,7 +154,7 @@ func _ready() -> void:
 				!= BuildArea.size_at(Sim.max_depth, Sim.collapses):
 			# Said once the world is in view again: a descent usually opens a
 			# "new machine" card first.
-			_yard_news = "Stratum %d. The yard is bigger: more ground to build on." % d
+			_yard_news = Loc.t("Stratum %d. The yard is bigger: more ground to build on.") % d
 			call_deferred("_tell_yard_news")
 		elif d > 0:
 			_say(_stratum_line(d), Foreman.Pose.JUMP, 3.5)
@@ -163,12 +168,12 @@ func _ready() -> void:
 	Ads.reward_granted.connect(_on_reward)
 	Ads.reward_failed.connect(_on_reward_failed)
 	Store.purchase_completed.connect(func(k):
-		_toast_msg("%s active. Thank you." % MonetizationDB.title_of(String(k)))
+		_toast_msg(Loc.t("%s active. Thank you.") % MonetizationDB.title_of(String(k)))
 		_refresh())
 	Store.purchase_pending.connect(func(_k):
 		# A delayed payment instrument. Nothing granted, nothing charged
 		# twice, and the player is told rather than left wondering.
-		_toast_msg("Waiting on your payment. It unlocks by itself."))
+		_toast_msg(Loc.t("Waiting on your payment. It unlocks by itself.")))
 	Store.theme_changed.connect(func(_id):
 		if iso_view != null:
 			iso_view.palette_changed()
@@ -188,6 +193,54 @@ func _ready() -> void:
 	# An idle game is left running. Uncapped frames on a phone is a warm
 	# pocket and a flat battery for a board that changes ten times a second,
 	# so the cap is set here rather than left to whatever the device does.
+	_apply_settings()
+
+
+## The language: the one chosen in Settings, else the device's if it is
+## translated, else English (Loc.pick). Set before anything is built,
+## because every word is written once, when its label is made; the game has
+## not loaded yet, so the setting is read from the save directly.
+## LODEWORKS_LOCALE overrides it, for the tools that capture and check the
+## screens in a given language.
+func _apply_language() -> void:
+	var forced: String = OS.get_environment("LODEWORKS_LOCALE")
+	if forced != "":
+		Loc.apply(forced)
+		return
+	var saved: Dictionary = Sim.settings if bool(Sim.get("_started")) else Save.saved_settings()
+	Loc.apply(Loc.pick(String(saved.get("locale", ""))))
+
+
+## Settings' language: "" follows the device. The interface is made again in
+## the new language on the spot; the game itself lives in Sim and is not
+## touched.
+func _set_language(code: String) -> void:
+	Sim.settings["locale"] = code
+	Save.save_game(Sim)
+	Loc.apply(Loc.pick(code))
+	_rebuild_interface()
+
+
+## Every node of the interface, made again: the words are written when a
+## label is made, so a new language is a new interface. The world's camera
+## goes back to its default framing.
+func _rebuild_interface() -> void:
+	for c: Node in get_children():
+		remove_child(c)
+		c.queue_free()
+	_pulsing = null
+	_node_card = null
+	_node_index = -1
+	_next_for = -1
+	_armed = ""
+	_palette_buttons.clear()
+	_palette_costs.clear()
+	_build()
+	_rebuild_palette()
+	_apply_safe_area()
+	_layout_hud()
+	_refresh()
+	_refresh_hint()
 	_apply_settings()
 
 
@@ -394,7 +447,7 @@ func _build() -> void:
 	# take it back, for a few seconds. Cheaper than a confirmation on every
 	# placement and far cheaper than a mis-tap the player cannot reverse.
 	_undo_btn = _button("", Palette.PANEL_HI)
-	_undo_btn.tooltip_text = "Undo"
+	_undo_btn.tooltip_text = Loc.t("Undo")
 	_undo_btn.visible = false
 	_undo_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_undo_btn.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
@@ -447,8 +500,28 @@ func _apply_text_size() -> void:
 		if n.has_meta("base_fs"):
 			(n as Label).add_theme_font_size_override("font_size",
 				Palette.text_px(int(n.get_meta("base_fs"))))
+			if n.has_meta("fit_w"):
+				_fit(n as Label, float(n.get_meta("fit_w")))
 	if _stratum_card != null:
 		_layout_hud()
+
+
+## The smallest a word on a key may be made to fit it: well under the
+## interface's own floor (TEXT_MIN), and only ever reached by a language
+## much longer than English with Larger text on.
+const FIT_MIN := 11
+
+
+## A word on a key whose size is fixed: at its own size if it fits in
+## `width`, otherwise a little smaller, until it does. A longer language or
+## Larger text must not push a word off its key (tools/loc_check.gd).
+func _fit(l: Label, width: float) -> void:
+	l.set_meta("fit_w", width)
+	var font: Font = l.get_theme_font("font")
+	var fs: int = Palette.text_px(int(l.get_meta("base_fs", TEXT_MIN)))
+	while fs > FIT_MIN and font.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > width:
+		fs -= 1
+	l.add_theme_font_size_override("font_size", fs)
 
 
 ## Panels are dark glass: the world shows through them a little, so the
@@ -477,7 +550,7 @@ func _panel(col: Color = Palette.PANEL, alpha: float = 0.86) -> PanelContainer:
 func _button(text: String, col: Color) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.add_theme_font_size_override("font_size", 22)
+	b.add_theme_font_size_override("font_size", Palette.text_px(22))
 	b.custom_minimum_size = Vector2(0, 64)   # a comfortable thumb target
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for state in ["normal", "hover", "pressed", "disabled"]:
@@ -525,6 +598,7 @@ func _icon_button(icon_name: String, caption: String, col: Color) -> Button:
 	box.add_child(ic)
 	var l := _label(caption, TEXT_MIN, Palette.TEXT)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_fit(l, ACTION_W - 8.0)
 	box.add_child(l)
 	b.add_child(box)
 	return b
@@ -580,7 +654,7 @@ func _build_stratum_card() -> Control:
 	col.custom_minimum_size = Vector2(212, 0)
 	row.add_child(col)
 	var top := HBoxContainer.new()
-	_lbl_depth = _label("Stratum 0", 20, Palette.TEXT)
+	_lbl_depth = _label(Loc.t("Stratum %d") % 0, 20, Palette.TEXT)
 	_lbl_depth.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_lbl_depth)
 	_lbl_band = _label("", TEXT_MIN, Palette.CORE)
@@ -633,7 +707,7 @@ func _show_stratum_info() -> void:
 	where.add_theme_constant_override("separation", 14)
 	where.add_child(_icon_rect("descend", 64))
 	var band: int = int(Palette.band_at(Sim.depth)[0])
-	where.add_child(_label(BAND_NAMES[band], 28, Color(Palette.BAND_VEIN[band]).lightened(0.2)))
+	where.add_child(_label(Loc.t(BAND_NAMES[band]), 28, Color(Palette.BAND_VEIN[band]).lightened(0.2)))
 	body.add_child(where)
 	var cost := HBoxContainer.new()
 	cost.add_theme_constant_override("separation", 12)
@@ -647,7 +721,7 @@ func _show_stratum_info() -> void:
 	cost.add_child(bar)
 	body.add_child(cost)
 	_rule_rows(body, Sim.depth, Sim.unlocked)
-	_open_overlay("Stratum %d" % Sim.depth, body, [])
+	_open_overlay(Loc.t("Stratum %d") % Sim.depth, body, [])
 
 
 ## What lies below: the next stratum before going down to it -- how far the
@@ -665,7 +739,7 @@ func _show_below() -> void:
 	where.add_theme_constant_override("separation", 14)
 	where.add_child(_icon_rect("descend", 64))
 	var band: int = int(Palette.band_at(d)[0])
-	where.add_child(_label(BAND_NAMES[band], 28, Color(Palette.BAND_VEIN[band]).lightened(0.2)))
+	where.add_child(_label(Loc.t(BAND_NAMES[band]), 28, Color(Palette.BAND_VEIN[band]).lightened(0.2)))
 	body.add_child(where)
 	# How far off it is.
 	var cost := HBoxContainer.new()
@@ -690,20 +764,20 @@ func _show_below() -> void:
 		if not now.has(id) and not Sim.unlocked.has(id):
 			opens.add_child(Chips.MachineSprite.new(id, 56.0))
 	if opens.get_child_count() > 0:
-		opens.add_child(_label("A new machine down there." if opens.get_child_count() == 1
-			else "New machines down there.", 20, Palette.TEXT_DIM))
+		opens.add_child(_label(Loc.tn("A new machine down there.", "New machines down there.",
+			opens.get_child_count()), 20, Palette.TEXT_DIM))
 		body.add_child(opens)
 	if d > Sim.max_depth and BuildArea.size_at(d) != BuildArea.size_at(Sim.max_depth):
 		var grow := HBoxContainer.new()
 		grow.add_theme_constant_override("separation", 12)
 		grow.add_child(_core_picture(48.0))
 		var s: Vector2i = BuildArea.size_at(d)
-		grow.add_child(_label("The yard grows to %d x %d." % [s.x, s.y], 20, Palette.TEXT_DIM))
+		grow.add_child(_label(Loc.t("The yard grows to %d x %d.") % [s.x, s.y], 20, Palette.TEXT_DIM))
 		body.add_child(grow)
 	var actions: Array = []
 	if Sim.can_descend():
-		actions.append({"text": "Descend", "color": Palette.WARN, "cb": _on_descend})
-	_open_overlay("Below: stratum %d" % d, body, actions)
+		actions.append({"text": Loc.t("Descend"), "color": Palette.WARN, "cb": _on_descend})
+	_open_overlay(Loc.t("Below: stratum %d") % d, body, actions)
 
 
 ## A stratum's rules as rows: a star, the rule's name and words, and the
@@ -715,7 +789,7 @@ func _rule_rows(body: VBoxContainer, depth: int, machines: Array[String]) -> voi
 		var calm := HBoxContainer.new()
 		calm.add_theme_constant_override("separation", 12)
 		calm.add_child(_icon_rect("ok", 44))
-		calm.add_child(_label("Plain rock. No strange rules here.", 20, Palette.TEXT_DIM))
+		calm.add_child(_label(Loc.t("Plain rock. No strange rules here."), 20, Palette.TEXT_DIM))
 		body.add_child(calm)
 	for id in mods:
 		var row := HBoxContainer.new()
@@ -774,7 +848,7 @@ func _build_resources() -> Control:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_lbl_credits = _label("0", 24, Palette.CORE)
-	_lbl_rate = _label("0 /s", TEXT_MIN, Palette.TEXT_DIM)
+	_lbl_rate = _label(Loc.t("+%s /s") % "0", TEXT_MIN, Palette.TEXT_DIM)
 	var money := _pill("credits", _lbl_credits, _lbl_rate)
 	money.custom_minimum_size = Vector2(146, 0)
 	row.add_child(money)
@@ -814,7 +888,7 @@ func _build_tools() -> Control:
 	hic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_heat_icon = hic
 	_btn_heat.add_child(hic)
-	_btn_heat.tooltip_text = "Heat view"
+	_btn_heat.tooltip_text = Loc.t("Heat view")
 	_btn_heat.toggled.connect(func(on: bool):
 		iso_view.set_overlay(IsoView.Overlay.HEAT if on else IsoView.Overlay.NONE)
 		if on:
@@ -830,7 +904,7 @@ func _build_tools() -> Control:
 	_btn_zoom.add_theme_font_size_override("font_size", 34)
 	_btn_zoom.add_theme_color_override("font_color", Palette.TEXT)
 	_btn_zoom.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
-	_btn_zoom.tooltip_text = "Zoom"
+	_btn_zoom.tooltip_text = Loc.t("Zoom")
 	_btn_zoom.pressed.connect(func():
 		Juice.tap()
 		if iso_view.cam.zoom > iso_view.default_zoom() * 1.15:
@@ -865,7 +939,7 @@ func _build_tools() -> Control:
 	_lbl_problem_count.add_theme_constant_override("outline_size", 6)
 	_lbl_problem_count.add_theme_color_override("font_outline_color", Palette.BG)
 	_btn_problems.add_child(_lbl_problem_count)
-	_btn_problems.tooltip_text = "Problems"
+	_btn_problems.tooltip_text = Loc.t("Problems")
 	_btn_problems.pressed.connect(_cycle_problem)
 	col.add_child(_btn_problems)
 	return col
@@ -875,7 +949,7 @@ func _build_actions() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_btn_research = _icon_button("research", "Research", Palette.PANEL_HI)
+	_btn_research = _icon_button("research", Loc.t("Research"), Palette.PANEL_HI)
 	_btn_research.pressed.connect(_show_research)
 	row.add_child(_btn_research)
 	# How many research lines can be bought right now, in the key's corner:
@@ -884,12 +958,12 @@ func _build_actions() -> Control:
 	_research_badge = _count_badge(Palette.RESEARCH)
 	_research_badge.position = Vector2(ACTION_W - 26, -8)
 	_btn_research.add_child(_research_badge)
-	_btn_collapse = _icon_button("cores", "Collapse", Palette.PANEL_HI)
+	_btn_collapse = _icon_button("cores", Loc.t("Collapse"), Palette.PANEL_HI)
 	_btn_collapse.pressed.connect(_show_collapse)
 	row.add_child(_btn_collapse)
 	# The Codex is one tap from the board because its whole job is to be
 	# reachable at the moment a player is confused.
-	var codex := _icon_button("codex", "Codex", Palette.PANEL_HI)
+	var codex := _icon_button("codex", Loc.t("Codex"), Palette.PANEL_HI)
 	codex.pressed.connect(_open_codex)
 	row.add_child(codex)
 	return row
@@ -923,8 +997,14 @@ func _build_descend() -> Control:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_theme_constant_override("separation", -2)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(_label("DESCEND", 22, Palette.BG))
+	# What is left of the key beside its picture: its margins, the picture
+	# and the gap.
+	var room: float = DESCEND_W - 20.0 - 56.0 - 8.0
+	var head := _label(Loc.t("DESCEND"), 22, Palette.BG)
+	_fit(head, room)
+	col.add_child(head)
 	_lbl_descend_sub = _label("", TEXT_MIN, Color(Palette.BG, 0.8))
+	_lbl_descend_sub.set_meta("fit_w", room)
 	col.add_child(_lbl_descend_sub)
 	_next_row = HBoxContainer.new()
 	_next_row.add_theme_constant_override("separation", 2)
@@ -1126,7 +1206,7 @@ func _build_sheet() -> void:
 	var bin := Chips.Glyph.new("bin", 60.0)
 	bin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	rm.add_child(bin)
-	rm.tooltip_text = "Remove"
+	rm.tooltip_text = Loc.t("Remove")
 	rm.pressed.connect(func():
 		if iso_view.selected_cell >= 0:
 			Juice.tap()
@@ -1175,7 +1255,7 @@ func _close_sheet() -> void:
 func _cycle_problem() -> void:
 	var cells: Array[int] = Sim.sim.problem_cells()
 	if cells.is_empty():
-		_toast_msg("Nothing is stalled or overheating.")
+		_toast_msg(Loc.t("Nothing is stalled or overheating."))
 		return
 	_problem_cursor = (_problem_cursor + 1) % cells.size()
 	var cell: int = cells[_problem_cursor]
@@ -1212,8 +1292,8 @@ func _make_palette_button(id: String) -> Control:
 	var b := Button.new()
 	b.custom_minimum_size = Vector2(98, MIN_TOUCH)
 	b.toggle_mode = true
-	b.tooltip_text = "%s\n%s\n%s" % [m["name"],
-		MachineDB.recipe_text(id), m["desc"]]
+	b.tooltip_text = "%s\n%s\n%s" % [MachineDB.name_of(id),
+		MachineDB.recipe_text(id), MachineDB.desc_of(id)]
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(Palette.PANEL_HI, 0.9) if state != "pressed" else \
@@ -1332,22 +1412,22 @@ func _on_cell_tapped(cell: int) -> void:
 	_close_node_card()
 	if Sim.is_blocked(cell):
 		Juice.blocked()
-		_toast_msg("This part of the shaft has collapsed.")
+		_toast_msg(Loc.t("This part of the shaft has collapsed."))
 		return
 	if Sim.grid.is_empty(cell):
 		if iso_view.selected_cell >= 0:
 			_close_sheet()
 		if not Sim.is_open(cell):
 			Juice.reject()
-			_toast_msg("The yard reaches this ground at stratum %d."
+			_toast_msg(Loc.t("The yard reaches this ground at stratum %d.")
 				% BuildArea.opens_at(cell))
 			return
 		if _armed == "":
-			_toast_msg("Pick a machine below, then tap a tile.")
+			_toast_msg(Loc.t("Pick a machine below, then tap a tile."))
 			return
 		if not Sim.can_afford(_armed):
 			Juice.reject()
-			_toast_msg("Not enough credits for a %s." % MachineDB.get_machine(_armed)["name"])
+			_toast_msg(Loc.t("Not enough credits for a %s.") % MachineDB.name_of(_armed))
 			return
 		var price: float = Sim.cost_of(_armed)
 		if Sim.try_place(cell, _armed):
@@ -1387,7 +1467,8 @@ func _on_cell_long_pressed(cell: int) -> void:
 	what.add_child(Chips.Arrow.new(56.0))
 	what.add_child(_icon_rect("credits", 64))
 	what.add_child(_label("+%s" % Economy.fmt(refund), 40, Palette.CORE))
-	_open_overlay("Remove?", what, [{"text": "Remove", "color": Palette.BAD, "cb": do_remove}])
+	_open_overlay(Loc.t("Remove?"), what, [{"text": Loc.t("Remove"), "color": Palette.BAD,
+		"cb": do_remove}])
 
 
 func _on_descend() -> void:
@@ -1424,11 +1505,10 @@ func _on_unlocked(ids: Array) -> void:
 		col.add_child(Chips.MachineSprite.new(String(id), 190.0, true))
 		# Its name and one line of what it is for: the reward is knowing
 		# what the new thing does.
-		var um: Dictionary = MachineDB.get_machine(String(id))
-		var un := _label(String(um["name"]), 28, Palette.TEXT)
+		var un := _label(MachineDB.name_of(String(id)), 28, Palette.TEXT)
 		un.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(un)
-		var us := _label(String(um.get("short", "")), 19, Palette.TEXT_DIM)
+		var us := _label(MachineDB.short_of(String(id)), 19, Palette.TEXT_DIM)
 		us.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(us)
 		var line := HBoxContainer.new()
@@ -1441,19 +1521,20 @@ func _on_unlocked(ids: Array) -> void:
 	var badge := Foreman.Badge.new(Foreman.Pose.CHEER, 110.0)
 	badge.size_flags_vertical = Control.SIZE_SHRINK_END
 	row.add_child(badge)
-	_open_overlay("NEW!", row, [])
+	_open_overlay(Loc.t("NEW!"), row, [])
 
 
 ## A machine's "?": its name, what it makes and what it is for.
 func _machine_help(id: String) -> Button:
-	var m: Dictionary = MachineDB.get_machine(id)
-	var b: Button = _help_button(String(m["name"]), func() -> String:
+	var b: Button = _help_button(MachineDB.name_of(id), func() -> String:
 		var t: String = MachineDB.recipe_text(id)
-		var words: String = (t + "\n\n" if t != "" else "") + String(m["desc"])
+		var words: String = (t + "\n\n" if t != "" else "") + MachineDB.desc_of(id)
 		# The rules of this stratum that move it: why its key has an arrow.
 		for e: Array in Strata.effects_on(id, Sim.depth):
-			words += "\n\n%s here: %s %s" % ["Helped" if int(e[1]) > 0 else "Held back",
-				Strata.modifier_name(String(e[0])) + ".", Strata.modifier_desc(String(e[0]))]
+			var why: String = Loc.t("Helped here: %s. %s") if int(e[1]) > 0 \
+				else Loc.t("Held back here: %s. %s")
+			words += "\n\n" + why % [Strata.modifier_name(String(e[0])),
+				Strata.modifier_desc(String(e[0]))]
 		return words)
 	return b
 
@@ -1467,8 +1548,10 @@ func _on_collapsed(gained: int) -> void:
 	# The genre's most cited progression failure is a prestige that reads as
 	# punishment, and the wording is half of that.
 	_refresh_hint()
-	_info("The shaft collapses",
-		"You brought up %d Cores.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did." % gained)
+	_info(Loc.t("The shaft collapses"),
+		Loc.tn("You brought up %d Core.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did.",
+			"You brought up %d Cores.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did.",
+			gained) % gained)
 
 
 func _on_reward(placement: String) -> void:
@@ -1477,10 +1560,10 @@ func _on_reward(placement: String) -> void:
 			var extra: float = Save.apply_offline_double(Sim)
 			Juice.reward()
 			_shown_credits = Sim.credits - extra
-			_toast_msg("+%s credits." % Economy.fmt(extra))
+			_toast_msg(Loc.t("+%s credits.") % Economy.fmt(extra))
 			_refresh()
 		_:
-			_toast_msg("Reward granted.")
+			_toast_msg(Loc.t("Reward granted."))
 
 
 ## An ad that does not play is not the player's problem, and it is not worth a
@@ -1491,9 +1574,9 @@ func _on_reward_failed(_placement: String, reason: String) -> void:
 		"dismissed":
 			pass  # They closed it deliberately. Saying anything is nagging.
 		"timeout", "show_failed":
-			_toast_msg("The ad did not play. Nothing was lost.")
+			_toast_msg(Loc.t("The ad did not play. Nothing was lost."))
 		_:
-			_toast_msg("No ad available right now.")
+			_toast_msg(Loc.t("No ad available right now."))
 
 
 ## --- refresh ---------------------------------------------------------------
@@ -1511,7 +1594,7 @@ func _refresh() -> void:
 		_shown_credits = Sim.credits
 	elif _lbl_credits.text == "":
 		_lbl_credits.text = Economy.fmt(Sim.credits)
-	_lbl_rate.text = "+%s /s" % Economy.fmt(Sim.credits_per_sec)
+	_lbl_rate.text = Loc.t("+%s /s") % Economy.fmt(Sim.credits_per_sec)
 	_lbl_research.text = Economy.fmt(Sim.research)
 	_lbl_cores.text = str(Sim.cores)
 	var buyable: int = _research_ready()
@@ -1520,8 +1603,8 @@ func _refresh() -> void:
 	_show_what_matters()
 
 	var s: Dictionary = Sim.stratum()
-	_lbl_depth.text = "Stratum %d" % Sim.depth
-	_lbl_band.text = BAND_NAMES[int(Palette.band_at(Sim.depth)[0])]
+	_lbl_depth.text = Loc.t("Stratum %d") % Sim.depth
+	_lbl_band.text = Loc.t(BAND_NAMES[int(Palette.band_at(Sim.depth)[0])])
 	var q: float = Sim.quota()
 	_quota_bar.value = clampf(Sim.credits / q, 0.0, 1.0) if q > 0.0 else 0.0
 	_lbl_quota.text = Economy.fmt(q)
@@ -1537,7 +1620,7 @@ func _refresh() -> void:
 		for id in mods:
 			parts.append(Strata.modifier_name(id))
 		_lbl_mods.text = " · ".join(parts)
-		_lbl_mods.tooltip_text = "\n".join(mods.map(func(id): return "%s — %s" % [
+		_lbl_mods.tooltip_text = "\n".join(mods.map(func(id): return "%s: %s" % [
 			Strata.modifier_name(id), Strata.modifier_desc(id)]))
 		_lbl_mods.visible = true
 
@@ -1549,8 +1632,11 @@ func _refresh() -> void:
 		Juice.punch(_btn_descend, 0.08, 0.35)
 	_descend_seen_closed = not Sim.can_descend()
 	_btn_descend.disabled = not Sim.can_descend()
-	_lbl_descend_sub.text = "to stratum %d" % (Sim.depth + 1) if Sim.can_descend() \
-		else "%d%% of quota" % int(round(_quota_bar.value * 100.0))
+	var sub: String = Loc.t("to stratum %d") % (Sim.depth + 1) if Sim.can_descend() \
+		else Loc.t("%d%% of quota") % int(round(_quota_bar.value * 100.0))
+	if _lbl_descend_sub.text != sub:
+		_lbl_descend_sub.text = sub
+		_fit(_lbl_descend_sub, float(_lbl_descend_sub.get_meta("fit_w")))
 	_show_next_unlock()
 	for id: String in _palette_buttons:
 		var afford: bool = Sim.can_afford(id)
@@ -1588,10 +1674,10 @@ func _show_next_unlock() -> void:
 		_next_row.visible = false
 		return
 	_next_row.visible = true
-	_next_row.add_child(_label("next:", TEXT_MIN, Color(Palette.BG, 0.75)))
+	_next_row.add_child(_label(Loc.t("next:"), TEXT_MIN, Color(Palette.BG, 0.75)))
 	for id: String in ids.slice(0, 3):
 		var chip := Chips.MachineSprite.new(id, 28.0)
-		chip.tooltip_text = String(MachineDB.get_machine(id)["name"])
+		chip.tooltip_text = MachineDB.name_of(id)
 		_next_row.add_child(chip)
 
 
@@ -1652,7 +1738,7 @@ func _do_undo() -> void:
 		_refresh()
 	else:
 		Juice.reject()
-		_toast_msg("That cannot be undone now.")
+		_toast_msg(Loc.t("That cannot be undone now."))
 
 
 ## The two tutorial steps that complete by waiting rather than by tapping --
@@ -1663,7 +1749,7 @@ func _tutorial_watch() -> void:
 		_maybe_advance_tutorial()
 	if not _research_nudged and Sim.research > 0.0:
 		_research_nudged = true
-		_say(Tutorial.RESEARCH_NUDGE, Foreman.Pose.POINT, 5.0)
+		_say(Loc.t(Tutorial.RESEARCH_NUDGE), Foreman.Pose.POINT, 5.0)
 
 
 ## The count on the Problems key, and the heat warning sound on the moment a
@@ -1702,17 +1788,17 @@ func _refresh_problems() -> void:
 		for cell: int in Sim.grid.cells:
 			if iso_view.badges.shown(cell) == StatusBadges.Show.CRITICAL:
 				_alerted_depth = Sim.depth
-				_say("Something is overheating. The warning key finds it.",
+				_say(Loc.t("Something is overheating. The warning key finds it."),
 					Foreman.Pose.ALERT, 5.0)
 				break
 	var parts: Array[String] = []
 	if int(c["starved"]) > 0:
-		parts.append("%d starved" % int(c["starved"]))
+		parts.append(Loc.t("%d starved") % int(c["starved"]))
 	if int(c["blocked"]) > 0:
-		parts.append("%d backed up" % int(c["blocked"]))
+		parts.append(Loc.t("%d backed up") % int(c["blocked"]))
 	if int(c["thermal"]) > 0:
-		parts.append("%d off temperature" % int(c["thermal"]))
-	_btn_problems.tooltip_text = "Everything is running." if parts.is_empty() \
+		parts.append(Loc.t("%d off temperature") % int(c["thermal"]))
+	_btn_problems.tooltip_text = Loc.t("Everything is running.") if parts.is_empty() \
 		else "  ·  ".join(parts)
 	_btn_problems.modulate = Color.WHITE if n > 0 else Color(1, 1, 1, 0.55)
 
@@ -1730,7 +1816,7 @@ func _refresh_hint() -> void:
 	# be bought until it is online.
 	iso_view.highlight_core = not Sim.core_online
 	if not Sim.core_online:
-		_say(Tutorial.CORE_LINE, Foreman.Pose.POINT, 9999.0)
+		_say(Loc.t(Tutorial.CORE_LINE), Foreman.Pose.POINT, 9999.0)
 		iso_view.highlight_cells = []
 		_pulse_control("")
 		return
@@ -1741,7 +1827,7 @@ func _refresh_hint() -> void:
 		if _foreman_time <= 0.0:
 			_foreman.visible = false
 		return
-	_say(Tutorial.line_for(step), Foreman.Pose.POINT, 9999.0)
+	_say(Loc.t(Tutorial.line_for(step)), Foreman.Pose.POINT, 9999.0)
 	iso_view.highlight_cells = Tutorial.highlight(step, Sim)
 	_pulse_control(Tutorial.highlight_control(step))
 	# Arming the suggested machine for them removes a tap and a guess. They
@@ -1763,10 +1849,10 @@ func _on_core_tapped() -> void:
 		iso_view.core_powered()
 		Juice.reward()
 		_shown_credits = Sim.credits - Sim.core_reserve()
-		_toast_msg("The Core is online: %s credits from its reserve."
+		_toast_msg(Loc.t("The Core is online: %s credits from its reserve.")
 			% Economy.fmt(Sim.core_reserve()))
 		if Tutorial.is_done(Sim.tutorial_step()):
-			_say("Online. Build the shaft back up.", Foreman.Pose.JUMP, 3.0)
+			_say(Loc.t("Online. Build the shaft back up."), Foreman.Pose.JUMP, 3.0)
 		_refresh()
 		_refresh_hint()
 		return
@@ -1794,7 +1880,7 @@ func _show_core() -> void:
 	var lv := VBoxContainer.new()
 	lv.alignment = BoxContainer.ALIGNMENT_CENTER
 	lv.add_theme_constant_override("separation", 8)
-	lv.add_child(_label("LEVEL %d" % lvl, 34, Palette.CORE))
+	lv.add_child(_label(Loc.t("LEVEL %d") % lvl, 34, Palette.CORE))
 	var pips := HBoxContainer.new()
 	pips.add_theme_constant_override("separation", 6)
 	for k in range(IsoView.CORE_LEVELS):
@@ -1802,15 +1888,13 @@ func _show_core() -> void:
 		pip.color = Palette.CORE if k < lvl else Color(Palette.BG, 0.9)
 		pips.add_child(pip)
 	lv.add_child(pips)
-	lv.add_child(_label("Stratum %d" % Sim.depth, 18, Palette.TEXT_DIM))
+	lv.add_child(_label(Loc.t("Stratum %d") % Sim.depth, 18, Palette.TEXT_DIM))
 	top.add_child(lv)
-	var next_lvl: String = "It is as big as it gets." if lvl >= IsoView.CORE_LEVELS \
-		else "It grows with its yard: at stratum %d it reaches level %d." % [
+	var next_lvl: String = Loc.t("It is as big as it gets.") if lvl >= IsoView.CORE_LEVELS \
+		else Loc.t("It grows with its yard: at stratum %d it reaches level %d.") % [
 			IsoView.stratum_for_level(lvl + 1), lvl + 1]
-	top.add_child(_help_button("Factory Core", func() -> String:
-		return ("The heart of this shaft. It gave you the credits for your first Drill "
-			+ "and Vault; everything since, the board has earned.\n\n%s Every stratum "
-			+ "is richer rock, and new machines open on the way down.") % next_lvl))
+	top.add_child(_help_button(Loc.t("Factory Core"), func() -> String:
+		return Loc.t("The heart of this shaft. It gave you the credits for your first Drill and Vault; everything since, the board has earned.\n\n%s Every stratum is richer rock, and new machines open on the way down.") % next_lvl))
 	body.add_child(top)
 
 	# The factory in four numbers.
@@ -1819,26 +1903,26 @@ func _show_core() -> void:
 	stats.add_theme_constant_override("separation", 12)
 	var problems: int = int(rep["problems"])
 	stats.add_child(_core_stat(Chips.MachineSprite.new("drill", 46.0),
-		str(int(rep["machines"])), "machines", Palette.TEXT))
+		str(int(rep["machines"])), Loc.t("machines"), Palette.TEXT))
 	stats.add_child(_core_stat(_icon_rect("ok", 46), str(int(rep["working"])),
-		"working", Palette.GOOD))
-	stats.add_child(_core_stat(_icon_rect("warning", 46), str(problems), "need help",
+		Loc.t("working"), Palette.GOOD))
+	stats.add_child(_core_stat(_icon_rect("warning", 46), str(problems), Loc.t("need help"),
 		Palette.WARN if problems > 0 else Palette.TEXT_DIM))
 	stats.add_child(_core_stat(_icon_rect("credits", 46),
-		"+%s/s" % Economy.fmt(Sim.credits_per_sec), "earning", Palette.CORE))
+		Loc.t("+%s /s") % Economy.fmt(Sim.credits_per_sec), Loc.t("earning"), Palette.CORE))
 	body.add_child(stats)
 
 	# How much of the yard is built.
 	var yard := HBoxContainer.new()
 	yard.alignment = BoxContainer.ALIGNMENT_CENTER
 	yard.add_theme_constant_override("separation", 14)
-	yard.add_child(_label("Yard", 22, Palette.TEXT))
+	yard.add_child(_label(Loc.t("Yard"), 22, Palette.TEXT))
 	var bar := Chips.Gauge.new(300, 18)
 	bar.value = clampf(float(rep["machines"]) / float(maxi(int(rep["tiles"]), 1)), 0.0, 1.0)
 	bar.fill = Palette.ACCENT
 	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	yard.add_child(bar)
-	yard.add_child(_label("%d / %d tiles" % [int(rep["machines"]), int(rep["tiles"])], 22,
+	yard.add_child(_label(Loc.t("%d / %d tiles") % [int(rep["machines"]), int(rep["tiles"])], 22,
 		Palette.TEXT))
 	body.add_child(yard)
 
@@ -1849,20 +1933,20 @@ func _show_core() -> void:
 	nxt.add_child(_icon_rect("descend", 44))
 	var at: int = int(rep["next_stratum"])
 	var grow: Vector2i = rep["next_size"]
-	var line: String = "The yard covers all the ground there is."
+	var line: String = Loc.t("The yard covers all the ground there is.")
 	if at >= 0 and lvl < IsoView.CORE_LEVELS:
-		line = "Stratum %d: level %d, and the yard grows to %d x %d." % [at,
+		line = Loc.t("Stratum %d: level %d, and the yard grows to %d x %d.") % [at,
 			IsoView.level_at(at), grow.x, grow.y]
 	elif at >= 0:
-		line = "Stratum %d: the yard grows to %d x %d." % [at, grow.x, grow.y]
+		line = Loc.t("Stratum %d: the yard grows to %d x %d.") % [at, grow.x, grow.y]
 	nxt.add_child(_label(line, 20, Palette.TEXT_DIM))
 	body.add_child(nxt)
 
 	# Something is wrong: one key takes the player to it.
 	var actions: Array = []
 	if problems > 0:
-		actions.append({"text": "Show me", "color": Palette.WARN, "cb": _cycle_problem})
-	_open_overlay("Factory Core", body, actions, 900.0)
+		actions.append({"text": Loc.t("Show me"), "color": Palette.WARN, "cb": _cycle_problem})
+	_open_overlay(Loc.t("Factory Core"), body, actions, 900.0)
 
 
 ## One of the Core card's numbers: a picture, the number, a word under it.
@@ -1879,7 +1963,7 @@ func _core_stat(pic: Control, value: String, word: String, col: Color) -> Contro
 	words.add_theme_constant_override("separation", -4)
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
 	words.add_child(_label(value, 28, col))
-	words.add_child(_label(word, 15, Palette.TEXT_DIM))
+	words.add_child(_label(word, TEXT_MIN, Palette.TEXT_DIM))
 	row.add_child(words)
 	p.add_child(row)
 	return p
@@ -1927,17 +2011,17 @@ func _close_overlay() -> void:
 func _stratum_line(d: int) -> String:
 	var mods: Array[String] = Strata.modifiers_for(d)
 	if mods.is_empty():
-		return "Stratum %d. Richer rock, stranger rules." % d
+		return Loc.t("Stratum %d. Richer rock, stranger rules.") % d
 	var names := PackedStringArray()
 	for m: String in mods:
 		names.append(Strata.modifier_name(m))
 	var st: Dictionary = Strata.describe(d)
 	for id: String in Sim.unlocked:
 		if Strata.effect_on(id, st) != 0:
-			return "Stratum %d: %s. The arrows on the tray show what changes." % [d,
-				" and ".join(names)]
-	return "Stratum %d: %s. The card at the top left says what changes." % [d,
-		" and ".join(names)]
+			return Loc.t("Stratum %d: %s. The arrows on the tray show what changes.") % [d,
+				Loc.t(" and ").join(names)]
+	return Loc.t("Stratum %d: %s. The card at the top left says what changes.") % [d,
+		Loc.t(" and ").join(names)]
 
 
 func _tell_yard_news() -> void:
@@ -1956,7 +2040,8 @@ func _tell_yard_news() -> void:
 ## middle of the screen in its own light, while the world changes colour
 ## behind it. It fades on its own and takes no taps.
 func _band_banner(band: int) -> void:
-	var l := _label(String(BAND_NAMES[band]).to_upper(), 64, Color(Palette.BAND_VEIN[band]).lightened(0.25))
+	var l := _label(Loc.upper(Loc.t(BAND_NAMES[band])), 64,
+		Color(Palette.BAND_VEIN[band]).lightened(0.25))
 	l.add_theme_constant_override("outline_size", 12)
 	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2011,15 +2096,15 @@ func _on_node_tapped(index: int) -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 2)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(_label(String(info["name"]), 21, Palette.CORE))
-	col.add_child(_label(String(info["line"]), 16, Palette.TEXT))
+	col.add_child(_label(Loc.t(String(info["name"])), 21, Palette.CORE))
+	col.add_child(_label(Loc.t(String(info["line"])), 16, Palette.TEXT))
 	# What uses it: a machine only where one really makes its resource.
 	var use := HBoxContainer.new()
 	use.add_theme_constant_override("separation", 6)
 	use.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if String(info["machine"]) != "":
 		use.add_child(Chips.MachineSprite.new(String(info["machine"]), 34.0))
-	use.add_child(_label(String(info["use"]), 15, Palette.TEXT_DIM))
+	use.add_child(_label(Loc.t(String(info["use"])), TEXT_MIN, Palette.TEXT_DIM))
 	col.add_child(use)
 	# When the yard gets there.
 	var o: Vector2i = Iso.board_offset()
@@ -2030,8 +2115,8 @@ func _on_node_tapped(index: int) -> void:
 		when.add_theme_constant_override("separation", 6)
 		when.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		when.add_child(_icon_rect("descend", 26))
-		when.add_child(_label("Your yard reaches it at stratum %d." % BuildArea.opens_at(
-			Grid.idx(gx, gy)), 15, Palette.TEXT_DIM))
+		when.add_child(_label(Loc.t("Your yard reaches it at stratum %d.") % BuildArea.opens_at(
+			Grid.idx(gx, gy)), TEXT_MIN, Palette.TEXT_DIM))
 		col.add_child(when)
 	row.add_child(col)
 	_hud.add_child(_node_card)
@@ -2146,7 +2231,7 @@ func _open_overlay(title: String, body: Control, actions: Array,
 		var b := _button(String(a["text"]), a.get("color", Palette.PANEL_HI))
 		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		b.custom_minimum_size = Vector2(minf(360.0, w * 0.45), MIN_TOUCH)
-		b.add_theme_font_size_override("font_size", 26)
+		b.add_theme_font_size_override("font_size", Palette.text_px(26))
 		if a.has("disabled"):
 			b.disabled = bool(a["disabled"])
 		var cb: Variant = a.get("cb")
@@ -2204,7 +2289,7 @@ func _show_cell_info(cell: int) -> void:
 		c.queue_free()
 	for c in _sheet_stats.get_children():
 		c.queue_free()
-	_sheet_title.text = String(m["name"])
+	_sheet_title.text = MachineDB.name_of(id)
 	(_sheet_art as Chips.MachineSprite).id = id
 	_sheet_art.queue_redraw()
 
@@ -2214,25 +2299,25 @@ func _show_cell_info(cell: int) -> void:
 	var icon: String
 	match st:
 		Simulation.Status.STARVED:
-			verdict = "Starved — it is not being fed. Look UPSTREAM."
+			verdict = Loc.t("Starved: it is not being fed. Look UPSTREAM.")
 			icon = "warning"
 		Simulation.Status.BLOCKED:
-			verdict = "Backed up — nothing takes its output. Look DOWNSTREAM."
+			verdict = Loc.t("Backed up: nothing takes its output. Look DOWNSTREAM.")
 			icon = "warning"
 		Simulation.Status.IDLE:
-			verdict = "Idle. Nothing for it to do."
+			verdict = Loc.t("Idle. Nothing for it to do.")
 			icon = "lock"
 		Simulation.Status.PASSIVE:
-			verdict = "Working by standing there. It has no cycle of its own."
+			verdict = Loc.t("Working by standing there. It has no cycle of its own.")
 			icon = "energy"
 		_:
 			if eff < Simulation.THERMAL_WARNING:
-				verdict = "Running, but %s: giving up %d%% of its output." % [
-					"too hot" if delta > 0.0 else "too cold",
-					int(round((1.0 - eff) * 100.0))]
+				verdict = (Loc.t("Running, but too hot: giving up %d%% of its output.") if delta > 0.0
+					else Loc.t("Running, but too cold: giving up %d%% of its output.")) \
+					% int(round((1.0 - eff) * 100.0))
 				icon = "heat" if delta > 0.0 else "cold"
 			else:
-				verdict = "Running well."
+				verdict = Loc.t("Running well.")
 				icon = "ok"
 	(_sheet_status as TextureRect).texture = IsoArt.icon(icon)
 	_sheet_body.add_child(Chips.recipe(id, 42.0))
@@ -2264,14 +2349,14 @@ func _show_cell_info(cell: int) -> void:
 	var recipe: String = MachineDB.recipe_text(id)
 	if recipe != "":
 		lines.append(recipe)
-	lines.append(String(m["desc"]))
+	lines.append(MachineDB.desc_of(id))
 	lines.append("")
-	lines.append("Temperature %.1f (wants %.1f) · thermal output %d%%" % [heat,
+	lines.append(Loc.t("Temperature %.1f (wants %.1f) · thermal output %d%%") % [heat,
 		float(m["heat_optimum"]), int(round(eff * 100.0))])
-	lines.append("Working %d%% of the time · cycle speed when fed %.2f/s" % [
+	lines.append(Loc.t("Working %d%% of the time · cycle speed when fed %.2f/s") % [
 		int(round(Sim.sim.uptime_of(cell) * 100.0)), Sim.sim.effective_rate(cell)])
 	if amp > 1.001:
-		lines.append("Neighbour boost +%.0f%%" % ((amp - 1.0) * 100.0))
+		lines.append(Loc.t("Neighbour boost +%.0f%%") % ((amp - 1.0) * 100.0))
 	_sheet_help = "\n".join(lines)
 
 	_tray.visible = false
@@ -2329,7 +2414,7 @@ func _show_research() -> void:
 	for id: String in Economy.TREE_ORDER:
 		if not HIDDEN_RESEARCH.has(id):
 			grid.add_child(_research_card(id))
-	_open_overlay("Research", grid, [], 1240.0, wallet)
+	_open_overlay(Loc.t("Research"), grid, [], 1240.0, wallet)
 
 
 ## One research line as a card: its picture big, a short name, a line a
@@ -2373,10 +2458,10 @@ func _research_card(id: String) -> Control:
 	var words := VBoxContainer.new()
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.add_theme_constant_override("separation", 4)
-	var name_lbl := _label(String(u["name"]), 21, Palette.TEXT)
+	var name_lbl := _label(Loc.t(String(u["name"])), 21, Palette.TEXT)
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(name_lbl)
-	var short_lbl := _label(String(u.get("short", "")), 17, Palette.TEXT_DIM)
+	var short_lbl := _label(Loc.t(String(u.get("short", ""))), 17, Palette.TEXT_DIM)
 	short_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(short_lbl)
 	# How far along: one pip a level, and the count.
@@ -2399,7 +2484,7 @@ func _research_card(id: String) -> Control:
 		done.custom_minimum_size = Vector2(0, MIN_TOUCH)
 		done.add_theme_constant_override("separation", 8)
 		done.add_child(_icon_rect("ok", 52))
-		done.add_child(_label("MAX", 26, Palette.CORE))
+		done.add_child(_label(Loc.t("MAX"), 26, Palette.CORE))
 		bottom.add_child(done)
 	else:
 		# The price as pictures and numbers on the key that buys it. What is
@@ -2432,10 +2517,10 @@ func _research_card(id: String) -> Control:
 				if _overlay_scroll != null:
 					_overlay_scroll.scroll_vertical = keep)
 		bottom.add_child(b)
-	var help := _help_button(String(u["name"]), func() -> String:
-		var t: String = String(u["desc"])
+	var help := _help_button(Loc.t(String(u["name"])), func() -> String:
+		var t: String = Loc.t(String(u["desc"]))
 		if locked:
-			t += "\n\nThis one also costs Cores. You get Cores when you collapse the shaft."
+			t += "\n\n" + Loc.t("This one also costs Cores. You get Cores when you collapse the shaft.")
 		return t)
 	help.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	bottom.add_child(help)
@@ -2531,13 +2616,11 @@ func _show_collapse() -> void:
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		steps_col.add_child(count)
 		row.add_child(steps_col)
-		row.add_child(_help_button("Collapse", func() -> String:
-			return ("Collapsing the shaft turns everything you have built into Cores, and "
-				+ "Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You "
-				+ "have reached %d.") % [need, Sim.max_depth]))
+		row.add_child(_help_button(Loc.t("Collapse"), func() -> String:
+			return Loc.t("Collapsing the shaft turns everything you have built into Cores, and Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You have reached %d.") % [need, Sim.max_depth]))
 		body.add_child(row)
 		body.set_meta("state", "locked")
-		_open_overlay("Collapse", body, [], 1000.0)
+		_open_overlay(Loc.t("Collapse"), body, [], 1000.0)
 		return
 
 	var gained: int = Sim.pending_cores()
@@ -2549,11 +2632,10 @@ func _show_collapse() -> void:
 	trade.add_child(Chips.Arrow.new(80.0))
 	trade.add_child(_icon_rect("cores", 140))
 	trade.add_child(_label("+%d" % gained, 72, Palette.CORE))
-	trade.add_child(_help_button("Collapse the shaft", func() -> String:
-		return ("You get %d Cores.\n\nGone: the machines, your credits, your research "
-			+ "points and your depth.\nKept: your Cores and every upgrade you have "
-			+ "researched.\n\nGoing deeper and earning more both raise the Cores. One more "
-			+ "stratum is usually worth more than one more hour at this one.") % gained))
+	trade.add_child(_help_button(Loc.t("Collapse the shaft"), func() -> String:
+		return Loc.tn("You get %d Core.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one.",
+			"You get %d Cores.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one.",
+			gained) % gained))
 	body.add_child(trade)
 
 	# What goes, crossed out; what stays, ticked.
@@ -2583,13 +2665,13 @@ func _show_collapse() -> void:
 	for id: String in opened:
 		opens.add_child(_research_art(id, 64.0, false))
 	if not opened.is_empty():
-		opens.add_child(_label("These Cores open %s." % ("this research line" if opened.size() == 1
-			else "these research lines"), 20, Palette.TEXT_DIM))
+		opens.add_child(_label(Loc.tn("These Cores open this research line.",
+			"These Cores open these research lines.", opened.size()), 20, Palette.TEXT_DIM))
 		body.add_child(opens)
 	body.set_meta("opens", opened)
 	body.set_meta("state", "ready" if Sim.can_collapse() else "empty")
-	_open_overlay("Collapse", body,
-		[{"text": "Collapse", "color": Palette.CORE, "disabled": not Sim.can_collapse(),
+	_open_overlay(Loc.t("Collapse"), body,
+		[{"text": Loc.t("Collapse"), "color": Palette.CORE, "disabled": not Sim.can_collapse(),
 			"cb": func(): Sim.collapse()}], 1000.0)
 
 
@@ -2679,16 +2761,16 @@ func _show_offline(report: Dictionary) -> void:
 	var sum_lbl := _label("+%s" % Economy.fmt(amount), 44, Palette.CORE)
 	sum_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(sum_lbl)
-	var detail: String = "The shaft kept running.\n\nAway %s. Counted %s at %d%% of your live rate." % [away, counted, rate_pct]
+	var detail: String = Loc.t("The shaft kept running.\n\nAway %s. Counted %s at %d%% of your live rate.") % [away, counted, rate_pct]
 	if bool(report.get("capped", false)):
-		detail += "\n\nYour offline banking is full at %.0f hours. Night Shift in Research raises it." % Sim.offline_hours()
-	head.add_child(_help_button("While you were away", func() -> String: return detail))
+		detail += "\n\n" + Loc.t("Your offline banking is full at %.0f hours. Night Shift in Research raises it.") % Sim.offline_hours()
+	head.add_child(_help_button(Loc.t("While you were away"), func() -> String: return detail))
 	body.add_child(head)
 
 	var actions: Array = []
 	if Ads.can_offer(Ads.P_DOUBLE_OFFLINE):
 		actions.append({
-			"text": "Ad: x2",
+			"text": Loc.t("Ad: x2"),
 			"color": Palette.GOOD,
 			"cb": func(): Ads.show_rewarded(Ads.P_DOUBLE_OFFLINE),
 		})
@@ -2708,17 +2790,17 @@ func _show_offline(report: Dictionary) -> void:
 		# somebody whose hours were not capped is selling them nothing.
 		body.add_child(HSeparator.new())
 		body.add_child(_wrap_label(
-			"The Foreman's Licence banks %.0f hours instead of %.0f, permanently, and removes ads."
+			Loc.t("The Foreman's Licence banks %.0f hours instead of %.0f, permanently, and removes ads.")
 			% [Sim.offline_hours() + float(MonetizationDB.grant_value(
 				MonetizationDB.LICENCE, MonetizationDB.GRANT_OFFLINE_HOURS, 0.0)),
 				Sim.offline_hours()]))
 		actions.append({
-			"text": "Supply Office",
+			"text": Loc.t("Supply Office"),
 			"color": Palette.PANEL_HI,
 			"cb": func(): _open_shop(),
 		})
 
-	_open_overlay("Welcome back", body, actions)
+	_open_overlay(Loc.t("Welcome back"), body, actions)
 
 
 ## Every setting, applied from `Sim.settings` in one place: at start, and
@@ -2799,7 +2881,8 @@ func _show_settings() -> void:
 			mark = Chips.Glyph.new(String(t["glyph"]), 52.0)
 		mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(mark)
-		var nm := _label(String(t["name"]), 22, Palette.TEXT)
+		var nm := _label(Loc.t(String(t["name"])), 22, Palette.TEXT)
+		_fit(nm, 250.0 - 14.0 - 52.0 - 12.0 - 8.0)
 		nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		nm.size_flags_vertical = Control.SIZE_FILL
 		row.add_child(nm)
@@ -2812,7 +2895,7 @@ func _show_settings() -> void:
 		_settings_keys.append(k)
 		rail.add_child(k)
 	var ver := _label("Lodeworks %s" % String(ProjectSettings.get_setting(
-		"application/config/version", "")), 15, Palette.TEXT_FAINT)
+		"application/config/version", "")), TEXT_MIN, Palette.TEXT_FAINT)
 	ver.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	ver.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	rail.add_child(ver)
@@ -2823,7 +2906,7 @@ func _show_settings() -> void:
 	_settings_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(_settings_page)
 	_fill_settings_page()
-	_open_overlay("Settings", body, [], 1120.0)
+	_open_overlay(Loc.t("Settings"), body, [], 1120.0)
 
 
 func _fill_settings_page() -> void:
@@ -2835,8 +2918,15 @@ func _fill_settings_page() -> void:
 	var page := _settings_page
 	match _settings_tab:
 		"game":
-			page.add_child(_setting_action(_icon_rect("codex", 52), "Codex",
-				"Every machine, and how the factory works", func():
+			# The language first: a player who cannot read the rest finds it
+			# by its globe and by its own language's name.
+			var chosen: String = String(Sim.settings.get("locale", ""))
+			page.add_child(_setting_action(Chips.Glyph.new("globe", 52.0), Loc.t("Language"),
+				Loc.name_of(Loc.current()) if chosen != "" \
+					else Loc.t("Device language: %s") % Loc.name_of(Loc.current()),
+				func(): _show_languages()))
+			page.add_child(_setting_action(_icon_rect("codex", 52), Loc.t("Codex"),
+				Loc.t("Every machine, and how the factory works"), func():
 					_close_overlay()
 					_open_codex()))
 			var owned: Array[String] = []
@@ -2847,58 +2937,87 @@ func _fill_settings_page() -> void:
 			# panel, and it is reached from nowhere else.
 			# `MonetizationDB.PLACEMENTS` is the list and
 			# `FORBIDDEN_PLACEMENTS` is what this game refuses to have.
-			page.add_child(_setting_action(_icon_rect("shop", 52), "Supply Office",
-				"Two one-time purchases" if owned.is_empty() else "Active: " + ", ".join(owned),
+			page.add_child(_setting_action(_icon_rect("shop", 52), Loc.t("Supply Office"),
+				Loc.t("Two one-time purchases") if owned.is_empty()
+					else Loc.t("Active: %s") % ", ".join(owned),
 				func():
 					_close_overlay()
 					_open_shop()))
-			var stats := _setting_switch(_icon_rect("research", 52), "Anonymous statistics",
-				"No account, no ad ID, nothing personal", Analytics.enabled, func(on: bool):
+			var stats := _setting_switch(_icon_rect("research", 52), Loc.t("Anonymous statistics"),
+				Loc.t("No account, no ad ID, nothing personal"), Analytics.enabled, func(on: bool):
 					Analytics.set_enabled(on))
 			page.add_child(stats)
 			# GDPR requires consent to be withdrawable, not just grantable. The
 			# ad SDK owns that form; this is the entry point into it.
 			if Ads.is_plugin_present():
-				page.add_child(_setting_action(_icon_rect("ad", 52), "Ad privacy",
-					"The ad network's consent form", func():
+				page.add_child(_setting_action(_icon_rect("ad", 52), Loc.t("Ad privacy"),
+					Loc.t("The ad network's consent form"), func():
 						if not Ads.show_privacy_options():
-							_toast_msg("The ad SDK did not offer a privacy form.")))
-			page.add_child(_setting_action(_icon_rect("ok", 52), "Device self test",
-				"Frame time, screen, save and plugins", func():
+							_toast_msg(Loc.t("The ad SDK did not offer a privacy form."))))
+			page.add_child(_setting_action(_icon_rect("ok", 52), Loc.t("Device self test"),
+				Loc.t("Frame time, screen, save and plugins"), func():
 					_close_overlay()
 					_open_diagnostics()))
 		"audio":
-			page.add_child(_setting_switch(Chips.Glyph.new("speaker", 52.0), "Sounds",
-				"Taps, machines, descents", bool(Sim.settings.get("sound", true)),
+			page.add_child(_setting_switch(Chips.Glyph.new("speaker", 52.0), Loc.t("Sounds"),
+				Loc.t("Taps, machines, descents"), bool(Sim.settings.get("sound", true)),
 				func(on: bool): _set_setting("sound", on)))
-			page.add_child(_setting_switch(Chips.Glyph.new("wave", 52.0), "Ambience",
-				"The hum of the shaft", bool(Sim.settings.get("ambient", true)),
+			page.add_child(_setting_switch(Chips.Glyph.new("wave", 52.0), Loc.t("Ambience"),
+				Loc.t("The hum of the shaft"), bool(Sim.settings.get("ambient", true)),
 				func(on: bool): _set_setting("ambient", on)))
 			page.add_child(_volume_row())
 		"graphics":
-			page.add_child(_setting_switch(Chips.Glyph.new("sparkle", 52.0), "Machine effects",
-				"Dust, sparks, steam and coins", bool(Sim.settings.get("effects", true)),
+			page.add_child(_setting_switch(Chips.Glyph.new("sparkle", 52.0), Loc.t("Machine effects"),
+				Loc.t("Dust, sparks, steam and coins"), bool(Sim.settings.get("effects", true)),
 				func(on: bool): _set_setting("effects", on)))
-			page.add_child(_setting_switch(Chips.Glyph.new("battery", 52.0), "Battery saver",
-				"30 frames a second instead of 60", bool(Sim.settings.get("battery_saver", false)),
+			page.add_child(_setting_switch(Chips.Glyph.new("battery", 52.0), Loc.t("Battery saver"),
+				Loc.t("30 frames a second instead of 60"), bool(Sim.settings.get("battery_saver", false)),
 				func(on: bool): _set_setting("battery_saver", on)))
 		"controls":
-			page.add_child(_setting_switch(Chips.Glyph.new("vibrate", 52.0), "Vibration",
-				"A small buzz when you build", bool(Sim.settings.get("haptics", true)),
+			page.add_child(_setting_switch(Chips.Glyph.new("vibrate", 52.0), Loc.t("Vibration"),
+				Loc.t("A small buzz when you build"), bool(Sim.settings.get("haptics", true)),
 				func(on: bool): _set_setting("haptics", on)))
 		"access":
-			page.add_child(_setting_switch(Chips.Glyph.new("zoom", 52.0), "Zoom key",
-				"A zoom key, for playing without pinching",
+			page.add_child(_setting_switch(Chips.Glyph.new("zoom", 52.0), Loc.t("Zoom key"),
+				Loc.t("A zoom key, for playing without pinching"),
 				bool(Sim.settings.get("zoom_key", false)),
 				func(on: bool): _set_setting("zoom_key", on)))
-			page.add_child(_setting_switch(Chips.Glyph.new("motion", 52.0), "Reduce motion",
-				"No swelling, flickering or plunging",
+			page.add_child(_setting_switch(Chips.Glyph.new("motion", 52.0), Loc.t("Reduce motion"),
+				Loc.t("No swelling, flickering or plunging"),
 				bool(Sim.settings.get("reduce_motion", false)),
 				func(on: bool): _set_setting("reduce_motion", on)))
-			page.add_child(_setting_switch(Chips.Glyph.new("text", 52.0), "Larger text",
-				"Every word a quarter bigger",
+			page.add_child(_setting_switch(Chips.Glyph.new("text", 52.0), Loc.t("Larger text"),
+				Loc.t("Every word a quarter bigger"),
 				bool(Sim.settings.get("large_text", false)),
 				func(on: bool): _set_setting("large_text", on)))
+
+
+## The languages, each written in itself, and "the device's" at the top. A
+## tap switches at once; the current one is ticked.
+func _show_languages() -> void:
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	body.set_meta("languages", Loc.ready_codes())
+	var chosen: String = String(Sim.settings.get("locale", ""))
+	var rows: Array = [["", Loc.t("Device language")]]
+	for code: String in Loc.ready_codes():
+		rows.append([code, Loc.name_of(code)])
+	for r: Array in rows:
+		var code: String = String(r[0])
+		var b := _setting_row(Chips.Glyph.new("globe", 44.0), String(r[1]), "")
+		b.set_meta("locale", code)
+		if code == chosen:
+			var tick := _icon_rect("ok", 44)
+			tick.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			(b.get_child(0) as HBoxContainer).add_child(tick)
+		b.pressed.connect(func():
+			Juice.tap()
+			_close_overlay()
+			_set_language(code)
+			_settings_tab = "game"
+			_show_settings())
+		body.add_child(b)
+	_open_overlay(Loc.t("Language"), body, [], 760.0)
 
 
 func _set_setting(key: String, value: Variant) -> void:
@@ -2957,7 +3076,7 @@ func _setting_row(mark: Control, title: String, sub: String) -> Button:
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.add_child(_label(title, 22, Palette.TEXT))
 	if sub != "":
-		words.add_child(_label(sub, 15, Palette.TEXT_DIM))
+		words.add_child(_label(sub, TEXT_MIN, Palette.TEXT_DIM))
 	row.add_child(words)
 	b.add_child(row)
 	return b
@@ -2966,7 +3085,7 @@ func _setting_row(mark: Control, title: String, sub: String) -> Button:
 ## Volume in five steps, with a key either side: a slider's grabber is too
 ## small for a thumb.
 func _volume_row() -> Control:
-	var b := _setting_row(Chips.Glyph.new("speaker", 52.0), "Volume", "")
+	var b := _setting_row(Chips.Glyph.new("speaker", 52.0), Loc.t("Volume"), "")
 	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var row: HBoxContainer = b.get_child(0) as HBoxContainer
 	row.mouse_filter = Control.MOUSE_FILTER_PASS

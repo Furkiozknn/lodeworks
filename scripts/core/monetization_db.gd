@@ -249,20 +249,22 @@ static func all_store_ids() -> Array:
 	return out
 
 
+## A product's words, in the player's language (the table keeps English).
 static func title_of(key: String) -> String:
-	return String(product(key).get("title", key))
+	return Loc.t(String(product(key).get("title", key)))
 
 
 static func headline_of(key: String) -> String:
-	return String(product(key).get("headline", ""))
+	return Loc.t(String(product(key).get("headline", "")))
 
 
 static func bullets_of(key: String) -> Array:
-	return (product(key).get("bullets", []) as Array).duplicate()
+	return (product(key).get("bullets", []) as Array).map(func(b): return Loc.t(String(b)))
 
 
 static func footnote_of(key: String) -> String:
-	return String(product(key).get("footnote", ""))
+	var f: String = String(product(key).get("footnote", ""))
+	return Loc.t(f) if f != "" else ""
 
 
 static func grants_of(key: String) -> Dictionary:

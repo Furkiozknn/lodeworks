@@ -253,7 +253,7 @@ func _on_connect_error(code: Variant = null, _msg: Variant = null) -> void:
 		# Play services, a region where it is not offered, a sideload). Stop
 		# retrying and stop offering anything.
 		_reconnect_tries = RECONNECT_TRIES
-		last_player_message = "Google Play billing isn't available on this device."
+		last_player_message = Loc.t("Google Play billing isn't available on this device.")
 	else:
 		_schedule_reconnect()
 	availability_changed.emit(false)
@@ -371,7 +371,7 @@ func _process(_delta: float) -> void:
 		_purchase_in_flight = ""
 		_purchase_started_at = -1.0
 		last_error = "purchase_timeout"
-		last_player_message = "That took too long. Nothing was charged."
+		last_player_message = Loc.t("That took too long. Nothing was charged.")
 		purchase_failed.emit(k, "timeout")
 	if _reconnect_at > 0.0 and t >= _reconnect_at:
 		_reconnect_at = -1.0
@@ -602,7 +602,7 @@ func purchase(key: String) -> bool:
 		purchase_completed.emit(key)
 		return true
 	if is_pending(key):
-		last_player_message = "That purchase is still waiting on your payment."
+		last_player_message = Loc.t("That purchase is still waiting on your payment.")
 		purchase_failed.emit(key, "already_pending")
 		return false
 	if not can_purchase(key):
@@ -635,10 +635,10 @@ func purchase(key: String) -> bool:
 
 func _unavailable_reason() -> String:
 	if _plugin == null:
-		return "Purchases aren't available in this build."
+		return Loc.t("Purchases aren't available in this build.")
 	if not _available:
-		return "Can't reach Google Play right now. Try again in a moment."
-	return "That isn't available on this device."
+		return Loc.t("Can't reach Google Play right now. Try again in a moment.")
+	return Loc.t("That isn't available on this device.")
 
 
 func restore() -> void:
@@ -758,7 +758,7 @@ func _ingest(p: Variant) -> bool:
 		if state_of(key) != State.PENDING:
 			_state[key] = State.PENDING
 			Analytics.track("iap_failed", {"code": "pending"})
-			last_player_message = "Waiting on your payment. The %s unlocks as soon as it clears." \
+			last_player_message = Loc.t("Waiting on your payment. The %s unlocks as soon as it clears.") \
 				% MonetizationDB.title_of(key)
 			purchase_pending.emit(key)
 			return true
@@ -891,23 +891,23 @@ func _on_purchase_error(code: Variant = null, msg: Variant = null) -> void:
 			# Almost always a previous purchase that never reached this
 			# install. Asking the store beats showing an error at somebody who
 			# has already paid.
-			last_player_message = "You already own that -- restoring it now."
+			last_player_message = Loc.t("You already own that: restoring it now.")
 			restore()
 			purchase_failed.emit(key, "already_owned")
 			return
 		CODE_BILLING_UNAVAILABLE:
 			_confirmed.clear()
-			last_player_message = "Google Play billing isn't available on this device."
+			last_player_message = Loc.t("Google Play billing isn't available on this device.")
 		CODE_ITEM_UNAVAILABLE:
 			if key != "":
 				_confirmed[key] = false
-			last_player_message = "That isn't available on this device."
+			last_player_message = Loc.t("That isn't available on this device.")
 		CODE_NETWORK_ERROR, CODE_SERVICE_UNAVAILABLE:
-			last_player_message = "No connection to Google Play. Nothing was charged."
+			last_player_message = Loc.t("No connection to Google Play. Nothing was charged.")
 		CODE_DEVELOPER_ERROR:
-			last_player_message = "Purchases are misconfigured in this build."
+			last_player_message = Loc.t("Purchases are misconfigured in this build.")
 		_:
-			last_player_message = "That didn't go through. Nothing was charged."
+			last_player_message = Loc.t("That didn't go through. Nothing was charged.")
 
 	if RETRYABLE.has(c):
 		# Transient. Ask the store again so the button comes back by itself

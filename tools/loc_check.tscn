@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://tvg8kmp0xlhy"]
+
+[ext_resource type="PackedScene" path="res://scenes/main.tscn" id="1_main"]
+[ext_resource type="Script" path="res://tools/loc_check.gd" id="2_loc"]
+
+[node name="LocCheck" type="Node"]
+
+[node name="Main" parent="." instance=ExtResource("1_main")]
+
+[node name="LocCheck" type="Node" parent="."]
+script = ExtResource("2_loc")
