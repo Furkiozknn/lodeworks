@@ -174,10 +174,16 @@ func _check(main: Control, name: String, window: Vector2, dpi: int, inset: Vecto
 			Vector2(0.0, canvas.y)])
 		for part in Geometry2D.intersect_polygons(yard, screen):
 			shown += absf(_poly_area(part))
+		# No shown text under the interface's floor (main.TEXT_MIN).
+		var floor_units: int = int((main.get_script() as GDScript).get("TEXT_MIN"))
+		var txt: Dictionary = _smallest_text(main, floor_units)
+		for t: String in txt["under"]:
+			_fail.append("%s: text under %d units: %s" % [tag, floor_units, t])
 		print("%-18s %-12s %9.1f %9.1f %7.1f%% %5.1f%% %s" % [name,
 			"%dx%d" % [int(canvas.x), int(canvas.y)], cell_dp, max_dp,
 			100.0 * shown / (canvas.x * canvas.y), _hud_share(rects, canvas),
-			"zoom %.2f, %.2f px/unit" % [view.cam.zoom, scale_px]])
+			"zoom %.2f, %.2f px/unit, smallest text %d units = %.1f dp ('%s')" % [view.cam.zoom,
+				scale_px, int(txt["units"]), float(txt["units"]) * dp_per_unit, txt["words"]]])
 
 
 ## "board": a deep shaft, the Core long online, research and Cores in hand.
@@ -250,6 +256,28 @@ func _check_yard(main: Control, name: String, window: Vector2, dpi: int,
 ## How many of the world's props stand on screen, clear of the panels, and
 ## how many of those are resource nodes: what a player actually sees round
 ## the yard, as against what layout.json holds.
+## The smallest text on the interface: its size in canvas units, the words,
+## and every text under `floor_units`. Labels and keys with words, shown and
+## not inside an open panel.
+func _smallest_text(main: Control, floor_units: int) -> Dictionary:
+	var smallest: int = 999
+	var words: String = ""
+	var under: Array[String] = []
+	for n: Node in main.find_children("*", "", true, false):
+		if not (n is Label or n is Button) or not (n as Control).is_visible_in_tree():
+			continue
+		var text: String = String(n.get("text")).strip_edges()
+		if text == "":
+			continue
+		var fs: int = (n as Control).get_theme_font_size("font_size")
+		if fs < floor_units:
+			under.append("%s %d" % [text.replace("\n", " ").left(24), fs])
+		if fs < smallest:
+			smallest = fs
+			words = text.replace("\n", " ").left(24)
+	return {"units": smallest, "words": words, "under": under}
+
+
 func _props_on_screen(view: IsoView, rects: Dictionary, canvas: Vector2) -> String:
 	var shown: int = 0
 	var nodes: int = 0

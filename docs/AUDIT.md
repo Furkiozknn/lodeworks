@@ -1339,6 +1339,30 @@ This round also put back seven line breaks that a shell had turned into
 runs of tabs in earlier rounds (`main.gd`, `tools/smoke.gd`). The code
 ran the same; it was unreadable.
 
+### The smallest text on the interface
+
+`tools/layout_check.gd` now reports the smallest shown text on the main
+screen in dp on each screen shape, and fails on any under the floor. The
+floor is `main.TEXT_MIN`. The first measurement:
+
+| screen | before (13 units) | after (16 units) |
+|---|---|---|
+| 18:9 2160x1080, 400 dpi | 7.8 dp | 9.6 dp |
+| 20:9 2400x1080, 405 dpi | 7.7 dp | 9.5 dp |
+| 16:9 1920x1080, 420 dpi | 6.6 dp | 8.1 dp |
+| 16:9 1280x720, 320 dpi | 5.8 dp | 7.1 dp |
+| 16:10 tablet, 300 dpi | 12.3 dp | 15.2 dp |
+
+Before, the smallest text was 13 units: the captions under Research,
+Collapse and Codex, the credits per second, and the stratum's rules on
+its card. 14 units was the stratum's band and quota, Descend's line and
+every price on the tray, and "next:" was 12. All of them are now 16.
+Every screen shape and safe area still passes the layout check. 9.6 dp is
+still under Android's 12 sp body text. Reaching 12 sp would take 20 units
+everywhere, and that means redrawing the keys, not changing a number.
+It is a follow-up, and so is a "Larger text" setting. How the text reads
+on a real phone at arm's length is UNKNOWN (DEVICE-TEST `text`).
+
 ### Follow-ups from the audits
 
 - **Resource nodes with a use**: needs the owner's decision (above).

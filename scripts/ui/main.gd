@@ -33,6 +33,10 @@ const TOP_H := 66.0
 ## The bottom bar: a 96-unit key and the tray's margin round it.
 const BOTTOM_H := 110.0
 const ACTION_W := 96.0
+## The smallest text on the interface, in canvas units: 9.6 dp on the
+## reference 18:9 phone, 7.8 before. tools/layout_check.gd fails on any
+## shown text under it.
+const TEXT_MIN := 16
 const TOOL_W := 96.0
 const DESCEND_W := 204.0
 ## Android's 48dp touch floor, in canvas units, on the phone where a canvas
@@ -504,7 +508,7 @@ func _icon_button(icon_name: String, caption: String, col: Color) -> Button:
 	ic.custom_minimum_size = Vector2(0, 46)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(ic)
-	var l := _label(caption, 13, Palette.TEXT)
+	var l := _label(caption, TEXT_MIN, Palette.TEXT)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(l)
 	b.add_child(box)
@@ -564,7 +568,7 @@ func _build_stratum_card() -> Control:
 	_lbl_depth = _label("Stratum 0", 20, Palette.TEXT)
 	_lbl_depth.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_lbl_depth)
-	_lbl_band = _label("", 14, Palette.CORE)
+	_lbl_band = _label("", TEXT_MIN, Palette.CORE)
 	top.add_child(_lbl_band)
 	col.add_child(top)
 	_quota_bar = ProgressBar.new()
@@ -588,10 +592,10 @@ func _build_stratum_card() -> Control:
 	qrow.add_theme_constant_override("separation", 4)
 	qrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	qrow.add_child(_icon_rect("credits", 18))
-	_lbl_quota = _label("", 14, Palette.TEXT_DIM)
+	_lbl_quota = _label("", TEXT_MIN, Palette.TEXT_DIM)
 	qrow.add_child(_lbl_quota)
 	col.add_child(qrow)
-	_lbl_mods = _label("", 13, Palette.WARN)
+	_lbl_mods = _label("", TEXT_MIN, Palette.WARN)
 	_lbl_mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_lbl_mods.custom_minimum_size = Vector2(212, 0)
 	col.add_child(_lbl_mods)
@@ -692,7 +696,7 @@ func _build_resources() -> Control:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_lbl_credits = _label("0", 24, Palette.CORE)
-	_lbl_rate = _label("0 /s", 13, Palette.TEXT_DIM)
+	_lbl_rate = _label("0 /s", TEXT_MIN, Palette.TEXT_DIM)
 	var money := _pill("credits", _lbl_credits, _lbl_rate)
 	money.custom_minimum_size = Vector2(146, 0)
 	row.add_child(money)
@@ -842,7 +846,7 @@ func _build_descend() -> Control:
 	col.add_theme_constant_override("separation", -2)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_label("DESCEND", 22, Palette.BG))
-	_lbl_descend_sub = _label("", 14, Color(Palette.BG, 0.8))
+	_lbl_descend_sub = _label("", TEXT_MIN, Color(Palette.BG, 0.8))
 	col.add_child(_lbl_descend_sub)
 	_next_row = HBoxContainer.new()
 	_next_row.add_theme_constant_override("separation", 2)
@@ -1157,7 +1161,7 @@ func _make_palette_button(id: String) -> Control:
 	cost_row.add_theme_constant_override("separation", 2)
 	cost_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cost_row.add_child(_icon_rect("credits", 18))
-	var cost_lbl: Label = _label(Economy.fmt(Sim.cost_of(id)), 14, Palette.CORE)
+	var cost_lbl: Label = _label(Economy.fmt(Sim.cost_of(id)), TEXT_MIN, Palette.CORE)
 	cost_row.add_child(cost_lbl)
 	col.add_child(cost_row)
 	b.add_child(col)
@@ -1486,7 +1490,7 @@ func _show_next_unlock() -> void:
 		_next_row.visible = false
 		return
 	_next_row.visible = true
-	_next_row.add_child(_label("next:", 12, Color(Palette.BG, 0.75)))
+	_next_row.add_child(_label("next:", TEXT_MIN, Color(Palette.BG, 0.75)))
 	for id: String in ids.slice(0, 3):
 		var chip := Chips.MachineSprite.new(id, 28.0)
 		chip.tooltip_text = String(MachineDB.get_machine(id)["name"])
