@@ -499,7 +499,7 @@ func to_dict() -> Dictionary:
 	# background notification. Build on demand rather than dereferencing null.
 	_ensure()
 	return {
-		"v": 1,
+		"v": Save.VERSION,
 		"credits": credits,
 		"research": research,
 		"cores": cores,

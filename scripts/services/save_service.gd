@@ -16,6 +16,14 @@ extends Node
 const PATH := "user://save.json"
 const BACKUP := "user://save.backup.json"
 const TMP := "user://save.tmp.json"
+## A save written by a newer build than this one, kept aside untouched.
+const NEWER := "user://save.newer.json"
+
+## The save format this build writes ("v"). A save with a higher number was
+## written by a newer build -- an app rolled back from a test track, say --
+## and may hold fields this build would drop on its next save; it is not
+## loaded, and is copied to NEWER before anything can write over it.
+const VERSION := 1
 
 ## Clocks move. A player who changes timezone, or whose device clock drifts,
 ## must not be punished with a negative delta or rewarded with a decade of
@@ -73,6 +81,9 @@ func load_game(state: Node) -> Dictionary:
 		if not d.is_empty():
 			push_warning("save: primary unreadable, recovered from backup")
 	if d.is_empty():
+		return {}
+	if int(d.get("v", 1)) > VERSION:
+		_keep_newer(d)
 		return {}
 
 	state.from_dict(d)
@@ -132,6 +143,19 @@ func saved_settings() -> Dictionary:
 
 ## Deleting a save is destructive and irreversible, so it lives behind an
 ## explicit call rather than anywhere near normal flow.
+## The newer build's save, written once to NEWER and never over an earlier
+## copy: the first one kept is the one that was not touched.
+func _keep_newer(d: Dictionary) -> void:
+	push_warning("save: written by a newer build (v%d, this is v%d); kept in %s"
+		% [int(d.get("v", 0)), VERSION, NEWER])
+	if FileAccess.file_exists(NEWER):
+		return
+	var f := FileAccess.open(NEWER, FileAccess.WRITE)
+	if f != null:
+		f.store_string(JSON.stringify(d))
+		f.close()
+
+
 func wipe() -> void:
 	var d := DirAccess.open("user://")
 	if d == null:

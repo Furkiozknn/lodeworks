@@ -80,6 +80,35 @@ func test_a_corrupt_save_falls_back_to_the_backup() -> void:
 	runner.gt(t.credits, 0.0, "a truncated primary must not wipe progress")
 
 
+func test_a_save_from_a_newer_build_is_kept_not_loaded() -> void:
+	# An app rolled back to an older build must not load half of a newer
+	# save and then write the half back over it.
+	var s := FakeState.new()
+	s.credits = 5000.0
+	Save.save_game(s)
+	var f := FileAccess.open(Save.PATH, FileAccess.READ)
+	var d: Dictionary = JSON.parse_string(f.get_as_text())
+	f.close()
+	d["v"] = Save.VERSION + 1
+	d["something_new"] = 42
+	f = FileAccess.open(Save.PATH, FileAccess.WRITE)
+	f.store_string(JSON.stringify(d))
+	f.close()
+	DirAccess.remove_absolute(Save.NEWER)
+
+	var t := FakeState.new()
+	var report: Dictionary = Save.load_game(t)
+	runner.check(report.is_empty(), "nothing to report")
+	runner.near(t.credits, 0.0, 0.001, "the newer save is not loaded")
+	runner.check(FileAccess.file_exists(Save.NEWER), "it is kept aside")
+	f = FileAccess.open(Save.NEWER, FileAccess.READ)
+	var kept: Dictionary = JSON.parse_string(f.get_as_text())
+	f.close()
+	runner.eq(int(kept.get("something_new", 0)), 42, "whole, with what this build does not know")
+	runner.near(float(kept.get("credits", 0.0)), 5000.0, 0.01, "and its progress")
+	DirAccess.remove_absolute(Save.NEWER)
+
+
 func test_no_save_is_not_an_error() -> void:
 	var t := FakeState.new()
 	var report: Dictionary = Save.load_game(t)

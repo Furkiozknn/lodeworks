@@ -67,7 +67,7 @@ mid-term, P3 a future system, P4 not needed now.
 | A1 | **Blueprint screen** | `Sim.blueprints` is saved but never written; Drafting Table hidden (`HIDDEN_RESEARCH`); the Licence's blueprint grant hidden | a format, save, list, preview, apply; or removal of the slots | decision P1, build P2 |
 | A2 | **Resource-node economy** | `ResourceNodes` holds words only; nodes vanish when the yard reaches them | any production effect | P3, owner |
 | A3 | **Analytics sink** | `Analytics.endpoint = ""`: events never leave the device | a sink decision; then `first_machine`, `language_change`, `heat_problem`... | P1 before closed testing |
-| A4 | **Landscape store screenshots, tablet shots, preview video** | `store/screenshots*` are 1080x1920 portrait from 23 Sep; `tools/store-assets.sh` still captures portrait | re-shoot at 1920x1080 from the `ui`/`field` captures | P1, release |
+| A4 | **Landscape store screenshots, tablet shots, preview video** | `store/screenshots*` are 1080x1920 portrait from 23 Sep; `tools/store-assets.sh` still captures portrait | re-shoot at 1920x1080 from the `ui`/`field` captures. **FIXED**: CI renders all store assets at the exact sizes and checks them, the listing is rewritten, a Turkish listing added (B-4) | P1, release |
 | A5 | **Store listing text** | `store/listing.md` describes the old small-grid game; English only | rewrite; translate | P1, release |
 | A6 | **Release items needing a person** | privacy-policy contact is a placeholder; no keystore, no signed AAB; versionCode fixed at 1 | owner actions; a versionCode bump step | P1 |
 | A7 | Some sounds | `Juice.income()` never played; no sound for Descend ready or a new band | two or three cues, rate-limited | P2 |
@@ -264,6 +264,14 @@ the world.
 - 1920x1080 phone and 16:9 tablet shots from the existing captures.
 - The listing rewritten for the landscape game, in English and Turkish.
 - Nothing is published.
+- STATUS: **DONE**. `tools/store-assets.sh` renders at 1920x1080 and
+  2560x1440; CI runs it (a desktop window is clamped to its screen, so a
+  local run cannot make the exact sizes) and fails on any spec miss. The
+  check now also measures every listing field against its limit (it said
+  it did; it did not). The description names the Core, the yard, the
+  "What now?" key and the languages; the Turkish listing uses the game's
+  own Turkish words. Still a person's: the YouTube upload of the preview,
+  and whether to list in Turkish at all.
 
 **B-5 — The blueprint decision (P1 decision memo).**
 - Research: layouts shared by code are valuable (Factory Tours).
@@ -273,6 +281,13 @@ the world.
 
 **B-6 — Save format v2 groundwork (P2).** `_migrate` keyed on `v`, with
 a round-trip test; no split yet.
+- STATUS: **PARTIAL, the part that protects data is DONE.** A save whose
+  `v` is higher than `Save.VERSION` (written by a newer build, then opened
+  by an older one after a rollback) is no longer loaded and then written
+  back without the fields the older build does not know: it is copied,
+  whole, to `user://save.newer.json` and the game starts fresh. The round
+  trip was already tested (`test_a_save_round_trips`). No `_migrate` table
+  yet: there is no v2 to migrate to, and an empty table is scaffolding.
 
 **B-7 — Per-band worlds (P2, art).**
 - One tile sheet and one prop sheet each for the Workings, the Deep and
