@@ -61,6 +61,14 @@ var _fail: Array[String] = []
 var _warned: Dictionary = {}
 
 
+## The tools read English whatever the machine speaks, unless
+## LODEWORKS_LOCALE names a language: this runs before the game's own _ready
+## picks the device's language.
+func _init() -> void:
+	if OS.get_environment("LODEWORKS_LOCALE") == "":
+		OS.set_environment("LODEWORKS_LOCALE", "en")
+
+
 func _ready() -> void:
 	var tree: SceneTree = get_tree()
 	await tree.process_frame

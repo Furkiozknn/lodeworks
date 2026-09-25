@@ -97,6 +97,8 @@ var _problem_n: int = 0
 var _alarm_t: float = 0.0
 var _btn_heat: Button
 var _btn_zoom: Button
+## "What now?": the Worklist, one tap away.
+var _btn_worklist: Button
 var _btn_descend: Button
 var _lbl_descend_sub: Label
 ## What the next stratum brings, drawn on the Descend key: the machines it
@@ -624,13 +626,9 @@ func _count_badge(col: Color) -> Label:
 	return l
 
 
-## Research lines the player could buy this moment.
+## Research lines the player could buy this moment (Worklist's count).
 func _research_ready() -> int:
-	var n: int = 0
-	for id: String in Economy.TREE_ORDER:
-		if not HIDDEN_RESEARCH.has(id) and Sim.can_buy_upgrade(id):
-			n += 1
-	return n
+	return Worklist.research_ready(Sim)
 
 
 func _icon_rect(icon_name: String, px: float) -> TextureRect:
@@ -873,6 +871,19 @@ func _build_tools() -> Control:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# What to do now, ranked (Worklist): first in the column, because after
+	# the tutorial it is the answer to the question the tutorial answered.
+	_btn_worklist = _button("", Palette.PANEL_HI)
+	_btn_worklist.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
+	var wl := Chips.Glyph.new("tasks", 60.0)
+	wl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_btn_worklist.add_child(wl)
+	_btn_worklist.tooltip_text = Loc.t("What now?")
+	_btn_worklist.pressed.connect(func():
+		Juice.tap()
+		_show_worklist())
+	col.add_child(_btn_worklist)
 
 	_btn_heat = _button("", Palette.PANEL_HI)
 	_btn_heat.toggle_mode = true
@@ -1152,7 +1163,7 @@ func hud_rects() -> Dictionary:
 
 ## The keys a finger has to hit, for the touch-target test.
 func hud_buttons() -> Array[Button]:
-	var out: Array[Button] = [_btn_heat, _btn_zoom, _btn_problems, _btn_descend]
+	var out: Array[Button] = [_btn_worklist, _btn_heat, _btn_zoom, _btn_problems, _btn_descend]
 	for c in _actions.get_children():
 		out.append(c as Button)
 	for k: String in _palette_buttons:
@@ -1698,6 +1709,8 @@ func _show_what_matters() -> void:
 	_btn_collapse.visible = cores
 	_btn_heat.visible = heat
 	_btn_problems.visible = veteran or not Sim.grid.cells.is_empty()
+	# During the first chapter the Foreman says what to do; after it, this.
+	_btn_worklist.visible = veteran or Tutorial.is_done(step)
 	# Pinch, the wheel and the trackpad zoom; the key is for a player who
 	# cannot pinch, and only appears when Settings asks for it.
 	_btn_zoom.visible = bool(Sim.settings.get("zoom_key", false))
@@ -1966,6 +1979,90 @@ func _core_stat(pic: Control, value: String, word: String, col: Color) -> Contro
 	row.add_child(words)
 	p.add_child(row)
 	return p
+
+
+## --- what now? --------------------------------------------------------------
+##
+## The Worklist as a card: one row per thing worth doing, in Worklist's
+## fixed order, each with a picture, a few words and the place a tap takes
+## the player. Nothing here decides anything; it points at what the rest
+## of the interface already offers.
+
+func _show_worklist() -> void:
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	var items: Array = Worklist.of(Sim)
+	body.set_meta("worklist", items)
+	for e: Dictionary in items:
+		body.add_child(_work_row(e))
+	_open_overlay(Loc.t("What now?"), body, [], 900.0)
+
+
+## One Worklist line as a row: its picture, its words, and what a tap does.
+func _work_row(e: Dictionary) -> Button:
+	var pic: Control
+	var title: String = ""
+	var sub: String = ""
+	var go: Callable = func() -> void: pass
+	match String(e["kind"]):
+		"problems":
+			var n: int = int(e["n"])
+			pic = _icon_rect("warning", 52)
+			title = Loc.tn("%d machine needs help", "%d machines need help", n) % n
+			sub = Loc.t("A tap takes you to the first one.")
+			go = _cycle_problem
+		"descend":
+			pic = _icon_rect("descend", 52)
+			title = Loc.t("Go down to stratum %d") % int(e["stratum"])
+			sub = Loc.t("The quota is met. See what is down there first.")
+			go = _show_below
+		"research":
+			var n2: int = int(e["n"])
+			pic = _icon_rect("research", 52)
+			title = Loc.tn("%d research line ready", "%d research lines ready", n2) % n2
+			sub = Loc.t("What it buys stays, even after a collapse.")
+			go = _show_research
+		"collapse":
+			var lines: int = (e["lines"] as Array).size()
+			pic = _icon_rect("cores", 52)
+			title = Loc.t("Collapse for %d Cores") % int(e["cores"])
+			sub = Loc.tn("They open %d research line.", "They open %d research lines.", lines) % lines
+			go = _show_collapse
+		"first":
+			var id: String = String(e["id"])
+			pic = Chips.MachineSprite.new(id, 52.0)
+			title = Loc.t("Build your first %s") % MachineDB.name_of(id)
+			sub = MachineDB.short_of(id)
+			go = func() -> void: _arm_only(id)
+		"place":
+			var id2: String = String(e["id"])
+			var cells: int = int(e["cells"])
+			pic = Chips.MachineSprite.new(id2, 52.0)
+			title = Loc.t("Place a %s") % MachineDB.name_of(id2)
+			sub = Loc.tn("It would work on %d tile now: the green one.",
+				"It would work on %d tiles now: the green ones.", cells) % cells
+			go = func() -> void: _arm_only(id2)
+		_:
+			pic = _icon_rect("credits", 52)
+			title = Loc.t("%s more credits to go down") % Economy.fmt(float(e.get("missing", 0.0)))
+			sub = Loc.t("Build more, or make what you have earn more.")
+	var b := _setting_row(pic, title, sub)
+	b.set_meta("work", String(e["kind"]))
+	var arrow := _label("›", 40, Palette.TEXT_DIM)
+	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	(b.get_child(0) as HBoxContainer).add_child(arrow)
+	b.pressed.connect(func():
+		Juice.tap()
+		_close_overlay()
+		go.call())
+	return b
+
+
+## Arm a machine for placing, without toggling it off if it already is: the
+## green tiles then show where it would work.
+func _arm_only(id: String) -> void:
+	if _armed != id:
+		_arm(id)
 
 
 ## Some steps have their answer on a button rather than on the board.
@@ -2386,7 +2483,7 @@ const RESEARCH_CARD_MIN_W := 330.0
 ## slots, and no screen saves or loads a blueprint yet: a card that takes
 ## research and changes nothing the player can see would be a fake. It comes
 ## back with the blueprint screen; its level, if a save has one, is kept.
-const HIDDEN_RESEARCH := ["blueprint_slots"]
+const HIDDEN_RESEARCH := Worklist.HIDDEN
 
 
 func _show_research() -> void:
@@ -2678,17 +2775,7 @@ func _show_collapse() -> void:
 ## more Cores than the player has, and no more than they would have with
 ## `gained` more.
 func _cores_open(gained: int) -> Array[String]:
-	var out: Array[String] = []
-	for id: String in Economy.TREE_ORDER:
-		if HIDDEN_RESEARCH.has(id):
-			continue
-		var lvl: int = Sim.upgrade_level(id)
-		if lvl >= int(Economy.RESEARCH_TREE[id]["max"]):
-			continue
-		var need: int = int(Economy.upgrade_cost(id, lvl)["cores"])
-		if need > Sim.cores and need <= Sim.cores + gained:
-			out.append(id)
-	return out
+	return Worklist.cores_open(Sim, gained)
 
 
 ## A picture greyed, with a lock in its corner: not yet.
@@ -2780,6 +2867,13 @@ func _show_offline(report: Dictionary) -> void:
 		body.add_child(rrow)
 	else:
 		body.add_child(head)
+
+	# And what to do now: the Worklist's first line, as a row to tap.
+	var next: Array = Worklist.of(Sim)
+	if not next.is_empty() and String(next[0]["kind"]) != "quota":
+		body.add_child(_label(Loc.t("Now:"), TEXT_MIN, Palette.TEXT_DIM))
+		body.add_child(_work_row(next[0]))
+		body.set_meta("next", String(next[0]["kind"]))
 
 	var actions: Array = []
 	if Ads.can_offer(Ads.P_DOUBLE_OFFLINE):

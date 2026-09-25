@@ -19,6 +19,14 @@ var _failures: Array[String] = []
 var _board_lit: int = 0
 
 
+## The tools read English whatever the machine speaks, unless
+## LODEWORKS_LOCALE names a language: this runs before the game's own _ready
+## picks the device's language.
+func _init() -> void:
+	if OS.get_environment("LODEWORKS_LOCALE") == "":
+		OS.set_environment("LODEWORKS_LOCALE", "en")
+
+
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(OUT_DIR)
 	await get_tree().process_frame
@@ -282,6 +290,33 @@ func _run() -> void:
 			else "nothing", depth_was, Sim.depth])
 	print("  below: stratum %d shown, held %s" % [below, "ok" if held_open else "no"])
 	_main.call("_close_overlay")
+	await _settle(0.3)
+
+	# What now?: the card lists Worklist's lines, one row each, in its order,
+	# and a tap on a row closes the card and does what the row says.
+	# A lit Core always has at least one line (the quota, at worst).
+	if not Sim.core_online:
+		Sim.power_core()
+	var wkey: Button = _main.get("_btn_worklist")
+	wkey.pressed.emit()
+	await _settle(0.5)
+	await _shot("11b_worklist")
+	var listed: Array = []
+	var rows: Array = []
+	for n: Node in _main.find_children("*", "VBoxContainer", true, false):
+		if n.has_meta("worklist") and (n as Control).is_visible_in_tree():
+			listed = n.get_meta("worklist")
+			rows = n.get_children().filter(func(r): return r.has_meta("work"))
+	var row_kinds: Array = rows.map(func(r): return String(r.get_meta("work")))
+	if listed.is_empty() or row_kinds != listed.map(func(e): return String(e["kind"])):
+		_failures.append("What now? shows %s for %s" % [str(row_kinds), str(listed)])
+	else:
+		(rows[0] as Button).pressed.emit()
+		await _settle(0.4)
+	print("  what now: %s" % ", ".join(row_kinds))
+	_main.call("_close_overlay")
+	if String(_main.get("_armed")) != "":
+		_main.call("_arm", String(_main.get("_armed")))
 	await _settle(0.3)
 
 	# Arriving at a stratum, the Foreman names its rules, and points at the

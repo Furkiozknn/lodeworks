@@ -135,6 +135,19 @@ func _run() -> void:
 		_main.call("_close_overlay")
 		_main.call("_close_sheet")
 
+	# What now?: as many kinds of line as one board gives.
+	var was: Array = [Sim.research, Sim.max_depth, Sim.lifetime_credits]
+	Sim.research = 1.0e6
+	Sim.max_depth = Economy.COLLAPSE_MIN_DEPTH
+	Sim.lifetime_credits = 5.0e6
+	_main.call("_show_worklist")
+	await _settle(0.4)
+	await _screen("34_what_now")
+	_main.call("_close_overlay")
+	Sim.research = float(was[0])
+	Sim.max_depth = int(was[1])
+	Sim.lifetime_credits = float(was[2])
+
 	# A resource node round the yard.
 	var props: Array = IsoArt.placement().get("props", [])
 	var view: Control = _main.get("iso_view")

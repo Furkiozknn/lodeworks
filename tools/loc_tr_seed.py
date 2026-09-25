@@ -431,6 +431,22 @@ TR = {
     "Close enough to the magma to be a bad idea.": "Kötü bir fikir olacak kadar magmaya yakın.",
     "Slate": "Arduvaz",
     "Grey plant, coloured cargo. Shape does the work.": "Gri fabrika, renkli yük. İşi şekil görür.",
+    # The Worklist (25 Sep 2026).
+    "What now?": "Şimdi ne yapmalı?",
+    "%d machine needs help": ("%d makine yardım bekliyor", "%d makine yardım bekliyor"),
+    "A tap takes you to the first one.": "Bir dokunuş seni ilkine götürür.",
+    "Go down to stratum %d": "%d. katmana in",
+    "The quota is met. See what is down there first.": "Kota doldu. Önce aşağıda ne olduğuna bak.",
+    "%d research line ready": ("%d araştırma hazır", "%d araştırma hazır"),
+    "What it buys stays, even after a collapse.": "Aldığın şey çöküşten sonra bile kalır.",
+    "Collapse for %d Cores": "%d Çekirdek için çökert",
+    "They open %d research line.": ("%d araştırmayı açarlar.", "%d araştırmayı açarlar."),
+    "Build your first %s": "İlk kez kur: %s",
+    "Place a %s": "Yerleştir: %s",
+    "It would work on %d tile now: the green one.": ("Şu an %d karoda çalışır: yeşil olanda.", "Şu an %d karoda çalışır: yeşil olanlarda."),
+    "%s more credits to go down": "İnmek için %s kredi daha",
+    "Build more, or make what you have earn more.": "Daha çok kur ya da elindekini daha çok kazandır.",
+    "Now:": "Şimdi:",
 }
 
 

@@ -115,6 +115,30 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: res://scripts/ui/main.gd
+msgid "%d machine needs help"
+msgid_plural "%d machines need help"
+msgstr[0] ""
+msgstr[1] ""
+
+#: res://scripts/ui/main.gd
+msgid "%d research line ready"
+msgid_plural "%d research lines ready"
+msgstr[0] ""
+msgstr[1] ""
+
+#: res://scripts/ui/main.gd
+msgid "They open %d research line."
+msgid_plural "They open %d research lines."
+msgstr[0] ""
+msgstr[1] ""
+
+#: res://scripts/ui/main.gd
+msgid "It would work on %d tile now: the green one."
+msgid_plural "It would work on %d tiles now: the green ones."
+msgstr[0] ""
+msgstr[1] ""
+
+#: res://scripts/ui/main.gd
 msgid "You get %d Core.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one."
 msgid_plural "You get %d Cores.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one."
 msgstr[0] ""
@@ -164,6 +188,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "+%s /s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "What now?"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -351,6 +379,42 @@ msgid "Show me"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "A tap takes you to the first one."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Go down to stratum %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The quota is met. See what is down there first."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "What it buys stays, even after a collapse."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Collapse for %d Cores"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Build your first %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Place a %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%s more credits to go down"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Build more, or make what you have earn more."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Stratum %d. Richer rock, stranger rules."
 msgstr ""
 
@@ -436,6 +500,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "While you were away"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Now:"
 msgstr ""
 
 #: res://scripts/ui/main.gd

@@ -209,6 +209,21 @@ class Glyph extends Control:
 					_p(0.72, 0.32)]), red, w, true)
 				for x in [0.42, 0.5, 0.58]:
 					draw_line(_p(x, 0.42), _p(x, 0.74), red, w * 0.8)
+			"tasks":
+				# A clipboard: a board, its clip, and three lines, the first
+				# one ticked. What to do now.
+				draw_rect(Rect2(_p(0.22, 0.16), Vector2(s * 0.56, s * 0.7)),
+					Color(Palette.PANEL_HI.lightened(0.1), 1.0), true)
+				draw_rect(Rect2(_p(0.22, 0.16), Vector2(s * 0.56, s * 0.7)), col, false, w)
+				draw_rect(Rect2(_p(0.38, 0.1), Vector2(s * 0.24, s * 0.1)), Palette.CORE, true)
+				for k in range(3):
+					var y: float = 0.36 + 0.16 * float(k)
+					draw_line(_p(0.46, y), _p(0.7, y), col if k > 0 else Palette.GOOD, w)
+					if k == 0:
+						draw_polyline(PackedVector2Array([_p(0.28, y), _p(0.33, y + 0.05),
+							_p(0.41, y - 0.05)]), Palette.GOOD, w * 1.3, true)
+					else:
+						draw_circle(_p(0.34, y), s * 0.03, col)
 			"globe":
 				# A globe: a circle, its equator and two meridians. Languages.
 				draw_arc(_p(0.5, 0.5), s * 0.36, 0.0, TAU, 32, col, w, true)

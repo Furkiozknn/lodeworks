@@ -87,7 +87,7 @@ mid-term, P3 a future system, P4 not needed now.
 | B8 | **Tile size at deep strata** | default zoom floor 0.6, about 19-22 dp; green tiles and picture picking help | a closer look while placing, if the device run shows mis-taps | P1 (P0 if the device run confirms) |
 | B9 | Save architecture | one flat save; `"v": 1` written, never read; migration only by defaults | a `_migrate(d)` step keyed on `v`; player and factory split later | P2 |
 | B10 | **Collapse economy measurement** | `journey_lab` plays one run and projects the rest | a lab that plays collapse after collapse with upgrades carried over | P1 (the payout decision waits on it) |
-| B11 | **Welcome back panel** | credits, and now the research the Labs banked (it was added but never shown) | "what now" (research ready, can descend, problems): with the Worklist, B-1 | P1 |
+| B11 | **Welcome back panel** | credits, and now the research the Labs banked (it was added but never shown) | "what now": **FIXED** with the Worklist (B-1): its first line, as a row to tap | P1 |
 
 ### C — EXISTS BUT SHOULD IMPROVE
 
@@ -236,6 +236,18 @@ the world.
   smoke test; Turkish and pseudo-language checks.
 - VISUAL: a capture at 18:9 and 16:9.
 - RISK: none; it is built on request.
+- STATUS: **DONE** (`scripts/sim/worklist.gd`, the "What now?" key at
+  the top of the right-hand column, a row in Welcome back). Seven kinds
+  of line in a fixed order, at most five: trouble, the way down,
+  research, a collapse that opens research, a first machine, the
+  furthest step that would work on some empty tile now (by
+  `links_if_placed`, the same rule as the green tiles), and otherwise
+  the quota. 6 unit tests, a smoke check that the rows match the list
+  and a tap works, a Turkish and pseudo-language screen. The camera does
+  not glide to a green tile: arming the machine lights the tiles where
+  it would work, which is the same answer without a second camera path.
+  The key appears when the Foreman's first chapter ends (or after a
+  collapse); before that the Foreman is the worklist.
 
 **B-2 — A collapse lab (P1, measurement).**
 - WHY: the payout decision (§4) needs real multi-collapse numbers, not

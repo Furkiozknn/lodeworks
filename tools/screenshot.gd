@@ -59,6 +59,14 @@ var _main: Control
 var _reel_frame: int = 0
 
 
+## The tools read English whatever the machine speaks, unless
+## LODEWORKS_LOCALE names a language: this runs before the game's own _ready
+## picks the device's language.
+func _init() -> void:
+	if OS.get_environment("LODEWORKS_LOCALE") == "":
+		OS.set_environment("LODEWORKS_LOCALE", "en")
+
+
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(OUT_DIR)
 	DirAccess.make_dir_recursive_absolute(REEL_DIR)

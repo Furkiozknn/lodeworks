@@ -1504,7 +1504,7 @@ English: 0 calls to `tr()`, no translation files. Now:
     choice rule, and that the font draws every letter (ç ğ ı İ ö ş ü).
     It also lints the interface scripts for text handed to a label, key,
     toast, the Foreman or a panel without going through Loc.
-  - `tools/loc_check.tscn` opens 30 screens: the board, every Settings
+  - `tools/loc_check.tscn` opens 31 screens: the board, every Settings
     tab, the language list, Research, Collapse locked and ready, the Core,
     what lies below, the stratum, new machines, welcome back, the machine
     sheet and its words, removing, a resource node, every Codex tab, the
@@ -1541,6 +1541,39 @@ English: 0 calls to `tr()`, no translation files. Now:
     Korean, Simplified Chinese and Arabic are on the list, not ready. A
     new language is a `locale/<code>.po` file, its code in
     `loc_extract.gd` `LANGS`, and `ready: true` in `Loc.LANGUAGES`.
+
+### What now? (the Worklist)
+
+After the Foreman's first chapter nothing said what to do next; each
+answer lived on its own key (the warning count, Descend's glow, the
+Research number, the tray, the green tiles). `Worklist.of` puts them in
+one fixed order, at most five lines:
+
+1. machines in trouble, with the warning key's own count;
+2. the way down, when the quota is met;
+3. research that can be bought, with the Research key's own count;
+4. a collapse, only when its Cores open a research line;
+5. a machine unlocked and never built, first in the tray's order;
+6. the machine furthest along the chain that would work (fed, and
+   handing its work on) on some empty tile right now, and on how many;
+7. otherwise, how many credits are left to the quota.
+
+A key at the top of the right-hand column (a clipboard with ticks)
+opens them as rows; a tap on a row does what it says: goes to the first
+machine in trouble, opens what is below, opens Research or the Collapse
+card, or arms the machine so the green tiles show where it works. The
+first line also sits in Welcome back, under what was banked. Nothing in
+it changes a number of the economy; it only points at what the
+interface already offers.
+
+- Tests: `tests/test_worklist.gd` (the order, each line against the
+  rule it quotes, never more than five); the smoke test opens the card
+  and taps its first row; `loc_check` has a "What now?" screen in
+  Turkish and in the pseudo-language with Larger text.
+- The tools that run the game (`smoke`, `layout_check`, `screenshot`,
+  `perf_probe`) now read English unless `LODEWORKS_LOCALE` names a
+  language: on a Turkish computer they had started the game in Turkish
+  and failed their English checks.
 
 ### Toward more than one factory (not built)
 
