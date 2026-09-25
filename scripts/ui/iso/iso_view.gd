@@ -71,6 +71,10 @@ var _prop_facts_depth: int = -1
 var _hidden: Array[int] = []
 var _hidden_level: int = -1
 var _core_alpha: float = 1.0
+## Where the armed machine would be connected both ways (_linked_cells), and
+## the machine and board it was worked out for.
+var _linked: Dictionary = {}
+var _linked_sig: Array = []
 var highlight_cells: Array[int] = []
 var arm_id: String = ""
 ## Pulse a ring round the Core's base: it is the thing to tap.
@@ -1171,11 +1175,18 @@ func _draw_floor_marks(ci: CanvasItem) -> void:
 	if arm_id != "" and overlay != Overlay.HEAT and Sim.can_afford(arm_id):
 		var ghost: Color = Palette.machine_light(arm_id)
 		ghost.a = 0.22 + 0.10 * pulse
+		# Where it would be fed and could hand its work on, the tile is
+		# filled green: put it here and it works.
+		var linked: Dictionary = _linked_cells()
+		var good: Color = Palette.GOOD
+		good.a = 0.20 + 0.16 * pulse
 		for cell: int in BuildArea.cells(Sim.max_depth):
 			if not Sim.grid.is_empty(cell) or Sim.is_blocked(cell):
 				continue
 			if not (Sim.grid.cells.is_empty() or _touches_machine(cell)):
 				continue
+			if linked.has(cell):
+				ci.draw_colored_polygon(_diamond(cell, 0.62).slice(0, 4), good)
 			ci.draw_polyline(_diamond(cell, 0.62), ghost, 2.0, true)
 	for cell in highlight_cells:
 		if cell < 0 or cell >= Grid.W * Grid.H:
@@ -1201,6 +1212,32 @@ func _draw_floor_marks(ci: CanvasItem) -> void:
 				Color(Palette.GOOD, 0.35))
 	if _pressed and not _panning and not _dragging and _press_cell >= 0:
 		ci.draw_polyline(_diamond(_press_cell, 1.0), Palette.ACCENT, 2.5, true)
+
+
+## The yard's empty tiles where the armed machine would be fed and could
+## hand what it makes on (Simulation.links_if_placed), as a set. Worked out
+## again only when the machine, the board or the yard changes. A support
+## machine has its own mark ("serves N", the placement preview).
+func _linked_cells() -> Dictionary:
+	var sig: Array = [arm_id, Sim.grid.version, Sim.max_depth]
+	if sig == _linked_sig:
+		return _linked
+	_linked_sig = sig
+	_linked = {}
+	var m: Dictionary = MachineDB.get_machine(arm_id)
+	if m.is_empty():
+		return _linked
+	var tags: Array = m.get("tags", [])
+	if (m["inputs"] as Dictionary).is_empty() and (m["outputs"] as Dictionary).is_empty() \
+			and not tags.has("sink") and not tags.has("research"):
+		return _linked
+	for cell: int in BuildArea.cells(Sim.max_depth):
+		if not Sim.grid.is_empty(cell) or Sim.is_blocked(cell) or not _touches_machine(cell):
+			continue
+		var l: Dictionary = Sim.sim.links_if_placed(cell, arm_id)
+		if bool(l["fed"]) and bool(l["delivers"]):
+			_linked[cell] = true
+	return _linked
 
 
 func _touches_machine(cell: int) -> bool:

@@ -271,6 +271,39 @@ func _takers(source: int, res: int) -> Array[int]:
 	return out
 
 
+## Would machine `id`, placed on the empty `cell`, be fed by a neighbour, and
+## have a neighbour to hand what it makes to? The rule `_takers` moves
+## material by -- a Vault takes anything, anything else what it has as an
+## input, and a support tile passes it through -- asked before the machine
+## exists, for the marks the board shows while one is being placed. A Drill
+## needs no feeding and a Vault or a Lab hands nothing on, so that half is
+## true for them. Whether the neighbour has anything to give right now is
+## not the question: that changes by the second.
+func links_if_placed(cell: int, id: String) -> Dictionary:
+	var m: Dictionary = MachineDB.get_machine(id)
+	var ins: Dictionary = m.get("inputs", {})
+	var outs: Dictionary = m.get("outputs", {})
+	var sink: bool = (m.get("tags", []) as Array).has("sink")
+	var fed: bool = ins.is_empty() and not sink
+	var delivers: bool = outs.is_empty()
+	for n: int in grid.bridged_machines(cell):
+		var nm: Dictionary = MachineDB.get_machine(grid.machine_at(n))
+		if not fed:
+			for res: int in (nm.get("outputs", {}) as Dictionary):
+				if sink or ins.has(res):
+					fed = true
+					break
+		if not delivers:
+			if (nm.get("tags", []) as Array).has("sink"):
+				delivers = true
+			else:
+				for res: int in outs:
+					if (nm.get("inputs", {}) as Dictionary).has(res):
+						delivers = true
+						break
+	return {"fed": fed, "delivers": delivers}
+
+
 ## --- phase 2 ---------------------------------------------------------------
 
 func _work(dt: float) -> void:

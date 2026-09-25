@@ -71,6 +71,13 @@ func _ready() -> void:
 	# A silent capture. The reel gets its audio, if it ever gets any, from
 	# something that is not a headless render.
 	Juice.set_sound(false)
+	# The screens are taken at the settings a new player has, whatever this
+	# machine's own save was left at: a switch flipped by an earlier capture
+	# (Larger text, Reduce motion) must not reach the next one's pictures.
+	for k: String in ["large_text", "reduce_motion", "zoom_key", "battery_saver"]:
+		Sim.settings.erase(k)
+	Sim.settings["effects"] = true
+	_main.call("_apply_settings")
 	_run()
 
 
@@ -678,6 +685,13 @@ func _run_field() -> void:
 	await _settle(0.8)
 	await _audit_shot("field_m_below" + tag)
 	_main.call("_close_overlay")
+	# A Vault armed: the tiles where something would feed it, green. (A
+	# Crusher here has none: no empty tile touches both a Drill and a buyer.)
+	_main.call("_arm", "vault")
+	await _settle(0.8)
+	await _audit_shot("field_n_linked" + tag)
+	print("  vault armed: %d tiles where it would work" % (gv.call("_linked_cells") as Dictionary).size())
+	_main.call("_arm", "vault")
 
 	# Stratum 8, Brittle Rock: its rules move machines both ways -- arrows on
 	# the tray, and under each rule on the stratum's card.
@@ -703,8 +717,11 @@ func _run_field() -> void:
 	await _settle(0.6)
 	await _audit_shot("field_l_settings" + tag)
 	_main.call("_close_overlay")
-	Sim.settings["large_text"] = false
+	Sim.settings.erase("large_text")
 	_main.call("_apply_settings")
+	# Saved as it was found, so the next tool to open this save (the smoke
+	# test, the perf probe) does not start with larger text.
+	Save.save_game(Sim)
 	print("wrote the field screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 

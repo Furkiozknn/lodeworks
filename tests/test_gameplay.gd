@@ -899,6 +899,47 @@ func test_deeper_bore_does_what_its_words_say() -> void:
 	runner.near(float(Economy.RESEARCH_TREE["yield_1"]["per_level"]), 0.20, 0.0001, "")
 
 
+func test_a_placement_mark_is_what_the_machine_would_really_be_connected_to() -> void:
+	# While a machine is armed, a tile is marked "fed and delivers" from
+	# Simulation.links_if_placed. Place it there for real and ask the
+	# simulation's own transfer rule (_takers) whether anything would reach
+	# it and whether it could hand anything on: the answers must agree.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2609
+	var ids: Array = MachineDB.MACHINES.keys()
+	var checked: int = 0
+	var both: int = 0
+	for board in range(12):
+		var g := Grid.new()
+		for k in range(14):
+			g.place(Grid.idx(rng.randi_range(2, 8), rng.randi_range(2, 8)), String(ids[rng.randi() % ids.size()]))
+		var s := Simulation.new(g, board)
+		for cell in range(Grid.W * Grid.H):
+			if not g.is_empty(cell) or g.neighbour_machines(cell).is_empty():
+				continue
+			for id: String in ids:
+				var said: Dictionary = s.links_if_placed(cell, id)
+				g.place(cell, id)
+				var m: Dictionary = MachineDB.get_machine(id)
+				var fed: bool = (m["inputs"] as Dictionary).is_empty() \
+					and not (m["tags"] as Array).has("sink")
+				for n: int in g.bridged_machines(cell):
+					for res: int in (MachineDB.get_machine(g.machine_at(n))["outputs"] as Dictionary):
+						if s.debug_takers(n, res).has(cell):
+							fed = true
+				var delivers: bool = (m["outputs"] as Dictionary).is_empty()
+				for res: int in (m["outputs"] as Dictionary):
+					if not s.debug_takers(cell, res).is_empty():
+						delivers = true
+				g.remove(cell)
+				runner.eq(bool(said["fed"]), fed, "board %d, %s at %d: fed" % [board, id, cell])
+				runner.eq(bool(said["delivers"]), delivers, "board %d, %s at %d: delivers" % [board, id, cell])
+				checked += 1
+				both += 1 if fed and delivers else 0
+	runner.gt(float(checked), 500.0, "enough placements checked")
+	runner.gt(float(both), 50.0, "and some of them are fully connected")
+
+
 func test_the_yard_is_the_same_after_a_collapse() -> void:
 	for i in range(0, Grid.W * Grid.H, 5):
 		runner.eq(BuildArea.is_open(i, 3, 1), BuildArea.is_open(i, 3, 0),

@@ -1412,6 +1412,34 @@ Three texts said more than the game does:
   survives a collapse". Every researched upgrade survives too. The README
   said the same. Both are corrected.
 
+### Where a machine would work, while it is being placed
+
+The whole game is adjacency: a machine works when something beside it
+feeds it and something beside it takes what it makes. While a machine was
+armed, the board outlined every empty yard tile that touched a machine,
+whether or not placing it there would connect it. Now the tiles where the
+armed machine would be fed and could hand its work on are filled green.
+Put it there and it works.
+
+The answer is `Simulation.links_if_placed`. It asks the same rule the
+simulation moves material by (`_takers`: a Vault takes anything, anything
+else what it has as an input, and a support tile passes it through)
+before the machine exists. A test places every machine on every
+candidate tile of twelve random boards (4,476 placements). It then asks
+`_takers` of the real placement, and the answers must agree. A support
+machine keeps its own mark ("serves N"). The set is worked out again only
+when the armed machine or the board changes. On the hero board an armed
+Vault has 15 such tiles and an armed Crusher none: no empty tile there
+touches both a Drill and a buyer, and a green tile would be a promise the
+board cannot keep (`field_n_linked`).
+
+**The captures now start from a new player's settings.** An earlier
+capture turned on "Larger text" and the save kept it. The next captures,
+including the README pictures committed in `c15708e`, were taken with
+larger text. `tools/screenshot.gd` now clears the switches a capture may
+flip before it starts, and saves the setting back as it found it. The
+README pictures were taken again.
+
 ### Follow-ups from the audits
 
 - **Resource nodes with a use**: needs the owner's decision (above).
