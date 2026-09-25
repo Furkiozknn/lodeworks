@@ -243,7 +243,55 @@ func _check_yard(main: Control, name: String, window: Vector2, dpi: int,
 		print("%-18s %-12s %9.1f %7.1f%% %5.1f%% %s" % [name,
 			"%dx%d" % [int(canvas.x), int(canvas.y)], Iso.TH * view.cam.zoom * dp_per_unit,
 			100.0 * absf(_poly_area(corners)) / (canvas.x * canvas.y), _hud_share(rects, canvas),
-			"zoom %.2f, Core tap at %s" % [view.cam.zoom, str(tap.round())]])
+			"zoom %.2f, Core tap at %s, %s" % [view.cam.zoom, str(tap.round()),
+				_props_on_screen(view, rects, canvas)]])
+
+
+## How many of the world's props stand on screen, clear of the panels, and
+## how many of those are resource nodes: what a player actually sees round
+## the yard, as against what layout.json holds.
+func _props_on_screen(view: IsoView, rects: Dictionary, canvas: Vector2) -> String:
+	var shown: int = 0
+	var nodes: int = 0
+	for pr: Array in IsoArt.placement().get("props", []):
+		if view.call("_prop_cleared", pr):
+			continue
+		var sp: Vector2 = view.cam.world_to_screen(
+			Iso.slab_top(float(pr[0]) + 0.5, float(pr[1]) + 0.5))
+		if not Rect2(Vector2.ZERO, canvas).has_point(sp):
+			continue
+		var under: bool = false
+		for k: String in rects:
+			if (rects[k] as Rect2).has_point(sp):
+				under = true
+		if under:
+			continue
+		shown += 1
+		if ResourceNodes.is_node(String(pr[2])):
+			nodes += 1
+	# And the board's cells whose middle is on screen and clear of the panels:
+	# how many are the yard, the Core's foundation, and ground not reached.
+	var open: int = 0
+	var core: int = 0
+	var locked: int = 0
+	for cell in range(Grid.W * Grid.H):
+		var cp: Vector2 = view.cam.world_to_screen(Iso.cell_center(cell))
+		if not Rect2(Vector2.ZERO, canvas).has_point(cp):
+			continue
+		var hidden: bool = false
+		for k: String in rects:
+			if (rects[k] as Rect2).has_point(cp):
+				hidden = true
+		if hidden:
+			continue
+		if BuildArea.is_core(cell):
+			core += 1
+		elif Sim.is_open(cell):
+			open += 1
+		else:
+			locked += 1
+	return "props on screen %d (nodes %d), cells on screen %d yard / %d core / %d beyond" % [
+		shown, nodes, open, core, locked]
 
 
 ## Percent of the screen the interface's panels cover. They never overlap
