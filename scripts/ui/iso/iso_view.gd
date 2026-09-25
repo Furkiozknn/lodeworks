@@ -1888,15 +1888,25 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 		ci.draw_texture_rect(g, Rect2(tip - Vector2(70, 70), Vector2(140, 140)), false, col3)
 		_draw_core_level(ci, g, cr)
 	# Dust in the lamp light: a fixed set of motes on slow loops over the slab.
+	# The band sets its colour and how thick it hangs -- lamp dust at the
+	# Surface, amber in the Workings, embers in the Deep, violet in the Abyss
+	# -- until each band has its own art (docs/AUDIT.md, "Planned: a
+	# different look per depth"). Reduce motion leaves the air still.
+	if calm_motion:
+		return
+	var band: int = int(Palette.band_at(Sim.depth)[0])
+	var mote := Color(1.0, 0.9, 0.7)
+	if band > 0:
+		mote = Color(Palette.BAND_VEIN[band]).lerp(mote, 0.35)
 	var slab: PackedVector2Array = Iso.slab_corners()
 	var left: float = slab[3].x
 	var width: float = slab[1].x - slab[3].x
-	for i in range(22):
+	for i in range([22, 28, 36, 44][band]):
 		var sx: float = fposmod(float(i) * 0.6180339, 1.0)
 		var t2: float = fposmod(_anim * (0.03 + 0.02 * fposmod(float(i) * 0.37, 1.0)) + sx, 1.0)
 		var p2 := Vector2(left + width * sx + sin(_anim * 0.5 + float(i)) * 20.0,
 			slab[2].y - t2 * (slab[2].y - slab[0].y + 260.0))
-		var col4 := Color(1.0, 0.9, 0.7, 0.20 * sin(t2 * PI))
+		var col4 := Color(mote, (0.20 if band == 0 else 0.26) * sin(t2 * PI))
 		ci.draw_texture_rect(g, Rect2(p2 - Vector2(3, 3), Vector2(6, 6)), false, col4)
 
 

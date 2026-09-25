@@ -356,6 +356,11 @@ a round-trip test; no split yet.
   the Abyss (AUDIT "Planned: a different look per depth").
 - Before the art: a free interim of per-band particle colours and props
   mix.
+- STATUS: the particle part of the interim is **DONE**: the dust over the
+  slab takes the band's vein colour and hangs thicker deeper (22, 28, 36
+  and 44 motes: lamp dust, amber, embers, violet), and stops with Reduce
+  motion. The props mix and the per-band sheets are not done; the sheets
+  cost image credits (about six images), which is the owner's call.
 
 **B-8 — Reduce-motion coverage and a flow overlay (P2).**
 - STATUS: the coverage is **DONE** (see B5 in the table above): one
