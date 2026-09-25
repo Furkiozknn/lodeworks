@@ -234,6 +234,11 @@ waits for an owner decision named in its entry.
 - *Related:* FP-02, FP-05, FP-11.
 - *Challenges:* the Foreman must not nag (once per stratum, as the overheating line already does).
 - *Vision / Decisions:* none.
+- *Status:* **built as the heat card (25 Sep 2026)** — see `docs/PROGRESSION.md`, "Heat".
+  - The card shows the heat's sources as the simulation adds them, the safe range, and what would change it. Each line is a tap.
+  - The sheet shows the temperature against its safe range.
+  - The Core's rows name what holds them back.
+  - Not yet: a cause mark on the board badge.
 
 **FP-09 · Principles: no waste, no loss, choice not chance**
 
@@ -279,6 +284,25 @@ These are rules every later feature follows, not features to build:
 - *Challenges:* so that Max is not always optimal; the offline estimate uses the measured rate, so it inherits modes automatically.
 - *Vision:* none.
 - *Decisions:* D1 is kept (no new machine).
+- *Status:* **built (25 Sep 2026), reshaped.**
+  - Any maker runs Cool or Hot; a Boiler runs Low.
+  - Modes are opened by Core level 3, and are per machine.
+  - The "Max Power" Boiler with a running cost was not built. A Boiler has no input, so a running cost would be a new mechanic (upkeep). The measured problem was the opposite: Boilers giving too much heat once the rock is hot. Low answers that.
+
+**FP-21 · Heat follows work, and cooling grows with the Core** (added 25 Sep 2026)
+
+- *Why it is new:* the audit (`docs/PROGRESSION.md`, "Heat") found that nothing scaled against the rock's heat, which rises every stratum. FP-11's modes trade a machine's output for its own heat, but they cannot answer the rock. Nothing in the pool made cooling stronger, and nothing made an upgrade cost heat.
+- *Source:* WOS S4 (the Furnace's warming radius grows with its level); WOS P9 (tier upgrades apply to everything existing); CoC #50 (a level as strength, not only a count).
+- *Adaptation:*
+  - A maker's own heat grows 10% a level, as its speed does.
+  - The Boiler, Coolant Cell and Condenser have levels: 25% more heat moved a level, paid like any machine level.
+  - The Core's machine limit caps them, so the Core that opens hotter rock opens the cooling for it.
+- *Depends on:* machine levels (built); the heat field scaled per type (`Grid.heat_scale`).
+- *Related:* FP-11, FP-08, FP-12.
+- *Challenges:* a Coolant Cell level costs what any level costs (37M credits at level 7); watch it with `core_journey`.
+- *Vision / Decisions:* none.
+- *Status:* built (25 Sep 2026).
+- *Also fixed, not a feature:* one safe range. A machine counted as working only above 90% of its speed, reached halfway to its tolerance, so the rock alone took every Drill off the working line from stratum 8. The comfortable band now ends at 90%, so the safe range and the working line are the same line.
 
 **FP-12 · Overdrive past the cap**
 

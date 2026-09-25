@@ -641,6 +641,25 @@ func _fix_heat(cell: int, may_remove: bool = true) -> bool:
 	var m: Dictionary = MachineDB.get_machine(S.grid.machine_at(cell))
 	var warm: bool = S.grid.heat_at(cell) < float(m.get("heat_optimum", 0.0))
 	var wrong: String = "coolant" if warm else "boiler"
+	var modes: bool = S.core_level >= MachineDB.MODES_CORE
+	# Too hot, in the order the heat card offers it: a Boiler beside it run
+	# Low; a Boiler the rock has made needless taken away; the machine run
+	# Cool; the Coolant Cells a level up; then a new Coolant Cell.
+	if not warm:
+		for n: int in S.grid.neighbours(cell):
+			if S.grid.machine_at(n) == "boiler" and modes and S.grid.mode_at(n) == MachineDB.Mode.NORMAL:
+				return S.set_mode(n, MachineDB.Mode.COOL)
+		for n: int in S.grid.neighbours(cell):
+			if S.grid.machine_at(n) == "boiler" and (may_remove or S.grid.ambient_heat >= 1.8):
+				S.sell(n)
+				_dropped[n] = true
+				return true
+		if modes and S.grid.mode_at(cell) == MachineDB.Mode.NORMAL \
+				and MachineDB.modes_for(S.grid.machine_at(cell)).has(MachineDB.Mode.COOL):
+			return S.set_mode(cell, MachineDB.Mode.COOL)
+		for n: int in S.grid.neighbours(cell):
+			if S.grid.machine_at(n) == "coolant" and S.can_upgrade_machine("coolant"):
+				return S.upgrade_machine("coolant")
 	for n: int in S.grid.neighbours(cell):
 		if may_remove and S.grid.machine_at(n) == wrong:
 			S.sell(n)
@@ -650,6 +669,23 @@ func _fix_heat(cell: int, may_remove: bool = true) -> bool:
 	if not S.is_unlocked(id) or not S.can_afford(id):
 		return false
 	var spot: int = _room_near(cell)
+	if spot < 0 and id == "coolant":
+		# A Coolant Cell passes material through, so it may take a tile a
+		# plan kept empty; the plan leaves it there on this stratum.
+		for n: int in S.grid.neighbours(cell):
+			if S.grid.is_empty(n) and S.is_open(n) and not S.is_blocked(n):
+				spot = n
+				_dropped[n] = true
+				break
+	if spot < 0 and id == "coolant":
+		# Boxed in: a Vault beside it gives way to a Coolant Cell, which
+		# passes material on to what stands beyond it.
+		for n: int in S.grid.neighbours(cell):
+			if S.grid.machine_at(n) == "vault" and not S.sim.core_touching().has(n):
+				S.sell(n)
+				spot = n
+				_dropped[n] = true
+				break
 	return spot >= 0 and S.try_place(spot, id)
 
 

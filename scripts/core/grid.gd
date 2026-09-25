@@ -39,6 +39,10 @@ var version: int = 0
 var ambient_heat: float = 0.0
 var heat_spread: float = MachineDB.HEAT_SPREAD
 
+## Machine type -> how much of its table heat it gives off (MachineDB
+## heat_factor, set by Sim from the machine levels).
+var heat_scale: Dictionary = {}
+
 
 func _init() -> void:
 	_heat.resize(W * H)
@@ -164,8 +168,7 @@ func _rebuild_heat() -> void:
 	for k in range(_heat.size()):
 		_heat[k] = 0.0
 	for i: int in cells:
-		var m: Dictionary = MachineDB.get_machine(machine_at(i))
-		var h: float = float(m.get("heat_out", 0.0))
+		var h: float = emitted_at(i)
 		if is_zero_approx(h):
 			continue
 		_heat[i] += h
@@ -183,6 +186,61 @@ func _rebuild_heat() -> void:
 ## Moves every time the heat field is worked out again, so what is derived
 ## from it (Simulation.heat_efficiency_at) knows when to forget.
 var heat_stamp: int = 0
+
+## The heat the machine on `i` gives off: its table heat, by its type's
+## level and by its mode.
+func emitted_at(i: int) -> float:
+	var c: Variant = cells.get(i)
+	if c == null:
+		return 0.0
+	var id: String = String(c["id"])
+	var h: float = float(MachineDB.get_machine(id).get("heat_out", 0.0))
+	return h * float(heat_scale.get(id, 1.0)) * float(MachineDB.MODE_HEAT.get(int(c.get("mode", 0)), 1.0))
+
+
+## Where the heat in cell `i` comes from, adding up to `raw_heat_at(i)`:
+## [{"cell": the source's cell (-1 for the rock), "id", "amount"}], its own
+## machine first, then its neighbours, then the stratum's rock; zero
+## sources left out.
+func heat_sources(i: int) -> Array:
+	var out: Array = []
+	var own: float = emitted_at(i)
+	if not is_zero_approx(own):
+		out.append({"cell": i, "id": machine_at(i), "amount": own})
+	for n in neighbours(i):
+		var h: float = emitted_at(n) * heat_spread
+		if not is_zero_approx(h):
+			out.append({"cell": n, "id": machine_at(n), "amount": h})
+	if not is_zero_approx(ambient_heat):
+		out.append({"cell": -1, "id": "", "amount": ambient_heat})
+	return out
+
+
+## The mode the machine on `i` runs in (MachineDB.Mode).
+func mode_at(i: int) -> int:
+	var c: Variant = cells.get(i)
+	return 0 if c == null else int(c.get("mode", 0))
+
+
+func set_mode(i: int, mode: int) -> bool:
+	if is_empty(i) or not MachineDB.modes_for(machine_at(i)).has(mode):
+		return false
+	if mode == MachineDB.Mode.NORMAL:
+		(cells[i] as Dictionary).erase("mode")
+	else:
+		cells[i]["mode"] = mode
+	_heat_dirty = true
+	version += 1
+	return true
+
+
+## The machine levels changed how much heat a type gives off.
+func set_heat_scale(scale: Dictionary) -> void:
+	if scale == heat_scale:
+		return
+	heat_scale = scale
+	_heat_dirty = true
+
 
 func heat_at(i: int) -> float:
 	if _heat_dirty:
@@ -425,9 +483,12 @@ func clear() -> void:
 
 func to_dict() -> Dictionary:
 	var packed: Dictionary = {}
+	var modes: Dictionary = {}
 	for i: int in cells:
 		packed[str(i)] = cells[i]["id"]
-	return {"w": W, "h": H, "cells": packed}
+		if mode_at(i) != 0:
+			modes[str(i)] = mode_at(i)
+	return {"w": W, "h": H, "cells": packed, "modes": modes}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -449,3 +510,6 @@ func from_dict(d: Dictionary) -> void:
 			i = idx(p.x, p.y)
 		if i >= 0 and i < W * H and MachineDB.exists(id):
 			place(i, id)
+			# A mode saved with the tile (only on a board of this size).
+			if w == W and h == H and (d.get("modes", {}) as Dictionary).has(k):
+				set_mode(i, int(d["modes"][k]))

@@ -268,6 +268,8 @@ class Glyph extends Control:
 class Gauge extends Control:
 	var value: float = 0.0
 	var target: float = -1.0
+	## A second mark: where a range ends (a machine's heat tolerance).
+	var limit: float = -1.0
 	var fill := Color.WHITE
 
 	func _init(w: float, h: float) -> void:
@@ -283,6 +285,9 @@ class Gauge extends Control:
 		if target >= 0.0:
 			var x: float = r.size.x * clampf(target, 0.0, 1.0)
 			draw_line(Vector2(x, -3.0), Vector2(x, r.size.y + 3.0), Palette.TEXT, 3.0)
+		if limit >= 0.0:
+			var lx: float = r.size.x * clampf(limit, 0.0, 1.0)
+			draw_line(Vector2(lx, -5.0), Vector2(lx, r.size.y + 5.0), Palette.BAD, 3.0)
 
 
 ## A gem shape: a lit diamond on a dark one.

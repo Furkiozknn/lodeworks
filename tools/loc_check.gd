@@ -129,6 +129,11 @@ func _run() -> void:
 		_main.call("_info", Loc.t("Drill"), String(_main.get("_sheet_help")))
 		await _settle(0.4)
 		await _screen("31_machine_words")
+		# Where its heat comes from, and what would change it.
+		_main.call("_close_overlay")
+		_main.call("_show_heat", cell)
+		await _settle(0.4)
+		await _screen("33_heat")
 		_main.call("_on_cell_long_pressed", cell)
 		await _settle(0.4)
 		await _screen("32_remove")

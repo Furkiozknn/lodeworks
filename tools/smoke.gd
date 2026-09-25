@@ -517,6 +517,21 @@ func _run() -> void:
 		var after: float = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
 		if after > before:
 			leaked.append("%s (%d)" % [card, int(after - before)])
+	# The heat card, on the first machine of the board.
+	for c: int in Sim.grid.cells:
+		var before_h: float = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+		_main.call("_show_heat", c)
+		await _settle(0.15)
+		var heat_card: bool = false
+		for n: Node in _main.find_children("*", "VBoxContainer", true, false):
+			heat_card = heat_card or (n.has_meta("heat_card") and (n as Control).is_visible_in_tree())
+		if not heat_card:
+			_failures.append("the heat card did not open")
+		_main.call("_close_overlay")
+		await _settle(0.1)
+		if Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) > before_h:
+			leaked.append("_show_heat (%d)" % int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) - before_h))
+		break
 	if not leaked.is_empty():
 		_failures.append("deep in a run, these cards left orphaned nodes: " + ", ".join(leaked))
 	print("  deep cards: %s" % ("no node left behind" if leaked.is_empty() else ", ".join(leaked)))

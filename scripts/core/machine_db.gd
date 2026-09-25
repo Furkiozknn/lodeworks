@@ -584,14 +584,93 @@ static func has_levels(id: String) -> bool:
 	if m.is_empty():
 		return false
 	var tags: Array = m.get("tags", [])
+	if is_heat_support(id):
+		return true
 	return not ((m["inputs"] as Dictionary).is_empty() and (m["outputs"] as Dictionary).is_empty()
 		and not tags.has("sink") and not tags.has("research"))
 
 
 ## Does a level make machine type `id` faster? Every levelled machine but the
-## Vault, whose level is storage.
+## Vault, whose level is storage, and the heat supports, whose level is
+## strength.
 static func level_is_speed(id: String) -> bool:
-	return has_levels(id) and not (get_machine(id).get("tags", []) as Array).has("sink")
+	return has_levels(id) and not (get_machine(id).get("tags", []) as Array).has("sink") \
+		and not is_heat_support(id)
+
+
+## A machine that makes nothing and heats or cools its neighbours: the
+## Boiler, the Coolant Cell, the Condenser.
+static func is_heat_support(id: String) -> bool:
+	var m: Dictionary = get_machine(id)
+	if m.is_empty():
+		return false
+	var tags: Array = m.get("tags", [])
+	return (tags.has("heat") or tags.has("cool")) and (m["inputs"] as Dictionary).is_empty() \
+		and (m["outputs"] as Dictionary).is_empty()
+
+
+## --- heat, by level and by mode -----------------------------------------------------
+##
+## Heat follows work (docs/PROGRESSION.md, "Heat"). A maker's heat rises
+## with its level, HEAT_PER_LEVEL a level, as its speed does: an upgrade
+## makes more and runs hotter. A heat support's level is its strength,
+## SUPPORT_PER_LEVEL a level: an upgraded Coolant Cell cools more, and the
+## Core's machine limit is also the limit on how much cooling a tile can
+## give -- the Core that lets the shaft reach hotter rock lets its Coolant
+## Cells answer it.
+const HEAT_PER_LEVEL := 0.1
+const SUPPORT_PER_LEVEL := 0.25
+
+
+## How much of its table heat a machine of type `id` gives off at `level`.
+static func heat_factor(id: String, level: int) -> float:
+	var step: float = float(maxi(level, 1) - 1)
+	if is_heat_support(id):
+		return 1.0 + SUPPORT_PER_LEVEL * step
+	if level_is_speed(id):
+		return 1.0 + HEAT_PER_LEVEL * step
+	return 1.0
+
+
+## Modes: how hard one machine is run. A trade between output and heat the
+## player sets per tile, opened by the Core's level MODES_CORE:
+##   NORMAL  as built;
+##   COOL    three quarters of the speed, half the heat of its own;
+##   HOT     a quarter faster, sixty per cent more heat of its own.
+## A Boiler can be run LOW (half its heat) -- the answer when the rock has
+## grown hot enough that the Boiler a Smelter once needed now pushes its
+## other neighbours past their safe range. A Coolant Cell or a Condenser
+## has no mode: its level is its lever.
+enum Mode { NORMAL, COOL, HOT }
+const MODES_CORE := 3
+const MODE_SPEED := {Mode.NORMAL: 1.0, Mode.COOL: 0.75, Mode.HOT: 1.25}
+const MODE_HEAT := {Mode.NORMAL: 1.0, Mode.COOL: 0.5, Mode.HOT: 1.6}
+
+
+## The modes machine type `id` can be run in.
+static func modes_for(id: String) -> Array[int]:
+	var m: Dictionary = get_machine(id)
+	if m.is_empty():
+		return [Mode.NORMAL]
+	var tags: Array = m.get("tags", [])
+	if tags.has("heat") and is_heat_support(id):
+		return [Mode.NORMAL, Mode.COOL]
+	if level_is_speed(id):
+		return [Mode.NORMAL, Mode.COOL, Mode.HOT]
+	return [Mode.NORMAL]
+
+
+## The heat range machine type `id` works in at full measure: from the
+## warmth it needs (a warm machine below it is slow) to its tolerance (past
+## it, it chokes). `bonus` is research's tolerance bonus.
+static func safe_range(id: String, bonus: float = 0.0) -> Vector2:
+	var m: Dictionary = get_machine(id)
+	var optimum: float = float(m.get("heat_optimum", 0.0))
+	var low: float = 0.0
+	if optimum > 0.0:
+		# The cold side runs from COLD_FLOOR at no heat to 1 at the optimum.
+		low = optimum * (WORKING_EFFICIENCY - COLD_FLOOR) / (1.0 - COLD_FLOOR)
+	return Vector2(low, float(m.get("heat_tolerance", 99.0)) + bonus)
 
 
 static func unlocked_at(depth: int) -> Array[String]:
@@ -618,18 +697,31 @@ static func cost_for(id: String, owned: int) -> float:
 ## right answer discoverable by one experiment, a curve makes it worth tuning.
 ## Below optimum the machine is sluggish but functional; above tolerance it
 ## falls off hard, so overheating is a real failure and not a rounding error.
+##
+## The comfortable band -- from the optimum to the tolerance -- fades only to
+## WORKING_EFFICIENCY, the warning key's own line, so a machine's safe range
+## (`safe_range`) is exactly where it counts as working: one number for the
+## player, not two. Until 25 September 2026 the band faded to 80%, so a
+## machine that wants no heat stopped counting as working halfway to its
+## tolerance, and the rock's heat alone put every Drill past that line from
+## stratum 8 while none of them was anywhere near overheating
+## (tools/heat_lab.gd; docs/PROGRESSION.md, "Heat").
+const WORKING_EFFICIENCY := 0.9
+const COLD_FLOOR := 0.55
+
 static func heat_efficiency(cell_heat: float, optimum: float, tolerance: float) -> float:
 	var h: float = maxf(cell_heat, 0.0)
 	if h <= optimum:
-		# Cold side: never worse than 55%, so an unheated board still works.
+		# Cold side: never worse than COLD_FLOOR, so an unheated board works.
 		var t: float = 1.0 if optimum <= 0.0 else h / optimum
-		return lerpf(0.55, 1.0, clampf(t, 0.0, 1.0))
+		return lerpf(COLD_FLOOR, 1.0, clampf(t, 0.0, 1.0))
 	var over: float = h - optimum
 	var span: float = maxf(tolerance - optimum, 0.001)
 	if over <= span:
-		# Comfortable band: full speed fading to 80% at the tolerance edge.
-		return lerpf(1.0, 0.8, over / span)
+		# Comfortable band: full speed fading to the working line at the
+		# tolerance edge.
+		return lerpf(1.0, WORKING_EFFICIENCY, over / span)
 	# Past tolerance the machine chokes. 1/(1+x^2) keeps it continuous and
 	# never quite zero, so a player can always see it is still alive.
 	var excess: float = (over - span) / span
-	return 0.8 / (1.0 + excess * excess * 3.0)
+	return WORKING_EFFICIENCY / (1.0 + excess * excess * 3.0)

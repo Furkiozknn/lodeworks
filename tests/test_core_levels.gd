@@ -373,7 +373,8 @@ func test_a_machine_level_is_paid_in_credits_and_materials() -> void:
 	Sim._recompute()
 	runner.eq(Sim.machine_upgrade_blocker("crusher"), "stock", "a level-2 Vault holds them, but there are no Plates")
 	runner.eq(MachineDB.level_materials(3).keys().size(), 2, "level 3 costs Plates and Ingots: old materials keep a use")
-	runner.eq(Sim.machine_upgrade_blocker("boiler"), "none", "a support machine has no level")
+	runner.eq(Sim.machine_upgrade_blocker("amplifier"), "none", "a support machine that is not heat has no level")
+	runner.eq(Sim.machine_upgrade_blocker("boiler"), "locked", "a Boiler has one, once it is found")
 	runner.eq(Sim.machine_upgrade_blocker("assembler"), "locked", "nor a machine not yet found")
 	_done()
 
@@ -384,14 +385,16 @@ func test_a_machine_level_makes_that_machine_faster_and_only_that_one() -> void:
 	Sim.grid.place(Grid.idx(19, 22), "drill")
 	var crusher: int = Grid.idx(19, 21)
 	var drill: int = Grid.idx(19, 22)
-	var c1: float = Sim.sim.effective_rate(crusher)
-	var d1: float = Sim.sim.effective_rate(drill)
+	var heat1: float = Sim.grid.emitted_at(crusher)
 	Sim.credits = 1.0e6
 	Sim.stock = {MachineDB.Res.INGOT: 20}
 	runner.check(Sim.upgrade_machine("crusher"), "")
-	runner.near(Sim.sim.effective_rate(crusher), c1 * MachineDB.level_speed(2), 0.0001,
+	runner.near(float(Sim.sim.level_mult["crusher"]), MachineDB.level_speed(2), 0.0001,
 		"level 2 runs LEVEL_SPEED faster")
-	runner.near(Sim.sim.effective_rate(drill), d1, 0.0001, "the Drills are untouched")
+	runner.check(not Sim.sim.level_mult.has("drill"), "the Drills are not made faster")
+	runner.near(Sim.grid.emitted_at(crusher), heat1 * MachineDB.heat_factor("crusher", 2), 0.0001,
+		"and it runs HEAT_PER_LEVEL hotter: an upgrade makes more and gives off more heat")
+	runner.near(Sim.grid.emitted_at(drill), 0.4, 0.0001, "the Drill's own heat is its own")
 	runner.check(Sim.upgrade_machine("vault"), "a Vault's level")
 	runner.check(not Sim.sim.level_mult.has("vault"), "is storage, not speed")
 	_done()

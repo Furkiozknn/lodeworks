@@ -395,11 +395,131 @@ msgid "Show me"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "%.1f · safe %.1f-%.1f"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%.1f · safe to %.1f"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Core %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "How hard this one machine runs. Cool: three quarters of the speed, half its own heat. Hot: a quarter faster, 60% more heat. A Boiler run Low gives half its heat."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Low"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Cool"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Hot"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Normal"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Inside its safe range."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%.1f over its safe range: it chokes."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%.1f too cold: it runs slow."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Running at %d%% of its speed for its heat"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Where its heat comes from"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "What changes it"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Heat"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The rock at stratum %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Itself"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A %s beside it"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Run the Boiler beside it Low: %.1f less"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Move the Boiler beside it: %.1f less"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Run it Cool: %.1f less heat, three quarters of the speed"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Core level %d opens modes: run it Cool"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A Coolant Cell beside it: %.1f less"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "No free tile beside it: swap the Vault beside it for a Coolant Cell (%.1f less; material passes through it)"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "No free tile beside it: move it, or a neighbour, to make room for a Coolant Cell"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Coolant Cells at level %d: %.1f less from each"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Its level %d gives off %d%% more heat than level 1"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A Boiler beside it: %.1f more"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Run it Normal again"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "To reach level %d"
 msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "It opens strata %d to %d, machine level %d and a store of %d."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "And machine modes: run a machine Cool for less heat, or Hot for more output."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -504,6 +624,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "The Vault's level is the Core's store: it holds %d of each material now, %d at the next level."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Every level, every %s moves %d%% more heat. The Core's level is the limit."
 msgstr ""
 
 #: res://scripts/ui/main.gd

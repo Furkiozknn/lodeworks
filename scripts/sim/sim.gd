@@ -375,6 +375,27 @@ func _sync_core() -> void:
 	sim.core_wants = room
 
 
+## --- machine modes ---------------------------------------------------------------
+
+## Can the machine on `cell` be set to `mode` now? The Core's level
+## MachineDB.MODES_CORE opens modes.
+func can_set_mode(cell: int, mode: int) -> bool:
+	if grid.is_empty(cell) or core_level < MachineDB.MODES_CORE:
+		return false
+	return MachineDB.modes_for(grid.machine_at(cell)).has(mode)
+
+
+func set_mode(cell: int, mode: int) -> bool:
+	if not can_set_mode(cell, mode) or grid.mode_at(cell) == mode:
+		return false
+	grid.set_mode(cell, mode)
+	sim.reset_progress()
+	_recompute()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
 ## --- the Dispatch board ------------------------------------------------------------
 
 ## Deal a contract into every empty slot, once something the store keeps
@@ -641,9 +662,14 @@ func _recompute() -> void:
 	# and the quota higher, which is the shape of a game nobody finishes.
 	Strata.apply(sim, grid, _stratum, _mult)
 	var lm: Dictionary = {}
+	var hs: Dictionary = {}
 	for id: String in machine_levels:
 		if MachineDB.level_is_speed(id):
 			lm[id] = MachineDB.level_speed(int(machine_levels[id]))
+		var f: float = MachineDB.heat_factor(id, int(machine_levels[id]))
+		if not is_equal_approx(f, 1.0):
+			hs[id] = f
+	grid.set_heat_scale(hs)
 	if lm != sim.level_mult:
 		sim.level_mult = lm
 		sim.levels_stamp += 1

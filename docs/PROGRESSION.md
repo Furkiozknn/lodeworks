@@ -521,15 +521,136 @@ the churn ate its income; the table above is the player that saves.
 
 ## 12. Next single priority
 
-**Heat control on the hot strata** ([`research/feature-pool.md`](research/feature-pool.md),
-FP-08 and FP-11). Played, the Core stops at the stability row from
-stratum 12: something is always overheating.
+**Heat control: done** (see "Heat", below). The next priority is the
+owner's to set.
 
-- **What the player lacks:** a lever. Today a heat problem can only be
-  solved by moving tiles.
-- **FP-08:** machines that name their heat cause.
-- **FP-11:** a Coolant and Boiler mode that trades output for heat.
-- **Measured:** by the scripted player reaching Core 6.
+**Measured facts that bear on it:**
+
+- Core 7 costs 1B credits, about 50 hours of the income a Core 6 factory
+  was measured to earn.
+- After Core 5, about 2.7 hours pass with only credits to save.
+
+---
+
+## Heat: a factory decision
+
+Heat is one of the systems that carry the long game. The rock's heat rises
+with every stratum, so every Core era meets hotter rock than the last. The
+player answers it with layout, modes, levels and the Coolant Cells, and a
+factory that answers it well earns more than one that does not.
+
+### The audit (25 September 2026)
+
+`tools/heat_lab.gd` builds the Core's first three lines and a dense Drill
+field on plain rock at strata 0-24. It measures what overheats, what counts
+as working and what the line earns. The scripted player's factory was
+audited at stratum 12 and 15.
+
+**What was wrong:**
+
+1. **Two heat lines, one of them invisible.** A machine counted as working
+   only at 90% of its speed. The comfortable band faded to 80% at the
+   tolerance, so the 90% line sat halfway to the tolerance. For a machine
+   that wants no heat (Drill, Press, Lab) the rock's heat alone crossed it
+   from stratum 8. Every line in the lab lost its "working" machines there,
+   while nothing was near overheating. The warning key counted them all as
+   "off temperature", and the Core's stability row could not be met with
+   any layout short of a Coolant Cell beside nearly everything.
+2. **Heat never followed work.** A level-9 Press gave off the heat of a
+   level-1 one. Upgrading was output for free, with no trade-off.
+3. **Nothing scaled against the rock.** The rock gains 0.18 a stratum
+   forever. Tolerances were fixed, a Coolant Cell never grew stronger, and
+   the one research line for heat (Ceramic Lining) is paid in Cores, so a
+   first shaft had no answer but more Coolant Cells.
+4. **An early answer became a late trap.** A Boiler that warmed a Smelter
+   at stratum 2 overheats the Drill or Lab beside it from stratum 6. The
+   game showed a hot machine, never the Boiler behind it.
+5. **Stuck at Core 5.** At stratum 12, 5 of 77 levelled machines
+   overheated, all beside Boilers, and 24 counted as working. Stability
+   needs none overheating, so the row stayed at 0.
+
+### The heat model now
+
+- **One safe range.** The comfortable band fades only to 90%, so a
+  machine's safe range is exactly where it counts as working:
+  - from the warmth it needs (warm machines only) to its tolerance;
+  - past the tolerance it chokes;
+  - below the range it runs slow.
+  - `MachineDB.safe_range`; the sheet draws its end as a red mark.
+- **Heat follows work.**
+  - **Makers:** a maker's own heat grows 10% a level, as its speed does
+    (`MachineDB.heat_factor`), so an upgrade makes more and runs hotter.
+  - **Heat supports:** the Boiler, Coolant Cell and Condenser now have
+    levels. Each level moves 25% more heat.
+  - **The Core's limit:** machine levels are capped by the Core, so the
+    Core that reaches hotter rock also allows stronger cooling. The heat
+    tests show a Press at its limit, with three Coolant Cells at theirs,
+    stays safe at the deepest stratum of every Core level from 4 to 8.
+- **Modes (opened by Core level 3).** Any maker can run Cool (three
+  quarters of the speed, half its own heat) or Hot (a quarter faster, 60%
+  more heat); a Boiler can run Low (half its heat). A mode belongs to the
+  machine: it is saved and travels with it.
+- **The heat card.** A tap on a machine's heat bar shows where its heat
+  comes from, as the simulation adds it up: itself, each neighbour, the
+  rock. It gives the safe range and what would change it, each line a tap
+  that goes and does it:
+  - run the Boiler beside it Low, or move it;
+  - run it Cool;
+  - a Coolant Cell beside it, or, when there is no free tile, the Vault
+    beside it swapped for one (material passes through it);
+  - the Coolant Cells a level up;
+  - its own level's extra heat.
+- **The Core's rows** say what holds them back ("2 / 4 · 1 too hot"), and a
+  tap walks to each machine, with the heat view on when heat is the cause.
+
+### Heat by era
+
+| era | strata | rock | what heat asks |
+|---|---|---|---|
+| Core 1-2 | 0-4 | 0-0.7 | a light signal: Smelters want a Boiler; nothing overheats in the Core's lines |
+| Core 3 | 5-6 | 0.9-1.1 | modes open; a Press beside a Boiler is the first overheat |
+| Core 4-5 | 7-12 | 1.3-2.2 | a lone Press overheats from stratum 8; old Boilers overheat their other neighbours: run them Low or take them away (the rock keeps the Smelters warm by stratum 10) |
+| Core 6-7 | 13-19 | 2.3-3.4 | the rock alone overheats a Drill from 15, a Lab from 16, a Crusher from 19: Cool mode, Coolant Cells and their levels, a denser factory re-laid round them |
+| Core 8+ | 20+ | 3.6+ | every low-tolerance machine needs cooling: levels, Condensers, layout |
+
+Measured by `tools/heat_lab.gd`:
+
+- **Every line answered.** The player's answers are a Boiler Low, Cool
+  mode, Coolant Cell levels and a Coolant Cell on a free tile. With them
+  every reference line runs with nothing overheating to stratum 24.
+- **Answered lines earn more.** At stratum 15 the Press line, every maker
+  at its limit, earns 20.3 credits a second answered against 16.9 as
+  built. At 24 it is 22.2 against 6.9.
+- **Density costs.** The dense Drill field cannot be answered in place from
+  stratum 15; it has to be re-laid with room for cooling.
+
+### What the scripted player does with it
+
+`tools/core_journey.gd` answers heat the same way, in the heat card's
+order. It reaches:
+
+| Core level | Reached |
+|---|---|
+| Core 5 | 1 h 17 min |
+| Core 6 | 4 h 00 min |
+
+What happened at each wall:
+
+- **Stability at Core 5 and 6.** The Core 6 row (60 at working heat,
+  stratum 12) no longer blocks it. The Core 7 row (80, stratum 15) was met
+  by 5 h, after two Crushers boxed in by the first line had a Vault
+  swapped for a Coolant Cell.
+- **Income on hotter rock:** 6.8K/s at stratum 12, 5.3-5.5K/s at stratum
+  15.
+- **The next wall is not heat.** Core 7 costs 1B credits, about 50 hours
+  of the measured income, with its other rows met.
+
+### Not done in this round
+
+- **A research line for heat in the first shaft.** Ceramic Lining is paid
+  in Cores, and changing that moves the collapse economy.
+- **A mark on the board for a machine's mode.** The sheet and the heat card
+  show it.
 
 ---
 

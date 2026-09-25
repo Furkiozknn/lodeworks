@@ -396,12 +396,132 @@ msgid "Show me"
 msgstr "Göster"
 
 #: res://scripts/ui/main.gd
+msgid "%.1f · safe %.1f-%.1f"
+msgstr "%.1f · güvenli %.1f-%.1f"
+
+#: res://scripts/ui/main.gd
+msgid "%.1f · safe to %.1f"
+msgstr "%.1f · güvenli sınır %.1f"
+
+#: res://scripts/ui/main.gd
+msgid "Core %d"
+msgstr "Çekirdek %d"
+
+#: res://scripts/ui/main.gd
+msgid "How hard this one machine runs. Cool: three quarters of the speed, half its own heat. Hot: a quarter faster, 60% more heat. A Boiler run Low gives half its heat."
+msgstr "Bu makinenin ne kadar zorlandığı. Serin: hızın dörtte üçü, kendi ısısının yarısı. Sıcak: dörtte bir daha hızlı, %60 daha fazla ısı. Kısık çalışan bir Kazan ısısının yarısını verir."
+
+#: res://scripts/ui/main.gd
+msgid "Low"
+msgstr "Kısık"
+
+#: res://scripts/ui/main.gd
+msgid "Cool"
+msgstr "Serin"
+
+#: res://scripts/ui/main.gd
+msgid "Hot"
+msgstr "Sıcak"
+
+#: res://scripts/ui/main.gd
+msgid "Normal"
+msgstr "Normal"
+
+#: res://scripts/ui/main.gd
+msgid "Inside its safe range."
+msgstr "Güvenli aralığında."
+
+#: res://scripts/ui/main.gd
+msgid "%.1f over its safe range: it chokes."
+msgstr "Güvenli aralığının %.1f üstünde: tıkanıyor."
+
+#: res://scripts/ui/main.gd
+msgid "%.1f too cold: it runs slow."
+msgstr "%.1f fazla soğuk: yavaş çalışıyor."
+
+#: res://scripts/ui/main.gd
+msgid "Running at %d%% of its speed for its heat"
+msgstr "Isısı yüzünden hızının %%%d kadarında çalışıyor"
+
+#: res://scripts/ui/main.gd
+msgid "Where its heat comes from"
+msgstr "Isısı nereden geliyor"
+
+#: res://scripts/ui/main.gd
+msgid "What changes it"
+msgstr "Bunu ne değiştirir"
+
+#: res://scripts/ui/main.gd
+msgid "Heat"
+msgstr "Isı"
+
+#: res://scripts/ui/main.gd
+msgid "The rock at stratum %d"
+msgstr "%d. katmanın kayası"
+
+#: res://scripts/ui/main.gd
+msgid "Itself"
+msgstr "Kendisi"
+
+#: res://scripts/ui/main.gd
+msgid "A %s beside it"
+msgstr "Yanındaki bir %s"
+
+#: res://scripts/ui/main.gd
+msgid "Run the Boiler beside it Low: %.1f less"
+msgstr "Yanındaki Kazanı kısık çalıştır: %.1f daha az"
+
+#: res://scripts/ui/main.gd
+msgid "Move the Boiler beside it: %.1f less"
+msgstr "Yanındaki Kazanı taşı: %.1f daha az"
+
+#: res://scripts/ui/main.gd
+msgid "Run it Cool: %.1f less heat, three quarters of the speed"
+msgstr "Serin çalıştır: %.1f daha az ısı, hızın dörtte üçü"
+
+#: res://scripts/ui/main.gd
+msgid "Core level %d opens modes: run it Cool"
+msgstr "Çekirdek seviye %d modları açar: serin çalıştır"
+
+#: res://scripts/ui/main.gd
+msgid "A Coolant Cell beside it: %.1f less"
+msgstr "Yanına bir Soğutma Hücresi: %.1f daha az"
+
+#: res://scripts/ui/main.gd
+msgid "No free tile beside it: swap the Vault beside it for a Coolant Cell (%.1f less; material passes through it)"
+msgstr "Yanında boş karo yok: yanındaki Kasa'yı bir Soğutma Hücresiyle değiştir (%.1f daha az; malzeme içinden geçer)"
+
+#: res://scripts/ui/main.gd
+msgid "No free tile beside it: move it, or a neighbour, to make room for a Coolant Cell"
+msgstr "Yanında boş karo yok: Soğutma Hücresine yer açmak için onu ya da bir komşusunu taşı"
+
+#: res://scripts/ui/main.gd
+msgid "Coolant Cells at level %d: %.1f less from each"
+msgstr "Soğutma Hücreleri seviye %d: her birinden %.1f daha az"
+
+#: res://scripts/ui/main.gd
+msgid "Its level %d gives off %d%% more heat than level 1"
+msgstr "Seviye %d, seviye 1'den %%%d daha fazla ısı verir"
+
+#: res://scripts/ui/main.gd
+msgid "A Boiler beside it: %.1f more"
+msgstr "Yanına bir Kazan: %.1f daha fazla"
+
+#: res://scripts/ui/main.gd
+msgid "Run it Normal again"
+msgstr "Yeniden normal çalıştır"
+
+#: res://scripts/ui/main.gd
 msgid "To reach level %d"
 msgstr "Seviye %d için"
 
 #: res://scripts/ui/main.gd
 msgid "It opens strata %d to %d, machine level %d and a store of %d."
 msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
+
+#: res://scripts/ui/main.gd
+msgid "And machine modes: run a machine Cool for less heat, or Hot for more output."
+msgstr "Ve makine modları: daha az ısı için serin, daha çok üretim için sıcak çalıştır."
 
 #: res://scripts/ui/main.gd
 msgid "Grow the Core to level %d"
@@ -506,6 +626,10 @@ msgstr "Önce Kasa"
 #: res://scripts/ui/main.gd
 msgid "The Vault's level is the Core's store: it holds %d of each material now, %d at the next level."
 msgstr "Kasa'nın seviyesi Çekirdeğin deposudur: şimdi her malzemeden %d tutar, sonraki seviyede %d."
+
+#: res://scripts/ui/main.gd
+msgid "Every level, every %s moves %d%% more heat. The Core's level is the limit."
+msgstr "Her seviyede her %s %%%d daha fazla ısı taşır. Sınırı Çekirdeğin seviyesidir."
 
 #: res://scripts/ui/main.gd
 msgid "Every %s works %d%% faster a level. It is paid in credits and in materials from the Core's store; the Core's level is the limit."

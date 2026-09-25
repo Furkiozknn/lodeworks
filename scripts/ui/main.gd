@@ -120,6 +120,8 @@ var _sheet_status: Control
 var _sheet_help: String = ""
 ## The machine sheet's level key (machine levels, capped by the Core).
 var _sheet_up: Button
+## The machine sheet's mode key (MachineDB.Mode), opened by the Core.
+var _sheet_mode: Button
 var _palette_buttons: Dictionary = {}
 var _palette_costs: Dictionary = {}
 
@@ -1230,6 +1232,21 @@ func _build_sheet() -> void:
 	left.add_child(_sheet_stats)
 	row.add_child(left)
 
+	# How hard this one machine is run (MachineDB.Mode), a tap a step.
+	_sheet_mode = _button("", Palette.PANEL)
+	_sheet_mode.custom_minimum_size = Vector2(140, MIN_TOUCH)
+	_sheet_mode.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_sheet_mode.pressed.connect(func():
+		var cell: int = iso_view.selected_cell
+		if cell < 0:
+			return
+		var modes: Array[int] = MachineDB.modes_for(Sim.grid.machine_at(cell))
+		var next: int = modes[(modes.find(Sim.grid.mode_at(cell)) + 1) % modes.size()]
+		if Sim.set_mode(cell, next):
+			Juice.tap()
+			_show_cell_info(cell)
+			_refresh())
+	row.add_child(_sheet_mode)
 	# The machine type's level, and the key that raises it.
 	_sheet_up = _button("", Palette.RESEARCH)
 	_sheet_up.custom_minimum_size = Vector2(170, MIN_TOUCH)
@@ -2055,6 +2072,202 @@ func _core_stat(pic: Control, value: String, word: String, col: Color) -> Contro
 	return p
 
 
+## --- heat: the safe range, where it comes from, what to do -----------------------
+
+## "2.6 · safe to 3.0", or "2.6 · safe 2.3-6.0" for a machine that wants warmth.
+func _heat_words(heat: float, safe: Vector2) -> String:
+	if safe.y > 50.0:
+		return "%.1f" % heat
+	if safe.x > 0.0:
+		return Loc.t("%.1f · safe %.1f-%.1f") % [heat, safe.x, safe.y]
+	return Loc.t("%.1f · safe to %.1f") % [heat, safe.y]
+
+
+## The machine sheet's mode key: this machine's mode, a tap for the next --
+## or, before the Core's level MODES_CORE, the level that opens it.
+func _fill_mode_key(cell: int) -> void:
+	for c in _sheet_mode.get_children():
+		c.queue_free()
+	var id: String = Sim.grid.machine_at(cell)
+	var modes: Array[int] = MachineDB.modes_for(id)
+	_sheet_mode.visible = modes.size() > 1
+	if not _sheet_mode.visible:
+		return
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var open: bool = Sim.core_level >= MachineDB.MODES_CORE
+	var mode: int = Sim.grid.mode_at(cell)
+	var icon := _icon_rect("lock" if not open else ("cold" if mode == MachineDB.Mode.COOL
+		else ("heat" if mode == MachineDB.Mode.HOT else "energy")), 30)
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(icon)
+	var word := _label(_mode_name(id, mode) if open else Loc.t("Core %d") % MachineDB.MODES_CORE,
+		TEXT_MIN, Palette.TEXT if open else Palette.TEXT_DIM)
+	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(word)
+	_sheet_mode.add_child(col)
+	_sheet_mode.disabled = not open
+	_sheet_mode.set_meta("mode", mode)
+	_sheet_mode.tooltip_text = Loc.t("How hard this one machine runs. Cool: three quarters of the speed, half its own heat. Hot: a quarter faster, 60% more heat. A Boiler run Low gives half its heat.")
+
+
+func _mode_name(id: String, mode: int) -> String:
+	match mode:
+		MachineDB.Mode.COOL:
+			return Loc.t("Low") if MachineDB.is_heat_support(id) else Loc.t("Cool")
+		MachineDB.Mode.HOT:
+			return Loc.t("Hot")
+	return Loc.t("Normal")
+
+
+## Where the heat at a machine comes from, as the simulation adds it up:
+## itself, each neighbour, the rock; its safe range; and what would change
+## it -- each line a tap that goes to the machine it names.
+func _show_heat(cell: int) -> void:
+	var id: String = Sim.grid.machine_at(cell)
+	if id == "":
+		return
+	var heat: float = Sim.grid.heat_at(cell)
+	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	body.set_meta("heat_card", cell)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 14)
+	top.add_child(Chips.MachineSprite.new(id, 80.0))
+	var head := VBoxContainer.new()
+	head.add_child(_label(_heat_words(heat, safe), 30,
+		Palette.BAD if heat > safe.y else (Palette.COLD if heat < safe.x else Palette.GOOD)))
+	var verdict: String = Loc.t("Inside its safe range.")
+	if heat > safe.y:
+		verdict = Loc.t("%.1f over its safe range: it chokes.") % (heat - safe.y)
+	elif heat < safe.x:
+		verdict = Loc.t("%.1f too cold: it runs slow.") % (safe.x - heat)
+	head.add_child(_label(verdict, 20, Palette.TEXT_DIM))
+	head.add_child(_label(Loc.t("Running at %d%% of its speed for its heat") % int(round(
+		Sim.sim.heat_efficiency_at(cell) * 100.0)), TEXT_MIN, Palette.TEXT_DIM))
+	top.add_child(head)
+	body.add_child(top)
+	body.add_child(_label(Loc.t("Where its heat comes from"), 22, Palette.TEXT))
+	var sources: Array = Sim.grid.heat_sources(cell)
+	sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return absf(float(a["amount"])) > absf(float(b["amount"])))
+	for src: Dictionary in sources:
+		body.add_child(_heat_source_row(cell, src))
+	body.add_child(_label(Loc.t("What changes it"), 22, Palette.TEXT))
+	for line: Dictionary in _heat_answers(cell):
+		var b := _setting_row(_icon_rect(String(line["icon"]), 36), String(line["words"]), "")
+		var go: Callable = line["go"]
+		b.pressed.connect(func():
+			_close_overlay()
+			go.call())
+		body.add_child(b)
+	_open_overlay(Loc.t("Heat"), body, [], 900.0)
+
+
+func _heat_source_row(cell: int, src: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var amount: float = float(src["amount"])
+	var from: int = int(src["cell"])
+	var words: String
+	if from < 0:
+		row.add_child(_icon_rect("descend", 36))
+		words = Loc.t("The rock at stratum %d") % Sim.depth
+	elif from == cell:
+		row.add_child(Chips.MachineSprite.new(String(src["id"]), 36.0))
+		words = Loc.t("Itself") + _mode_note(from)
+	else:
+		row.add_child(Chips.MachineSprite.new(String(src["id"]), 36.0))
+		words = Loc.t("A %s beside it") % MachineDB.name_of(String(src["id"])) + _mode_note(from)
+	var l := _label(words, 20, Palette.TEXT)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(l)
+	row.add_child(_label("%+.1f" % amount, 22, Palette.BAD if amount > 0.0 else Palette.COLD))
+	return row
+
+
+## " (Cool)" after a machine run in a mode.
+func _mode_note(cell: int) -> String:
+	var mode: int = Sim.grid.mode_at(cell)
+	return "" if mode == MachineDB.Mode.NORMAL else " (%s)" % _mode_name(Sim.grid.machine_at(cell), mode)
+
+
+## What would change the heat at a machine, from what stands round it: the
+## Boiler beside it run Low, the machine itself run Cool, a Coolant Cell
+## beside it (or a higher level for the ones there), research, or -- too
+## cold -- the reverse. Each with the tap that goes and does it.
+func _heat_answers(cell: int) -> Array:
+	var id: String = Sim.grid.machine_at(cell)
+	var heat: float = Sim.grid.heat_at(cell)
+	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus)
+	var out: Array = []
+	var modes_open: bool = Sim.core_level >= MachineDB.MODES_CORE
+	var spread: float = Sim.grid.heat_spread
+	var select := func(c: int) -> Callable:
+		return func() -> void:
+			iso_view.selected_cell = c
+			iso_view.focus_cell(c)
+			_show_cell_info(c)
+	if heat >= safe.x:
+		for n: int in Sim.grid.neighbours(cell):
+			if Sim.grid.machine_at(n) == "boiler":
+				var less: float = Sim.grid.emitted_at(n) * spread * (1.0 - float(MachineDB.MODE_HEAT[MachineDB.Mode.COOL]))
+				out.append({"icon": "heat", "go": select.call(n), "words":
+					(Loc.t("Run the Boiler beside it Low: %.1f less") % less) if modes_open and Sim.grid.mode_at(n) == 0
+					else Loc.t("Move the Boiler beside it: %.1f less") % (Sim.grid.emitted_at(n) * spread)})
+		var own: float = Sim.grid.emitted_at(cell)
+		if MachineDB.modes_for(id).has(MachineDB.Mode.COOL) and Sim.grid.mode_at(cell) != MachineDB.Mode.COOL and own > 0.0:
+			out.append({"icon": "cold", "go": select.call(cell), "words": (Loc.t("Run it Cool: %.1f less heat, three quarters of the speed")
+				% (own * 0.5)) if modes_open else Loc.t("Core level %d opens modes: run it Cool") % MachineDB.MODES_CORE})
+		var cool: float = 2.2 * spread * float(Sim.grid.heat_scale.get("coolant", 1.0))
+		var has_cool: bool = false
+		for n: int in Sim.grid.neighbours(cell):
+			has_cool = has_cool or Sim.grid.machine_at(n) == "coolant"
+		if Sim.is_unlocked("coolant"):
+			var room: bool = false
+			var vault: int = -1
+			for n: int in Sim.grid.neighbours(cell):
+				room = room or (Sim.grid.is_empty(n) and Sim.is_open(n))
+				if Sim.grid.machine_at(n) == "vault":
+					vault = n
+			if room:
+				out.append({"icon": "cold", "go": func() -> void: _arm_only("coolant"),
+					"words": Loc.t("A Coolant Cell beside it: %.1f less") % cool})
+			elif vault >= 0:
+				# Boxed in: a Coolant Cell passes material through, so it can
+				# stand where the Vault does and hand on what the Vault took.
+				out.append({"icon": "cold", "go": select.call(vault),
+					"words": Loc.t("No free tile beside it: swap the Vault beside it for a Coolant Cell (%.1f less; material passes through it)") % cool})
+			else:
+				out.append({"icon": "cold", "go": select.call(cell),
+					"words": Loc.t("No free tile beside it: move it, or a neighbour, to make room for a Coolant Cell")})
+		if has_cool and Sim.machine_upgrade_blocker("coolant") != "none":
+			var next: float = 2.2 * spread * MachineDB.heat_factor("coolant", Sim.machine_level("coolant") + 1)
+			out.append({"icon": "upgrade", "go": select.call(_first_of("coolant")), "words":
+				Loc.t("Coolant Cells at level %d: %.1f less from each") % [Sim.machine_level("coolant") + 1, next - cool]})
+		if Sim.machine_levels.has(id) and MachineDB.level_is_speed(id) and int(Sim.machine_levels[id]) > 1:
+			out.append({"icon": "heat", "go": select.call(cell), "words":
+				Loc.t("Its level %d gives off %d%% more heat than level 1") % [int(Sim.machine_levels[id]),
+				int(round((MachineDB.heat_factor(id, int(Sim.machine_levels[id])) - 1.0) * 100.0))]})
+	else:
+		out.append({"icon": "heat", "go": func() -> void: _arm_only("boiler"),
+			"words": Loc.t("A Boiler beside it: %.1f more") % (2.6 * spread)})
+		if Sim.grid.mode_at(cell) == MachineDB.Mode.COOL:
+			out.append({"icon": "heat", "go": select.call(cell), "words": Loc.t("Run it Normal again")})
+	return out
+
+
+## The first machine of type `id` on the board, or -1.
+func _first_of(id: String) -> int:
+	for c: int in Sim.grid.cells:
+		if Sim.grid.machine_at(c) == id:
+			return c
+	return -1
+
+
 ## --- the Factory Core's next level ----------------------------------------------
 ##
 ## The next level as rows: what it asks for, how far along each one is, and a
@@ -2092,6 +2305,16 @@ func _core_next() -> Control:
 	for _id: String in (o["research"] as Array).slice(0, 2):
 		opens.add_child(_icon_rect("research", 34))
 	box.add_child(opens)
+	if next == MachineDB.MODES_CORE:
+		var modes := HBoxContainer.new()
+		modes.add_theme_constant_override("separation", 10)
+		modes.add_child(_icon_rect("cold", 36))
+		var ml := _label(Loc.t("And machine modes: run a machine Cool for less heat, or Hot for more output."),
+			TEXT_MIN, Palette.TEXT_DIM)
+		ml.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ml.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		modes.add_child(ml)
+		box.add_child(modes)
 	var grow := _button("", Palette.CORE if Sim.can_upgrade_core() else Palette.PANEL)
 	grow.custom_minimum_size = Vector2(0, MIN_TOUCH)
 	grow.disabled = not Sim.can_upgrade_core()
@@ -2400,6 +2623,9 @@ func _fill_level_key(id: String) -> void:
 	if id == "vault":
 		_sheet_up.tooltip_text = Loc.t("The Vault's level is the Core's store: it holds %d of each material now, %d at the next level.") % [
 			Sim.stock_cap(), MachineDB.stock_cap(lvl + 1)]
+	elif MachineDB.is_heat_support(id):
+		_sheet_up.tooltip_text = Loc.t("Every level, every %s moves %d%% more heat. The Core's level is the limit.") % [
+			MachineDB.name_of(id), int(round(MachineDB.SUPPORT_PER_LEVEL * 100.0))]
 	else:
 		_sheet_up.tooltip_text = Loc.t("Every %s works %d%% faster a level. It is paid in credits and in materials from the Core's store; the Core's level is the limit.") % [
 			MachineDB.name_of(id), int(round(MachineDB.LEVEL_SPEED * 100.0))]
@@ -2885,19 +3111,37 @@ func _show_cell_info(cell: int) -> void:
 	(_sheet_status as TextureRect).texture = IsoArt.icon(icon)
 	_sheet_body.add_child(Chips.recipe(id, 42.0))
 	_fill_level_key(id)
+	_fill_mode_key(cell)
 
 	# Heat: the bar is the machine's temperature, the notch where it wants to
-	# be; red past its tolerance.
-	var top: float = float(m["heat_optimum"]) + float(m["heat_tolerance"]) * 1.6 + 1.0
-	var hg := Chips.Gauge.new(220, 14)
+	# be, the red mark the end of its safe range; the numbers beside it; a
+	# tap shows where the heat comes from.
+	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus)
+	var top: float = maxf(safe.y * 1.6, heat * 1.1) + 0.5
+	var hg := Chips.Gauge.new(130, 14)
 	hg.value = heat / top
 	hg.target = float(m["heat_optimum"]) / top
-	hg.fill = Palette.heat_color(heat)
+	hg.limit = safe.y / top if safe.y < 50.0 else -1.0
+	hg.fill = Palette.BAD if Sim.sim.overheated_at(cell) else Palette.heat_color(heat)
+	hg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var heat_row := HBoxContainer.new()
 	heat_row.add_theme_constant_override("separation", 8)
+	heat_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	heat_row.add_child(_icon_rect("heat", 30))
 	heat_row.add_child(hg)
-	_sheet_stats.add_child(heat_row)
+	# Short on the sheet -- the temperature and the end of the safe range
+	# (the red mark); the heat card says it in words.
+	heat_row.add_child(_label("%.1f / %.1f" % [heat, safe.y] if safe.y < 50.0 else "%.1f" % heat, TEXT_MIN,
+		Palette.BAD if heat > safe.y else Palette.TEXT_DIM))
+	var heat_key := Button.new()
+	heat_key.flat = true
+	heat_key.custom_minimum_size = Vector2(0, 40)
+	heat_key.tooltip_text = Loc.t("Where its heat comes from")
+	heat_key.set_meta("heat_key", cell)
+	heat_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	heat_key.add_child(heat_row)
+	heat_key.pressed.connect(func(): _show_heat(cell))
+	_sheet_stats.add_child(heat_key)
 	# Busy: how much of the time it is working.
 	var wg := Chips.Gauge.new(220, 14)
 	wg.value = Sim.sim.uptime_of(cell)

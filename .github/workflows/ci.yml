@@ -89,6 +89,14 @@ jobs:
       # The Factory Core's levels, played for an hour by the scripted player
       # (docs/PROGRESSION.md, section 11): when each Core level falls and
       # what is still open. Printed, like the journey above.
+      # Heat across the depths: the Core's lines on plain rock from
+      # stratum 0 to 24, as built, at their level limit, and answered
+      # (docs/PROGRESSION.md, "Heat"). Printed, like the journeys.
+      - name: Heat, measured
+        run: |
+          ./godot --headless --path . --script res://tools/heat_lab.gd | tee heat-lab.txt
+          ! grep -E "SCRIPT ERROR|Parse Error" heat-lab.txt
+
       - name: The Factory Core, played
         run: |
           LODEWORKS_CORE_HOURS=1 ./godot --headless --path . --script res://tools/core_journey.gd | tee core-journey.txt

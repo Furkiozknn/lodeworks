@@ -126,8 +126,13 @@ A 44 x 44 grid, opened ring by ring round the Core. Machines have inputs and out
 orthogonally next to them** — there are no belts to draw, because drawing belts
 on a phone is miserable. What makes it a puzzle instead of a packing exercise
 is heat: every machine emits it, half of it bleeds into each neighbour, and
-each machine has a temperature it wants to be at. A Smelter runs 15% faster
-with a Boiler beside it. A Press three tiles from that Boiler chokes.
+each machine has a temperature it wants to be at. A Smelter runs about a
+quarter faster with a Boiler beside it; a Press beside the same Boiler
+overheats. Each
+machine has a safe range, a tap on its heat shows where the heat comes from
+-- itself, each neighbour, the rock -- and what would change it; from the
+Core's third level any machine can run Cool or Hot, and the Coolant Cells
+grow stronger with their level as the rock grows hotter with depth.
 
 Then:
 

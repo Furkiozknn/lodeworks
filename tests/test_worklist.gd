@@ -156,5 +156,8 @@ func test_a_step_that_works_nowhere_is_named_with_room_for_its_vault() -> void:
 	# Built as it says, the chain runs.
 	runner.check(Sim.try_place(cell, "crusher") and Sim.try_place(outlet, "vault"), "both placed")
 	Sim.sim.run_ticks(300)
-	runner.eq(Sim.sim.status_of(cell), Simulation.Status.RUNNING, "and the Crusher works")
+	# One Drill feeds a Crusher that takes two ore a cycle, so between
+	# cycles it waits: it works when it is busy a good part of the time,
+	# whatever its status says on the last tick.
+	runner.gt(Sim.sim.uptime_of(cell), 0.1, "and the Crusher works")
 	Save.wipe()

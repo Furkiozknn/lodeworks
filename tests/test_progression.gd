@@ -143,9 +143,12 @@ func test_heat_only_helps_the_actual_bottleneck() -> void:
 	cold.run_ticks(600)
 	hot.run_ticks(600)
 	var cell: int = Grid.idx(3, 2)
-	runner.lt(cold.uptime_of(cell), 0.5,
+	# (0.5 and 0.6 until the comfortable heat band stopped at 90% rather
+	# than 80% on 25 September 2026: the Crusher upstream runs a little
+	# faster in it, and the Smelter waits a little less.)
+	runner.lt(cold.uptime_of(cell), 0.7,
 		"the fixture only tests what it claims if the smelter is under-supplied")
-	runner.lt(hot.uptime_of(cell), 0.6,
+	runner.lt(hot.uptime_of(cell), 0.75,
 		"and heating it must not have solved the supply problem")
 	runner.gt(a, 0.0, "the board earns something")
 	runner.lt(absf(b - a) / a, 0.12,

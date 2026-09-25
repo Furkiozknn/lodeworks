@@ -203,7 +203,8 @@ func effective_rate(i: int) -> float:
 	if id == "":
 		return 0.0
 	var m: Dictionary = MachineDB.get_machine(id)
-	var eff: float = heat_efficiency_at(i) * float(level_mult.get(id, 1.0))
+	var eff: float = heat_efficiency_at(i) * float(level_mult.get(id, 1.0)) \
+		* float(MachineDB.MODE_SPEED.get(grid.mode_at(i), 1.0))
 	var amp: float = 1.0 + (grid.amplify_at(i) - 1.0) * amplify_mult
 	var src: float = source_speed_mult if (m["tags"] as Array).has("source") else 1.0
 	return float(m["rate"]) * eff * amp * speed_mult * src
