@@ -223,7 +223,10 @@ static func apply(sim: Simulation, grid: Grid, st: Dictionary,
 		grid.set_environment(float(st["ambient_heat"]), float(st["heat_spread"]))
 	sim.speed_mult = float(mu.get("speed", 1.0)) * float(st["process_speed"])
 	sim.source_speed_mult = float(st["source_speed"])
-	sim.amplify_mult = float(st["amplify"])
+	# Resonant Frames scales every Booster's boost, the stratum's own
+	# modifier with it.
+	sim.amplify_mult = float(st["amplify"]) * float(mu.get("resonance", 1.0))
+	sim.duplicate_mult = float(mu.get("resonance", 1.0))
 	sim.yield_mult = float(mu.get("yield", 1.0)) * float(st["source_yield"]) \
 		* float(st["richness"])
 	sim.value_mult = float(mu.get("value", 1.0)) * float(st["value"])

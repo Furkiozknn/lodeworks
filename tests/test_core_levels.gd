@@ -34,6 +34,7 @@ func _fresh() -> void:
 	Sim.upgrade_levels = {}
 	Sim.core_level = 1
 	Sim.machine_levels = {}
+	Sim.overdrive = {}
 	Sim.stock = {}
 	Sim.core_online = true
 	Sim.unlocked.clear()
@@ -158,7 +159,8 @@ func test_every_machine_and_research_line_is_reached_by_some_core_level() -> voi
 			"%s is found under a Core the table writes out" % id)
 	for id: String in Economy.TREE_ORDER:
 		var at: int = CoreLevels.research_at(id, 1)
-		runner.check(at >= 1 and at <= 4, "research %s opens at Core level %d" % [id, at])
+		runner.check(at >= 1 and at <= CoreLevels.LEVELS.size(),
+			"research %s opens under a Core the table writes out (at %d)" % [id, at])
 		runner.eq(Economy.research_cap(id, at - 1), 0, "and not before")
 
 
@@ -466,6 +468,7 @@ func test_the_core_machine_levels_and_store_survive_a_save_and_reset_with_a_coll
 	var d: Dictionary = JSON.parse_string(JSON.stringify(Sim.to_dict()))
 	Sim.core_level = 1
 	Sim.machine_levels = {}
+	Sim.overdrive = {}
 	Sim.stock = {}
 	Sim.from_dict(d)
 	runner.eq(Sim.core_level, 3, "the Core's level")

@@ -15,9 +15,10 @@ be connected to the graph below waits.
   the numbers in this file come from the run named beside them.
 
 Status, 25 September 2026: the vertical slice (sections 10 and 11) is built
-and tested. Core levels 1-5 are measured with the scripted player; levels 6-8
-are designed and graph-checked, but no played run has reached them yet. The
-features that come next are in [`research/feature-pool.md`](research/feature-pool.md).
+and tested. Core levels 1-7 are measured with the scripted player; Core 7
+was redesigned from a price into a stage (section "Core 7"). Level 8 is
+designed and graph-checked, not yet played. The features that come next
+are in [`research/feature-pool.md`](research/feature-pool.md).
 
 ---
 
@@ -101,10 +102,10 @@ requirement needs is shown in brackets.
 | **3 Fabrication** | Strata 5-6: Assembler (Components, stratum 5). Machine levels up to 4, store up to 819. Research: Refinery Contracts, Ceramic Lining, Seismic Survey. | 60,000 credits; 250 Plates and 250 Ingots (Vault 3); 2 Presses at working heat; Smelter at level 3; Deeper Bore 2; Tighter Tolerances 3; stratum 4 |
 | **4 Assembly** | Strata 7-9: Duplicator (stratum 8). Machine levels up to 5, store up to 2,621. Research: Field Notes. | 1.2M credits; 800 Components and 800 Plates (Vault 4); 3 Assemblers at working heat; Press 4 and Drill 4; an Amplifier serving 3; Refinery Contracts 2; Deeper Bore 4; stratum 6 |
 | **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 10M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Tighter Tolerances 6; 40 machines at working heat with none overheating; stratum 9 |
-| **6 Amplification** | Strata 13-15. Machine levels up to 7. | 60M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; Tighter Tolerances 8; Drill 6; stable 60; stratum 12 |
-| **7 Deep works** | Strata 16-19. Machine levels up to 8. | 1B credits; 25,000 Components and 25,000 Plates (Vault 7); a Condenser serving 3; Deeper Bore 6; Smelter 7; stable 80; stratum 15 |
-| **8 The Abyss** | Strata 20-24. Machine levels up to 9. | 15B credits; 80,000 Components and 80,000 Plates (Vault 8); an Amplifier serving 4; Field Notes 5; Assembler 8; stable 100; stratum 19 |
-| **9 and up** | 5 more strata each; machine limit +1 each. | Level 8's pattern, with rising numbers: credits ×15 a level; store ×2.2 (capped at what the Vault can then hold); stable +20; one production machine at the limit, rotating; one research line, rotating |
+| **6 Amplification** | Strata 13-15. Machine levels up to 7. Research: Resonant Frames. | 60M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; Tighter Tolerances 8; Drill 6; stable 60; stratum 12 |
+| **7 Deep works** | Strata 16-19. Machine levels up to 8. **Overdrive** (3 steps). | 75M credits; 25,000 Components and 25,000 Plates (Vault 7); Assembler 7; Coolant Cell 7; 8 Assemblers at working heat; Resonant Frames 2; a Condenser serving 3; stable 80; stratum 15 (see "Core 7") |
+| **8 The Abyss** | Strata 20-24. Machine levels up to 9. 3 more Overdrive steps. | 300M credits; 80,000 Components and 80,000 Plates (Vault 8); an Assembler driven 3 steps; an Amplifier serving 4; Resonant Frames 4; Assembler 8; stable 100; stratum 19 (designed, not played) |
+| **9 and up** | 5 more strata each; machine limit +1 and 3 Overdrive steps each. | Level 8's pattern, with rising numbers: credits ×4 a level; store ×2.2 (capped at what the Vault can then hold); stable +20; one production machine at the limit and driven to the Overdrive limit, rotating; one research line, rotating |
 
 **Why these rows.**
 
@@ -154,20 +155,25 @@ never idle.
 | Drill | stratum 0 | — | Ore | yes | level 4 (for Core 4), 6 (Core 6) |
 | Crusher | 0 | 2 Ore | Gravel | yes | level 2 (Core 2) |
 | Vault | 0 | anything | sells it | **its level is the store**: 25, 80, 256, 819, 2,621, 8,389… of each material | a level whenever a store row exceeds it |
-| Smelter | 1 | Gravel, warmth | Ingot | yes | 2 at working heat (Core 2); level 3 (Core 3); level 7 (Core 7) |
-| Boiler | 1 | — | heats its neighbours; material passes through | — | (makes the Smelter rows possible) |
-| Coolant Cell | 2 | — | cools its neighbours; material passes through | — | (makes the Press and Assembler rows possible) |
+| Smelter | 1 | Gravel, warmth | Ingot | yes | 2 at working heat (Core 2); level 3 (Core 3) |
+| Boiler | 1 | — | heats its neighbours; material passes through | strength | (makes the Smelter rows possible) |
+| Coolant Cell | 2 | — | cools its neighbours; material passes through | strength | level 7 (Core 7); makes the Press and Assembler rows possible |
 | Lab | 2 | Ingot, Plate or Component | research: 0.25, 0.5 or 1.0 per cycle | yes | 4 at working heat (Core 5) |
 | Press | 3 | Ingot, kept cool | Plate | yes | 2 at working heat (Core 3); level 4 (Core 4) |
 | Amplifier | 4 | — | speeds its neighbours | — | serving 3 (Core 4), serving 4 (Core 8) |
-| Assembler | 5 | Plate | Component | yes | 3 at working heat (Core 4); level 5 (Core 5); level 8 (Core 8) |
+| Assembler | 5 | Plate | Component | yes | 3 at working heat (Core 4); level 5 (Core 5); level 7 and 8 at working heat (Core 7); level 8 and 3 Overdrive steps (Core 8) |
 | Duplicator | 8 | — | sometimes doubles a neighbour's output | — | serving 3 (Core 6) |
 | Condenser | 10 | — | cools hard, speeds a little | — | serving 3 (Core 7) |
 
 **Machine levels.**
 
-- **Credits:** 150 for level 2, then 12 times more each level (1,800, 21,600,
-  259,200…), the same for every type.
+- **Credits:** 150 for level 2, then 12 times more each level to level 6
+  (1,800, 21,600, 259,200, 3.1M), and 3.5 times more from level 7 (10.9M,
+  38M…); the same for every type. The late rate is from the Core 7 audit:
+  at twelve times, a level 7 was 1.7 hours of the Core 6 factory's income.
+- **Overdrive** (from the Core's level 7): a type at the level the Core
+  before allowed takes steps past it, half a level each, paid in Ingots,
+  Plates and research (section "Core 7").
 - **Materials from the store:**
   - level 2: 10 Ingots;
   - level 3: 30 Plates and 30 Ingots;
@@ -194,7 +200,8 @@ line that fills the store and a Vault big enough to hold the materials.
 | Refinery Contracts (value) | 3 | Research | level 2 (Core 4) |
 | Ceramic Lining (heat tolerance) | 3 | Research + Cores | — |
 | Seismic Survey (collapse yield) | 3 | Research + Cores | — |
-| Field Notes (Lab output) | 4 | Research | level 2 (Core 5), 5 (Core 8) |
+| Field Notes (Lab output) | 4 | Research | level 2 (Core 5) |
+| Resonant Frames (Boosters push harder) | 6 | Research | level 2 (Core 7), 4 (Core 8) |
 
 **How the Core limits research.** Each line may go up 2 levels for every Core
 level since it opened. For example, Tighter Tolerances can reach 2 under
@@ -521,14 +528,7 @@ the churn ate its income; the table above is the player that saves.
 
 ## 12. Next single priority
 
-**Heat control: done** (see "Heat", below). The next priority is the
-owner's to set.
-
-**Measured facts that bear on it:**
-
-- Core 7 costs 1B credits, about 50 hours of the income a Core 6 factory
-  was measured to earn.
-- After Core 5, about 2.7 hours pass with only credits to save.
+See the end of "Core 7", below.
 
 ---
 
@@ -651,6 +651,309 @@ What happened at each wall:
   in Cores, and changing that moves the collapse economy.
 - **A mark on the board for a machine's mode.** The sheet and the heat card
   show it.
+
+---
+
+## Core 7: a stage, not a price
+
+The round of 25 September 2026. Core 7 used to be reached by saving 1B
+credits: about 46 hours of the income a Core 6 factory makes, after every
+other row was met. It is now reached by growing the Core 6 factory in the
+ways the Core 7 era needs. Credits are one part of that.
+
+### How it is measured
+
+`tools/core_journey.gd` plays a new game with the scripted player
+(`tools/core_journey_player.gd`) and reports each Core level as a stage:
+
+- what the stage opened, and what was open to do at its start;
+- when each row of the next level was first met;
+- how long only credits were left;
+- the player's decisions (machines placed and sold, modes, levels, research, contracts, strata), and in how many minutes of the stage at least one was made;
+- the income at both ends, and where the earned credits went: machine levels, the Core, machines.
+
+`LODEWORKS_CORE_SKIP=1` fast-forwards a credit-only wait once the factory
+has sat unchanged in it for 20 minutes. The run earns at the rate it
+measured over those 20 minutes, and says how much it skipped.
+
+`LODEWORKS_CORE_DUMP=7:<file>` writes the factory at the moment every row
+of Core 7 is met. `tests/fixtures/core7_ready.json` is that save, from the
+run below.
+
+### The audit: the Core 1 → 7 graph, as played
+
+Old table, scripted player, 25 September 2026:
+
+| stage | length | only credits left | minutes with a decision | what the player did |
+|---|---|---|---|---|
+| Core 1 → 2 | 7 min 30 s | 15 s (3%) | 8 of 8 | the first line; the Vault's and Crushers' levels; the first research |
+| Core 2 → 3 | 8 min 50 s | 1 min 30 s (17%) | 10 of 10 | Presses (Plates); levels 3; two research lines |
+| Core 3 → 4 | 16 min 49 s | 5 min 5 s (30%) | 15 of 18 | Assemblers (Components); an Amplifier; levels 4 |
+| Core 4 → 5 | 44 min 31 s | 36 min 36 s (82%) | 8 of 45 | Labs at working heat, Assembler 5; then saving |
+| Core 5 → 6 | 2 h 59 min | 2 h 42 min (91%) | 17 of 180 | a Duplicator, Drill 6, stability 60; then saving |
+| Core 6 → 7 | not reached | -- | -- | see below |
+
+**What old Core 7 asked for:**
+
+- 1B credits;
+- 25,000 Components and 25,000 Plates;
+- a Condenser serving 3;
+- Deeper Bore 6;
+- Smelter 7;
+- stability 80;
+- stratum 15.
+
+**How the non-credit rows went, played.**
+
+- Deeper Bore 6 was met 5 seconds into the stage (the Core 5 era had allowed it).
+- The Condenser was met at 1 minute, stratum 15 at 5.
+- 3 h 43 min into the stage, the rest was still open. The Vault and the Smelters' level 7 were 37.3M each; the bot had not got stability to 80.
+- In a longer run, 24 h in, the stage was still stuck. Stability was at 0 of 80 and the Condenser at 2 of 3. Credits stood at 35.7M of 1B, because the player spent them on everything else.
+
+**The credits alone.** At the measured 5.9-6.1K credits a second, the 1B
+was about 46 hours. That puts Core 7 at about 50 hours of active play.
+
+### Why Core 6 → 7 was a credit wall
+
+1. **Every price past Core 5 assumed an income that did not come.**
+   - Core prices grew ×60, ×20, ×8, ×6 and then ×17 (60M to 1B). Machine levels grew ×12 a level.
+   - In the first eras each Core level brought a new material or research line, and income grew about tenfold an era: 47/s, 457/s, 2.0K/s.
+   - From Core 4 on, income grew about 1.4× an era: 4.4K/s at Core 5, 6.1K/s at Core 6, 5.9K/s on stratum 15.
+
+   **Prices in hours of the income of the era that pays them:**
+
+   | what | price in that era's income |
+   |---|---|
+   | machine level 3 | 38 s |
+   | machine level 4 | 47 s |
+   | machine level 5 | 2 min |
+   | machine level 6 | 12 min |
+   | machine level 7 | 1.7 h |
+   | machine level 8 | 18 h or more |
+   | Core 5 | 83 min |
+   | Core 6 | 3.8 h |
+   | Core 7 | 45 h |
+2. **The graph ran out after Core 5.**
+   - The last material (Components) arrives at Core 3.
+   - The last machine (the Condenser) arrives with Core 5.
+   - Every research line paid in research is at its end by Core 6: Tighter Tolerances 8 and Deeper Bore 6 under Core 4, Refinery Contracts 6 under Core 5, Field Notes 5 under Core 6. The Labs had banked 124K research by Core 6, with nothing to spend it on.
+   - Core 6 opened no machine, material or research line: only three strata and a machine level.
+3. **Rows the factory already had.** Old Core 7's research row was met on the first beat. So were Core 5's Tighter Tolerances 6 (allowed since Core 3) and Core 6's Tighter Tolerances 8 (allowed since Core 4).
+4. **One queue left.**
+   - The reference games keep a player busy with parallel queues: builders, the laboratory, storage (cross-game pattern 16).
+   - Lodeworks has three: credits, the store's materials, and research.
+   - After Core 5 the research queue had run dry, and the store filled in minutes with nothing to spend it on.
+   - Credits were the only queue left, so the Core's price became the whole requirement.
+
+### What the reference games do here
+
+| principle (`research/progression-reference.md`) | reference | Lodeworks Core 7 |
+|---|---|---|
+| the central level caps everything | TH, HQ, Furnace, City Hall | the Core caps depth (19), machine levels (8), Resonant Frames (4), Overdrive steps (3) |
+| named buildings at N-1 (pattern 2) | Furnace 10: Marksman Camp 9 + Research Center 1 | Assembler 7 and Coolant Cell 7, the Core 6 limit |
+| a spine that recurs (pattern 3) | the Embassy, the Wall | the store: every level asks for the newest material and the one before, past the Vault's limit |
+| research building at era boundaries (pattern 5) | Furnace 10/16/20; City Hall 10/16/21 | Resonant Frames 2, the Core 6 era's own line |
+| what opened becomes a row next (pattern 4) | the Coal Mine opens at 3, is required at 4 | Overdrive opens at 7, is asked for at 8 |
+| parallel queues (pattern 16, principle 8) | builders, laboratory, training | credits (levels, the Core), store materials (Vault, Overdrive), research (Resonant Frames, Overdrive) |
+| a tier's resources go into its buildings | a TH costs a fraction of its era's upgrades | Core 7's own price is 15M; its stage's levels took 106M |
+| surplus into the scarce tier (pattern 9) | the Forge; Fire Crystal conversion | Overdrive turns store materials and research into speed |
+| supercharge the maxed (CoC #50) | Supercharge levels past the cap | Overdrive past the Core 6 limit |
+
+### The new Core 7
+
+Each row asks for something the Core 6 era has to build. No factory that
+Core 5 allowed has any of them: `tests/test_core7.gd` checks this for every
+row of Core 7 and 8.
+
+| row | why this row | what the player does for it |
+|---|---|---|
+| **15M credits** | The Core's own price. Most of the stage's credits go into the levels it asks for (below). Played, the Core's price was ready 3 h 34 min into the stage, before the last other row. | Earns while doing the rest. |
+| **25,000 Components and 25,000 Plates in the store** | The storage gate, as at every level. A level-6 Vault holds 8,389. Overdrive, which Core 7 opens, is paid from this store. | A level-7 Vault, and the lines touching the Core. |
+| **Assembler at level 7** | The chain's end at the Core 6 limit. Components are what the store rows, the levels and the Labs are paid in. | A machine level: 10.9M credits and 2,430 Components and Plates. |
+| **Coolant Cell at level 7** | The rock of strata 16-19, which Core 7 opens, overheats a Drill, a Lab and a Crusher on its own. A Coolant Cell at the Core 6 limit moves 150% more heat than at level 1. | A machine level. |
+| **Resonant Frames at level 2** | The research gate at the era boundary. Every other research-paid line is complete by Core 6; this is the Core 6 era's own, and it changes what a layout of Boosters is worth. | Labs fed with Components: 210K research in all. |
+| **A Condenser serving 3** | The Core 5 era's machine, used where it matters. | A Condenser among three machines, or in a Coolant Cell's place. |
+| **80 machines at working heat, none overheating** | The whole factory under control on stratum 15. Played, this was the longest row. | Heat work and growth, a balance: a new line is what overheats. |
+| **Stratum 15** | The rock under the Core 6 limit, reached. | Descending. |
+
+**What went out of the old row set, and why:**
+
+- **1B credits:** 46 hours of the measured income, and the only real ask.
+- **Deeper Bore 6:** allowed since Core 4, and met on the first beat.
+- **Smelter 7:** a credit row with no reason in the Core 7 era. From stratum 10 the rock itself keeps Smelters warm.
+
+A row asking for 8 Assemblers at working heat was tried and taken out. On
+stratum 15 an Assembler at level 6 overheats alone, and the scripted player
+could not get past 3 in 5 hours. The stability row already asks for the
+same kind of work across the whole factory.
+
+**Machine levels past 6.**
+
+- Up to level 6 a level still costs twelve times the one before.
+- From level 7 it costs 3.5 times the one before (`MachineDB.LATE_LEVEL_GROWTH`).
+- A level 7 is now 10.9M credits, about half an hour of the Core 6 factory's income, against 1.7 hours at twelve times. A level 8 is 38M.
+
+**Resonant Frames (opened by Core 6).**
+
+- It has four levels. Core 7 asks for level 2 and Core 8 for level 4.
+- Each level gives every Amplifier, Condenser and Duplicator's neighbours 15% more of its boost.
+- Every Booster is warm, so a layout dense with them is a trade against heat.
+- It costs 60K research for the first level, growing 2.5 times a level.
+
+### What Core 7 opens: Overdrive
+
+- **Which types:** a machine type that has reached the limit the Core before allowed (level 7) can be driven past it.
+- **How many steps:** three for Core 7, three more for every Core level after it (`CoreLevels.overdrive_cap`).
+- **What a step does:** half a level of speed, with the heat that follows work. On a Coolant Cell or a Condenser, a step is strength.
+- **What it is paid in:** Ingots and Plates from the Core's store, and research. Never credits.
+  - Step 1: 4,000 of each and 25K research.
+  - Step 2: 5,900 of each and 37K research.
+  - Step 3: 8,700 of each and 54K research.
+  - Each Core level's steps cost 3.2 times the last level's, as the store at the Vault's limit grows, so every step fits its store.
+- **In the interface:** the machine sheet has an Overdrive key under the level key, with its price in gems and research. "What now?" names a step that can be taken.
+
+**Why Overdrive, of what the pool has for the late game (FP-12):**
+
+- **It answers the audit.** After Core 5 only the credit queue was left. Overdrive gives the store's materials and the Labs' research a use that grows the factory: the Core 7 era runs three queues at once.
+- **It keeps the old tiers in use.** Ingots and Plates are what it is paid in; since Core 4 they had only been sold or paid into store rows. The lines touching the Core feed it. The target moves from "Components for credits" to "materials and research for power".
+- **It is a new decision, not a bigger number.** A step makes a type hotter on the hottest rock so far, so every step is weighed against the cooling the Core 7 row asked for.
+- **It stays in bounds.** No new resource, machine or art (this round's limits).
+
+**Played:** one minute after Core 7, the scripted player drove its
+Assemblers, then its Presses, Smelters and Crushers, three steps each, in
+25 minutes: 12 steps, from the store and the research it had banked.
+Research then set the pace: five more steps in the next 2 h 15 min.
+
+What else Core 7 opens: strata 16-19, machine level 8, Resonant Frames to
+its end, and a store of up to 85,899 of each material.
+
+### Before and after
+
+Scripted player, a new game to Core 7. Credit-only waits before Core 6 are
+fast-forwarded in both runs (2 h 15 min in all).
+
+| | old table | new table |
+|---|---|---|
+| Core 6 reached | 4 h 17 min | 4 h 17 min (the same run to here) |
+| Core 7 reached | not reached; about 50 h by credits alone | **10 h 57 min** |
+| Core 6 → 7 stage | ~46 h, nearly all saving for 1B | 6 h 40 min |
+| only credits left in the stage | ~95% (estimated) | **6 min 45 s (2%)** |
+| minutes with a decision | -- | 139 of 401 |
+| the Core's own price | 1B | 15M |
+| credits into machine levels in the stage | -- | 106M (16 levels, every type to 7) |
+| income through the stage | 6.1K/s → 5.9K/s | 6.1K/s → 6.9K/s |
+
+**When each new row was first met, from the stage's start:**
+
+| row | first met after |
+|---|---|
+| Condenser serving 3 | 5 s |
+| stratum 15 | 2 min |
+| Resonant Frames 2 | 42 min |
+| the store: Components | 1 h 9 min |
+| the store: Plates | 1 h 12 min |
+| Assembler 7 | 1 h 34 min |
+| Coolant Cell 7 | 2 h 9 min |
+| the Core's 15M | 3 h 34 min |
+| stability 80 | 4 h 13 min |
+
+The Core grew at 6 h 40 min. The stability row reached 80 at 4 h 13 min
+and came and went: every new line is a new source of heat. Played again
+from the same Core 6 save, the stage took 4 h 35 min. The stability row is
+the stage's longest part, and the one a human will vary on most.
+
+**The factory at Core 7** is 175 machines:
+
+| type | count |
+|---|---|
+| Coolant Cell | 57 |
+| Vault | 47 |
+| Drill | 21 |
+| Crusher | 13 |
+| Lab | 10 |
+| Smelter | 9 |
+| Press | 8 |
+| Assembler | 5 |
+| Boiler | 3 |
+| Condenser | 1 |
+| Duplicator | 1 |
+
+35 of them run in a mode. A third of the board is cooling. Coolant Cells
+cost 1.2 times more with every one owned, so on hot rock cooling is also a
+credit sink (FP-21 made their levels the cheaper answer).
+
+### After Core 7
+
+**Played, the first three hours of the Core 7 era:**
+
+- **Overdrive:** 12 steps in the first 25 minutes, then paced by research.
+- **Descent:** the player went down to 19 in 25 minutes.
+- **Income:** it fell from 6.9K/s to 3.7K/s. The rock of strata 16-19 overheats the old layout, and the player was re-laying it, placing 245 machines and selling 248 in three hours.
+- **Core 8:** of its rows, Overdrive and stratum 19 were met. Open were:
+  - the 60M credits;
+  - the store at 80,000 (a Vault 8);
+  - an Amplifier serving 4;
+  - Resonant Frames 4;
+  - Assembler 8;
+  - stability 100.
+
+**Core 8 is designed and graph-checked, not measured.**
+
+- It asks for what Core 7 opened: an Assembler driven 3 steps, and Resonant Frames 4.
+- Its credits are four times Core 7's.
+- Past Core 8 the levels are still a formula:
+  - credits grow four times a level (it was fifteen);
+  - every level asks for one production machine at the limit, and that machine's Overdrive steps.
+
+**The long chain, checked against what exists:**
+
+| link | Core 1-7 | after Core 7 |
+|---|---|---|
+| Core → machine progression | caps; levels to 8; Overdrive | yes: the level and Overdrive caps grow with the Core |
+| machine progression → production chains | Ingots, Plates and Components feed levels, store rows and Overdrive | **no new chain after Components (Core 3)**; a new material waits for the owner's D1 decision (crystal, FP-18) |
+| production → research | Labs learn from the chain; Resonant Frames and Overdrive spend research | **no research line opens after Core 6** |
+| research → strata | research rows gate Core levels, which gate depth | yes |
+| strata → factory expansion | a ring every three strata from stratum 10 | yes, to the whole board at stratum 52 |
+| expansion → advanced systems | modes (Core 3), Overdrive (Core 7) | the pool's next candidates: Core modules, the Core's reach (O5), bulk buyers (FP-15) |
+| advanced → late progression | -- | Core 9 and up are a formula (P5) |
+| late → collapse / permanent | the research tree survives; nothing of the Core does | **not connected**: the owner's decision P6 |
+
+### Collapse and Blueprint, measured against it
+
+**Collapse.**
+
+- **What a collapse costs.** At Core 7 it throws away 11 hours of active play of the Core's progress: its level, the machine levels, Overdrive and the store.
+- **What it keeps.** The research tree, Resonant Frames among it. So a second shaft meets Core 7's research row the moment Core 6 opens it, as it already did the earlier research rows.
+- **What the Cores it pays buy.** Only the Core-priced research lines, and none of those is a Core row.
+- **So collapse is still the short reset loop the brief warns against,** not a permanent layer over the factory. Nothing was built for it this round.
+- **The owner's decision (P6), now with a measured price:** which of the Core's progress a collapse keeps. For example:
+  - a Core-level floor;
+  - Overdrive steps as the permanent layer (a step survives, and a new shaft's types start driven);
+  - standard levels (FP-19).
+
+**Blueprint.**
+
+- **What reaching Core 7 took.** Its factory has 175 machines of 11 types. The scripted player placed 643 machines and sold 467 on the way.
+- **What a collapse would ask.** A second shaft would need those 175 placements again, most of them the same lines. On hot rock the layout is the hard part: a third of it is cooling.
+- **So Blueprint becomes a real progression dependency** the moment P6 keeps anything of the Core's progress. Until then it is quality of life. This is recorded in P7.
+
+### Not done in this round
+
+- **Core 5 → 6.** It is still 91% credit-only: a 60M price at 4.4K/s, with its other rows met in 16 minutes. It is the same disease one level earlier, and it was out of this round's scope.
+- **Core 8 and later** are designed, not played.
+- **Overdrive's picture.** There is no glow on a driven machine, and no pips on the Core card.
+
+### Next single priority
+
+**Late-game income.** Every stage from Core 4 on is paced by an income
+that grows about 1.4 times an era, while the rock's heat takes it back:
+
+- at Core 7 the income fell from 6.9K/s to 3.7K/s on strata 16-19;
+- Core 5 → 6 is still 91% credit-only.
+
+Overdrive is the first growth that is not paid in credits. The next round
+should measure it and the Core 7 era, and re-derive Core 5 → 6 and Core 8
+from what that factory earns.
 
 ---
 

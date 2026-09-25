@@ -72,6 +72,25 @@ const RESEARCH_TREE := {
 		"per_level": 0.25,
 		"core": 4,
 	},
+	# The Amplification era's research (the Core's level 6), and the one
+	# that keeps the Labs working once the first four lines are complete:
+	# every earlier line is at its end by the Core's level 6
+	# (docs/PROGRESSION.md, "Core 7"). It changes what a layout is worth,
+	# not a flat number: a Booster's neighbours get more of it, and every
+	# Booster is warm (MachineDB: an Amplifier gives off 1.0, a Duplicator
+	# 1.6), so packing them in is a trade against heat.
+	"resonance": {
+		"name": "Resonant Frames",
+		"short": "Boosters push harder.",
+		"desc": "Every Amplifier, Condenser and Duplicator gives its neighbours 15% more of its boost.",
+		"cost_research": 60000.0,
+		"cost_cores": 0,
+		"max": 4,
+		"cost_growth": 2.5,
+		"effect": "resonance",
+		"per_level": 0.15,
+		"core": 6,
+	},
 	"heat_tolerance": {
 		"name": "Ceramic Lining",
 		"short": "Machines can take more heat.",
@@ -134,7 +153,7 @@ const RESEARCH_TREE := {
 	},
 }
 
-const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1",
+const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resonance",
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
 	"core_yield"]
 
@@ -231,6 +250,7 @@ static func multipliers(levels: Dictionary) -> Dictionary:
 		"yield": 1.0,
 		"value": 1.0,
 		"research": 1.0,
+		"resonance": 1.0,
 		"tolerance": 0.0,
 		"offline_hours": OFFLINE_BASE_HOURS,
 		"offline_rate": OFFLINE_BASE_RATE,
@@ -245,7 +265,7 @@ static func multipliers(levels: Dictionary) -> Dictionary:
 		var per: float = float(u["per_level"])
 		var effect: String = String(u["effect"])
 		match effect:
-			"speed", "yield", "value", "research":
+			"speed", "yield", "value", "research", "resonance":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"tolerance", "core_yield":
 				m[effect] = float(m[effect]) + per * float(lvl)

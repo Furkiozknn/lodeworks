@@ -51,6 +51,9 @@ var upgrade_levels: Dictionary = {}
 var core_level: int = 1
 ## Machine type -> level (1 when absent). MachineDB.level_speed.
 var machine_levels: Dictionary = {}
+## Machine type -> Overdrive steps taken (0 when absent), from the Core's
+## level MachineDB.OVERDRIVE_CORE (`overdrive_machine`).
+var overdrive: Dictionary = {}
 ## The Core's store: what machines touching the Core have handed it,
 ## {res: count}, up to what the Vault's level holds (`stock_cap`). Machine
 ## levels and the Core's own levels are paid from it.
@@ -520,6 +523,66 @@ func upgrade_machine(id: String) -> bool:
 	return true
 
 
+## --- Overdrive ------------------------------------------------------------------
+
+func overdrive_steps(id: String) -> int:
+	return int(overdrive.get(id, 0))
+
+
+## The Overdrive steps a machine type may take under this shaft's Core.
+func overdrive_cap() -> int:
+	return CoreLevels.overdrive_cap(core_level)
+
+
+## What machine type `id`'s next Overdrive step costs: {"materials", "research"}.
+func overdrive_cost(id: String) -> Dictionary:
+	return MachineDB.overdrive_cost(overdrive_steps(id) + 1)
+
+
+## Why machine type `id` cannot take an Overdrive step now, or "" when it
+## can: "none" (it cannot be driven), "locked", "core" (the Core's level has
+## not opened it, or its steps are at the Core's limit), "level" (it has not
+## reached the level the Core before allowed), "storage", "stock",
+## "research".
+func overdrive_blocker(id: String) -> String:
+	if not MachineDB.can_overdrive(id):
+		return "none"
+	if not is_unlocked(id):
+		return "locked"
+	if overdrive_steps(id) >= overdrive_cap():
+		return "core"
+	if machine_level(id) < CoreLevels.overdrive_from(core_level):
+		return "level"
+	var cost: Dictionary = overdrive_cost(id)
+	var mats: Dictionary = cost["materials"]
+	for res: int in mats:
+		if int(mats[res]) > stock_cap():
+			return "storage"
+	if not has_stock(mats):
+		return "stock"
+	if research < float(cost["research"]):
+		return "research"
+	return ""
+
+
+func can_overdrive(id: String) -> bool:
+	return overdrive_blocker(id) == ""
+
+
+## Drive machine type `id` one step: its materials and research are paid.
+func overdrive_machine(id: String) -> bool:
+	if not can_overdrive(id):
+		return false
+	var cost: Dictionary = overdrive_cost(id)
+	research -= float(cost["research"])
+	_take_stock(cost["materials"])
+	overdrive[id] = overdrive_steps(id) + 1
+	_recompute()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
 func descend() -> bool:
 	if not can_descend():
 		return false
@@ -572,6 +635,7 @@ func collapse() -> int:
 	# store empty.
 	core_level = 1
 	machine_levels = {}
+	overdrive = {}
 	stock = {}
 	# A new shaft's board is dealt afresh; the lifetime count stays.
 	contracts = []
@@ -663,10 +727,12 @@ func _recompute() -> void:
 	Strata.apply(sim, grid, _stratum, _mult)
 	var lm: Dictionary = {}
 	var hs: Dictionary = {}
-	for id: String in machine_levels:
+	var types: Dictionary = machine_levels.duplicate()
+	types.merge(overdrive)
+	for id: String in types:
 		if MachineDB.level_is_speed(id):
-			lm[id] = MachineDB.level_speed(int(machine_levels[id]))
-		var f: float = MachineDB.heat_factor(id, int(machine_levels[id]))
+			lm[id] = MachineDB.level_speed(machine_level(id), overdrive_steps(id))
+		var f: float = MachineDB.heat_factor(id, machine_level(id), overdrive_steps(id))
 		if not is_equal_approx(f, 1.0):
 			hs[id] = f
 	grid.set_heat_scale(hs)
@@ -811,6 +877,7 @@ func to_dict() -> Dictionary:
 		"collapses": collapses,
 		"core_level": core_level,
 		"machine_levels": machine_levels,
+		"overdrive": overdrive,
 		"stock": stock,
 		"contracts": contracts,
 		"dispatch_serial": dispatch_serial,
@@ -845,6 +912,11 @@ func from_dict(d: Dictionary) -> void:
 	machine_levels = {}
 	for id in (d.get("machine_levels", {}) as Dictionary):
 		machine_levels[String(id)] = int(d["machine_levels"][id])
+	# Overdrive; a save from before it has none.
+	overdrive = {}
+	for id in (d.get("overdrive", {}) as Dictionary):
+		if MachineDB.can_overdrive(String(id)) and int(d["overdrive"][id]) > 0:
+			overdrive[String(id)] = int(d["overdrive"][id])
 	# The store; a save from the first round of Core levels kept what the
 	# Core had taken in towards its next level under "core_intake".
 	stock = {}

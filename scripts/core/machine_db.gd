@@ -523,9 +523,21 @@ static func unlock_depth(id: String) -> int:
 ## sixth of the price, a played factory had every machine at its limit two
 ## minutes after each Core level and nothing left to do between them
 ## (docs/PROGRESSION.md, "Balance").
+##
+## Past level LATE_LEVEL_FROM a level costs LATE_LEVEL_GROWTH times the one
+## before, not LEVEL_PRICE_GROWTH. Twelve times a level kept pace with the
+## first eras, whose income grew about tenfold each (a new material, a new
+## research line); measured, levels 3 to 6 cost 38 s, 47 s, 2 min and 12 min
+## of the income of the era that opens them. From the Core's level 5 on,
+## income grows about 1.4 times an era, and at twelve times a level 7 cost
+## 1.7 hours of the Core 6 factory's income and a level 8 about fifteen:
+## the credit wall of docs/PROGRESSION.md, "Core 7". At 3.5 times a level 7
+## costs about half an hour of that income.
 const LEVEL_SPEED := 0.1
 const LEVEL_PRICE := 150.0
 const LEVEL_PRICE_GROWTH := 12.0
+const LATE_LEVEL_FROM := 6
+const LATE_LEVEL_GROWTH := 3.5
 const LEVEL_MATERIAL := 10.0
 const LEVEL_MATERIAL_GROWTH := 3.0
 const VAULT_MATERIAL_SHARE := 0.3
@@ -540,14 +552,22 @@ const STOCK_BASE := 25.0
 const STOCK_GROWTH := 3.2
 
 
-## How much faster machines of a type run at `level` than at level 1.
-static func level_speed(level: int) -> float:
-	return 1.0 + LEVEL_SPEED * float(maxi(level, 1) - 1)
+## How much faster machines of a type run at `level`, with `drive`
+## Overdrive steps, than at level 1.
+static func level_speed(level: int, drive: int = 0) -> float:
+	return 1.0 + LEVEL_SPEED * _steps(level, drive)
+
+
+## A level and its Overdrive steps, as levels above the first.
+static func _steps(level: int, drive: int) -> float:
+	return float(maxi(level, 1) - 1) + OVERDRIVE_STEP * float(maxi(drive, 0))
 
 
 ## Credits to take machine type `id` from `to_level - 1` to `to_level`.
 static func level_price(_id: String, to_level: int) -> float:
-	return LEVEL_PRICE * pow(LEVEL_PRICE_GROWTH, float(maxi(to_level, 2) - 2))
+	var l: int = maxi(to_level, 2)
+	return LEVEL_PRICE * pow(LEVEL_PRICE_GROWTH, float(mini(l, LATE_LEVEL_FROM) - 2)) \
+		* pow(LATE_LEVEL_GROWTH, float(maxi(l - LATE_LEVEL_FROM, 0)))
 
 
 ## Materials to take machine type `id` to `to_level`: {res: count}.
@@ -622,14 +642,57 @@ const HEAT_PER_LEVEL := 0.1
 const SUPPORT_PER_LEVEL := 0.25
 
 
-## How much of its table heat a machine of type `id` gives off at `level`.
-static func heat_factor(id: String, level: int) -> float:
-	var step: float = float(maxi(level, 1) - 1)
+## How much of its table heat a machine of type `id` gives off at `level`,
+## with `drive` Overdrive steps.
+static func heat_factor(id: String, level: int, drive: int = 0) -> float:
+	var step: float = _steps(level, drive)
 	if is_heat_support(id):
 		return 1.0 + SUPPORT_PER_LEVEL * step
 	if level_is_speed(id):
 		return 1.0 + HEAT_PER_LEVEL * step
 	return 1.0
+
+
+## --- Overdrive ------------------------------------------------------------------
+##
+## From the Factory Core's level OVERDRIVE_CORE, a machine type that has
+## reached the level the Core before it allowed can be driven past it:
+## OVERDRIVE_PER_CORE steps for every Core level from OVERDRIVE_CORE
+## (CoreLevels.overdrive_cap). A step counts as OVERDRIVE_STEP of a level,
+## for speed and for the heat that follows it -- a heat support's step is
+## strength -- and it is paid in the old tiers from the Core's store (Ingots
+## and Plates) and in research, never in credits. So the factory the Core 6
+## era built keeps growing in the Core 7 era through what it makes rather
+## than through what it sells: the store and the Labs have a job again, and
+## the machines at the front of the old chain -- the Smelters and Presses
+## touching the Core -- are what feeds it (docs/PROGRESSION.md, "Core 7";
+## the feature pool's FP-12, from Clash of Clans' Supercharge).
+const OVERDRIVE_CORE := 7
+const OVERDRIVE_PER_CORE := 3
+const OVERDRIVE_STEP := 0.5
+const OVERDRIVE_MATERIAL := 4000.0
+const OVERDRIVE_RESEARCH := 25000.0
+## A Core level's steps cost STOCK_GROWTH times the last level's, as the
+## store a Vault at the Core's limit holds grows: every step always fits.
+const OVERDRIVE_GROWTH := 1.4736
+const OVERDRIVE_TIERS := [Res.INGOT, Res.PLATE]
+
+
+## Can machine type `id` be driven? Every levelled type but the Vault,
+## whose level is storage.
+static func can_overdrive(id: String) -> bool:
+	return has_levels(id) and not (get_machine(id).get("tags", []) as Array).has("sink")
+
+
+## What a type's Overdrive step `step` (1 for the first) costs:
+## {"materials": {res: count}, "research": amount}.
+static func overdrive_cost(step: int) -> Dictionary:
+	var g: float = pow(OVERDRIVE_GROWTH, float(maxi(step, 1) - 1))
+	var n: int = int(ceil(minf(OVERDRIVE_MATERIAL * g, LEVEL_NUMBER_MAX)))
+	var mats: Dictionary = {}
+	for res: int in OVERDRIVE_TIERS:
+		mats[res] = n
+	return {"materials": mats, "research": minf(OVERDRIVE_RESEARCH * g, LEVEL_NUMBER_MAX)}
 
 
 ## Modes: how hard one machine is run. A trade between output and heat the

@@ -158,6 +158,8 @@ var source_speed_mult: float = 1.0
 ## then read by nobody: a board measured under Resonant produced numbers
 ## identical to the same board on a clean stratum, to the last credit.
 var amplify_mult: float = 1.0
+## How much of a Duplicator's chance its neighbours get (research).
+var duplicate_mult: float = 1.0
 var yield_mult: float = 1.0
 var value_mult: float = 1.0
 var research_mult: float = 1.0
@@ -516,7 +518,7 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 	if not inputs.is_empty():
 		_consume(buf_in, inputs)
 
-	var dup: float = grid.duplicate_chance_at(i)
+	var dup: float = minf(grid.duplicate_chance_at(i) * duplicate_mult, 0.9)
 	for res: int in m["outputs"].keys():
 		var amount: int = int(m["outputs"][res])
 		var produced: float = float(amount) * yield_mult

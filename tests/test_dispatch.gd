@@ -23,6 +23,7 @@ func _fresh(depth: int = 0) -> void:
 	Sim.upgrade_levels = {}
 	Sim.core_level = 1
 	Sim.machine_levels = {}
+	Sim.overdrive = {}
 	Sim.stock = {}
 	Sim.contracts = []
 	Sim.dispatch_serial = 0

@@ -499,6 +499,10 @@ msgid "Coolant Cells at level %d: %.1f less from each"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Its level %d and %d Overdrive steps give off %d%% more heat than level 1"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Its level %d gives off %d%% more heat than level 1"
 msgstr ""
 
@@ -516,6 +520,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "It opens strata %d to %d, machine level %d and a store of %d."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -595,6 +603,10 @@ msgid "A %s serving %d machines"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "%s driven %d Overdrive steps"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
 msgstr ""
 
@@ -635,6 +647,18 @@ msgid "Every %s works %d%% faster a level. It is paid in credits and in material
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Overdrive %d/%d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Level %d first"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "A tap takes you to the first one."
 msgstr ""
 
@@ -660,6 +684,14 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Paid in credits and in materials from the Core's store."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Overdrive the %s: step %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Paid in Ingots, Plates and research, not credits."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1288,6 +1320,18 @@ msgstr ""
 
 #: res://scripts/core/economy.gd
 msgid "Labs produce 25% more research."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Resonant Frames"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Boosters push harder."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Every Amplifier, Condenser and Duplicator gives its neighbours 15% more of its boost."
 msgstr ""
 
 #: res://scripts/core/economy.gd

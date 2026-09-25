@@ -533,6 +533,17 @@ TR = {
     "pays %s research": "%s araştırma öder",
     "pays %s credits": "%s kredi öder",
     "%d %s": "%d %s",
+    "Overdrive %d/%d": "Aşırı Sürüş %d/%d",
+    "Level %d first": "Önce seviye %d",
+    "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps.": "Aşırı Sürüş: bir önceki Çekirdeğin izin verdiği seviyenin ötesinde her adım, her %s makinesini %%%d daha sıkı çalıştırır; ısısı da onunla artar. Bedeli Çekirdeğin deposundaki Külçe ve Levhalar ile araştırmadır, asla kredi değildir; %d. seviyeden başlayarak her Çekirdek seviyesi %d adım daha açar.",
+    "%s driven %d Overdrive steps": "%s, %d Aşırı Sürüş adımı",
+    "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research.": "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Külçe, Levha ve araştırmayla ödenir.",
+    "Its level %d and %d Overdrive steps give off %d%% more heat than level 1": "Seviye %d ve %d Aşırı Sürüş adımı, seviye 1'den %%%d daha fazla ısı verir",
+    "Overdrive the %s: step %d": "%s için Aşırı Sürüş: %d. adım",
+    "Paid in Ingots, Plates and research, not credits.": "Külçe, Levha ve araştırmayla ödenir, krediyle değil.",
+    "Resonant Frames": "Rezonans Gövdeleri",
+    "Boosters push harder.": "Destekçiler daha güçlü iter.",
+    "Every Amplifier, Condenser and Duplicator gives its neighbours 15% more of its boost.": "Her Güçlendirici, Yoğuşturucu ve Çoğaltıcı komşularına etkisinin %15 fazlasını verir.",
 }
 
 

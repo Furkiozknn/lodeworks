@@ -500,6 +500,10 @@ msgid "Coolant Cells at level %d: %.1f less from each"
 msgstr "Soğutma Hücreleri seviye %d: her birinden %.1f daha az"
 
 #: res://scripts/ui/main.gd
+msgid "Its level %d and %d Overdrive steps give off %d%% more heat than level 1"
+msgstr "Seviye %d ve %d Aşırı Sürüş adımı, seviye 1'den %%%d daha fazla ısı verir"
+
+#: res://scripts/ui/main.gd
 msgid "Its level %d gives off %d%% more heat than level 1"
 msgstr "Seviye %d, seviye 1'den %%%d daha fazla ısı verir"
 
@@ -518,6 +522,10 @@ msgstr "Seviye %d için"
 #: res://scripts/ui/main.gd
 msgid "It opens strata %d to %d, machine level %d and a store of %d."
 msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
+
+#: res://scripts/ui/main.gd
+msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research."
+msgstr "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Külçe, Levha ve araştırmayla ödenir."
 
 #: res://scripts/ui/main.gd
 msgid "And machine modes: run a machine Cool for less heat, or Hot for more output."
@@ -596,6 +604,10 @@ msgid "A %s serving %d machines"
 msgstr "Bir %s, %d makineye hizmet ediyor"
 
 #: res://scripts/ui/main.gd
+msgid "%s driven %d Overdrive steps"
+msgstr "%s, %d Aşırı Sürüş adımı"
+
+#: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
 msgstr "%d makine çalışma ısısında, hiçbiri aşırı ısınmıyor"
 
@@ -636,6 +648,18 @@ msgid "Every %s works %d%% faster a level. It is paid in credits and in material
 msgstr "Her %s her seviyede %d%% daha hızlı çalışır. Kredi ve Çekirdeğin deposundaki malzemelerle ödenir; sınırı Çekirdeğin seviyesidir."
 
 #: res://scripts/ui/main.gd
+msgid "Overdrive %d/%d"
+msgstr "Aşırı Sürüş %d/%d"
+
+#: res://scripts/ui/main.gd
+msgid "Level %d first"
+msgstr "Önce seviye %d"
+
+#: res://scripts/ui/main.gd
+msgid "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps."
+msgstr "Aşırı Sürüş: bir önceki Çekirdeğin izin verdiği seviyenin ötesinde her adım, her %s makinesini %%%d daha sıkı çalıştırır; ısısı da onunla artar. Bedeli Çekirdeğin deposundaki Külçe ve Levhalar ile araştırmadır, asla kredi değildir; %d. seviyeden başlayarak her Çekirdek seviyesi %d adım daha açar."
+
+#: res://scripts/ui/main.gd
 msgid "A tap takes you to the first one."
 msgstr "Bir dokunuş seni ilkine götürür."
 
@@ -662,6 +686,14 @@ msgstr "%s yükseltmesi: seviye %d"
 #: res://scripts/ui/main.gd
 msgid "Paid in credits and in materials from the Core's store."
 msgstr "Kredi ve Çekirdeğin deposundaki malzemelerle ödenir."
+
+#: res://scripts/ui/main.gd
+msgid "Overdrive the %s: step %d"
+msgstr "%s için Aşırı Sürüş: %d. adım"
+
+#: res://scripts/ui/main.gd
+msgid "Paid in Ingots, Plates and research, not credits."
+msgstr "Külçe, Levha ve araştırmayla ödenir, krediyle değil."
 
 #: res://scripts/ui/main.gd
 msgid "Fill a contract: %d %s"
@@ -1290,6 +1322,18 @@ msgstr "Laboratuvarlar daha çok araştırma üretir."
 #: res://scripts/core/economy.gd
 msgid "Labs produce 25% more research."
 msgstr "Laboratuvarlar %25 daha fazla araştırma üretir."
+
+#: res://scripts/core/economy.gd
+msgid "Resonant Frames"
+msgstr "Rezonans Gövdeleri"
+
+#: res://scripts/core/economy.gd
+msgid "Boosters push harder."
+msgstr "Destekçiler daha güçlü iter."
+
+#: res://scripts/core/economy.gd
+msgid "Every Amplifier, Condenser and Duplicator gives its neighbours 15% more of its boost."
+msgstr "Her Güçlendirici, Yoğuşturucu ve Çoğaltıcı komşularına etkisinin %15 fazlasını verir."
 
 #: res://scripts/core/economy.gd
 msgid "Ceramic Lining"

@@ -28,13 +28,16 @@ extends RefCounted
 ##             capped by the Core (Economy.research_cap).
 ##   SERVES    what the best support machine of a type stands beside.
 ##   STABLE    machines running at their working heat while none overheats.
+##   OVERDRIVE the Overdrive steps a machine type has been driven (from the
+##             Core's level MachineDB.OVERDRIVE_CORE; paid in store
+##             materials and research).
 ##
 ## The graph has no cycles by construction -- everything level L asks for is
 ## possible at level L-1 -- and `validate()` checks it, with every
 ## requirement's reachability, storage and research limit, so a level can
 ## never ask for the impossible.
 
-enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE }
+enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE }
 
 ## A support machine touches four machines at most (Grid.serves).
 const MAX_SERVES := 4
@@ -97,22 +100,37 @@ const LEVELS := [
 		[Req.STABLE, 60],
 		[Req.DEPTH, 12],
 	]},
+	# The Core 6 era's factory, grown in every direction the Core 7 era
+	# needs (docs/PROGRESSION.md, "Core 7"): the Component chain at the
+	# Core 6 limit and running on hot rock; the cooling the rock of strata
+	# 16-19 asks for; a store for what Overdrive is paid in; the
+	# Amplification era's research; the whole factory under control. Most
+	# of the stage's credits go into the levels it asks for; the Core's own
+	# price is what the factory earns in the half hour or so after its other
+	# rows are met (measured: docs/PROGRESSION.md, "Core 7") -- never the
+	# requirement itself.
 	{"level": 7, "era": "Deep works", "depth_cap": 19, "machine_cap": 8, "requires": [
-		[Req.CREDITS, 1000000000.0],
+		[Req.CREDITS, 15000000.0],
 		[Req.STOCK, MachineDB.Res.COMPONENT, 25000],
 		[Req.STOCK, MachineDB.Res.PLATE, 25000],
+		[Req.MACHINE, "assembler", 7],
+		[Req.MACHINE, "coolant", 7],
+		[Req.RESEARCH, "resonance", 2],
 		[Req.SERVES, "condenser", 3],
-		[Req.RESEARCH, "yield_1", 6],
-		[Req.MACHINE, "smelter", 7],
 		[Req.STABLE, 80],
 		[Req.DEPTH, 15],
 	]},
+	# Designed and graph-checked, not yet played (docs/PROGRESSION.md, "Core
+	# 7", "After Core 7"): what Core 7 opens -- Overdrive, Resonance's last
+	# levels -- becomes a row, as a newly opened building does in the
+	# reference games.
 	{"level": 8, "era": "The Abyss", "depth_cap": 24, "machine_cap": 9, "requires": [
-		[Req.CREDITS, 15000000000.0],
+		[Req.CREDITS, 60000000.0],
 		[Req.STOCK, MachineDB.Res.COMPONENT, 80000],
 		[Req.STOCK, MachineDB.Res.PLATE, 80000],
+		[Req.OVERDRIVE, "assembler", 3],
 		[Req.SERVES, "amplifier", 4],
-		[Req.RESEARCH, "research_1", 5],
+		[Req.RESEARCH, "resonance", 4],
 		[Req.MACHINE, "assembler", 8],
 		[Req.STABLE, 100],
 		[Req.DEPTH, 19],
@@ -123,10 +141,14 @@ const LEVELS := [
 ## with growing numbers, so the Core never stops (a later round writes these
 ## out with their own identities: docs/PROGRESSION.md, P5).
 const LATE_DEPTH_STEP := 5
-const LATE_CREDIT_GROWTH := 15.0
+## Four times a level, as Core 8 is to Core 7: close to what a machine
+## level grows past level 6 (MachineDB.LATE_LEVEL_GROWTH). Fifteen, as it
+## was, made every level past Core 6 a wall of credits (docs/PROGRESSION.md,
+## "Core 7"); these levels are still a formula, not yet measured.
+const LATE_CREDIT_GROWTH := 4.0
 const LATE_STOCK_GROWTH := 2.2
 const LATE_MACHINES := ["drill", "crusher", "smelter", "press", "assembler", "lab"]
-const LATE_RESEARCH := ["throughput_1", "yield_1", "value_1", "research_1"]
+const LATE_RESEARCH := ["throughput_1", "yield_1", "value_1", "research_1", "resonance"]
 
 ## A machine counts as at its working heat at the warning key's threshold.
 const WORKING_HEAT := Simulation.THERMAL_WARNING
@@ -154,6 +176,7 @@ static func _entry(level: int) -> Dictionary:
 				reqs.append([Req.DEPTH, depth_cap(level - 1)])
 	var machine: String = String(LATE_MACHINES[n % LATE_MACHINES.size()])
 	reqs.append([Req.MACHINE, machine, machine_cap(level - 1)])
+	reqs.append([Req.OVERDRIVE, machine, overdrive_cap(level - 1)])
 	var line: String = String(LATE_RESEARCH[n % LATE_RESEARCH.size()])
 	reqs.append([Req.RESEARCH, line, mini(3 + n / LATE_RESEARCH.size(),
 		Economy.research_cap(line, level - 1))])
@@ -201,9 +224,21 @@ static func storage_level(amount: int) -> int:
 	return v
 
 
+## The Overdrive steps a machine type may take under a Core of `level`.
+static func overdrive_cap(level: int) -> int:
+	return MachineDB.OVERDRIVE_PER_CORE * maxi(level - MachineDB.OVERDRIVE_CORE + 1, 0)
+
+
+## The level a machine type must have reached before a Core of `level` lets
+## it be driven: the limit the Core before it set.
+static func overdrive_from(level: int) -> int:
+	return machine_cap(level - 1)
+
+
 ## What reaching `level` opens: the strata below (and the machines and
 ## materials found there), the machine level limit, the most a Vault may
-## then store, and the research lines that start there.
+## then store, the research lines that start there, and the Overdrive steps
+## it adds.
 static func opens(level: int) -> Dictionary:
 	var from: int = depth_cap(level - 1) + 1 if level > 1 else 0
 	var to: int = depth_cap(level)
@@ -221,7 +256,8 @@ static func opens(level: int) -> Dictionary:
 			lines.append(id)
 	return {"strata": [from, to], "machines": machines, "materials": materials,
 		"machine_cap": machine_cap(level), "research": lines,
-		"stock_cap": MachineDB.stock_cap(machine_cap(level))}
+		"stock_cap": MachineDB.stock_cap(machine_cap(level)),
+		"overdrive": overdrive_cap(level) - overdrive_cap(level - 1)}
 
 
 ## The Core's next level, requirement by requirement, as the running factory
@@ -260,6 +296,9 @@ static func status(state: Object) -> Array:
 			Req.STABLE:
 				have = float(stable(state))
 				need = float(r[1])
+			Req.OVERDRIVE:
+				have = float(int(state.call("overdrive_steps", String(r[1]))))
+				need = float(r[2])
 		row.merge({"req": r, "met": have >= need, "have": have, "need": need})
 		out.append(row)
 	return out
@@ -397,6 +436,8 @@ static func available_at(r: Array) -> int:
 			return machine_level_at(String(r[1]), int(r[2]))
 		Req.RESEARCH:
 			return research_at(String(r[1]), int(r[2]))
+		Req.OVERDRIVE:
+			return overdrive_at(String(r[1]), int(r[2]))
 	return -1
 
 
@@ -449,6 +490,42 @@ static func research_at(id: String, level: int) -> int:
 	return at
 
 
+## The first Core level at which machine type `id` can have been driven
+## `steps` Overdrive steps: Overdrive open that far, the type at the level
+## that Core's predecessor allowed, every step's materials in a store its
+## Vault can then hold, and a Lab for the research. -1 when never.
+static func overdrive_at(id: String, steps: int) -> int:
+	if not MachineDB.exists(id) or not MachineDB.can_overdrive(id):
+		return -1
+	if steps <= 0:
+		return 1
+	var at: int = MachineDB.OVERDRIVE_CORE
+	var guard: int = 0
+	while overdrive_cap(at) < steps:
+		at += 1
+		guard += 1
+		if guard > 1000:
+			return -1
+	var lvl: int = machine_level_at(id, overdrive_from(at))
+	if lvl < 0:
+		return -1
+	at = maxi(at, maxi(lvl, level_for_depth(MachineDB.unlock_depth("lab"))))
+	for k in range(1, steps + 1):
+		var mats: Dictionary = MachineDB.overdrive_cost(k)["materials"]
+		for res: int in mats:
+			var maker: String = producer_of(res)
+			if maker == "":
+				return -1
+			at = maxi(at, level_for_depth(MachineDB.unlock_depth(maker)))
+			var v: int = storage_level(int(mats[res]))
+			if v > 1:
+				var store: int = machine_level_at("vault", v)
+				if store < 0:
+					return -1
+				at = maxi(at, store)
+	return at
+
+
 ## The machine that makes `res`, or "".
 static func producer_of(res: int) -> String:
 	for id: String in MachineDB.ORDER:
@@ -481,6 +558,15 @@ static func validate(upto: int = 20) -> Array[String]:
 		for res: int in other:
 			if int(other[res]) > MachineDB.stock_cap(v):
 				errors.append("a machine's level %d costs more than a level-%d Vault stores" % [v, v])
+	# Every Overdrive step a Core level opens is payable from the store a
+	# Vault at that level's limit holds.
+	for level in range(MachineDB.OVERDRIVE_CORE, upto + 1):
+		for k in range(overdrive_cap(level - 1) + 1, overdrive_cap(level) + 1):
+			var od: Dictionary = MachineDB.overdrive_cost(k)["materials"]
+			for res: int in od:
+				if int(od[res]) > MachineDB.stock_cap(machine_cap(level)):
+					errors.append("Overdrive step %d, opened by level %d, costs more than its store holds"
+						% [k, level])
 	return errors
 
 

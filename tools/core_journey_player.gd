@@ -85,6 +85,7 @@ func fresh() -> void:
 	S.upgrade_levels = {}
 	S.core_level = 1
 	S.machine_levels = {}
+	S.overdrive = {}
 	S.stock = {}
 	S.core_online = false
 	S.unlocked.clear()
@@ -131,6 +132,22 @@ func act() -> void:
 	var buying: Array = [CoreLevels.Req.CREDITS, CoreLevels.Req.STOCK, CoreLevels.Req.MACHINE]
 	var saving: bool = not open.is_empty() \
 		and open.all(func(st: Dictionary) -> bool: return buying.has(int(st["req"][0])))
+	_keep = 0.0
+	if not saving and S.core_level >= KEEP_FROM:
+		# A player working towards the Core keeps what its rows are bought
+		# with -- the Core's own price, and the machine and Vault levels it
+		# asks for -- and grows the factory, or buys a level no row asks
+		# for, on what is earned past it.
+		for st: Dictionary in open:
+			match int(st["req"][0]):
+				CoreLevels.Req.CREDITS:
+					_keep += float(st["need"])
+				CoreLevels.Req.MACHINE:
+					_keep += float(S.machine_upgrade_cost(String(st["req"][1]))["credits"])
+				CoreLevels.Req.STOCK:
+					if int(st["cap"]) < int(st["need"]):
+						_keep += float(S.machine_upgrade_cost("vault")["credits"])
+		reserve += _keep
 	if saving:
 		for st: Dictionary in open:
 			match int(st["req"][0]):
@@ -149,12 +166,21 @@ func act() -> void:
 			_pursue(st)
 	if not saving:
 		_spare_upgrades()
-	if S.credits > reserve:
+	_spare_overdrive()
+	# From the Core's level KEEP_FROM no new line goes down while something
+	# overheats and the Core asks for stability: on hot rock a new line is
+	# what breaks it. Once nothing overheats, the factory grows again --
+	# stability is counted in machines at work.
+	var holding: bool = S.core_level >= KEEP_FROM and CoreLevels.stable(S) == 0 \
+		and open.any(func(st: Dictionary) -> bool: return int(st["req"][0]) == CoreLevels.Req.STABLE)
+	if S.credits > reserve and not holding:
 		_grow()
 	for id: String in S.machine_levels:
 		_event("%s%d" % [id, int(S.machine_levels[id])], "%s level %d" % [id, int(S.machine_levels[id])])
 	for id: String in S.upgrade_levels:
 		_event("r%s%d" % [id, int(S.upgrade_levels[id])], "research %s %d" % [id, int(S.upgrade_levels[id])])
+	for id: String in S.overdrive:
+		_event("o%s%d" % [id, int(S.overdrive[id])], "%s Overdrive %d" % [id, int(S.overdrive[id])])
 	for cell: int in S.grid.cells:
 		var id: String = S.grid.machine_at(cell)
 		_event("m" + id, "first " + id)
@@ -224,16 +250,30 @@ func _pursue(st: Dictionary) -> void:
 		CoreLevels.Req.RESEARCH:
 			if S.grid.count_of("lab") == 0 or _working("lab") == 0:
 				_build_lab()
+			elif not S.can_buy_upgrade(String(r[1])) and S.upgrade_level(String(r[1])) < S.research_cap(String(r[1])):
+				# Short of research, not of the Core: more Labs, fed.
+				_more_labs()
+		CoreLevels.Req.OVERDRIVE:
+			_drive(String(r[1]))
 		CoreLevels.Req.SERVES:
 			_place_support(String(r[1]), int(r[2]))
 		CoreLevels.Req.STABLE:
 			for cell: int in S.grid.cells:
 				if S.sim.overheated_at(cell):
+					# From the Core's level KEEP_FROM a machine being cooled is
+					# given the time to show it before it is judged beyond help.
+					if S.core_level >= KEEP_FROM and t - float(_touched.get(cell, -1.0e9)) < SETTLE:
+						continue
 					if _fix_heat(cell, false):
 						return
 					# Nothing can cool it where it stands: a player takes it
 					# away, unless a plan needs it there, and leaves the tile.
-					if not _reserved(cell):
+					# From the Core's level KEEP_FROM a plan's machine goes too
+					# (on this stratum): the rock under Core 6 is hotter than
+					# anything the plans were laid for.
+					if not _reserved(cell) or S.core_level >= KEEP_FROM:
+						if _reserved(cell):
+							_dropped[cell] = true
 						S.sell(cell)
 						_bare[cell] = true
 						return
@@ -241,6 +281,78 @@ func _pursue(st: Dictionary) -> void:
 			for cell: int in S.sim.problem_cells():
 				if S.sim.heat_efficiency_at(cell) < CoreLevels.WORKING_HEAT and _fix_heat(cell, false):
 					return
+
+
+## An Overdrive step for machine type `id`, or what stands in its way:
+## the Vault's level for a store too small, a chain into the store for the
+## materials, Labs for the research, the type's own level first.
+func _drive(id: String) -> void:
+	match S.overdrive_blocker(id):
+		"":
+			S.overdrive_machine(id)
+		"storage":
+			S.upgrade_machine("vault")
+		"stock":
+			for res: int in (S.overdrive_cost(id)["materials"] as Dictionary):
+				if S.stock_of(res) < int(S.overdrive_cost(id)["materials"][res]) and _core_feeders(res) < 2:
+					_feed_core(res)
+					return
+		"research":
+			_more_labs()
+		"level":
+			if S.can_upgrade_machine(id):
+				S.upgrade_machine(id)
+
+
+## From the Core's level KEEP_FROM the player keeps, whatever else it does,
+## the credits the Core's rows are bought with. Before it the player is
+## kept as it was measured.
+const KEEP_FROM := 6
+var _keep: float = 0.0
+
+
+## Labs, up to LABS, where refined material reaches them: research is a
+## production decision, and a player short of it builds for it. From the
+## Core's level LABS_FROM: the first four lines are cheap enough for the
+## Labs the plans already hold, and the player before it is kept as it was
+## measured.
+const LABS := 12
+const LABS_FROM := 6
+
+
+func _more_labs() -> void:
+	if S.core_level < LABS_FROM or S.grid.count_of("lab") >= LABS or not S.can_afford("lab"):
+		return
+	# One at a time, given the time to show what it makes.
+	if t - _last_lab < SETTLE:
+		return
+	_last_lab = t
+	_build_lab()
+
+
+var _last_lab: float = -1.0e9
+
+
+## Overdrive steps past what the Core asks for, from what the store and the
+## research can spare after the Core's own asks: the chain's end first.
+func _spare_overdrive() -> void:
+	if S.core_level < MachineDB.OVERDRIVE_CORE:
+		return
+	var keep: Dictionary = {}
+	for st: Dictionary in S.core_status():
+		if int(st["req"][0]) == CoreLevels.Req.STOCK:
+			keep[int(st["req"][1])] = int(st["need"])
+	for id: String in ["assembler", "press", "smelter", "crusher", "drill", "lab", "coolant", "condenser"]:
+		if not S.can_overdrive(id):
+			continue
+		var cost: Dictionary = S.overdrive_cost(id)
+		var ok: bool = true
+		for res: int in (cost["materials"] as Dictionary):
+			var left: int = S.stock_of(res) - int(cost["materials"][res])
+			ok = ok and (left >= int(keep.get(res, 0)) or S.stock_of(res) >= S.stock_cap())
+		if ok:
+			S.overdrive_machine(id)
+			return
 
 
 ## Machine levels past what the Core asks for, from what the store can
@@ -254,7 +366,7 @@ func _spare_upgrades() -> void:
 		if not S.can_upgrade_machine(id):
 			continue
 		var cost: Dictionary = S.machine_upgrade_cost(id)
-		var ok: bool = S.credits >= float(cost["credits"]) * 1.5
+		var ok: bool = S.credits - _keep >= float(cost["credits"]) * 1.5
 		for res: int in (cost["materials"] as Dictionary):
 			# What the Core keeps for itself stays, unless the store is full
 			# and refills anyway.
@@ -277,6 +389,11 @@ func _follow_plans() -> float:
 	if _dropped_depth != S.depth:
 		_dropped.clear()
 		_dropped_depth = S.depth
+	# The plans are the first three Core levels' lines. From the Core's
+	# level KEEP_FROM the player works from the Core's rows alone, and does
+	# not rebuild a plan's machine the hot rock has cost it.
+	if S.core_level >= KEEP_FROM:
+		return 0.0
 	for plan: Dictionary in PLANS:
 		if S.core_level < int(plan["core"]) or S.max_depth < int(plan["from"]):
 			break
@@ -484,8 +601,12 @@ func _chain(id: String, cell: int, depth: int) -> bool:
 			if spots.is_empty():
 				break
 			_chain(maker, spots[0], depth + 1)
-	# A warmth-loving maker gets a Boiler beside it.
-	if MachineDB.heat_liking(id) > 0 and S.is_unlocked("boiler"):
+	# A warmth-loving maker gets a Boiler beside it -- from the Core's level
+	# KEEP_FROM only where it is still cold: the rock of strata 13 and deeper
+	# is warmer than any maker wants.
+	var cold: bool = S.core_level < KEEP_FROM \
+		or S.grid.heat_at(cell) < float(MachineDB.get_machine(id).get("heat_optimum", 0.0))
+	if MachineDB.heat_liking(id) > 0 and S.is_unlocked("boiler") and cold:
 		var spots2: Array[int] = _free_near(cell, true)
 		if not spots2.is_empty():
 			S.try_place(spots2[0], "boiler")
@@ -603,6 +724,29 @@ var _line: Dictionary = {}
 func _build_lab() -> void:
 	if not S.is_unlocked("lab") or not S.can_afford("lab"):
 		return
+	if S.core_level >= KEEP_FROM:
+		# On hot rock: where it is fed and would not overheat, beside an
+		# Assembler (a Component teaches most) if there is such a tile.
+		var tol: float = float(MachineDB.get_machine("lab")["heat_tolerance"]) + S.sim.tolerance_bonus
+		var own: float = float(MachineDB.get_machine("lab")["heat_out"]) * float(S.grid.heat_scale.get("lab", 1.0))
+		var best: int = -1
+		var near_parts: bool = false
+		for cell: int in BuildArea.cells(S.max_depth):
+			if not _free(cell) or S.sim.core_touching().has(cell):
+				continue
+			if S.grid.heat_at(cell) + own > tol - 0.2 or not bool(S.sim.links_if_placed(cell, "lab")["fed"]):
+				continue
+			var parts: bool = false
+			for n: int in S.grid.neighbours(cell):
+				parts = parts or S.grid.machine_at(n) == "assembler"
+			if best < 0 or (parts and not near_parts):
+				best = cell
+				near_parts = parts
+			if near_parts:
+				break
+		if best >= 0:
+			S.try_place(best, "lab")
+		return
 	for cell: int in BuildArea.cells(S.max_depth):
 		if _free(cell) and not S.sim.core_touching().has(cell) \
 				and bool(S.sim.links_if_placed(cell, "lab")["fed"]):
@@ -660,6 +804,9 @@ func _fix_heat(cell: int, may_remove: bool = true) -> bool:
 		for n: int in S.grid.neighbours(cell):
 			if S.grid.machine_at(n) == "coolant" and S.can_upgrade_machine("coolant"):
 				return S.upgrade_machine("coolant")
+	elif S.core_level >= KEEP_FROM and S.grid.mode_at(cell) == MachineDB.Mode.COOL:
+		# Too cold and running Cool: Normal again, as the heat card says.
+		return S.set_mode(cell, MachineDB.Mode.NORMAL)
 	for n: int in S.grid.neighbours(cell):
 		if may_remove and S.grid.machine_at(n) == wrong:
 			S.sell(n)
@@ -704,6 +851,16 @@ func _place_support(id: String, need: int) -> void:
 			S.sell(cell)
 			S.try_place(cell, id)
 			return
+	# From the Core's level KEEP_FROM: a Condenser in a Coolant Cell's place
+	# among the machines it cools (it cools harder, and speeds them).
+	if id != "condenser" or S.core_level < KEEP_FROM:
+		return
+	for cell: int in BuildArea.cells(S.max_depth):
+		if S.grid.machine_at(cell) == "coolant" and S.grid.serves(cell) >= need:
+			S.sell(cell)
+			if S.try_place(cell, id):
+				_dropped[cell] = true
+			return
 
 
 ## What "What now?" names, off the Core's kept sides.
@@ -716,9 +873,11 @@ func _grow() -> void:
 		if S.is_unlocked(id):
 			top = id
 			break
-	if top != "" and S.credits >= _chain_cost(top) * 1.5 + S.cost_of("vault"):
+	if top != "" and S.credits - _keep >= _chain_cost(top) * 1.5 + S.cost_of("vault"):
 		if _build_line(top):
 			return
+	if _keep > 0.0 and S.credits <= _keep:
+		return
 	var best: Dictionary = Worklist.best_placement(S)
 	var ext: Dictionary = Worklist.extension(S, best)
 	if not ext.is_empty() and _free(int(ext["cell"])) and _free(int(ext["outlet"])):
@@ -738,6 +897,48 @@ func _grow() -> void:
 				S.try_place(cell, "drill")
 				S.try_place(spots[0], "vault")
 				return
+
+
+## The player's own memory, to play on from later (core_journey.gd,
+## LODEWORKS_CORE_KEEP / _FROM).
+func state() -> Dictionary:
+	return {"t": t, "events": events, "seen": _seen, "dropped": _dropped,
+		"dropped_depth": _dropped_depth, "bare": _bare, "touched": _touched,
+		"stuck": _stuck_since, "line": _line, "history": _history}
+
+
+func restore(d: Dictionary) -> void:
+	t = float(d["t"])
+	events = d["events"]
+	_seen = d["seen"]
+	_dropped = _int_keys(d["dropped"])
+	_dropped_depth = int(d["dropped_depth"])
+	_bare = _int_keys(d["bare"])
+	_touched = _int_keys(d["touched"])
+	_stuck_since = _int_keys(d["stuck"])
+	_line = _int_keys(d["line"])
+	_history = d["history"]
+
+
+## JSON brings a Dictionary's int keys back as strings.
+func _int_keys(d: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for k in d:
+		out[int(k)] = d[k]
+	return out
+
+
+## The driver skipped `dt` seconds of a credit-only wait, `earned` credits
+## in it: the player's own clocks move with it, so the skip is not time a
+## repair waited for, and the income it measures is unchanged.
+func fast_forwarded(dt: float, earned: float) -> void:
+	for e: Array in _history:
+		e[0] = float(e[0]) + dt
+		e[1] = float(e[1]) + earned
+	for k: int in _touched:
+		_touched[k] = float(_touched[k]) + dt
+	for k: int in _stuck_since:
+		_stuck_since[k] = float(_stuck_since[k]) + dt
 
 
 ## --- what the player has, as numbers ------------------------------------------------
@@ -775,13 +976,39 @@ func snapshot() -> Dictionary:
 		"levels": S.machine_levels.duplicate(), "research": S.upgrade_levels.duplicate(),
 		"open": open, "research_left": research_left, "upgrades_left": upgrades_left,
 		"locked": locked, "strata_left": S.depth_cap() - S.depth,
-		"contracts": S.contracts_lifetime}
+		"contracts": S.contracts_lifetime, "research_banked": S.research, "working": _working_all(),
+		"hot": _hot(), "held": CoreLevels.holding_back(S)["why"]}
+
+
+## The machines past their tolerance, each with what stands beside it:
+## what holds the stability row back.
+func _hot() -> Array:
+	var out: Array = []
+	for cell: int in S.grid.cells:
+		if S.sim.overheated_at(cell):
+			var nb: Array = []
+			for n: int in S.grid.neighbours(cell):
+				if S.grid.machine_at(n) != "":
+					nb.append(S.grid.machine_at(n))
+			out.append("%s@%s%s beside %s" % [S.grid.machine_at(cell), str(Grid.xy(cell)),
+				" (plan)" if _reserved(cell) else "", ",".join(nb)])
+	return out
+
+
+## Machines of each producing type at their working heat.
+func _working_all() -> Dictionary:
+	var out: Dictionary = {}
+	for id: String in ["drill", "crusher", "smelter", "press", "assembler", "lab"]:
+		var n: int = _working(id)
+		if n > 0:
+			out[id] = n
+	return out
 
 
 func _req_text(st: Dictionary) -> String:
 	var r: Array = st["req"]
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable"][int(r[0])]
+		"stable", "overdrive"][int(r[0])]
 	if r.size() > 2:
 		var what: String = String(MachineDB.RES_NAME[int(r[1])]) if int(r[0]) == CoreLevels.Req.STOCK else str(r[1])
 		name += " " + what

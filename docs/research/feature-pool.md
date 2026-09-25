@@ -319,6 +319,12 @@ These are rules every later feature follows, not features to build:
 - *Related:* FP-13, FP-15.
 - *Challenges:* stacking with levels and research; glow cost on phones.
 - *Vision / Decisions:* none (no currency: CoC's Sparky Stones are rejected, D1).
+- *Status:* **built as what the Core's level 7 opens (25 Sep 2026), reshaped.** See `docs/PROGRESSION.md`, "Core 7".
+  - **Which types:** a type can be driven once it has reached the limit the Core before allowed (level 7 under Core 7). "At the Core's cap" would have meant a level 8 first, which Core 7 itself opens.
+  - **Steps:** three per Core level from 7. Each step counts as half a level, for speed and for the heat that follows it; on a Coolant Cell or a Condenser a step is strength.
+  - **Paid in:** Ingots and Plates from the Core's store, and research; never credits. So the store and the Labs have a job again after the research tree's credit lines end at Core 6.
+  - **Next level:** Core 8 asks for Overdrive steps. They are kept, not folded into the next level.
+  - **Not built:** the glow and the Core card's pips.
 
 **FP-13 · Mastery lines per machine type**
 
@@ -407,6 +413,21 @@ These are rules every later feature follows, not features to build:
 - *Related:* FP-05, FP-19.
 - *Challenges:* the rate after a Descend starts at 0 (the header resets); measure over a stable window.
 - *Vision / Decisions:* none (no leaderboard).
+
+**FP-22 · Resonant Frames: the Amplification era's research** (added 25 Sep 2026)
+
+- *Why it is new:* the Core 7 audit (`docs/PROGRESSION.md`, "Core 7") found that every research-paid line is at its end by the Core's level 6. The Core 6 era had nothing to research, and the Labs banked 124K research with nothing to spend it on. No pool entry gave the Core 6 era a research line.
+- *Source:* cross-game pattern 5 (the research building is required at era boundaries: WOS Furnace 10/16/20, RoK City Hall 10/16/21); CoC #13 (every new TH raises research caps).
+- *Adaptation:*
+  - A research line opened by Core 6.
+  - Every Amplifier, Condenser and Duplicator gives its neighbours 15% more of its boost per level.
+  - It has four levels. Core 7 asks for level 2 and Core 8 for level 4.
+  - Paid in research at a price a Core 6 factory's Labs take hours to make.
+- *Depends on:* the research tree and caps (built); `Simulation.amplify_mult` and a Duplicator multiplier.
+- *Related:* FP-12, FP-11 (every Booster is warm, so packing them in is a trade against heat).
+- *Challenges:* none measured yet beyond the journey.
+- *Vision / Decisions:* none.
+- *Status:* built (25 Sep 2026).
 
 ### Tier C (each waits for the decision named in it)
 

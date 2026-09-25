@@ -16,7 +16,8 @@ extends RefCounted
 ##   2. the Core can grow               (Sim.can_upgrade_core)
 ##   3. the way down is open            (Sim.can_descend)
 ##   4. what the Core's next level still needs, first of its rows
-##   5. a machine level that can be bought, the one the Core asks for first
+##   5. a machine level that can be bought, the one the Core asks for first;
+##      then an Overdrive step that can be taken, likewise
 ##   6. research that can be bought     (the Research key's own count),
 ##      then a contract on the Dispatch board that can be filled
 ##   7. a collapse that opens research  (the Collapse card's own rule)
@@ -39,7 +40,8 @@ const HIDDEN := ["blueprint_slots"]
 
 ## The list for this shaft: [{"kind", ...}], in the order above.
 ## kind "problems": n; "core_grow": level; "descend": stratum; "core_need": st
-## (a CoreLevels.status row); "upgrade": id, level; "research": n; "contract": i
+## (a CoreLevels.status row); "upgrade": id, level; "overdrive": id, step;
+## "research": n; "contract": i
 ## (a Dispatch slot that can be filled); "collapse": cores,
 ## lines; "first": id; "extend": id, feeder, cell, outlet; "place": id,
 ## cells; "quota": missing credits.
@@ -66,6 +68,10 @@ static func of(state: Object) -> Array:
 		if up != "":
 			out.append({"kind": "upgrade", "id": up,
 				"level": int(state.call("machine_level", up)) + 1})
+		var drive: String = overdrive_ready(state)
+		if drive != "":
+			out.append({"kind": "overdrive", "id": drive,
+				"step": int(state.call("overdrive_steps", drive)) + 1})
 	var ready: int = research_ready(state)
 	if ready > 0:
 		out.append({"kind": "research", "n": ready})
@@ -157,6 +163,24 @@ static func upgrade_ready(state: Object) -> String:
 		order.append(id)
 	for id: String in order:
 		if bool(state.call("can_upgrade_machine", id)):
+			return id
+	return ""
+
+
+## A machine type that can take an Overdrive step now: one the Core's next
+## level asks for first, then the tray's order. "" when none, or when the
+## state has no Overdrive.
+static func overdrive_ready(state: Object) -> String:
+	if not state.has_method("can_overdrive"):
+		return ""
+	var order: Array[String] = []
+	for st: Dictionary in state.call("core_status"):
+		if int(st["req"][0]) == CoreLevels.Req.OVERDRIVE and not bool(st["met"]):
+			order.append(String(st["req"][1]))
+	for id: String in MachineDB.ORDER:
+		order.append(id)
+	for id: String in order:
+		if bool(state.call("can_overdrive", id)):
 			return id
 	return ""
 

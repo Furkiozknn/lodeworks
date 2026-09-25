@@ -120,6 +120,8 @@ var _sheet_status: Control
 var _sheet_help: String = ""
 ## The machine sheet's level key (machine levels, capped by the Core).
 var _sheet_up: Button
+## The key under it that drives the type past its level (Overdrive).
+var _sheet_drive: Button
 ## The machine sheet's mode key (MachineDB.Mode), opened by the Core.
 var _sheet_mode: Button
 var _palette_buttons: Dictionary = {}
@@ -1247,7 +1249,12 @@ func _build_sheet() -> void:
 			_show_cell_info(cell)
 			_refresh())
 	row.add_child(_sheet_mode)
-	# The machine type's level, and the key that raises it.
+	# The machine type's level, and the key that raises it; under it, from
+	# the Core's level MachineDB.OVERDRIVE_CORE, the key that drives it.
+	var keys := VBoxContainer.new()
+	keys.alignment = BoxContainer.ALIGNMENT_CENTER
+	keys.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	keys.add_theme_constant_override("separation", 6)
 	_sheet_up = _button("", Palette.RESEARCH)
 	_sheet_up.custom_minimum_size = Vector2(170, MIN_TOUCH)
 	_sheet_up.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1255,7 +1262,17 @@ func _build_sheet() -> void:
 		var cell: int = iso_view.selected_cell
 		if cell >= 0 and Sim.upgrade_machine(Sim.grid.machine_at(cell)):
 			_refresh())
-	row.add_child(_sheet_up)
+	keys.add_child(_sheet_up)
+	_sheet_drive = _button("", Palette.CORE)
+	_sheet_drive.custom_minimum_size = Vector2(170, MIN_TOUCH)
+	_sheet_drive.pressed.connect(func():
+		var cell: int = iso_view.selected_cell
+		if cell >= 0 and Sim.overdrive_machine(Sim.grid.machine_at(cell)):
+			Juice.tap()
+			_show_cell_info(cell)
+			_refresh())
+	keys.add_child(_sheet_drive)
+	row.add_child(keys)
 	# The words, for whoever wants them.
 	row.add_child(_help_button("", func() -> String: return _sheet_help))
 	# Remove, in plain sight: select, then act, as every builder game does.
@@ -2245,10 +2262,16 @@ func _heat_answers(cell: int) -> Array:
 				out.append({"icon": "cold", "go": select.call(cell),
 					"words": Loc.t("No free tile beside it: move it, or a neighbour, to make room for a Coolant Cell")})
 		if has_cool and Sim.machine_upgrade_blocker("coolant") != "none":
-			var next: float = 2.2 * spread * MachineDB.heat_factor("coolant", Sim.machine_level("coolant") + 1)
+			var next: float = 2.2 * spread * MachineDB.heat_factor("coolant", Sim.machine_level("coolant") + 1,
+				Sim.overdrive_steps("coolant"))
 			out.append({"icon": "upgrade", "go": select.call(_first_of("coolant")), "words":
 				Loc.t("Coolant Cells at level %d: %.1f less from each") % [Sim.machine_level("coolant") + 1, next - cool]})
-		if Sim.machine_levels.has(id) and MachineDB.level_is_speed(id) and int(Sim.machine_levels[id]) > 1:
+		if MachineDB.level_is_speed(id) and Sim.overdrive_steps(id) > 0:
+			out.append({"icon": "heat", "go": select.call(cell), "words":
+				Loc.t("Its level %d and %d Overdrive steps give off %d%% more heat than level 1") % [
+				Sim.machine_level(id), Sim.overdrive_steps(id), int(round((MachineDB.heat_factor(id,
+				Sim.machine_level(id), Sim.overdrive_steps(id)) - 1.0) * 100.0))]})
+		elif Sim.machine_levels.has(id) and MachineDB.level_is_speed(id) and int(Sim.machine_levels[id]) > 1:
 			out.append({"icon": "heat", "go": select.call(cell), "words":
 				Loc.t("Its level %d gives off %d%% more heat than level 1") % [int(Sim.machine_levels[id]),
 				int(round((MachineDB.heat_factor(id, int(Sim.machine_levels[id])) - 1.0) * 100.0))]})
@@ -2305,6 +2328,17 @@ func _core_next() -> Control:
 	for _id: String in (o["research"] as Array).slice(0, 2):
 		opens.add_child(_icon_rect("research", 34))
 	box.add_child(opens)
+	if int(o.get("overdrive", 0)) > 0:
+		var drive := HBoxContainer.new()
+		drive.add_theme_constant_override("separation", 10)
+		drive.set_meta("core_opens_overdrive", int(o["overdrive"]))
+		drive.add_child(_icon_rect("energy", 36))
+		var dl := _label(Loc.t("And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research.") % int(o["overdrive"]),
+			TEXT_MIN, Palette.TEXT_DIM)
+		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		drive.add_child(dl)
+		box.add_child(drive)
 	if next == MachineDB.MODES_CORE:
 		var modes := HBoxContainer.new()
 		modes.add_theme_constant_override("separation", 10)
@@ -2487,6 +2521,12 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 			pic = Chips.MachineSprite.new(sid, 44.0)
 			words = Loc.t("A %s serving %d machines") % [MachineDB.name_of(sid), int(st["need"])]
 			go = func() -> void: _arm_only(sid)
+		CoreLevels.Req.OVERDRIVE:
+			var did: String = String(r[1])
+			pic = Chips.MachineSprite.new(did, 44.0)
+			words = Loc.t("%s driven %d Overdrive steps") % [MachineDB.name_of(did), int(st["need"])]
+			amount = "%d / %d" % [int(st["have"]), int(st["need"])]
+			go = func() -> void: _select_type(did)
 		_:
 			pic = _icon_rect("heat", 44)
 			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
@@ -2633,6 +2673,62 @@ func _fill_level_key(id: String) -> void:
 	_sheet_up.set_meta("blocker", why)
 
 
+## The sheet's Overdrive key: the step it would take and its price in store
+## materials and research, or why it cannot. Shown from the Core's level
+## MachineDB.OVERDRIVE_CORE, for a type that can be driven.
+func _fill_drive_key(id: String) -> void:
+	for c in _sheet_drive.get_children():
+		c.queue_free()
+	_sheet_drive.visible = MachineDB.can_overdrive(id) and Sim.core_level >= MachineDB.OVERDRIVE_CORE
+	if not _sheet_drive.visible:
+		return
+	var steps: int = Sim.overdrive_steps(id)
+	var why: String = Sim.overdrive_blocker(id)
+	var can: bool = why == ""
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var top := _label(Loc.t("Overdrive %d/%d") % [steps, Sim.overdrive_cap()], TEXT_MIN,
+		Palette.BG if can else Palette.TEXT)
+	top.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(top)
+	if why == "core" or why == "level" or why == "storage":
+		var words: String = Loc.t("Core first")
+		if why == "level":
+			words = Loc.t("Level %d first") % CoreLevels.overdrive_from(Sim.core_level)
+		elif why == "storage":
+			words = Loc.t("Vault first")
+		var bottom := _label(words, TEXT_MIN, Palette.TEXT_DIM)
+		bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(bottom)
+	else:
+		# The price: store materials and research, each red while short.
+		var cost: Dictionary = Sim.overdrive_cost(id)
+		var price := HBoxContainer.new()
+		price.alignment = BoxContainer.ALIGNMENT_CENTER
+		price.add_theme_constant_override("separation", 4)
+		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mats: Dictionary = cost["materials"]
+		for res: int in mats:
+			price.add_child(Chips.Gem.new(res, 1, 20.0))
+			price.add_child(_label(Economy.fmt(float(mats[res])), TEXT_MIN,
+				Palette.BG if can else (Palette.TEXT_DIM if Sim.stock_of(res) >= int(mats[res]) else Palette.BAD)))
+		var ic := _icon_rect("research", 20)
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		price.add_child(ic)
+		price.add_child(_label(Economy.fmt(float(cost["research"])), TEXT_MIN,
+			Palette.BG if can else (Palette.TEXT_DIM if Sim.research >= float(cost["research"]) else Palette.BAD)))
+		col.add_child(price)
+	_sheet_drive.add_child(col)
+	_sheet_drive.disabled = not can
+	_sheet_drive.tooltip_text = Loc.t("Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps.") % [
+		MachineDB.name_of(id), int(round(MachineDB.LEVEL_SPEED * MachineDB.OVERDRIVE_STEP * 100.0)),
+		MachineDB.OVERDRIVE_CORE, MachineDB.OVERDRIVE_PER_CORE]
+	_sheet_drive.set_meta("overdrive", steps)
+	_sheet_drive.set_meta("blocker", why)
+
+
 ## --- what now? --------------------------------------------------------------
 ##
 ## The Worklist as a card: one row per thing worth doing, in Worklist's
@@ -2685,6 +2781,12 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Upgrade the %s to level %d") % [MachineDB.name_of(uid), int(e["level"])]
 			sub = Loc.t("Paid in credits and in materials from the Core's store.")
 			go = func() -> void: _select_type(uid)
+		"overdrive":
+			var oid: String = String(e["id"])
+			pic = Chips.MachineSprite.new(oid, 52.0)
+			title = Loc.t("Overdrive the %s: step %d") % [MachineDB.name_of(oid), int(e["step"])]
+			sub = Loc.t("Paid in Ingots, Plates and research, not credits.")
+			go = func() -> void: _select_type(oid)
 		"contract":
 			var ci: int = int(e["i"])
 			var cc: Dictionary = Sim.contract(ci)
@@ -3111,6 +3213,7 @@ func _show_cell_info(cell: int) -> void:
 	(_sheet_status as TextureRect).texture = IsoArt.icon(icon)
 	_sheet_body.add_child(Chips.recipe(id, 42.0))
 	_fill_level_key(id)
+	_fill_drive_key(id)
 	_fill_mode_key(cell)
 
 	# Heat: the bar is the machine's temperature, the notch where it wants to
@@ -3179,6 +3282,7 @@ const RESEARCH_ART := {
 	"yield_1": ["drill", "upgrade"],
 	"value_1": ["vault", "credits"],
 	"research_1": ["lab", "research"],
+	"resonance": ["amplifier", "energy"],
 	"heat_tolerance": ["smelter", "heat"],
 	"offline_cap": ["@foreman", "star"],
 	"offline_rate": ["@foreman", "energy"],

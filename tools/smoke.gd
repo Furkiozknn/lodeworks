@@ -532,6 +532,40 @@ func _run() -> void:
 		if Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) > before_h:
 			leaked.append("_show_heat (%d)" % int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) - before_h))
 		break
+	# The Core's level 7: a type at Core 6's limit shows its Overdrive key,
+	# with the price, and the Core card lists Core 8's Overdrive row.
+	var kept_core: Array = [Sim.core_level, Sim.machine_levels.duplicate()]
+	Sim.core_level = MachineDB.OVERDRIVE_CORE
+	for c: int in Sim.grid.cells:
+		var id: String = Sim.grid.machine_at(c)
+		if not MachineDB.can_overdrive(id):
+			continue
+		Sim.machine_levels[id] = CoreLevels.overdrive_from(Sim.core_level)
+		Sim._recompute()
+		_main.call("_show_cell_info", c)
+		await _settle(0.15)
+		var key: Button = _main.get("_sheet_drive")
+		if key == null or not key.is_visible_in_tree():
+			_failures.append("a Core 7 shaft's %s shows no Overdrive key" % id)
+		elif String(key.get_meta("blocker", "?")) == "level" or String(key.get_meta("blocker", "?")) == "core":
+			_failures.append("the Overdrive key says '%s' for a %s at Core 6's limit" % [key.get_meta("blocker"), id])
+		_main.call("_close_sheet")
+		var before_c: float = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+		_main.call("_show_core")
+		await _settle(0.15)
+		var asks: bool = false
+		for n: Node in _main.find_children("*", "Button", true, false):
+			asks = asks or (n.has_meta("core_req") and int(n.get_meta("core_req")) == CoreLevels.Req.OVERDRIVE)
+		if not asks:
+			_failures.append("the Core card of a Core 7 shaft does not ask for Overdrive")
+		_main.call("_close_overlay")
+		await _settle(0.1)
+		if Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) > before_c:
+			leaked.append("_show_core at Core 7 (%d)" % int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) - before_c))
+		break
+	Sim.core_level = int(kept_core[0])
+	Sim.machine_levels = kept_core[1]
+	Sim._recompute()
 	if not leaked.is_empty():
 		_failures.append("deep in a run, these cards left orphaned nodes: " + ", ".join(leaked))
 	print("  deep cards: %s" % ("no node left behind" if leaked.is_empty() else ", ".join(leaked)))

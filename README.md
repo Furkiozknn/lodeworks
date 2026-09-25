@@ -159,8 +159,13 @@ with a tap that goes and does it, and **What now?** puts the next one first.
 Under the store stands the **Dispatch board**: three contracts for stored
 materials, each paying credits or research, printed before it is filled,
 with no clock on any of them.
-Played by a scripted player, Core 2 falls at 7 minutes, Core 3 at 15,
-Core 4 at 31 and Core 5 at 1 h 18. [docs/PROGRESSION.md](docs/PROGRESSION.md)
+The Core's seventh level opens **Overdrive**: a machine type at the level
+the Core before allowed can be driven past it, paid in Ingots, Plates and
+research rather than credits. Played by a scripted player, Core 2 falls at
+8 minutes, Core 3 at 16, Core 4 at 33, Core 5 at 1 h 18, Core 6 at 4 h 17
+and Core 7 at 10 h 57 of active play; the Core 6 → 7 stage asks for levels,
+the store, research, a Condenser and stability, and leaves 2% of it with
+only credits to wait for. [docs/PROGRESSION.md](docs/PROGRESSION.md)
 is the design, the graph and the measurements, and
 [docs/research/feature-pool.md](docs/research/feature-pool.md) what comes
 next, drawn from five reference games.

@@ -140,6 +140,42 @@ func _run() -> void:
 		_main.call("_close_overlay")
 		_main.call("_close_sheet")
 
+	# The Core's level 7: Overdrive on a machine's sheet, the Core card that
+	# asks for it at level 8, and the one at level 6 that asks for level 7.
+	var kept: Array = [Sim.core_level, Sim.machine_levels.duplicate(), Sim.max_depth, Sim.credits]
+	Sim.core_level = MachineDB.OVERDRIVE_CORE
+	Sim.machine_levels["assembler"] = CoreLevels.overdrive_from(MachineDB.OVERDRIVE_CORE)
+	Sim.max_depth = maxi(Sim.max_depth, MachineDB.unlock_depth("assembler"))
+	Sim.credits = maxf(Sim.credits, 1.0e6)
+	Sim._recompute()
+	var at: int = -1
+	for c: int in BuildArea.cells(Sim.max_depth):
+		if Sim.grid.is_empty(c) and not Sim.is_blocked(c):
+			at = c
+			break
+	if at >= 0 and Sim.try_place(at, "assembler"):
+		_main.call("_refresh")
+		_main.call("_show_cell_info", at)
+		await _settle(0.4)
+		await _screen("35_overdrive")
+		_main.call("_close_sheet")
+		Sim.sell(at)
+	_main.call("_show_core")
+	await _settle(0.4)
+	await _screen("36_core_7")
+	_main.call("_close_overlay")
+	Sim.core_level = MachineDB.OVERDRIVE_CORE - 1
+	Sim._recompute()
+	_main.call("_show_core")
+	await _settle(0.4)
+	await _screen("37_core_6")
+	_main.call("_close_overlay")
+	Sim.core_level = int(kept[0])
+	Sim.machine_levels = kept[1]
+	Sim.max_depth = int(kept[2])
+	Sim.credits = float(kept[3])
+	Sim._recompute()
+
 	# What now?: as many kinds of line as one board gives.
 	var was: Array = [Sim.research, Sim.max_depth, Sim.lifetime_credits]
 	Sim.research = 1.0e6
