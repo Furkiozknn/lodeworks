@@ -4,10 +4,10 @@
 #   GODOT=/path/to/godot4.7.2 tools/store-assets.sh
 #
 # Produces, into store/:
-#   screenshots/       8 phone shots at 1080x1920, 24-bit, plus alt text
-#   screenshots-tablet/ 4 tablet shots at 1620x2880
+#   screenshots/       8 landscape phone shots at 1920x1080, 24-bit, plus alt text
+#   screenshots-tablet/ 8 landscape tablet shots at 2560x1440
 #   brand/             icon 512 and 192, adaptive foreground, feature graphic
-#   preview.mp4        a vertical gameplay capture for the Play preview video
+#   preview.mp4        a landscape gameplay capture for the Play preview video
 #   preview.gif        the same, short, for anywhere a video will not embed
 #
 # Nothing here is composited, painted or retouched. Every image is the game
@@ -28,16 +28,16 @@ mkdir -p "$ROOT/store"
 rm -rf "$ROOT/store/screenshots" "$ROOT/store/screenshots-tablet" "$ROOT/store/brand"
 mkdir -p "$ROOT/store/screenshots" "$ROOT/store/screenshots-tablet" "$ROOT/store/brand"
 
-echo "==> phone screenshots and video frames (1080x1920)"
-"${RUN[@]}" "$GODOT" --path "$ROOT" --resolution 1080x1920 \
+echo "==> phone screenshots and video frames (1920x1080)"
+"${RUN[@]}" "$GODOT" --path "$ROOT" --resolution 1920x1080 \
   --rendering-driver opengl3 tools/shots.tscn
 cp "$USERDIR"/shots/*.png "$USERDIR"/shots/*.tsv "$ROOT/store/screenshots/"
 
-echo "==> tablet screenshots (1620x2880)"
+echo "==> tablet screenshots (2560x1440)"
 # Play wants at least four large-screen shots, 16:9 or 9:16, 1080-7680px.
 rm -rf "$USERDIR/shots"
 LODEWORKS_SHOTS_ONLY=1 "${RUN[@]}" "$GODOT" --path "$ROOT" \
-  --resolution 1620x2880 --rendering-driver opengl3 tools/shots.tscn
+  --resolution 2560x1440 --rendering-driver opengl3 tools/shots.tscn
 cp "$USERDIR"/shots/*.png "$ROOT/store/screenshots-tablet/"
 
 echo "==> icon and feature graphic"
@@ -49,15 +49,15 @@ mkdir -p "$ROOT/store"
 if command -v ffmpeg >/dev/null 2>&1; then
   # H.264, yuv420p, even dimensions: the combination every player accepts.
   ffmpeg -y -loglevel error -framerate 20 -i "$USERDIR/reel/f%04d.png" \
-    -vf "scale=720:-2" -c:v libx264 -pix_fmt yuv420p -crf 20 \
+    -vf "scale=1280:-2" -c:v libx264 -pix_fmt yuv420p -crf 20 \
     "$ROOT/store/preview.mp4"
   # A palette pass, or the gif bands badly on this palette.
   ffmpeg -y -loglevel error -framerate 20 -i "$USERDIR/reel/f%04d.png" \
-    -vf "fps=14,scale=405:-2:flags=lanczos,palettegen=stats_mode=diff" \
+    -vf "fps=14,scale=640:-2:flags=lanczos,palettegen=stats_mode=diff" \
     "$USERDIR/reel/palette.png"
   ffmpeg -y -loglevel error -framerate 20 -i "$USERDIR/reel/f%04d.png" \
     -i "$USERDIR/reel/palette.png" \
-    -lavfi "fps=14,scale=405:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" \
+    -lavfi "fps=14,scale=640:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" \
     "$ROOT/store/preview.gif"
 else
   echo "   ffmpeg not found -- frames are in $USERDIR/reel, video skipped"

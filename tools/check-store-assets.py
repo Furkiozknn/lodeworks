@@ -17,6 +17,7 @@ Specs, from support.google.com/googleplay/android-developer/answer/9866151:
   games eligibility at least 3 screenshots at 16:9 or 9:16 and >= 1080px
   large screen      at least 4, 1080-7680px, 16:9 or 9:16
 """
+import re
 import struct
 import sys
 from pathlib import Path
@@ -115,6 +116,20 @@ def main(root):
             notes.append("%s %d KB" % (extra, pth.stat().st_size // 1024))
         else:
             notes.append("%s not produced" % extra)
+
+    # The words: every "(N max)" heading in listing.md is followed by the text
+    # itself in a code block, and Play refuses a field over its limit.
+    listing = root / "listing.md"
+    if listing.exists():
+        text = listing.read_text(encoding="utf-8")
+        fields = re.findall(r"^#+ ([^\n]+?) \((\d+) max\)[ \t]*\n+```\n(.*?)\n```", text, re.S | re.M)
+        for name, limit, body in fields:
+            if len(body) > int(limit):
+                problems.append("listing: %s is %d characters, limit %s"
+                                % (name, len(body), limit))
+            notes.append("listing: %s %d/%s" % (name, len(body), limit))
+        if not fields:
+            problems.append("listing.md has no '(N max)' fields to check")
 
     for n in notes:
         print("   " + n)

@@ -64,8 +64,9 @@ release size is UNKNOWN until a release build exists.
 
 - Play Console account, keystore and secrets, AdMob ids, hosted privacy
   policy, 12 testers x 14 days, one real device run: all need a person.
-- Store screenshots are portrait 1080x1920 and would no longer show the
-  game once it is landscape.
+- Store screenshots were portrait 1080x1920 from before the landscape
+  game. **Fixed** (GAP-AUDIT A4): rendered at 1920x1080 and 2560x1440 by
+  CI, the listing rewritten, a Turkish listing added.
 
 ### G -- monetization gaps
 

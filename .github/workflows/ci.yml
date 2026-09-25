@@ -130,15 +130,15 @@ jobs:
           unzip -q godot.zip
           mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
           chmod +x godot
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb ffmpeg
       - run: ./godot --headless --path . --import
-      # Rendering the store screenshots from the running game is also the only
-      # automated check that the UI still draws at all. Landscape, at the
-      # 1920x1080 Play asks for.
-      - name: Render
-        run: |
-          xvfb-run -a ./godot --path . --resolution 1920x1080 \
-            --rendering-driver opengl3 tools/shots.tscn
+      # Every store asset, rendered from the running game at the exact sizes
+      # Play asks for (a desktop window is clamped to its screen; xvfb is
+      # not), then checked against Play's specs and the listing's limits --
+      # the step fails on any of them. It is also the only automated check
+      # that the UI still draws at all.
+      - name: Render the store assets
+        run: GODOT=./godot tools/store-assets.sh
       # The four screens the visual audit compares (docs/AUDIT.md), from
       # the same build: main, zoomed, whole world, one machine close up.
       - name: Render the audit screens
@@ -151,7 +151,11 @@ jobs:
         with:
           name: screenshots
           path: |
-            ~/.local/share/godot/app_userdata/Lodeworks/shots/
+            store/screenshots/
+            store/screenshots-tablet/
+            store/brand/
+            store/preview.mp4
+            store/preview.gif
             ~/.local/share/godot/app_userdata/Lodeworks/audit/
 
   readability:
