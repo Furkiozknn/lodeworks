@@ -209,6 +209,23 @@ func _run() -> void:
 		print("  tray hold: %s" % ("words" if (_main.get("_overlay") as Control).visible else "nothing"))
 		_main.call("_close_overlay")
 		await _settle(0.3)
+		# A scroll: the tray carries the key along, so the finger stays put
+		# on the key while it travels across the screen. Not a hold.
+		var sdown := down.duplicate() as InputEventMouseButton
+		sdown.global_position = Vector2(400, 650)
+		key.gui_input.emit(sdown)
+		var drag := InputEventMouseMotion.new()
+		drag.position = down.position
+		drag.global_position = Vector2(460, 650)
+		key.gui_input.emit(drag)
+		await _settle(0.7)
+		if (_main.get("_overlay") as Control).visible:
+			_failures.append("scrolling the tray opened a key's words")
+			_main.call("_close_overlay")
+		var sup := sdown.duplicate() as InputEventMouseButton
+		sup.pressed = false
+		key.gui_input.emit(sup)
+		await _settle(0.2)
 
 	# The Research key counts what can be bought now, and says nothing when
 	# nothing can.

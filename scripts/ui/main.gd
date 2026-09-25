@@ -1285,7 +1285,8 @@ func _make_palette_button(id: String) -> Control:
 
 
 ## Holding key `b` still for half a second calls `cb`. A press that moves
-## is a drag or a scroll, not a hold. The release that ends a hold still
+## is a drag or a scroll, not a hold -- measured on the screen, not on the
+## key, because a scrolling tray carries the key along under the finger. The release that ends a hold still
 ## reaches the key's `pressed`, which asks `_held_off` first.
 func _on_hold(b: Button, cb: Callable) -> void:
 	var hold := {"down": false, "at": Vector2.ZERO, "n": 0}
@@ -1295,7 +1296,7 @@ func _on_hold(b: Button, cb: Callable) -> void:
 			hold["down"] = e.pressed
 			if e.pressed:
 				b.set_meta("held", false)
-				hold["at"] = (e as InputEventMouseButton).position
+				hold["at"] = (e as InputEventMouseButton).global_position
 				hold["n"] = int(hold["n"]) + 1
 				var n: int = int(hold["n"])
 				get_tree().create_timer(IsoView.LONG_PRESS_SECONDS).timeout.connect(func():
@@ -1304,7 +1305,7 @@ func _on_hold(b: Button, cb: Callable) -> void:
 						b.set_meta("held", true)
 						cb.call())
 		elif e is InputEventMouseMotion and bool(hold["down"]) \
-				and (e as InputEventMouseMotion).position.distance_to(hold["at"]) > IsoView.DRAG_THRESHOLD:
+				and (e as InputEventMouseMotion).global_position.distance_to(hold["at"]) > IsoView.DRAG_THRESHOLD:
 			hold["down"] = false)
 
 
