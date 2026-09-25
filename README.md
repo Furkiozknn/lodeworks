@@ -89,6 +89,13 @@ camera to the next culprit. Tapping a machine opens its panel
 where the machine tray was, below the board, and draws every connection in
 and out of it on top of the world.
 
+Tapping the Factory Core opens its card: its level, and the whole factory in
+four numbers -- machines, how many are working, how many need help (the
+warning key's own count, with a key that goes to the first one), and what
+it earns -- with how much of the yard is built and what the next stratum
+brings. Tapping a crystal, an ore vein or a heat vent round the yard says
+what it is, what uses it, and when the yard will reach it.
+
 The heat button glows before it is pressed when some machine is too hot, or
 shows frost when one is too cold. Pressed, it relabels every tile with how far
 it is from the temperature it personally wants, as a signed number. Every machine in this game wants a
@@ -193,7 +200,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 285 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 287 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -281,7 +288,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            285 tests, no framework dependency
+tests/            287 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs

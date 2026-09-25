@@ -1266,13 +1266,41 @@ decide. For example, a Drill on or beside an ore vein could dig faster,
 or a crystal could be mined for Research. Either one changes the economy
 and the balance labs.
 
+### The Factory Core's card
+
+A tap on the running Core used to open three sentences. It now opens a
+card, in the way a base-building game's main building shows its level
+and its base:
+- the Core's picture, its level as eight pips, and the stratum;
+- four numbers: machines, working, need help, credits per second. "Need
+  help" is the warning key's own count (`Simulation.problem_counts`), and
+  working is every other machine, so the card and the key never disagree;
+- how much of the yard is built, as a bar: machines out of the tiles a
+  machine can stand on (open, not this stratum's rubble);
+- what the next widening brings: "Stratum 10: level 6, and the yard grows
+  to 16 x 16";
+- with anything in trouble, a **Show me** key that goes to the first one,
+  the same as a tap on the warning key.
+
+The old sentences are behind its "?". The numbers come from
+`scripts/core/factory_report.gd`, which reads a board, its simulation and
+a depth and nothing else. A second factory, or another player's, can be
+summed up with the same call. On the hero board the card reads 42
+machines, 24 working, 18 need help, +166/s, 42 of 180 tiles (screenshot
+`field_h_core`, `LODEWORKS_CAPTURE=field`). The UI smoke test opens it
+and checks its numbers against the board and the warning key.
+
+**The tray's "?".** The "?" on a tray key is 40 units, under the 48 dp
+floor on a small phone, and it cannot grow inside a 98-unit key without
+covering it. Holding the whole key for half a second now opens the same
+words, a 96-unit target. A press that moves is still the tray
+scrolling, and the release that ends a hold arms nothing (smoke test).
+
 ### Follow-ups from the audits
 
 - **Resource nodes with a use**: needs the owner's decision (above).
 - **Deeper Bore's short line** "Every machine makes more" still overstates
   it for the Lab; the long description is right.
-- **The tray's "?"** keys are 40 units, under the 48 dp floor on a small
-  phone.
 - **The collapse payout** and **blueprints**: the owner's decisions, noted
   in the master audit.
 - **Portrait store screenshots**: the game is landscape-only; the store
