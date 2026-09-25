@@ -78,7 +78,7 @@ mid-term, P3 a future system, P4 not needed now.
 | # | item | state | missing | priority |
 |---|---|---|---|---|
 | B1 | **Depth bands** | the four bands tint one painting, one tile sheet and one prop sheet | per-band ground, props, particles and light (planned in AUDIT, about six image generations) | P2 |
-| B2 | Reading the production chain | pipes hide behind nearer machines at default zoom; beads and the selected machine's links carry it | a flow overlay drawing every link | P2 |
+| B2 | Reading the production chain | pipes hide behind nearer machines at default zoom; beads and the selected machine's links carry it | a flow overlay drawing every link. **PARTIAL**: a tapped machine now lights its whole chain over the machines -- what feeds it and onward, what it feeds and onward, up to four links and sixty lines, fading with distance (`Iso.chain`, tested); no key for the whole board, because the right-hand column holds four keys at 720 units and a fifth does not fit | P2 |
 | B3 | Machine variety | 12 single-frame sprites; no per-machine level | per-part motion (N5) | P3 |
 | B4 | Larger text coverage | labels, keys and board numbers scale (today); symbol keys (?, ✕, +) keep their size on purpose | nothing further planned | done enough |
 | B5 | Reduce motion | covers pulses, swells, halo, flicker, plunge | **FIXED** (B-8): camera glides cut, key punches, bobbing marks, the Foreman's bob and the hot flicker now still; the yard wave, the banner and the number roll are fades and counts, not movement, and stay | P2 |

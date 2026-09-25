@@ -33,7 +33,7 @@ const SHOTS := [
 		"alt": "Two machines flagged as starved and backed up, with a count above the board."},
 	{"name": "04_place", "build": "heat", "wait": 1.5, "press": [23, 18], "arm": "boiler",
 		"alt": "Placing a boiler, previewing the heat it will add to each neighbour."},
-	{"name": "05_detail", "build": "full", "wait": 2.0, "select": [21, 17],
+	{"name": "05_detail", "build": "full", "wait": 2.0, "select": [26, 20],
 		"alt": "The detail sheet for a smelter: what it takes, what it makes, its heat and how hard it works."},
 	{"name": "06_research", "build": "full", "wait": 1.0, "panel": "research",
 		"alt": "The permanent research tree, bought with Cores."},
@@ -52,7 +52,7 @@ const REEL := [
 	{"build": "full", "seconds": 2.0, "overlay": true},
 	{"build": "heat", "seconds": 3.0, "grow": true},
 	{"build": "broken", "seconds": 2.5},
-	{"build": "full", "seconds": 2.5, "select": [21, 17]},
+	{"build": "full", "seconds": 2.5, "select": [26, 20]},
 ]
 
 var _main: Control
@@ -187,6 +187,9 @@ func _press(cell: int, arm: String) -> void:
 func _apply_build(kind: String) -> void:
 	Sim.grid.clear()
 	Sim.sim.reset_progress()
+	# The badges hold a state for a second after it ends: without this the
+	# last board's hot machines put "Something is overheating" over the next.
+	(_main.get("iso_view").get("badges") as StatusBadges).clear()
 	# Every field reset, every time.
 	#
 	# The shots run in one process, and leaving research, Cores and upgrade

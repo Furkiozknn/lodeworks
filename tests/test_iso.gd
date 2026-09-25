@@ -212,6 +212,31 @@ func test_framing_puts_the_first_yard_and_the_core_in_the_free_space() -> void:
 
 ## --- the pipes do not lie ----------------------------------------------------------
 
+func test_a_selected_machine_lights_its_whole_chain_and_nothing_else() -> void:
+	var g := Grid.new()
+	# Drill -> Crusher -> Smelter -> Vault along a row, and a Drill and Vault
+	# of their own two rows down.
+	for e: Array in [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"], [3, 0, "vault"],
+			[0, 2, "drill"], [1, 2, "vault"]]:
+		g.place(Grid.idx(int(e[0]), int(e[1])), String(e[2]))
+	var chain: Array = Iso.chain(Iso.links(g), Grid.idx(1, 0))
+	var got: Dictionary = {}
+	for e: Array in chain:
+		got["%d>%d" % [int(e[0]["from"]), int(e[0]["to"])]] = int(e[1])
+	var d: int = Grid.idx(0, 0)
+	var c: int = Grid.idx(1, 0)
+	var sm: int = Grid.idx(2, 0)
+	var v: int = Grid.idx(3, 0)
+	runner.eq(got.get("%d>%d" % [d, c], -1), 0, "the Drill feeding the Crusher, touching it")
+	runner.eq(got.get("%d>%d" % [c, sm], -1), 0, "the Smelter it feeds, touching it")
+	runner.eq(got.get("%d>%d" % [sm, v], -1), 1, "and the Vault one link on")
+	for k: String in got:
+		var from: int = int(k.split(">")[0])
+		runner.check(from in [d, c, sm], "nothing from the other pair: " + k)
+	runner.eq(Iso.chain(Iso.links(g), c, 1).size(), 2, "one hop: only the touching links")
+	runner.eq(Iso.chain(Iso.links(g), c, 4, 1).size(), 1, "and never more than the cap")
+
+
 func test_a_pipe_is_drawn_exactly_where_the_simulation_can_move_material() -> void:
 	var g := Grid.new()
 	var s := Simulation.new(g, 7)

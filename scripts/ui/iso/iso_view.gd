@@ -125,6 +125,10 @@ var _flow: Dictionary = {}
 ## Seams whose material runs from the higher cell index to the lower.
 var _flow_from_b: Dictionary = {}
 var _links: Array = []
+## Iso.chain for the selected machine, worked out again only when the
+## selection or the board changes.
+var _chain: Array = []
+var _chain_sig: Array = []
 var _segments: Dictionary = {}
 var _sheet_name: String = ""
 var _sheet: Dictionary = {}
@@ -2029,30 +2033,37 @@ func _draw_over() -> void:
 		_draw_placement_preview(ci, font)
 
 
-## "Where is this machine fed from, and where does its output go": every link
-## in and out of the selected machine, drawn over everything as a lit line
-## with chevrons running the way material runs. It is the one moment the
-## pipes are allowed on top of the machines, because it is the moment the
-## player asked.
+## "Where is this machine fed from, and where does its output go": the chain
+## it is part of (Iso.chain) -- what feeds it and what feeds those, what it
+## feeds and onward -- drawn over everything as lit lines with chevrons
+## running the way material runs, the links touching it brightest and the
+## rest fading with distance. It is the one moment the pipes are allowed on
+## top of the machines, because it is the moment the player asked.
 func _selected_links(ov: Tris) -> void:
 	var lift := Vector2(0, -Iso.TH * 0.45)
-	for l: Dictionary in _links:
+	var sig: Array = [selected_cell, Sim.grid.version]
+	if sig != _chain_sig:
+		_chain_sig = sig
+		_chain = Iso.chain(_links, selected_cell)
+	for e: Array in _chain:
+		var l: Dictionary = e[0]
+		var hops: int = int(e[1])
 		var path: Array = l["path"]
-		if int(l["from"]) != selected_cell and int(l["to"]) != selected_cell:
-			continue
 		var col: Color = Palette.res_color(int(l["res"])).lightened(0.25)
+		col.a = 1.0 if hops == 0 else maxf(0.85 - 0.15 * float(hops), 0.35)
+		var wide: float = 1.0 if hops == 0 else 0.7
 		var pts := PackedVector2Array()
 		for c in path:
 			pts.append(cam.world_to_screen(Iso.cell_center(int(c)) + lift))
 		for i in range(pts.size() - 1):
-			ov.band(pts[i], pts[i + 1], 7.0, Color(0, 0, 0, 0.55))
-			ov.band(pts[i], pts[i + 1], 3.5, col)
+			ov.band(pts[i], pts[i + 1], 7.0 * wide, Color(0, 0, 0, 0.55 * col.a))
+			ov.band(pts[i], pts[i + 1], 3.5 * wide, col)
 		for i in range(pts.size() - 1):
 			var a: Vector2 = pts[i]
 			var b: Vector2 = pts[i + 1]
 			var d: Vector2 = (b - a).normalized()
 			var n := Vector2(-d.y, d.x)
-			for k in range(2):
+			for k in range(2 if hops == 0 else 1):
 				var t: float = fposmod(_anim * 0.9 + 0.5 * float(k), 1.0)
 				var p: Vector2 = a.lerp(b, 0.2 + 0.6 * t)
 				ov.tri(p + d * 7.0, p - d * 5.0 + n * 6.0, p - d * 5.0 - n * 6.0, col)

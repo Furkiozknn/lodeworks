@@ -160,6 +160,36 @@ static func links(g: Grid) -> Array:
 	return out
 
 
+## The production chain through `cell`: the links that feed it and what feeds
+## those, then the links it feeds and onward, as [link, hops] with hops 0 for
+## a link touching `cell`. At most `max_hops` links away and `cap` links in
+## all, so a Vault fed by half the board still reads. Upstream comes first.
+static func chain(link_list: Array, cell: int, max_hops: int = 4, cap: int = 60) -> Array:
+	var into: Dictionary = {}
+	var out_of: Dictionary = {}
+	for l: Dictionary in link_list:
+		(into.get_or_add(int(l["to"]), []) as Array).append(l)
+		(out_of.get_or_add(int(l["from"]), []) as Array).append(l)
+	var out: Array = []
+	for up: bool in [true, false]:
+		var by: Dictionary = into if up else out_of
+		var seen: Dictionary = {cell: true}
+		var front: Array = [cell]
+		for hops in range(max_hops):
+			var next: Array = []
+			for c: int in front:
+				for l: Dictionary in by.get(c, []):
+					if out.size() >= cap:
+						return out
+					out.append([l, hops])
+					var o: int = int(l["from"]) if up else int(l["to"])
+					if not seen.has(o):
+						seen[o] = true
+						next.append(o)
+			front = next
+	return out
+
+
 ## Every seam a pipe crosses, once, keyed "a-b" with a < b.
 static func segments(link_list: Array) -> Dictionary:
 	var seg: Dictionary = {}
