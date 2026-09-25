@@ -1636,10 +1636,11 @@ func _refresh() -> void:
 
 	_refresh_problems()
 
-	# The moment the quota is met, the key says so: a punch once, and a
-	# slow warm swell for as long as it stays open.
+	# The moment the quota is met, the key says so: a punch and the credits
+	# chime once, and a slow warm swell for as long as it stays open.
 	if Sim.can_descend() and _btn_descend.disabled and _descend_seen_closed:
 		Juice.punch(_btn_descend, 0.08, 0.35)
+		Juice.income()
 	_descend_seen_closed = not Sim.can_descend()
 	_btn_descend.disabled = not Sim.can_descend()
 	var sub: String = Loc.t("to stratum %d") % (Sim.depth + 1) if Sim.can_descend() \

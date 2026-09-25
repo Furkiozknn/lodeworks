@@ -70,7 +70,7 @@ mid-term, P3 a future system, P4 not needed now.
 | A4 | **Landscape store screenshots, tablet shots, preview video** | `store/screenshots*` are 1080x1920 portrait from 23 Sep; `tools/store-assets.sh` still captures portrait | re-shoot at 1920x1080 from the `ui`/`field` captures. **FIXED**: CI renders all store assets at the exact sizes and checks them, the listing is rewritten, a Turkish listing added (B-4) | P1, release |
 | A5 | ~~Store listing text~~ **FIXED** (B-4) | `store/listing.md` described the old small-grid game; English only | rewritten for the landscape game; a Turkish listing; every field's length checked | done |
 | A6 | **Release items needing a person** | privacy-policy contact is a placeholder; no keystore, no signed AAB; versionCode fixed at 1 | owner actions; a versionCode bump step | P1 |
-| A7 | Some sounds | `Juice.income()` never played; no sound for Descend ready or a new band | two or three cues, rate-limited | P2 |
+| A7 | ~~Some sounds~~ **FIXED** | `Juice.income()` was never played; no sound for Descend ready or a new band | the credits chime now plays once when the quota is met and Descend opens. A new band arrives with the Descend sound already playing, so a second cue there would be noise; none added | done |
 | A8 | Right-to-left layout | `Loc.is_rtl` exists; nothing mirrors | layout mirroring before Arabic | P4 |
 
 ### B — PARTIAL

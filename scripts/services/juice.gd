@@ -341,9 +341,9 @@ func alarm() -> void:
 	play("heat_warning", 0.8, 20.0)
 
 
+## The quota met: Descend opens (main._refresh). Not per sale -- production
+## is continuous, and a sound per sale would be a machine gun.
 func income() -> void:
-	# Throttled hard: production is continuous, and a sound per sale would be
-	# a machine gun.
 	play("income", randf_range(0.98, 1.04), 0.9)
 
 
