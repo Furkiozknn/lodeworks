@@ -103,9 +103,20 @@ func _pct(a: PackedFloat32Array, p: float) -> float:
 
 
 func _frame_row(label: String, a: PackedFloat32Array) -> void:
-	_row(label, "p50 %.2f ms, p95 %.2f ms, p99 %.2f ms (%d frames, %.0f fps median); draw calls avg %d, max %d"
+	# A card left open (Welcome back, a Foreman line) is a different screen:
+	# one run measured 280 draw calls instead of 189 and nobody could say
+	# why afterwards. Say so on the row instead.
+	var open: Array[String] = []
+	var ov: Control = _main.get("_overlay")
+	if ov != null and ov.visible:
+		open.append("a card was open")
+	var fm: Control = _main.get("_foreman")
+	if fm != null and fm.visible:
+		open.append("the Foreman was talking")
+	_row(label, "p50 %.2f ms, p95 %.2f ms, p99 %.2f ms (%d frames, %.0f fps median); draw calls avg %d, max %d%s"
 		% [_pct(a, 0.5), _pct(a, 0.95), _pct(a, 0.99), a.size(), 1000.0 / maxf(_pct(a, 0.5), 0.001),
-			int(_last_draw[0]), int(_last_draw[1])])
+			int(_last_draw[0]), int(_last_draw[1]),
+			"" if open.is_empty() else " -- NOT the bare screen: " + ", ".join(open)])
 
 
 func _run() -> void:

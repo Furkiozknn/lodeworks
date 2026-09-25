@@ -1634,6 +1634,27 @@ seed, one fixed collapse rule, and a builder no smarter than the list it
 follows. A player who collapses earlier, or builds better, finishes
 sooner; one who plays in short sessions takes more calendar days.
 
+### What the gap-audit round cost the frame
+
+The perf probe (`LODEWORKS_SOAK=10`, hero board, the same desktop, Intel
+UHD), each commit in a worktree of its own:
+
+| | 9f51cf0 (end of the night) | 2d40375 (languages) | 7464359 ("What now?") | f15c9d9 (now) |
+|---|---|---|---|---|
+| idle frame p50 / p95 | 10.82 / 14.77 ms | 10.82 / 14.66 ms | 12.96 / 18.32 ms* | 10.91 / 14.94 ms |
+| draw calls, idle | 177 | 177 | 189 | 189 |
+| draw calls, soak | 193 | -- | -- | 205 |
+| static memory | 48.0 MB | -- | -- | 49.1 MB |
+
+*One run; the next commit measured 10.93 ms with the same draw calls, so
+it was the machine, not the code. The languages cost nothing. The twelve
+draw calls are the "What now?" key's drawn clipboard, and the frame did
+not move. One run on the working copy measured 280 draw calls and
+15.3 ms; it could not be reproduced (189 three times since), so the probe
+now writes "NOT the bare screen" on a row measured with a card open or
+the Foreman talking. The chain lines, the per-band dust and the rest of
+the round draw nothing on the idle screen. A phone is still UNKNOWN.
+
 ### Toward more than one factory (not built)
 
 Nothing tonight builds a second factory or talks to a network (D3 still
