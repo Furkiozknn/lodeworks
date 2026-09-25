@@ -23,9 +23,13 @@ msgstr "%d sa %d dk"
 msgid "Sells anything a neighbour hands it"
 msgstr "Komşusunun verdiği her şeyi satar"
 
-#: res://scripts/core/machine_db.gd res://scripts/ui/main.gd
+#: res://scripts/core/machine_db.gd res://scripts/ui/main.gd res://scripts/core/core_levels.gd
 msgid "Research"
 msgstr "Araştırma"
+
+#: res://scripts/core/machine_db.gd
+msgid "%s or %s"
+msgstr "%s ya da %s"
 
 #: res://scripts/core/machine_db.gd
 msgid "Changes what its neighbours do"
@@ -156,6 +160,10 @@ msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr "Katman %d. Saha büyüdü: kuracak daha çok yer var."
 
 #: res://scripts/ui/main.gd
+msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
+msgstr "Çekirdek seviye %d. Kuyu %d. katmana kadar inebilir; makinelerin sınırı seviye %d."
+
+#: res://scripts/ui/main.gd
 msgid "%s active. Thank you."
 msgstr "%s etkin. Teşekkürler."
 
@@ -284,6 +292,14 @@ msgid "%d%% of quota"
 msgstr "kota %%%d"
 
 #: res://scripts/ui/main.gd
+msgid "Core level %d first"
+msgstr "Önce Çekirdek seviye %d"
+
+#: res://scripts/ui/main.gd
+msgid "The Core has to grow before the shaft goes deeper. Tap the Core to see what it needs."
+msgstr "Kuyu daha derine inmeden Çekirdek büyümeli. Neye ihtiyacı olduğunu görmek için Çekirdeğe dokun."
+
+#: res://scripts/ui/main.gd
 msgid "next:"
 msgstr "sonraki:"
 
@@ -324,20 +340,16 @@ msgid "LEVEL %d"
 msgstr "SEVİYE %d"
 
 #: res://scripts/ui/main.gd
-msgid "It is as big as it gets."
-msgstr "Olabileceği kadar büyük."
-
-#: res://scripts/ui/main.gd
-msgid "It grows with its yard: at stratum %d it reaches level %d."
-msgstr "Sahasıyla birlikte büyür: %d. katmanda %d. seviyeye çıkar."
+msgid "Down to stratum %d · machines to level %d"
+msgstr "%d. katmana kadar · makine sınırı seviye %d"
 
 #: res://scripts/ui/main.gd
 msgid "Factory Core"
 msgstr "Fabrika Çekirdeği"
 
 #: res://scripts/ui/main.gd
-msgid "The heart of this shaft. It gave you the credits for your first Drill and Vault; everything since, the board has earned.\n\n%s Every stratum is richer rock, and new machines open on the way down."
-msgstr "Bu kuyunun kalbi. İlk Matkap ve Kasa için gereken krediyi o verdi; sonrasını hep fabrika kazandı.\n\n%s Her katman daha zengin kayadır ve aşağı indikçe yeni makineler açılır."
+msgid "The heart of this shaft. Its level decides how deep the shaft may go, how far machines and research may be upgraded, and what the Vault may store.\n\nIt does not grow for credits alone: each level asks the factory to have grown -- materials in its store, handed to it by machines touching it; machines upgraded; a line at its working heat; research; rock reached. Tap a line below to go and do it."
+msgstr "Bu kuyunun kalbi. Seviyesi; kuyunun ne kadar derine inebileceğini, makinelerin ve araştırmanın ne kadar yükseltilebileceğini ve Kasa'nın ne kadar depolayabileceğini belirler.\n\nYalnızca krediyle büyümez: her seviye fabrikanın büyümüş olmasını ister -- ona dokunan makinelerin deposuna verdiği malzemeler; yükseltilmiş makineler; çalışma ısısında bir hat; araştırma; ulaşılmış kaya. Yapmak için aşağıdaki bir satıra dokun."
 
 #: res://scripts/ui/main.gd
 msgid "machines"
@@ -368,16 +380,88 @@ msgid "The yard covers all the ground there is."
 msgstr "Saha bütün zemini kaplıyor."
 
 #: res://scripts/ui/main.gd
-msgid "Stratum %d: level %d, and the yard grows to %d x %d."
-msgstr "Katman %d: seviye %d, saha %d x %d olur."
-
-#: res://scripts/ui/main.gd
 msgid "Stratum %d: the yard grows to %d x %d."
 msgstr "Katman %d: saha %d x %d olur."
 
 #: res://scripts/ui/main.gd
 msgid "Show me"
 msgstr "Göster"
+
+#: res://scripts/ui/main.gd
+msgid "To reach level %d"
+msgstr "Seviye %d için"
+
+#: res://scripts/ui/main.gd
+msgid "It opens strata %d to %d, machine level %d and a store of %d."
+msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
+
+#: res://scripts/ui/main.gd
+msgid "Grow the Core to level %d"
+msgstr "Çekirdeği büyüt: seviye %d"
+
+#: res://scripts/ui/main.gd
+msgid "Store"
+msgstr "Depo"
+
+#: res://scripts/ui/main.gd
+msgid "The Vault's level is the Core's store."
+msgstr "Kasa'nın seviyesi Çekirdeğin deposudur."
+
+#: res://scripts/ui/main.gd
+msgid "Credits, paid when the Core grows"
+msgstr "Kredi, Çekirdek büyüyünce ödenir"
+
+#: res://scripts/ui/main.gd
+msgid "%s in the store -- Vault first"
+msgstr "Depoda %s -- önce Kasa"
+
+#: res://scripts/ui/main.gd
+msgid "%s in the store, from beside the Core"
+msgstr "Depoda %s, Çekirdeğin yanından"
+
+#: res://scripts/ui/main.gd
+msgid "%s running at working heat"
+msgstr "Çalışma ısısında çalışan %s"
+
+#: res://scripts/ui/main.gd
+msgid "%s at level %d"
+msgstr "%s, seviye %d"
+
+#: res://scripts/ui/main.gd
+msgid "level %d"
+msgstr "seviye %d"
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d reached"
+msgstr "%d. katmana ulaşıldı"
+
+#: res://scripts/ui/main.gd
+msgid "A %s serving %d machines"
+msgstr "Bir %s, %d makineye hizmet ediyor"
+
+#: res://scripts/ui/main.gd
+msgid "%d machines at working heat, none overheating"
+msgstr "%d makine çalışma ısısında, hiçbiri aşırı ısınmıyor"
+
+#: res://scripts/ui/main.gd
+msgid "Lv.%d"
+msgstr "Sv.%d"
+
+#: res://scripts/ui/main.gd
+msgid "Core first"
+msgstr "Önce Çekirdek"
+
+#: res://scripts/ui/main.gd
+msgid "Vault first"
+msgstr "Önce Kasa"
+
+#: res://scripts/ui/main.gd
+msgid "The Vault's level is the Core's store: it holds %d of each material now, %d at the next level."
+msgstr "Kasa'nın seviyesi Çekirdeğin deposudur: şimdi her malzemeden %d tutar, sonraki seviyede %d."
+
+#: res://scripts/ui/main.gd
+msgid "Every %s works %d%% faster a level. It is paid in credits and in materials from the Core's store; the Core's level is the limit."
+msgstr "Her %s her seviyede %d%% daha hızlı çalışır. Kredi ve Çekirdeğin deposundaki malzemelerle ödenir; sınırı Çekirdeğin seviyesidir."
 
 #: res://scripts/ui/main.gd
 msgid "A tap takes you to the first one."
@@ -390,6 +474,22 @@ msgstr "%d. katmana in"
 #: res://scripts/ui/main.gd
 msgid "The quota is met. See what is down there first."
 msgstr "Kota doldu. Önce aşağıda ne olduğuna bak."
+
+#: res://scripts/ui/main.gd
+msgid "Everything it asked for is ready."
+msgstr "İstediği her şey hazır."
+
+#: res://scripts/ui/main.gd
+msgid "For the Core's level %d: %s"
+msgstr "Çekirdeğin seviye %d için: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Upgrade the %s to level %d"
+msgstr "%s yükseltmesi: seviye %d"
+
+#: res://scripts/ui/main.gd
+msgid "Paid in credits and in materials from the Core's store."
+msgstr "Kredi ve Çekirdeğin deposundaki malzemelerle ödenir."
 
 #: res://scripts/ui/main.gd
 msgid "What it buys stays, even after a collapse."
@@ -488,8 +588,16 @@ msgid "MAX"
 msgstr "MAKS"
 
 #: res://scripts/ui/main.gd
+msgid "Core level %d"
+msgstr "Çekirdek seviye %d"
+
+#: res://scripts/ui/main.gd
 msgid "This one also costs Cores. You get Cores when you collapse the shaft."
 msgstr "Bu, Çekirdek de ister. Çekirdeği kuyuyu çökertince alırsın."
+
+#: res://scripts/ui/main.gd
+msgid "The Factory Core's level is this line's limit. At level %d it goes further."
+msgstr "Bu hattın sınırı Fabrika Çekirdeğinin seviyesidir. Çekirdek seviye %d olunca daha ileri gider."
 
 #: res://scripts/ui/main.gd
 msgid "Collapsing the shaft turns everything you have built into Cores, and Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You have reached %d."
@@ -856,12 +964,12 @@ msgid "Lab"
 msgstr "Laboratuvar"
 
 #: res://scripts/core/machine_db.gd
-msgid "Turns parts into research."
-msgstr "Parçaları araştırmaya çevirir."
+msgid "Turns materials into research."
+msgstr "Malzemeleri araştırmaya çevirir."
 
 #: res://scripts/core/machine_db.gd
-msgid "Turns components into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future."
-msgstr "Parçaları kredi yerine Araştırmaya çevirir. Araştırmayla alınanlar çöküşten sonra da kalır; Laboratuvarı olmayan bir tahtanın geleceği yoktur."
+msgid "Learns from whatever refined material its neighbours hand it -- a little from an Ingot, more from a Plate, most from a Component -- and turns it into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future."
+msgstr "Komşularının verdiği her işlenmiş malzemeden öğrenir -- Külçeden biraz, Levhadan daha çok, Parçadan en çok -- ve bunu kredi yerine Araştırmaya çevirir. Araştırmanın aldığı şey bir çöküşten sonra da kalır; Laboratuvarı olmayan bir tahtanın geleceği yoktur."
 
 #: res://scripts/core/machine_db.gd
 msgid "Duplicator"
@@ -1066,6 +1174,34 @@ msgstr "Kayıtlı bir yerleşim daha."
 #: res://scripts/core/economy.gd
 msgid "One more blueprint slot for saved layouts."
 msgstr "Kayıtlı yerleşimler için bir plan yuvası daha."
+
+#: res://scripts/core/core_levels.gd
+msgid "Extraction"
+msgstr "Çıkarım"
+
+#: res://scripts/core/core_levels.gd
+msgid "Processing"
+msgstr "İşleme"
+
+#: res://scripts/core/core_levels.gd
+msgid "Fabrication"
+msgstr "İmalat"
+
+#: res://scripts/core/core_levels.gd
+msgid "Assembly"
+msgstr "Montaj"
+
+#: res://scripts/core/core_levels.gd
+msgid "Amplification"
+msgstr "Güçlendirme"
+
+#: res://scripts/core/core_levels.gd
+msgid "Deep works"
+msgstr "Derin İşler"
+
+#: res://scripts/core/core_levels.gd res://scripts/ui/main.gd
+msgid "The Abyss"
+msgstr "Uçurum"
 
 #: res://scripts/core/strata.gd
 msgid "Thermal Vent"
@@ -1450,10 +1586,6 @@ msgstr "Galeriler"
 #: res://scripts/ui/main.gd
 msgid "The Deep"
 msgstr "Derinlik"
-
-#: res://scripts/ui/main.gd
-msgid "The Abyss"
-msgstr "Uçurum"
 
 #: res://scripts/ui/main.gd
 msgid "Game"

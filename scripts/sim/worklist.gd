@@ -13,15 +13,21 @@ extends RefCounted
 ##
 ## The order is fixed, so the same board always gives the same list:
 ##   1. machines in trouble             (the warning key's own count)
-##   2. the way down is open            (Sim.can_descend)
-##   3. research that can be bought     (the Research key's own count)
-##   4. a collapse that opens research  (the Collapse card's own rule)
-##   5. a machine unlocked but never built, first of the tray's order
-##   6. a step further along the chain than any that works now, where it
+##   2. the Core can grow               (Sim.can_upgrade_core)
+##   3. the way down is open            (Sim.can_descend)
+##   4. what the Core's next level still needs, first of its rows
+##   5. a machine level that can be bought, the one the Core asks for first
+##   6. research that can be bought     (the Research key's own count)
+##   7. a collapse that opens research  (the Collapse card's own rule)
+##   8. a machine unlocked but never built, first of the tray's order
+##   9. a step further along the chain than any that works now, where it
 ##      would be fed, with an empty tile beside it for a Vault
-##   7. the furthest step of the chain that would work on some empty tile
+##  10. the furthest step of the chain that would work on some empty tile
 ##      right now (Simulation.links_if_placed), affordable, one line
-##   8. otherwise: how much is left to the quota
+##  11. otherwise: how much is left to the quota
+## So a player coming back finds several things to work on at once -- the
+## Core's next condition, a machine level, research, the chain -- the way a
+## base-builder keeps its builders and its laboratory busy side by side.
 ## At most MAX lines.
 
 const MAX := 5
@@ -31,7 +37,8 @@ const HIDDEN := ["blueprint_slots"]
 
 
 ## The list for this shaft: [{"kind", ...}], in the order above.
-## kind "problems": n; "descend": stratum; "research": n; "collapse": cores,
+## kind "problems": n; "core_grow": level; "descend": stratum; "core_need": st
+## (a CoreLevels.status row); "upgrade": id, level; "research": n; "collapse": cores,
 ## lines; "first": id; "extend": id, feeder, cell, outlet; "place": id,
 ## cells; "quota": missing credits.
 static func of(state: Object) -> Array:
@@ -44,8 +51,19 @@ static func of(state: Object) -> Array:
 	var trouble: int = int(p["starved"]) + int(p["blocked"]) + int(p["thermal"])
 	if trouble > 0:
 		out.append({"kind": "problems", "n": trouble})
+	var core: bool = state.has_method("core_status")
+	if core and bool(state.call("can_upgrade_core")):
+		out.append({"kind": "core_grow", "level": int(state.get("core_level")) + 1})
 	if bool(state.call("can_descend")):
 		out.append({"kind": "descend", "stratum": int(state.get("depth")) + 1})
+	if core:
+		var need: Dictionary = core_need(state)
+		if not need.is_empty():
+			out.append({"kind": "core_need", "st": need})
+		var up: String = upgrade_ready(state)
+		if up != "":
+			out.append({"kind": "upgrade", "id": up,
+				"level": int(state.call("machine_level", up)) + 1})
 	var ready: int = research_ready(state)
 	if ready > 0:
 		out.append({"kind": "research", "n": ready})
@@ -80,6 +98,60 @@ static func of(state: Object) -> Array:
 		var missing: float = maxf(float(state.call("quota")) - float(state.get("credits")), 0.0)
 		out.append({"kind": "quota", "missing": missing})
 	return out.slice(0, MAX)
+
+
+## The first of the Core's next-level rows still open that the player can
+## work on now -- its machine found, or the Lab for research -- leaving
+## credits to last and the depth to the Descend and quota lines. {} when
+## nothing is open yet: early on, the way down is the Core's next step.
+static func core_need(state: Object) -> Dictionary:
+	if bool(state.call("can_upgrade_core")):
+		return {}
+	var credits: Dictionary = {}
+	var deeper: bool = false
+	for st: Dictionary in state.call("core_status"):
+		if bool(st["met"]):
+			continue
+		var r: Array = st["req"]
+		match int(r[0]):
+			CoreLevels.Req.CREDITS:
+				credits = st
+			CoreLevels.Req.DEPTH:
+				deeper = true
+			CoreLevels.Req.STOCK:
+				if bool(state.call("is_unlocked", CoreLevels.producer_of(int(r[1])))):
+					return st
+			CoreLevels.Req.MACHINE:
+				var ok: bool = bool(state.call("is_unlocked", String(r[1])))
+				for res: int in MachineDB.level_materials(int(state.call("machine_level", String(r[1]))) + 1):
+					ok = ok and bool(state.call("is_unlocked", CoreLevels.producer_of(res)))
+				if ok:
+					return st
+			CoreLevels.Req.RESEARCH:
+				if bool(state.call("is_unlocked", "lab")):
+					return st
+			CoreLevels.Req.WORKING, CoreLevels.Req.SERVES:
+				if bool(state.call("is_unlocked", String(r[1]))):
+					return st
+			_:
+				return st
+	return {} if deeper else credits
+
+
+## A machine type whose next level can be bought now: one the Core's next
+## level asks for first, then the Vault (the store), then the tray's order.
+static func upgrade_ready(state: Object) -> String:
+	var order: Array[String] = []
+	for st: Dictionary in state.call("core_status"):
+		if int(st["req"][0]) == CoreLevels.Req.MACHINE and not bool(st["met"]):
+			order.append(String(st["req"][1]))
+	order.append("vault")
+	for id: String in MachineDB.ORDER:
+		order.append(id)
+	for id: String in order:
+		if bool(state.call("can_upgrade_machine", id)):
+			return id
+	return ""
 
 
 ## Research lines that can be bought now, as the Research key counts them.

@@ -118,6 +118,8 @@ var _overlay_scroll: ScrollContainer
 var _sheet_status: Control
 ## The words behind the detail sheet's "?".
 var _sheet_help: String = ""
+## The machine sheet's level key (machine levels, capped by the Core).
+var _sheet_up: Button
 var _palette_buttons: Dictionary = {}
 var _palette_costs: Dictionary = {}
 
@@ -167,6 +169,15 @@ func _ready() -> void:
 			_band_news = int(Palette.band_at(d)[0])
 			call_deferred("_tell_yard_news"))
 	Sim.machines_unlocked.connect(_on_unlocked)
+	Sim.core_upgraded.connect(func(level: int):
+		Juice.upgrade()
+		iso_view.pulse_core()
+		_say(Loc.t("The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d.")
+			% [level, Sim.depth_cap(), Sim.machine_level_cap()], Foreman.Pose.CHEER, 5.5))
+	Sim.machine_upgraded.connect(func(id: String, level: int):
+		Juice.upgrade()
+		if iso_view.selected_cell >= 0 and Sim.grid.machine_at(iso_view.selected_cell) == id:
+			_show_cell_info(iso_view.selected_cell))
 	Sim.offline_earnings.connect(_show_offline)
 	Sim.collapsed.connect(_on_collapsed)
 	Ads.reward_granted.connect(_on_reward)
@@ -1215,6 +1226,15 @@ func _build_sheet() -> void:
 	left.add_child(_sheet_stats)
 	row.add_child(left)
 
+	# The machine type's level, and the key that raises it.
+	_sheet_up = _button("", Palette.RESEARCH)
+	_sheet_up.custom_minimum_size = Vector2(170, MIN_TOUCH)
+	_sheet_up.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_sheet_up.pressed.connect(func():
+		var cell: int = iso_view.selected_cell
+		if cell >= 0 and Sim.upgrade_machine(Sim.grid.machine_at(cell)):
+			_refresh())
+	row.add_child(_sheet_up)
 	# The words, for whoever wants them.
 	row.add_child(_help_button("", func() -> String: return _sheet_help))
 	# Remove, in plain sight: select, then act, as every builder game does.
@@ -1492,6 +1512,11 @@ func _on_cell_long_pressed(cell: int) -> void:
 
 
 func _on_descend() -> void:
+	if Sim.descent_needs_core():
+		# The quota is met; the Core's level is what stands in the way.
+		Juice.tap()
+		_show_core()
+		return
 	if not Sim.can_descend():
 		# Not yet: what is down there, and how far off it is.
 		Juice.tap()
@@ -1604,6 +1629,9 @@ func _on_reward_failed(_placement: String, reason: String) -> void:
 const BAND_NAMES := ["The Surface", "The Workings", "The Deep", "The Abyss"]
 
 
+## The Core level at which the Foreman last said the Core stands in the way.
+var _core_gate_said: int = 0
+
 ## What the tray and the warning key last showed, so a tick that changes
 ## nothing changes no theme (see _refresh).
 var _afford_shown: Dictionary = {}
@@ -1660,6 +1688,13 @@ func _refresh() -> void:
 	_btn_descend.disabled = not Sim.can_descend()
 	var sub: String = Loc.t("to stratum %d") % (Sim.depth + 1) if Sim.can_descend() \
 		else Loc.t("%d%% of quota") % int(round(_quota_bar.value * 100.0))
+	if Sim.descent_needs_core():
+		sub = Loc.t("Core level %d first") % (Sim.core_level + 1)
+		# Said once a level: the moment the shaft reaches what its Core allows.
+		if _core_gate_said != Sim.core_level:
+			_core_gate_said = Sim.core_level
+			_say(Loc.t("The Core has to grow before the shaft goes deeper. Tap the Core to see what it needs."),
+				Foreman.Pose.POINT, 7.0)
 	if _lbl_descend_sub.text != sub:
 		_lbl_descend_sub.text = sub
 		_fit(_lbl_descend_sub, float(_lbl_descend_sub.get_meta("fit_w")))
@@ -1921,7 +1956,9 @@ func _show_core() -> void:
 	var lv := VBoxContainer.new()
 	lv.alignment = BoxContainer.ALIGNMENT_CENTER
 	lv.add_theme_constant_override("separation", 8)
-	lv.add_child(_label(Loc.t("LEVEL %d") % lvl, 34, Palette.CORE))
+	lv.add_child(_label(Loc.t("LEVEL %d") % Sim.core_level, 34, Palette.CORE))
+	if CoreLevels.era(Sim.core_level) != "":
+		lv.add_child(_label(Loc.t(CoreLevels.era(Sim.core_level)), 20, Palette.TEXT))
 	var pips := HBoxContainer.new()
 	pips.add_theme_constant_override("separation", 6)
 	for k in range(IsoView.CORE_LEVELS):
@@ -1929,14 +1966,14 @@ func _show_core() -> void:
 		pip.color = Palette.CORE if k < lvl else Color(Palette.BG, 0.9)
 		pips.add_child(pip)
 	lv.add_child(pips)
-	lv.add_child(_label(Loc.t("Stratum %d") % Sim.depth, 18, Palette.TEXT_DIM))
+	lv.add_child(_label(Loc.t("Down to stratum %d · machines to level %d") % [Sim.depth_cap(),
+		Sim.machine_level_cap()], 18, Palette.TEXT_DIM))
 	top.add_child(lv)
-	var next_lvl: String = Loc.t("It is as big as it gets.") if lvl >= IsoView.CORE_LEVELS \
-		else Loc.t("It grows with its yard: at stratum %d it reaches level %d.") % [
-			IsoView.stratum_for_level(lvl + 1), lvl + 1]
 	top.add_child(_help_button(Loc.t("Factory Core"), func() -> String:
-		return Loc.t("The heart of this shaft. It gave you the credits for your first Drill and Vault; everything since, the board has earned.\n\n%s Every stratum is richer rock, and new machines open on the way down.") % next_lvl))
+		return Loc.t("The heart of this shaft. Its level decides how deep the shaft may go, how far machines and research may be upgraded, and what the Vault may store.\n\nIt does not grow for credits alone: each level asks the factory to have grown -- materials in its store, handed to it by machines touching it; machines upgraded; a line at its working heat; research; rock reached. Tap a line below to go and do it.")))
 	body.add_child(top)
+	body.add_child(_core_store())
+	body.add_child(_core_next())
 
 	# The factory in four numbers.
 	var stats := HBoxContainer.new()
@@ -1975,10 +2012,7 @@ func _show_core() -> void:
 	var at: int = int(rep["next_stratum"])
 	var grow: Vector2i = rep["next_size"]
 	var line: String = Loc.t("The yard covers all the ground there is.")
-	if at >= 0 and lvl < IsoView.CORE_LEVELS:
-		line = Loc.t("Stratum %d: level %d, and the yard grows to %d x %d.") % [at,
-			IsoView.level_at(at), grow.x, grow.y]
-	elif at >= 0:
+	if at >= 0:
 		line = Loc.t("Stratum %d: the yard grows to %d x %d.") % [at, grow.x, grow.y]
 	nxt.add_child(_label(line, 20, Palette.TEXT_DIM))
 	body.add_child(nxt)
@@ -2008,6 +2042,248 @@ func _core_stat(pic: Control, value: String, word: String, col: Color) -> Contro
 	row.add_child(words)
 	p.add_child(row)
 	return p
+
+
+## --- the Factory Core's next level ----------------------------------------------
+##
+## The next level as rows: what it asks for, how far along each one is, and a
+## tap that goes to do it -- the machine that makes what the Core takes in,
+## armed; a machine to upgrade, selected; the Research grid; the way down.
+## Then what the level opens, and the key that grows the Core.
+
+func _core_next() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var next: int = Sim.core_level + 1
+	var head := _label(Loc.t("To reach level %d") % next, 24, Palette.TEXT)
+	if CoreLevels.era(next) != "":
+		head.text += " · " + Loc.t(CoreLevels.era(next))
+	box.add_child(head)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 6)
+	rows.set_meta("core_next", next)
+	for st: Dictionary in Sim.core_status():
+		rows.add_child(_core_req_row(st))
+	box.add_child(rows)
+	var o: Dictionary = CoreLevels.opens(next)
+	var opens := HBoxContainer.new()
+	opens.add_theme_constant_override("separation", 10)
+	opens.set_meta("core_opens", o)
+	opens.add_child(_icon_rect("descend", 40))
+	var line := _label(Loc.t("It opens strata %d to %d, machine level %d and a store of %d.") % [
+		int(o["strata"][0]), int(o["strata"][1]), int(o["machine_cap"]), int(o["stock_cap"])],
+		TEXT_MIN, Palette.TEXT_DIM)
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opens.add_child(line)
+	for id: String in (o["machines"] as Array).slice(0, 3):
+		opens.add_child(Chips.MachineSprite.new(id, 40.0))
+	for _id: String in (o["research"] as Array).slice(0, 2):
+		opens.add_child(_icon_rect("research", 34))
+	box.add_child(opens)
+	var grow := _button("", Palette.CORE if Sim.can_upgrade_core() else Palette.PANEL)
+	grow.custom_minimum_size = Vector2(0, MIN_TOUCH)
+	grow.disabled = not Sim.can_upgrade_core()
+	grow.set_meta("core_grow", true)
+	var gl := _label(Loc.t("Grow the Core to level %d") % next, 24,
+		Palette.BG if Sim.can_upgrade_core() else Palette.TEXT_DIM)
+	gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	gl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	gl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grow.add_child(gl)
+	grow.pressed.connect(func():
+		if Sim.upgrade_core():
+			_close_overlay()
+			_refresh())
+	box.add_child(grow)
+	return box
+
+
+## The Core's store: each material a machine this shaft has found makes,
+## how much of it is in the store, and what the Vault's level lets it hold.
+func _core_store() -> Control:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	row.add_child(_label(Loc.t("Store"), 22, Palette.TEXT))
+	var cap: int = Sim.stock_cap()
+	for res: int in MachineDB.STOCKED:
+		if not Sim.is_unlocked(CoreLevels.producer_of(res)):
+			continue
+		row.add_child(Chips.Gem.new(res, 1, 30.0))
+		row.add_child(_label("%d/%d" % [Sim.stock_of(res), cap], 22,
+			Palette.CORE if Sim.stock_of(res) >= cap else Palette.TEXT))
+	var b := _button("", Palette.PANEL)
+	b.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
+	b.add_child(Chips.MachineSprite.new("vault", 44.0))
+	b.tooltip_text = Loc.t("The Vault's level is the Core's store.")
+	b.pressed.connect(func():
+		_close_overlay()
+		_select_type("vault"))
+	row.add_child(b)
+	row.set_meta("store", Sim.stock.duplicate())
+	return row
+
+
+## One of the next level's requirements: its picture, its words, how far
+## along it is, and what a tap does -- for the Core card and What now?.
+func _core_req_info(st: Dictionary) -> Dictionary:
+	var r: Array = st["req"]
+	var met: bool = bool(st["met"])
+	var pic: Control
+	var words: String = ""
+	var amount: String = "%d / %d" % [int(st["have"]), int(st["need"])]
+	var go: Callable = func() -> void: pass
+	match int(r[0]):
+		CoreLevels.Req.CREDITS:
+			pic = _icon_rect("credits", 44)
+			words = Loc.t("Credits, paid when the Core grows")
+			amount = "%s / %s" % [Economy.fmt(float(st["have"])), Economy.fmt(float(st["need"]))]
+		CoreLevels.Req.STOCK:
+			var res: int = int(r[1])
+			pic = Chips.Gem.new(res, 1, 40.0)
+			var mat: String = Loc.t(String(MachineDB.RES_NAME[res]))
+			if int(st.get("cap", 0)) < int(st["need"]) and not met:
+				# More than the store holds: the Vault's level comes first.
+				words = Loc.t("%s in the store -- Vault first") % mat
+				go = func() -> void: _select_type("vault")
+			else:
+				words = Loc.t("%s in the store, from beside the Core") % mat
+				var maker: String = CoreLevels.producer_of(res)
+				go = func() -> void: _arm_only(maker)
+		CoreLevels.Req.WORKING:
+			var wid: String = String(r[1])
+			pic = Chips.MachineSprite.new(wid, 44.0)
+			words = Loc.t("%s running at working heat") % MachineDB.name_of(wid)
+			go = func() -> void: _show_working(wid, int(st["need"]))
+		CoreLevels.Req.MACHINE:
+			var mid: String = String(r[1])
+			pic = Chips.MachineSprite.new(mid, 44.0)
+			words = Loc.t("%s at level %d") % [MachineDB.name_of(mid), int(st["need"])]
+			amount = Loc.t("level %d") % int(st["have"])
+			go = func() -> void: _select_type(mid)
+		CoreLevels.Req.DEPTH:
+			pic = _icon_rect("descend", 44)
+			words = Loc.t("Stratum %d reached") % int(st["need"])
+			go = _on_descend
+		CoreLevels.Req.RESEARCH:
+			var rid: String = String(r[1])
+			pic = _icon_rect("research", 44)
+			words = Loc.t("%s at level %d") % [Loc.t(String(Economy.RESEARCH_TREE[rid]["name"])),
+				int(st["need"])]
+			amount = Loc.t("level %d") % int(st["have"])
+			go = _show_research
+		CoreLevels.Req.SERVES:
+			var sid: String = String(r[1])
+			pic = Chips.MachineSprite.new(sid, 44.0)
+			words = Loc.t("A %s serving %d machines") % [MachineDB.name_of(sid), int(st["need"])]
+			go = func() -> void: _arm_only(sid)
+		_:
+			pic = _icon_rect("heat", 44)
+			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
+			go = func() -> void: _btn_heat.button_pressed = true
+	return {"pic": pic, "words": words, "amount": amount, "go": go}
+
+
+## One of the next level's requirements, as a row to tap.
+func _core_req_row(st: Dictionary) -> Button:
+	var r: Array = st["req"]
+	var met: bool = bool(st["met"])
+	var info: Dictionary = _core_req_info(st)
+	var go: Callable = info["go"]
+	var b := _setting_row(info["pic"], String(info["words"]), String(info["amount"]))
+	b.set_meta("core_req", int(r[0]))
+	b.set_meta("met", met)
+	var mark := _icon_rect("ok" if met else "lock", 34)
+	mark.modulate = Color.WHITE if met else Color(1, 1, 1, 0.35)
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	(b.get_child(0) as HBoxContainer).add_child(mark)
+	b.pressed.connect(func():
+		Juice.tap()
+		_close_overlay()
+		go.call())
+	return b
+
+
+## A "working heat" requirement, tapped: too few of them, arm one; one
+## starved or blocked (a full store with no Vault beside it, say), go to the
+## first machine in trouble; otherwise it is the heat: show it.
+func _show_working(id: String, need: int) -> void:
+	if Sim.grid.count_of(id) < need:
+		_arm_only(id)
+		return
+	for cell: int in Sim.grid.cells:
+		if Sim.grid.machine_at(cell) == id and Sim.sim.status_of(cell) in [Simulation.Status.STARVED,
+				Simulation.Status.BLOCKED]:
+			iso_view.focus_cell(cell)
+			iso_view.selected_cell = cell
+			_show_cell_info(cell)
+			return
+	_btn_heat.button_pressed = true
+
+
+## Select a machine of type `id` on the board -- its sheet carries the level
+## key -- or, with none built, arm one.
+func _select_type(id: String) -> void:
+	for cell: int in Sim.grid.cells:
+		if Sim.grid.machine_at(cell) == id:
+			iso_view.focus_cell(cell)
+			iso_view.selected_cell = cell
+			_show_cell_info(cell)
+			return
+	_arm_only(id)
+
+
+## The machine sheet's level key: the type's level, and what the next one
+## costs -- or why it cannot be had yet.
+func _fill_level_key(id: String) -> void:
+	for c in _sheet_up.get_children():
+		c.queue_free()
+	_sheet_up.visible = MachineDB.has_levels(id)
+	if not _sheet_up.visible:
+		return
+	var lvl: int = Sim.machine_level(id)
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var why: String = Sim.machine_upgrade_blocker(id)
+	var can: bool = why == ""
+	var capped: bool = why == "core"
+	var top := _label(Loc.t("Lv.%d") % lvl + ("" if capped else "  ›  %d" % (lvl + 1)), TEXT_MIN,
+		Palette.BG if can else Palette.TEXT)
+	top.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(top)
+	if capped or why == "storage":
+		var bottom := _label(Loc.t("Core first") if capped else Loc.t("Vault first"), TEXT_MIN, Palette.TEXT_DIM)
+		bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(bottom)
+	else:
+		# The price: credits, and the materials from the Core's store, each
+		# red while it is short.
+		var cost: Dictionary = Sim.machine_upgrade_cost(id)
+		var price := HBoxContainer.new()
+		price.alignment = BoxContainer.ALIGNMENT_CENTER
+		price.add_theme_constant_override("separation", 4)
+		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		price.add_child(_label(Economy.fmt(float(cost["credits"])), TEXT_MIN,
+			Palette.BG if can else (Palette.TEXT_DIM if Sim.credits >= float(cost["credits"]) else Palette.BAD)))
+		var mats: Dictionary = cost["materials"]
+		for res: int in mats:
+			price.add_child(Chips.Gem.new(res, 1, 20.0))
+			price.add_child(_label(str(int(mats[res])), TEXT_MIN,
+				Palette.BG if can else (Palette.TEXT_DIM if Sim.stock_of(res) >= int(mats[res]) else Palette.BAD)))
+		col.add_child(price)
+	_sheet_up.add_child(col)
+	_sheet_up.disabled = not can
+	if id == "vault":
+		_sheet_up.tooltip_text = Loc.t("The Vault's level is the Core's store: it holds %d of each material now, %d at the next level.") % [
+			Sim.stock_cap(), MachineDB.stock_cap(lvl + 1)]
+	else:
+		_sheet_up.tooltip_text = Loc.t("Every %s works %d%% faster a level. It is paid in credits and in materials from the Core's store; the Core's level is the limit.") % [
+			MachineDB.name_of(id), int(round(MachineDB.LEVEL_SPEED * 100.0))]
+	_sheet_up.set_meta("machine_level", lvl)
+	_sheet_up.set_meta("blocker", why)
 
 
 ## --- what now? --------------------------------------------------------------
@@ -2045,6 +2321,23 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Go down to stratum %d") % int(e["stratum"])
 			sub = Loc.t("The quota is met. See what is down there first.")
 			go = _show_below
+		"core_grow":
+			pic = _core_picture(52.0)
+			title = Loc.t("Grow the Core to level %d") % int(e["level"])
+			sub = Loc.t("Everything it asked for is ready.")
+			go = _show_core
+		"core_need":
+			var info: Dictionary = _core_req_info(e["st"])
+			pic = info["pic"]
+			title = String(info["words"])
+			sub = Loc.t("For the Core's level %d: %s") % [Sim.core_level + 1, String(info["amount"])]
+			go = info["go"]
+		"upgrade":
+			var uid: String = String(e["id"])
+			pic = Chips.MachineSprite.new(uid, 52.0)
+			title = Loc.t("Upgrade the %s to level %d") % [MachineDB.name_of(uid), int(e["level"])]
+			sub = Loc.t("Paid in credits and in materials from the Core's store.")
+			go = func() -> void: _select_type(uid)
 		"research":
 			var n2: int = int(e["n"])
 			pic = _icon_rect("research", 52)
@@ -2462,6 +2755,7 @@ func _show_cell_info(cell: int) -> void:
 				icon = "ok"
 	(_sheet_status as TextureRect).texture = IsoArt.icon(icon)
 	_sheet_body.add_child(Chips.recipe(id, 42.0))
+	_fill_level_key(id)
 
 	# Heat: the bar is the machine's temperature, the notch where it wants to
 	# be; red past its tolerance.
@@ -2570,6 +2864,12 @@ func _research_card(id: String) -> Control:
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	var can: bool = Sim.can_buy_upgrade(id)
 	var locked: bool = not maxed and Sim.cores < int(c["cores"])
+	# The Core's level is this line's limit: the level that lets it go on.
+	var core_needed: int = 0
+	if not maxed and lvl >= Sim.research_cap(id):
+		core_needed = Sim.core_level + 1
+		while Economy.research_cap(id, core_needed) <= lvl and core_needed < Sim.core_level + 100:
+			core_needed += 1
 
 	var card := _panel(Palette.PANEL_HI, 0.96)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2587,7 +2887,8 @@ func _research_card(id: String) -> Control:
 		sb.set_border_width_all(3)
 		sb.bg_color = Color(Palette.PANEL_HI.lerp(Palette.RESEARCH, 0.12), 0.96)
 	card.set_meta("research_id", id)
-	card.set_meta("state", "max" if maxed else ("ready" if can else ("locked" if locked else "short")))
+	card.set_meta("state", "max" if maxed else ("ready" if can else ("core" if core_needed > 0
+		else ("locked" if locked else "short"))))
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
@@ -2627,6 +2928,15 @@ func _research_card(id: String) -> Control:
 		done.add_child(_icon_rect("ok", 52))
 		done.add_child(_label(Loc.t("MAX"), 26, Palette.CORE))
 		bottom.add_child(done)
+	elif core_needed > 0:
+		var wait := HBoxContainer.new()
+		wait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wait.alignment = BoxContainer.ALIGNMENT_CENTER
+		wait.custom_minimum_size = Vector2(0, MIN_TOUCH)
+		wait.add_theme_constant_override("separation", 8)
+		wait.add_child(_icon_rect("lock", 40))
+		wait.add_child(_label(Loc.t("Core level %d") % core_needed, 22, Palette.TEXT_DIM))
+		bottom.add_child(wait)
 	else:
 		# The price as pictures and numbers on the key that buys it. What is
 		# missing is red, so a short card says what to go and get.
@@ -2662,6 +2972,8 @@ func _research_card(id: String) -> Control:
 		var t: String = Loc.t(String(u["desc"]))
 		if locked:
 			t += "\n\n" + Loc.t("This one also costs Cores. You get Cores when you collapse the shaft.")
+		if core_needed > 0:
+			t += "\n\n" + Loc.t("The Factory Core's level is this line's limit. At level %d it goes further.") % core_needed
 		return t)
 	help.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	bottom.add_child(help)

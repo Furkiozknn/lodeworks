@@ -91,9 +91,11 @@ is empty, and the yard that widens with depth took its place.
 crystal light, a target pulsing on its body). A tap brings it online with a
 flare.
 
-**The Core's levels.** Levels run from 1 to 8, one per ring of the yard
-(`IsoView.core_level`, from `BuildArea.radius_at`); 6 to 8 add a column of
-light (docs/AUDIT.md, the Core). A level-1
+**The Core's levels.** The picture has 8 stages, one per level of the
+Factory Core the player has grown (`IsoView.core_level`, from `Sim.core_level`;
+the levels themselves are docs/PROGRESSION.md -- until 25 September 2026 the
+picture followed the yard's ring instead); 6 to 8 add a column of light
+(docs/AUDIT.md, the Core). A level-1
 Core is drawn at 84% of its picture and each level adds 4%. From level 2 it
 has a halo and conduits of light into the yard beside it, from level 3
 orbiting motes, and at level 5 a slow flare.

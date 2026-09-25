@@ -22,6 +22,18 @@ const PLAN := [
 	[21, 24, "vault"],
 ]
 
+## The Core's second level, played for (CoreLevels): two Smelters touching the
+## Core on its right side, filling its store, each with a Boiler for its
+## working heat and a shared Vault for what the store has no room for, each
+## fed by a Crusher that two Drills feed; a Lab behind the upper Boiler,
+## which hands it Ingots straight through, for the first research.
+const CORE_LINE := [
+	[26, 21, "drill"], [25, 20, "drill"], [25, 21, "crusher"],
+	[26, 23, "drill"], [25, 24, "drill"], [25, 23, "crusher"],
+	[24, 22, "vault"], [24, 21, "smelter"], [24, 23, "smelter"],
+	[24, 20, "boiler"], [24, 24, "boiler"], [24, 19, "lab"],
+]
+
 var runner: Object
 
 
@@ -34,6 +46,7 @@ func _advance(seconds: float) -> void:
 	var ticks: int = int(seconds * Simulation.TICK_HZ)
 	for _i in range(ticks):
 		var out: Dictionary = Sim.sim.tick()
+		Sim._collect_stock()
 		var c: float = float(out["credits"])
 		Sim.credits += c
 		Sim.lifetime_credits += c
@@ -91,35 +104,55 @@ func test_a_naive_player_can_actually_progress() -> void:
 	_buy_out(PLAN, 600.0)
 	_ok(Sim.grid.cells.size() >= 6, "a naive player fills a board out")
 
-	# --- descending ---------------------------------------------------------
-	var descents: int = 0
-	var guard: int = 0
-	while descents < 6 and guard < 400:
-		guard += 1
-		if Sim.can_descend():
-			if Sim.descend():
-				descents += 1
-			continue
-		_advance(30.0)
-	_ok(descents >= 6, "six strata reached by playing badly (%d)" % descents)
-	_ok(Sim.depth == descents, "depth tracks the descents")
+	# --- descending, as far as a level-1 Core allows ------------------------
+	var descents: int = _descend_to(CoreLevels.depth_cap(1))
+	_ok(descents == CoreLevels.depth_cap(1), "a level-1 Core lets the shaft reach stratum %d (%d)"
+		% [CoreLevels.depth_cap(1), descents])
 	_ok(Sim.is_unlocked("smelter"), "descending unlocks machines")
+	var waited: float = 0.0
+	while not Sim.descent_needs_core() and waited < 1800.0:
+		_advance(30.0)
+		waited += 30.0
+	_ok(Sim.descent_needs_core() and not Sim.can_descend(),
+		"with the quota met, the Core has to grow before the shaft goes deeper")
+	_ok(not Sim.can_upgrade_core(), "and credits alone do not grow it")
+
+	# --- the Core's second level: a real line, a real upgrade ----------------
+	_buy_out(CORE_LINE, 900.0)
+	for step: Array in CORE_LINE:
+		_ok(Sim.grid.machine_at(Grid.idx(int(step[0]), int(step[1]))) == String(step[2]),
+			"%s at (%d, %d)" % [step[2], step[0], step[1]])
+	# Everything the second level asks for comes out of this one line: the
+	# Ingots in the store pay for the Vault's level 2 (a bigger store) and
+	# the Crushers' level 2, the Lab's research buys the first line of the
+	# tree, and the store then fills for the Core itself.
+	waited = _wait_for(func() -> bool: return Sim.can_upgrade_machine("vault"), 1800.0)
+	_ok(Sim.upgrade_machine("vault"), "the Vault goes to level 2: a bigger store (%.0f s)" % waited)
+	waited = _wait_for(func() -> bool: return Sim.can_upgrade_machine("crusher"), 1800.0)
+	_ok(Sim.upgrade_machine("crusher"), "the Crushers go to level 2, paid in Ingots (%.0f s)" % waited)
+	waited = _wait_for(func() -> bool: return Sim.can_buy_upgrade("throughput_1"), 1800.0)
+	_ok(Sim.buy_upgrade("throughput_1"), "the Lab's first research is bought (%.0f s)" % waited)
+	waited = _wait_for(func() -> bool: return Sim.can_upgrade_core(), 3600.0)
+	for st: Dictionary in Sim.core_status():
+		_ok(bool(st["met"]), "Core level 2 asks for %s: %.0f / %.0f"
+			% [str(st["req"]), float(st["have"]), float(st["need"])])
+	print("        Core level 2 ready after %.0f s of play for it" % waited)
+	_ok(Sim.upgrade_core(), "the Core grows to level 2")
+	_ok(Sim.core_level == 2, "")
+	_ok(Sim.research_cap("yield_1") > 0, "and a new research line opens")
+	descents += _descend_to(CoreLevels.depth_cap(2))
+	_ok(descents >= 4, "four strata reached by playing badly (%d)" % descents)
+	_ok(Sim.depth == descents, "depth tracks the descents")
+	_ok(Sim.is_unlocked("press") and Sim.is_unlocked("amplifier"),
+		"the Core's level opened the strata below, and their machines")
 	print("        depth %d, rate %.2f/s, lifetime %s"
 		% [Sim.depth, Sim.credits_per_sec, Economy.fmt(Sim.lifetime_credits)])
 
 	# --- research -----------------------------------------------------------
-	var built_research: bool = false
-	for i in range(60):
-		if Sim.research >= 40.0:
-			built_research = true
-			break
-		# Labs need a component chain; a naive player gets research slowly, so
-		# hand it the research it would earn rather than simulating an hour.
-		Sim.research += 1.0
-	_ok(built_research, "research accumulates")
-	_ok(Sim.can_buy_upgrade("throughput_1"), "the first upgrade is affordable")
+	waited = _wait_for(func() -> bool: return Sim.can_buy_upgrade("throughput_1"), 3600.0)
+	_ok(Sim.can_buy_upgrade("throughput_1"), "the Lab earns the next level (%.0f s)" % waited)
 	var before_rate: float = Sim.credits_per_sec
-	_ok(Sim.buy_upgrade("throughput_1"), "and can be bought")
+	_ok(Sim.buy_upgrade("throughput_1"), "and it can be bought")
 	_advance(30.0)
 	_ok(Sim.credits_per_sec > before_rate * 1.02,
 		"buying it visibly raises the rate (%.2f -> %.2f)"
@@ -135,17 +168,45 @@ func test_a_naive_player_can_actually_progress() -> void:
 	Sim.depth = 0
 	Save.load_game(Sim)
 	_ok(Sim.depth == depth_before, "depth survives a reload")
+	_ok(Sim.core_level == 2 and Sim.machine_level("crusher") == 2,
+		"so do the Core's level and the machines' levels")
 	_ok(absf(Sim.credits - credits_before) < maxf(credits_before * 0.5, 10.0),
 		"credits survive a reload (offline earnings aside)")
 	_ok(Sim.grid.cells.size() >= 6, "and so does the board")
 
 	# --- collapse -----------------------------------------------------------
-	_ok(Sim.can_collapse(), "a six-stratum run is worth collapsing")
+	_ok(Sim.can_collapse(), "a four-stratum run is worth collapsing")
 	var cores: int = Sim.collapse()
 	_ok(cores > 0, "the collapse pays %d cores" % cores)
 	_ok(Sim.depth == 0 and Sim.credits == 0.0, "and resets the run")
 	_ok(Sim.cores == cores, "cores are kept")
-	_ok(Sim.upgrade_level("throughput_1") == 1, "research survives the collapse")
+	_ok(Sim.upgrade_level("throughput_1") == 2, "research survives the collapse")
 	_ok(Sim.grid.cells.is_empty(), "the board does not")
+	_ok(Sim.core_level == 1 and Sim.machine_level("crusher") == 1,
+		"a new shaft's Core and machines start at level 1")
 
 	Save.wipe()
+
+
+
+## Descend whenever the quota allows, up to stratum `to`; how many descents.
+func _descend_to(to: int) -> int:
+	var n: int = 0
+	var guard: int = 0
+	while Sim.depth < to and guard < 400:
+		guard += 1
+		if Sim.can_descend():
+			if Sim.descend():
+				n += 1
+			continue
+		_advance(30.0)
+	return n
+
+
+## Play until `done` is true or `limit` seconds have gone; the seconds played.
+func _wait_for(done: Callable, limit: float) -> float:
+	var waited: float = 0.0
+	while not bool(done.call()) and waited < limit:
+		_advance(15.0)
+		waited += 15.0
+	return waited

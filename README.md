@@ -90,7 +90,8 @@ camera to the next culprit. Tapping a machine opens its panel
 where the machine tray was, below the board, and draws every connection in
 and out of it on top of the world.
 
-Tapping the Factory Core opens its card: its level, and the whole factory in
+Tapping the Factory Core opens its card: its level and era, its store, every
+condition of its next level with a tap that goes and meets it, and the whole factory in
 four numbers -- machines, how many are working, how many need help (the
 warning key's own count, with a key that goes to the first one), and what
 it earns -- with how much of the yard is built and what the next stratum
@@ -116,7 +117,7 @@ it is from the temperature it personally wants, as a signed number. Every machin
 different temperature, so an absolute heat map answers the wrong question.
 
 None of this was invented here. It came out of
-[four sourced investigations](docs/research/) into what the genre's leaders
+[sourced investigations](docs/research/) into what the genre's leaders
 actually ship and what their players actually complain about.
 
 ## The loop
@@ -137,8 +138,22 @@ Then:
 | 10 minutes | the quota falls, you descend, the yard widens, the rock is richer and hotter |
 | first session | the first strata take two or three minutes each, the middle ones three or four, and the first machine that only matters because of what it is next to arrives |
 | next day | offline production banked while you were away |
-| first week | the component chain, Labs, and the research tree |
+| first week | the Core's later levels, the component chain and the research tree |
 | long term | collapse the shaft for Cores, which survive it with every upgrade you researched, and start again deeper and faster |
+
+## The Factory Core
+
+The shaft goes only as deep as its Core allows, and the Core does not grow for
+credits alone. Each level asks the factory to show it is ready: materials in
+the Core's store, handed over by machines touching the Core (the Vault's level
+is how much the store holds); machines upgraded, paid in credits and those
+materials; a line at its working heat; research; rock reached. Then it opens
+the next era: deeper strata and the machines found there, higher limits for
+machine and research levels, a bigger store. The card lists every condition
+with a tap that goes and does it, and **What now?** puts the next one first.
+Played by a scripted player, Core 2 falls at 11 minutes, Core 3 at 22 and
+Core 4 at 45. [docs/PROGRESSION.md](docs/PROGRESSION.md) is the design, the
+graph and the measurements.
 
 Every stratum is generated from its depth — the same stratum 14 for everybody,
 no server involved — with up to two modifiers drawn from a table of twelve,
@@ -216,7 +231,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 307 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 330 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -304,7 +319,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            307 tests, no framework dependency
+tests/            330 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs

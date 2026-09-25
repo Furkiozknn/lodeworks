@@ -86,6 +86,14 @@ jobs:
       - name: Player journey
         run: ./godot --headless --path . --script res://tools/journey_lab.gd
 
+      # The Factory Core's levels, played for an hour by the scripted player
+      # (docs/PROGRESSION.md, section 11): when each Core level falls and
+      # what is still open. Printed, like the journey above.
+      - name: The Factory Core, played
+        run: |
+          LODEWORKS_CORE_HOURS=1 ./godot --headless --path . --script res://tools/core_journey.gd | tee core-journey.txt
+          ! grep -E "SCRIPT ERROR|Parse Error" core-journey.txt
+
       - name: Strategy scoreboard
         run: ./godot --headless --path . --script res://tools/strategy_lab.gd
 

@@ -32,6 +32,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.1,
 		"effect": "speed",
 		"per_level": 0.15,
+		"core": 1,
 	},
 	"yield_1": {
 		"name": "Deeper Bore",
@@ -45,6 +46,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.3,
 		"effect": "yield",
 		"per_level": 0.20,
+		"core": 2,
 	},
 	"value_1": {
 		"name": "Refinery Contracts",
@@ -56,6 +58,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.4,
 		"effect": "value",
 		"per_level": 0.18,
+		"core": 3,
 	},
 	"research_1": {
 		"name": "Field Notes",
@@ -67,6 +70,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.5,
 		"effect": "research",
 		"per_level": 0.25,
+		"core": 4,
 	},
 	"heat_tolerance": {
 		"name": "Ceramic Lining",
@@ -78,6 +82,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.6,
 		"effect": "tolerance",
 		"per_level": 0.6,
+		"core": 3,
 	},
 	"offline_cap": {
 		"name": "Night Shift",
@@ -89,6 +94,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.2,
 		"effect": "offline_hours",
 		"per_level": 2.0,
+		"core": 1,
 	},
 	"offline_rate": {
 		"name": "Standing Orders",
@@ -100,6 +106,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.8,
 		"effect": "offline_rate",
 		"per_level": 0.12,
+		"core": 2,
 	},
 	"core_yield": {
 		"name": "Seismic Survey",
@@ -111,6 +118,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 3.0,
 		"effect": "core_yield",
 		"per_level": 0.25,
+		"core": 3,
 	},
 	"blueprint_slots": {
 		"name": "Drafting Table",
@@ -122,6 +130,7 @@ const RESEARCH_TREE := {
 		"cost_growth": 2.4,
 		"effect": "blueprints",
 		"per_level": 1.0,
+		"core": 2,
 	},
 }
 
@@ -143,6 +152,21 @@ const OFFLINE_MAX_HOURS := 24.0
 ## against 88 before; a strong run pays around 86, so finishing it is a
 ## fifteen-or-so-collapse project instead of a formality.
 const CORE_COST_GROWTH := 1.2
+
+
+## Research lines open at a Factory Core level (`core`), and the Core caps how
+## far each may go: RESEARCH_PER_CORE levels for every Core level since it
+## opened -- the way a central building caps its laboratory. A level already
+## bought stays bought (the tree survives a collapse); the cap is on buying.
+const RESEARCH_PER_CORE := 2
+
+
+static func research_cap(id: String, core_level: int) -> int:
+	var u: Dictionary = RESEARCH_TREE.get(id, {})
+	if u.is_empty():
+		return 0
+	var open: int = core_level - int(u.get("core", 1)) + 1
+	return clampi(open * RESEARCH_PER_CORE, 0, int(u["max"]))
 
 
 static func upgrade_cost(id: String, level: int) -> Dictionary:

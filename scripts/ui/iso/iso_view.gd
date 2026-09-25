@@ -1483,25 +1483,10 @@ const CORE_LEVELS := 8
 const CORE_FULL_SIZE_LEVEL := 5
 
 
+## The Core's picture follows the level the player has grown it to
+## (CoreLevels, docs/PROGRESSION.md), up to its last stage.
 static func core_level() -> int:
-	return level_at(Sim.max_depth)
-
-
-## The Core grows with its yard: one level for every ring of ground round it,
-## so each widening of the yard is also the Core growing (1 at the start, 5
-## at stratum 7, 8 at stratum 16).
-static func level_at(max_depth: int) -> int:
-	return clampi(BuildArea.radius_at(max_depth), 1, CORE_LEVELS)
-
-
-## The first stratum at which the Core reaches `level` (-1 past the last).
-static func stratum_for_level(level: int) -> int:
-	if level > CORE_LEVELS:
-		return -1
-	for d in range(0, 200):
-		if level_at(d) >= level:
-			return d
-	return -1
+	return clampi(int(Sim.core_level), 1, CORE_LEVELS)
 
 
 func core_rect() -> Rect2:

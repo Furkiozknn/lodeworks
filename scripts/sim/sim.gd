@@ -10,6 +10,10 @@ signal stats_changed()
 signal depth_changed(depth: int)
 signal machines_unlocked(ids: Array)
 signal collapsed(cores_gained: int)
+## The Factory Core reached `level` (CoreLevels).
+signal core_upgraded(level: int)
+## Every machine of type `id` is now at `level`.
+signal machine_upgraded(id: String, level: int)
 signal offline_earnings(report: Dictionary)
 
 const AUTOSAVE_SECONDS := 20.0
@@ -39,6 +43,15 @@ var lifetime_credits: float = 0.0
 var collapses: int = 0
 
 var upgrade_levels: Dictionary = {}
+## The Factory Core's level (CoreLevels): 1 as a shaft opens. It caps how
+## deep the shaft may go and how far machines may be upgraded.
+var core_level: int = 1
+## Machine type -> level (1 when absent). MachineDB.level_speed.
+var machine_levels: Dictionary = {}
+## The Core's store: what machines touching the Core have handed it,
+## {res: count}, up to what the Vault's level holds (`stock_cap`). Machine
+## levels and the Core's own levels are paid from it.
+var stock: Dictionary = {}
 var blueprints: Array = []
 var unlocked: Array[String] = []
 var settings: Dictionary = {"sound": true, "haptics": true}
@@ -119,6 +132,7 @@ func _process(delta: float) -> void:
 	while _tick_accum >= Simulation.TICK_DT and steps < 6:
 		_tick_accum -= Simulation.TICK_DT
 		var out: Dictionary = sim.tick()
+		_collect_stock()
 		var c: float = float(out["credits"])
 		var r: float = float(out["research"])
 		credits += c
@@ -243,7 +257,156 @@ func quota() -> float:
 
 
 func can_descend() -> bool:
-	return credits >= quota()
+	return credits >= quota() and depth + 1 <= depth_cap()
+
+
+## The deepest stratum the Core's level lets this shaft reach.
+func depth_cap() -> int:
+	return CoreLevels.depth_cap(core_level)
+
+
+## The quota is met, but the Core has to grow before the shaft goes deeper.
+func descent_needs_core() -> bool:
+	return credits >= quota() and depth + 1 > depth_cap()
+
+
+## --- the Factory Core's level ------------------------------------------------
+
+## The Core's next level, requirement by requirement (CoreLevels.status).
+func core_status() -> Array:
+	return CoreLevels.status(self)
+
+
+func can_upgrade_core() -> bool:
+	return CoreLevels.can_upgrade(self)
+
+
+## Grow the Core: its credits and its materials are paid.
+func upgrade_core() -> bool:
+	if not can_upgrade_core():
+		return false
+	for r: Array in CoreLevels.requirements(core_level + 1):
+		match int(r[0]):
+			CoreLevels.Req.CREDITS:
+				credits -= float(r[1])
+			CoreLevels.Req.STOCK:
+				_take_stock({int(r[1]): int(r[2])})
+	core_level += 1
+	_sync_core()
+	core_upgraded.emit(core_level)
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## --- the Core's store ------------------------------------------------------------
+
+## How much of each stored material the store holds: the Vault's level.
+func stock_cap() -> int:
+	return MachineDB.stock_cap(machine_level("vault"))
+
+
+func stock_of(res: int) -> int:
+	return int(stock.get(res, 0))
+
+
+## Is `cost` ({res: count}) in the store?
+func has_stock(cost: Dictionary) -> bool:
+	for res: int in cost:
+		if stock_of(res) < int(cost[res]):
+			return false
+	return true
+
+
+func _take_stock(cost: Dictionary) -> void:
+	for res: int in cost:
+		var left: int = stock_of(res) - int(cost[res])
+		if left > 0:
+			stock[res] = left
+		else:
+			stock.erase(res)
+	_sync_core()
+
+
+## What the machines touching the Core handed it this tick.
+func _collect_stock() -> void:
+	if sim.core_took.is_empty():
+		return
+	var cap: int = stock_cap()
+	for res: int in sim.core_took:
+		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), cap)
+	sim.core_took.clear()
+	_sync_core()
+
+
+## Tell the simulation how much room the store has for each material.
+func _sync_core() -> void:
+	if sim == null:
+		return
+	var room: Dictionary = {}
+	var cap: int = stock_cap()
+	for res: int in MachineDB.STOCKED:
+		if stock_of(int(res)) < cap:
+			room[int(res)] = cap - stock_of(int(res))
+	sim.core_wants = room
+
+
+## --- machine levels ------------------------------------------------------------
+
+func machine_level(id: String) -> int:
+	return int(machine_levels.get(id, 1))
+
+
+## The highest level machines may reach under the Core's level.
+func machine_level_cap() -> int:
+	return CoreLevels.machine_cap(core_level)
+
+
+## What machine type `id`'s next level costs: {"credits", "materials"}.
+func machine_upgrade_cost(id: String) -> Dictionary:
+	var to: int = machine_level(id) + 1
+	return {"credits": MachineDB.level_price(id, to), "materials": MachineDB.level_materials(to, id)}
+
+
+## Why machine type `id` cannot go up a level now, or "" when it can:
+## "none" (it has no levels), "locked", "core" (the Core's limit), "storage"
+## (the store cannot hold the materials), "stock" (they are not in it),
+## "credits".
+func machine_upgrade_blocker(id: String) -> String:
+	if not MachineDB.has_levels(id):
+		return "none"
+	if not is_unlocked(id):
+		return "locked"
+	if machine_level(id) >= machine_level_cap():
+		return "core"
+	var cost: Dictionary = machine_upgrade_cost(id)
+	var mats: Dictionary = cost["materials"]
+	for res: int in mats:
+		if int(mats[res]) > stock_cap():
+			return "storage"
+	if not has_stock(mats):
+		return "stock"
+	if credits < float(cost["credits"]):
+		return "credits"
+	return ""
+
+
+func can_upgrade_machine(id: String) -> bool:
+	return machine_upgrade_blocker(id) == ""
+
+
+func upgrade_machine(id: String) -> bool:
+	if not can_upgrade_machine(id):
+		return false
+	var cost: Dictionary = machine_upgrade_cost(id)
+	credits -= float(cost["credits"])
+	_take_stock(cost["materials"])
+	machine_levels[id] = machine_level(id) + 1
+	_recompute()
+	machine_upgraded.emit(id, machine_level(id))
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
 
 
 func descend() -> bool:
@@ -294,6 +457,11 @@ func collapse() -> int:
 	lifetime_credits = 0.0
 	depth = 0
 	max_depth = 0
+	# A new shaft's Core starts at level 1, its machines at level 1, its
+	# store empty.
+	core_level = 1
+	machine_levels = {}
+	stock = {}
 	# The next shaft's Core starts dark again, and its reserve is what the
 	# empty board is rebuilt from.
 	core_online = false
@@ -319,10 +487,15 @@ func can_buy_upgrade(id: String) -> bool:
 	if u.is_empty():
 		return false
 	var lvl: int = upgrade_level(id)
-	if lvl >= int(u["max"]):
+	if lvl >= int(u["max"]) or lvl >= research_cap(id):
 		return false
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	return research >= float(c["research"]) and cores >= int(c["cores"])
+
+
+## How far research line `id` may go under this shaft's Core.
+func research_cap(id: String) -> int:
+	return Economy.research_cap(id, core_level)
 
 
 func buy_upgrade(id: String) -> bool:
@@ -373,6 +546,14 @@ func _recompute() -> void:
 	# into the yield there: without it, depth only ever made the board hotter
 	# and the quota higher, which is the shape of a game nobody finishes.
 	Strata.apply(sim, grid, _stratum, _mult)
+	var lm: Dictionary = {}
+	for id: String in machine_levels:
+		if MachineDB.level_is_speed(id):
+			lm[id] = MachineDB.level_speed(int(machine_levels[id]))
+	if lm != sim.level_mult:
+		sim.level_mult = lm
+		sim.levels_stamp += 1
+	_sync_core()
 
 	var newly: Array[String] = MachineDB.unlocked_at(max_depth)
 	for id in newly:
@@ -507,6 +688,9 @@ func to_dict() -> Dictionary:
 		"max_depth": max_depth,
 		"lifetime_credits": lifetime_credits,
 		"collapses": collapses,
+		"core_level": core_level,
+		"machine_levels": machine_levels,
+		"stock": stock,
 		"upgrades": upgrade_levels,
 		"blueprints": blueprints,
 		"grid": grid.to_dict(),
@@ -529,6 +713,21 @@ func from_dict(d: Dictionary) -> void:
 	max_depth = maxi(int(d.get("max_depth", 0)), depth)
 	lifetime_credits = float(d.get("lifetime_credits", 0.0))
 	collapses = int(d.get("collapses", 0))
+	# A save from before the Core had levels keeps every stratum it reached:
+	# its Core starts at the lowest level whose limit covers them.
+	core_level = maxi(int(d.get("core_level", CoreLevels.level_for_depth(
+		maxi(int(d.get("max_depth", 0)), int(d.get("depth", 0)))))), 1)
+	machine_levels = {}
+	for id in (d.get("machine_levels", {}) as Dictionary):
+		machine_levels[String(id)] = int(d["machine_levels"][id])
+	# The store; a save from the first round of Core levels kept what the
+	# Core had taken in towards its next level under "core_intake".
+	stock = {}
+	var kept: Dictionary = d.get("stock", d.get("core_intake", {}))
+	var cap: int = MachineDB.stock_cap(int(machine_levels.get("vault", 1)))
+	for res in kept:
+		if MachineDB.STOCKED.has(int(res)):
+			stock[int(res)] = mini(int(kept[res]), cap)
 	upgrade_levels = d.get("upgrades", {})
 	blueprints = d.get("blueprints", [])
 	settings = d.get("settings", {"sound": true, "haptics": true})

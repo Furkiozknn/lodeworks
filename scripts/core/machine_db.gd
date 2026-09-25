@@ -164,7 +164,7 @@ const MACHINES := {
 		"heat_out": 0.8,
 		"heat_optimum": 1.5,
 		"heat_tolerance": 4.0,
-		"unlock_depth": 4,
+		"unlock_depth": 5,
 		"tags": [],
 	},
 	"amplifier": {
@@ -179,23 +179,25 @@ const MACHINES := {
 		"heat_out": 1.0,
 		"heat_optimum": 0.0,
 		"heat_tolerance": 99.0,
-		"unlock_depth": 5,
+		"unlock_depth": 4,
 		"tags": ["amplify"],
 		"amplify": 0.35,
 	},
 	"lab": {
 		"name": "Lab",
-		"short": "Turns parts into research.",
-		"desc": "Turns components into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future.",
-		"cost": 2600.0,
+		"short": "Turns materials into research.",
+		"desc": "Learns from whatever refined material its neighbours hand it -- a little from an Ingot, more from a Plate, most from a Component -- and turns it into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future.",
+		"cost": 180.0,
 		"cost_growth": 1.22,
-		"inputs": {Res.COMPONENT: 1},
+		# Any one of these runs a cycle; `learns` is the research it gives.
+		"inputs": {Res.INGOT: 1, Res.PLATE: 1, Res.COMPONENT: 1},
+		"learns": {Res.INGOT: 0.25, Res.PLATE: 0.5, Res.COMPONENT: 1.0},
 		"outputs": {},
 		"rate": 0.6,
 		"heat_out": 0.3,
 		"heat_optimum": 0.0,
 		"heat_tolerance": 3.0,
-		"unlock_depth": 6,
+		"unlock_depth": 2,
 		"tags": ["research"],
 		"research_per_cycle": 1.0,
 	},
@@ -341,7 +343,7 @@ const MODELS := {
 		"smelter": {"inputs": {Res.GRAVEL: 1}, "rate": 0.9},
 		"press": {"inputs": {Res.INGOT: 1}, "rate": 0.8},
 		"assembler": {"inputs": {Res.PLATE: 1}, "rate": 0.7},
-		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+		"lab": {"rate": 0.6},
 	},
 
 	# Between the two: the deep machines run warm, so a long chain has to be
@@ -351,7 +353,7 @@ const MODELS := {
 		"smelter": {"inputs": {Res.GRAVEL: 1}, "rate": 0.9},
 		"press": {"inputs": {Res.INGOT: 1}, "rate": 0.8, "heat_out": 1.1},
 		"assembler": {"inputs": {Res.PLATE: 1}, "rate": 0.7, "heat_out": 1.5},
-		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+		"lab": {"rate": 0.6},
 	},
 
 	# The same again, but the deep machines run hot AND cannot take much heat.
@@ -365,7 +367,7 @@ const MODELS := {
 			"heat_out": 1.6, "heat_tolerance": 2.0},
 		"assembler": {"inputs": {Res.PLATE: 1}, "rate": 0.7,
 			"heat_out": 2.2, "heat_optimum": 1.5, "heat_tolerance": 3.2},
-		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+		"lab": {"rate": 0.6},
 	},
 
 	# Ore stays cheap and plentiful — two ore into one gravel is the step that
@@ -375,7 +377,7 @@ const MODELS := {
 		"values": [1.0, 3.0, 7.0, 15.0, 32.0],
 		"press": {"inputs": {Res.INGOT: 1}, "rate": 0.8},
 		"assembler": {"inputs": {Res.PLATE: 1, Res.GRAVEL: 1}, "rate": 0.7},
-		"lab": {"inputs": {Res.COMPONENT: 1}, "rate": 0.6},
+		"lab": {"rate": 0.6},
 	},
 }
 
@@ -467,6 +469,8 @@ static func recipe_text(id: String) -> String:
 		outs.append("%d %s" % [int(m["outputs"][res]), Loc.t(String(RES_NAME[res]))])
 	if tags.has("research"):
 		outs.append(Loc.t("Research"))
+		return Loc.t("%s or %s") % [", ".join(ins.slice(0, ins.size() - 1)), ins[ins.size() - 1]] \
+			+ " → " + " + ".join(outs)
 	if ins.is_empty() and outs.is_empty():
 		return Loc.t("Changes what its neighbours do")
 	if ins.is_empty():
@@ -488,6 +492,106 @@ static func short_of(id: String) -> String:
 
 static func desc_of(id: String) -> String:
 	return Loc.t(String(get_machine(id).get("desc", "")))
+
+
+## The stratum at which machine `id` is first found.
+static func unlock_depth(id: String) -> int:
+	return int(get_machine(id).get("unlock_depth", 0))
+
+
+## --- machine levels ---------------------------------------------------------
+##
+## Every machine type has a level, for all machines of that type at once. A
+## maker, digger or Lab runs faster by LEVEL_SPEED a level; the Vault's level
+## is the factory's storage instead (`stock_cap`). The Factory Core's level
+## caps both (CoreLevels.machine_cap), the way a central building caps what
+## can be built under it, so "upgrade the Smelters" and "grow the Core" are
+## one connected goal rather than two menus.
+##
+## A level is paid in credits -- LEVEL_PRICE for level 2, LEVEL_PRICE_GROWTH
+## times dearer each level after, the same for every type, so a level is
+## priced for the era it opens in -- and in materials from the Core's store
+## (`level_materials`): a level 2 in Ingots, a level 3 in Plates and Ingots,
+## a level 4 and up in Components and Plates. So upgrading a machine is a
+## production problem, not a purchase: the Ingots come from a Smelter
+## touching the Core, the store has to be big enough to hold them, and
+## every old material keeps a use. The Vault's own levels cost
+## VAULT_MATERIAL_SHARE of that, so the store it has always pays for the
+## next one.
+##
+## The numbers were set by tools/core_journey.gd: at 25% a level for a
+## sixth of the price, a played factory had every machine at its limit two
+## minutes after each Core level and nothing left to do between them
+## (docs/PROGRESSION.md, "Balance").
+const LEVEL_SPEED := 0.1
+const LEVEL_PRICE := 150.0
+const LEVEL_PRICE_GROWTH := 12.0
+const LEVEL_MATERIAL := 10.0
+const LEVEL_MATERIAL_GROWTH := 3.0
+const VAULT_MATERIAL_SHARE := 0.3
+const LEVEL_TIERS := [Res.INGOT, Res.PLATE, Res.COMPONENT]
+
+## What the Core's store keeps, and how much of each a Vault level holds:
+## STOCK_BASE at level 1, STOCK_GROWTH times as much each level. It grows
+## faster than LEVEL_MATERIAL_GROWTH, so a Vault's next level is always
+## payable from the store its level before holds.
+const STOCKED := [Res.INGOT, Res.PLATE, Res.COMPONENT]
+const STOCK_BASE := 25.0
+const STOCK_GROWTH := 3.2
+
+
+## How much faster machines of a type run at `level` than at level 1.
+static func level_speed(level: int) -> float:
+	return 1.0 + LEVEL_SPEED * float(maxi(level, 1) - 1)
+
+
+## Credits to take machine type `id` from `to_level - 1` to `to_level`.
+static func level_price(_id: String, to_level: int) -> float:
+	return LEVEL_PRICE * pow(LEVEL_PRICE_GROWTH, float(maxi(to_level, 2) - 2))
+
+
+## Materials to take machine type `id` to `to_level`: {res: count}.
+static func level_materials(to_level: int, id: String = "") -> Dictionary:
+	var step: int = maxi(to_level, 2) - 2
+	var raw: float = LEVEL_MATERIAL * pow(LEVEL_MATERIAL_GROWTH, float(step))
+	if id == "vault":
+		raw *= VAULT_MATERIAL_SHARE
+	var n: int = int(ceil(minf(raw, LEVEL_NUMBER_MAX)))
+	var t: int = mini(step, LEVEL_TIERS.size() - 1)
+	var out: Dictionary = {int(LEVEL_TIERS[t]): n}
+	if t > 0:
+		out[int(LEVEL_TIERS[t - 1])] = n
+	return out
+
+
+## How much of each stored material the Core's store holds with the Vault
+## at `vault_level`. It grows faster than a level's materials, so every
+## machine's level L fits a store at level L, and the Vault's own level L
+## fits the store at L-1.
+static func stock_cap(vault_level: int) -> int:
+	return int(round(minf(STOCK_BASE * pow(STOCK_GROWTH, float(maxi(vault_level, 1) - 1)), LEVEL_NUMBER_MAX)))
+
+
+## Where level numbers stop growing: past it a 64-bit count would wrap
+## (found by CoreLevels.validate at the Core's level 36).
+const LEVEL_NUMBER_MAX := 1.0e15
+
+
+## Does machine type `id` have a level at all? A support machine works by
+## where it stands, not by how fast it cycles.
+static func has_levels(id: String) -> bool:
+	var m: Dictionary = get_machine(id)
+	if m.is_empty():
+		return false
+	var tags: Array = m.get("tags", [])
+	return not ((m["inputs"] as Dictionary).is_empty() and (m["outputs"] as Dictionary).is_empty()
+		and not tags.has("sink") and not tags.has("research"))
+
+
+## Does a level make machine type `id` faster? Every levelled machine but the
+## Vault, whose level is storage.
+static func level_is_speed(id: String) -> bool:
+	return has_levels(id) and not (get_machine(id).get("tags", []) as Array).has("sink")
 
 
 static func unlocked_at(depth: int) -> Array[String]:

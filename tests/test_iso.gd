@@ -657,24 +657,14 @@ func test_the_heat_key_tells_the_boards_heat_before_it_is_opened() -> void:
 	runner.check(bool(cold[1]), "and it is cold, so the key shows frost")
 
 
-func test_the_core_grows_with_its_yard_all_the_way_down() -> void:
-	# The Core is the centre of the shaft's growth: it gains a level every
-	# time the yard gains a ring, not only in the first four strata.
-	var last: int = 0
-	var levels_seen: Dictionary = {}
-	for d in range(0, 40):
-		var lv: int = IsoView.level_at(d)
-		runner.gte(float(lv), float(last), "stratum %d: the Core never shrinks" % d)
-		runner.lte(float(lv), float(IsoView.CORE_LEVELS), "stratum %d: within its levels" % d)
-		levels_seen[lv] = true
-		last = lv
-	runner.eq(levels_seen.size(), IsoView.CORE_LEVELS, "every level is reached on the way down")
-	runner.eq(IsoView.level_at(0), 1, "a new shaft's Core is level 1")
-	for lv in range(2, IsoView.CORE_LEVELS + 1):
-		var d: int = IsoView.stratum_for_level(lv)
-		runner.eq(IsoView.level_at(d), lv, "level %d arrives at stratum %d" % [lv, d])
-		runner.eq(BuildArea.radius_at(d) > BuildArea.radius_at(d - 1), true,
-			"and that is a stratum where the yard widens")
+func test_the_cores_picture_follows_the_level_the_player_grew_it_to() -> void:
+	# Not the depth: the Core's picture is its level (CoreLevels), clamped
+	# to the stages it has.
+	var had: int = Sim.core_level
+	for lv in range(1, IsoView.CORE_LEVELS + 3):
+		Sim.core_level = lv
+		runner.eq(IsoView.core_level(), mini(lv, IsoView.CORE_LEVELS), "Core level %d" % lv)
+	Sim.core_level = had
 
 
 ## --- the field round the yard: the cells behind the Core, the resource nodes

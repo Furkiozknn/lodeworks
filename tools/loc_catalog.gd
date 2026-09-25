@@ -74,6 +74,8 @@ static func _tables() -> Array:
 		var u: Dictionary = Economy.RESEARCH_TREE[id]
 		for k: String in ["name", "short", "desc"]:
 			add.call(u.get(k, ""), "res://scripts/core/economy.gd")
+	for e: Dictionary in CoreLevels.LEVELS:
+		add.call(e.get("era", ""), "res://scripts/core/core_levels.gd")
 	for id: String in Strata.MODIFIERS:
 		var mo: Dictionary = Strata.MODIFIERS[id]
 		add.call(mo.get("name", ""), "res://scripts/core/strata.gd")

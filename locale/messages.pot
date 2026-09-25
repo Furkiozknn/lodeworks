@@ -22,8 +22,12 @@ msgstr ""
 msgid "Sells anything a neighbour hands it"
 msgstr ""
 
-#: res://scripts/core/machine_db.gd res://scripts/ui/main.gd
+#: res://scripts/core/machine_db.gd res://scripts/ui/main.gd res://scripts/core/core_levels.gd
 msgid "Research"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "%s or %s"
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
@@ -155,6 +159,10 @@ msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "%s active. Thank you."
 msgstr ""
 
@@ -283,6 +291,14 @@ msgid "%d%% of quota"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Core level %d first"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Core has to grow before the shaft goes deeper. Tap the Core to see what it needs."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "next:"
 msgstr ""
 
@@ -323,11 +339,7 @@ msgid "LEVEL %d"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "It is as big as it gets."
-msgstr ""
-
-#: res://scripts/ui/main.gd
-msgid "It grows with its yard: at stratum %d it reaches level %d."
+msgid "Down to stratum %d · machines to level %d"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -335,7 +347,7 @@ msgid "Factory Core"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "The heart of this shaft. It gave you the credits for your first Drill and Vault; everything since, the board has earned.\n\n%s Every stratum is richer rock, and new machines open on the way down."
+msgid "The heart of this shaft. Its level decides how deep the shaft may go, how far machines and research may be upgraded, and what the Vault may store.\n\nIt does not grow for credits alone: each level asks the factory to have grown -- materials in its store, handed to it by machines touching it; machines upgraded; a line at its working heat; research; rock reached. Tap a line below to go and do it."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -367,15 +379,87 @@ msgid "The yard covers all the ground there is."
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "Stratum %d: level %d, and the yard grows to %d x %d."
-msgstr ""
-
-#: res://scripts/ui/main.gd
 msgid "Stratum %d: the yard grows to %d x %d."
 msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Show me"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "To reach level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "It opens strata %d to %d, machine level %d and a store of %d."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Grow the Core to level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Store"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Vault's level is the Core's store."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Credits, paid when the Core grows"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%s in the store -- Vault first"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%s in the store, from beside the Core"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%s running at working heat"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%s at level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d reached"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A %s serving %d machines"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d machines at working heat, none overheating"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Lv.%d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Core first"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Vault first"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Vault's level is the Core's store: it holds %d of each material now, %d at the next level."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Every %s works %d%% faster a level. It is paid in credits and in materials from the Core's store; the Core's level is the limit."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -388,6 +472,22 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "The quota is met. See what is down there first."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Everything it asked for is ready."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "For the Core's level %d: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Upgrade the %s to level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Paid in credits and in materials from the Core's store."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -487,7 +587,15 @@ msgid "MAX"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Core level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "This one also costs Cores. You get Cores when you collapse the shaft."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Factory Core's level is this line's limit. At level %d it goes further."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -855,11 +963,11 @@ msgid "Lab"
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
-msgid "Turns parts into research."
+msgid "Turns materials into research."
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
-msgid "Turns components into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future."
+msgid "Learns from whatever refined material its neighbours hand it -- a little from an Ingot, more from a Plate, most from a Component -- and turns it into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future."
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
@@ -1064,6 +1172,34 @@ msgstr ""
 
 #: res://scripts/core/economy.gd
 msgid "One more blueprint slot for saved layouts."
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "Extraction"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "Processing"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "Fabrication"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "Assembly"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "Amplification"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "Deep works"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd res://scripts/ui/main.gd
+msgid "The Abyss"
 msgstr ""
 
 #: res://scripts/core/strata.gd
@@ -1448,10 +1584,6 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "The Deep"
-msgstr ""
-
-#: res://scripts/ui/main.gd
-msgid "The Abyss"
 msgstr ""
 
 #: res://scripts/ui/main.gd

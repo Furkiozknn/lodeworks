@@ -13,6 +13,11 @@ extends SceneTree
 ## The question it exists to answer is not "is the game balanced". It is
 ## **"when does this game stop giving the player a new decision?"** -- because
 ## that moment, not the numbers, is when an idle game gets uninstalled.
+##
+## Its player knows nothing of the Factory Core's levels, which cap how deep
+## a shaft may go (CoreLevels): it measures the economy underneath -- quotas,
+## machines, research, collapses -- as if the Core never stood in the way.
+## The Core's own pace is tools/core_journey.gd (docs/PROGRESSION.md).
 
 const WARM_TICKS := 250
 const SAMPLE_TICKS := 400

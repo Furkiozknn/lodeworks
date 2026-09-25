@@ -99,6 +99,36 @@ var _stall_run: Dictionary = {}
 ## dash along the shared edge, which is the only way an adjacency-fed factory
 ## can show its material moving -- there are no belts to put items on.
 var last_transfers: Array = []
+
+## Machine levels: how much faster each type runs (MachineDB.level_speed),
+## set by Sim; `levels_stamp` moves when they change.
+var level_mult: Dictionary = {}
+var levels_stamp: int = 0
+
+## The Factory Core as a consumer: its store. How much more of each stored
+## material it has room for ({res: count}, set by Sim from the store and the
+## Vault's level), and what it took since Sim last collected ({res: count}).
+## Only a machine touching the Core hands it anything, round robin with its
+## other takers, and only while the store has room: past that, material
+## flows on as before.
+var core_wants: Dictionary = {}
+var core_took: Dictionary = {}
+const CORE_TAKER := -1
+var _core_side: Dictionary = {}
+
+
+## The board cells that touch the Core's block.
+func core_touching() -> Dictionary:
+	if _core_side.is_empty():
+		var c: Rect2i = BuildArea.CORE
+		for i in range(Grid.W * Grid.H):
+			var p: Vector2i = Grid.xy(i)
+			if c.has_point(p):
+				continue
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				if c.has_point(p + d):
+					_core_side[i] = true
+	return _core_side
 ## Above this many recorded transfers in one tick the rest are dropped. The
 ## board cannot animate more than a handful legibly anyway.
 const MAX_RECORDED_TRANSFERS := 40
@@ -173,7 +203,7 @@ func effective_rate(i: int) -> float:
 	if id == "":
 		return 0.0
 	var m: Dictionary = MachineDB.get_machine(id)
-	var eff: float = heat_efficiency_at(i)
+	var eff: float = heat_efficiency_at(i) * float(level_mult.get(id, 1.0))
 	var amp: float = 1.0 + (grid.amplify_at(i) - 1.0) * amplify_mult
 	var src: float = source_speed_mult if (m["tags"] as Array).has("source") else 1.0
 	return float(m["rate"]) * eff * amp * speed_mult * src
@@ -210,6 +240,9 @@ func _transfer() -> void:
 			if avail <= 0:
 				continue
 			var takers: Array[int] = _takers(src_cell, res)
+			# The Core, last in the round, while its store has room.
+			if int(core_wants.get(res, 0)) > 0 and core_touching().has(src_cell):
+				takers.append(CORE_TAKER)
 			if takers.is_empty():
 				continue
 			var start: int = int(_rotor.get(src_cell, 0)) % takers.size()
@@ -220,6 +253,15 @@ func _transfer() -> void:
 			while moved_total < avail and k < takers.size() * cap():
 				var t: int = takers[(start + k) % takers.size()]
 				k += 1
+				if t == CORE_TAKER:
+					if int(core_wants.get(res, 0)) <= 0:
+						continue
+					core_wants[res] = int(core_wants[res]) - 1
+					core_took[res] = int(core_took.get(res, 0)) + 1
+					moved_total += 1
+					if last_transfers.size() < MAX_RECORDED_TRANSFERS:
+						last_transfers.append([src_cell, t, res])
+					continue
 				var dst: Dictionary = grid.cells[t]
 				var buf_in: Dictionary = dst["buf_in"]
 				if int(buf_in.get(res, 0)) >= cap():
@@ -299,6 +341,11 @@ func links_if_placed(cell: int, id: String) -> Dictionary:
 					if (nm.get("inputs", {}) as Dictionary).has(res):
 						delivers = true
 						break
+	# Beside the Core, what its store has room for is delivered to it.
+	if not delivers and core_touching().has(cell):
+		for res: int in outs:
+			if int(core_wants.get(res, 0)) > 0:
+				delivers = true
 	return {"fed": fed, "delivers": delivers}
 
 
@@ -314,7 +361,7 @@ func _work(dt: float) -> void:
 	# "A late board").
 	grid.heat_at(0)
 	var key: Array = [grid.version, grid.heat_stamp, speed_mult, source_speed_mult,
-		amplify_mult, tolerance_bonus]
+		amplify_mult, tolerance_bonus, levels_stamp]
 	if key != _rate_key:
 		_rate_key = key
 		_rate_cache.clear()
@@ -381,7 +428,8 @@ var _rate_key: Array = []
 func _stall_reason(cell: Dictionary, m: Dictionary, tags: Array,
 		fallback: int) -> int:
 	var buf_in: Dictionary = cell["buf_in"]
-	if tags.has("sink"):
+	if tags.has("sink") or tags.has("research"):
+		# A Lab runs on any one of its materials.
 		return Status.STARVED if buf_in.is_empty() else fallback
 	var inputs: Dictionary = m["inputs"]
 	if not inputs.is_empty() and not _has_inputs(buf_in, inputs):
@@ -442,11 +490,17 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 		return true
 
 	if tags.has("research"):
-		var need: Dictionary = m["inputs"]
-		if not _has_inputs(buf_in, need):
+		# The best material it has been handed: a Component teaches most.
+		var learns: Dictionary = m.get("learns", {})
+		var best: int = -1
+		for res: int in buf_in:
+			if int(buf_in[res]) > 0 and learns.has(res) \
+					and (best < 0 or float(learns[res]) > float(learns[best])):
+				best = res
+		if best < 0:
 			return false
-		_consume(buf_in, need)
-		last_research += float(m.get("research_per_cycle", 1.0)) * research_mult
+		_consume(buf_in, {best: 1})
+		last_research += float(learns[best]) * float(m.get("research_per_cycle", 1.0)) * research_mult
 		return true
 
 	var inputs: Dictionary = m["inputs"]
@@ -535,6 +589,16 @@ func heat_efficiency_at(i: int) -> float:
 		float(m["heat_tolerance"]) + tolerance_bonus)
 	_eff_cache[i] = e
 	return e
+
+## Is the machine on `i` past its heat tolerance, where it chokes? A
+## support machine never is.
+func overheated_at(i: int) -> bool:
+	var id: String = grid.machine_at(i)
+	if id == "":
+		return false
+	var m: Dictionary = MachineDB.get_machine(id)
+	return grid.heat_at(i) > float(m["heat_tolerance"]) + tolerance_bonus
+
 
 var _eff_cache: Dictionary = {}
 var _eff_stamp: int = -1
