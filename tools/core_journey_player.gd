@@ -141,6 +141,7 @@ func act() -> void:
 					if int(st["cap"]) < int(st["need"]):
 						reserve += float(S.machine_upgrade_cost("vault")["credits"])
 	_spare_upgrades()
+	_tidy()
 	if S.credits > reserve:
 		_grow()
 	for id: String in S.machine_levels:
@@ -179,8 +180,9 @@ func _pursue(st: Dictionary) -> void:
 			# The ones there are first: warmed, cooled or given an outlet;
 			# then more of them.
 			var id: String = String(r[1])
-			if not _fix_heat_of(id) and not _unblock(id) and S.grid.count_of(id) < int(st["need"]):
-				_build_somewhere(id)
+			if not _fix_heat_of(id) and not _unblock(id):
+				if id == "lab" or S.grid.count_of(id) < int(st["need"]):
+					_build_line(id) if id == "lab" else _build_somewhere(id)
 		CoreLevels.Req.MACHINE:
 			var mid: String = String(r[1])
 			var why: String = S.machine_upgrade_blocker(mid)
@@ -286,9 +288,7 @@ func _room_near(cell: int) -> int:
 	if not free.is_empty():
 		return free[0]
 	for n: int in S.grid.neighbours(cell):
-		var id: String = S.grid.machine_at(n)
-		if id in ["drill", "vault", "crusher"] and not _reserved(n) \
-				and not S.sim.core_touching().has(n):
+		if _income_only(n) and not S.sim.core_touching().has(n):
 			S.sell(n)
 			return n
 	return -1
@@ -432,6 +432,7 @@ func _repair() -> void:
 func _chain(id: String, cell: int, depth: int) -> bool:
 	if depth > 6 or not S.try_place(cell, id):
 		return false
+	_line[cell] = true
 	var m: Dictionary = MachineDB.get_machine(id)
 	var ins: Dictionary = m.get("inputs", {})
 	if (m.get("tags", []) as Array).has("research"):
@@ -499,9 +500,76 @@ func _build_somewhere(id: String) -> void:
 		return
 
 
+## A line of `id` with its feeders and a Vault, on free ground or on a
+## patch of income-only machines sold for it -- never on the Core's side.
+func _build_line(id: String) -> bool:
+	var outs: Dictionary = MachineDB.get_machine(id).get("outputs", {})
+	for cell: int in BuildArea.cells(S.max_depth):
+		if _free(cell) and not S.sim.core_touching().has(cell) and _free_near(cell, true).size() >= 3:
+			return _lay(id, cell, outs)
+	for cell: int in BuildArea.cells(S.max_depth):
+		if not _income_only(cell) or S.sim.core_touching().has(cell):
+			continue
+		var patch: Array[int] = [cell]
+		for n: int in S.grid.neighbours(cell):
+			if (_income_only(n) or _free(n)) and not S.sim.core_touching().has(n):
+				patch.append(n)
+		if patch.size() < 5:
+			continue
+		for c: int in patch:
+			if not S.grid.is_empty(c):
+				S.sell(c)
+		return _lay(id, cell, outs)
+	return false
+
+
+func _lay(id: String, cell: int, outs: Dictionary) -> bool:
+	if not _chain(id, cell, 0):
+		return false
+	var spots: Array[int] = _free_near(cell, true)
+	if not spots.is_empty() and not outs.is_empty():
+		S.try_place(spots[0], "vault")
+	return true
+
+
+## Machines starved or backed up for SCRAP seconds and not in a plan: a
+## player clears them away rather than let them hold the yard.
+var _stuck_since: Dictionary = {}
+const SCRAP := 600.0
+
+
+func _tidy() -> void:
+	var seen: Dictionary = {}
+	for cell: int in S.grid.cells:
+		# Barely working: stalled most of the time, whatever it shows now.
+		if S.sim.uptime_of(cell) >= 0.2 or S.sim.status_of(cell) == Simulation.Status.PASSIVE:
+			continue
+		if _reserved(cell) or S.grid.machine_at(cell) == "vault" \
+				or S.sim.core_touching().has(cell):
+			continue
+		seen[cell] = true
+		if not _stuck_since.has(cell):
+			_stuck_since[cell] = t
+		elif t - float(_stuck_since[cell]) > SCRAP:
+			S.sell(cell)
+			_stuck_since.erase(cell)
+			return
+	for cell: int in _stuck_since.keys():
+		if not seen.has(cell):
+			_stuck_since.erase(cell)
+
+
 ## A Drill, Vault or Crusher built for income alone: no plan's tile.
 func _income_only(cell: int) -> bool:
+	if _line.has(cell) and S.grid.machine_at(cell) != "":
+		return false
+	_line.erase(cell)
 	return S.grid.machine_at(cell) in ["drill", "vault", "crusher"] and not _reserved(cell)
+
+
+## Tiles the player laid as part of a line (`_chain`): not income-only, so
+## no other line sells them for room.
+var _line: Dictionary = {}
 
 
 ## A Lab where refined material reaches it.
@@ -577,6 +645,17 @@ func _place_support(id: String, need: int) -> void:
 
 ## What "What now?" names, off the Core's kept sides.
 func _grow() -> void:
+	# A whole line of the best maker found, fed from its own Drills, with
+	# a Vault: what a player who has learnt the chain builds. Single
+	# machines where "What now?" points are for the first minutes.
+	var top: String = ""
+	for id: String in ["assembler", "press", "smelter"]:
+		if S.is_unlocked(id):
+			top = id
+			break
+	if top != "" and S.credits >= _chain_cost(top) * 1.5 + S.cost_of("vault"):
+		if _build_line(top):
+			return
 	var best: Dictionary = Worklist.best_placement(S)
 	var ext: Dictionary = Worklist.extension(S, best)
 	if not ext.is_empty() and _free(int(ext["cell"])) and _free(int(ext["outlet"])):

@@ -274,6 +274,32 @@ func test_heat_blocks_the_core() -> void:
 	var w: Array = _unmet().filter(func(st: Dictionary) -> bool: return int(st["req"][0]) == CoreLevels.Req.WORKING)
 	runner.eq(w.size(), 1, "cold Smelters are not at their working heat")
 	runner.check(not Sim.upgrade_core(), "so the Core does not grow")
+	# And the row says why, and where: both Smelters, too cold.
+	var held: Dictionary = CoreLevels.holding_back(Sim, "smelter")
+	runner.eq(held["why"], {"cold": 2}, "both Smelters are held back by the cold")
+	runner.eq((held["cells"] as Array).size(), 2, "and a tap walks to each")
+	runner.eq(CoreLevels.why_not_working(Sim, Grid.idx(24, 21)), "cold", "")
+	_done()
+
+
+func test_what_holds_a_row_back_is_named_worst_first() -> void:
+	_ready_for_two()
+	runner.eq(CoreLevels.holding_back(Sim, "smelter")["cells"], [], "working Smelters hold nothing back")
+	# A Press between two Boilers overheats; stability names it first.
+	Sim.depth = 3
+	Sim.max_depth = 3
+	Sim._recompute()
+	for e: Array in [[15, 30, "boiler"], [16, 30, "press"], [17, 30, "boiler"], [16, 31, "boiler"]]:
+		Sim.grid.place(Grid.idx(int(e[0]), int(e[1])), String(e[2]))
+	Sim._recompute()
+	_tick(10.0)
+	var hot: int = Grid.idx(16, 30)
+	runner.check(Sim.sim.overheated_at(hot), "the Press is past its tolerance")
+	runner.eq(CoreLevels.stable(Sim), 0, "so nothing counts as stable")
+	var held: Dictionary = CoreLevels.holding_back(Sim)
+	runner.eq(int((held["cells"] as Array)[0]), hot, "and it is the first machine the row points at")
+	runner.eq(CoreLevels.why_not_working(Sim, hot), "hot", "")
+	runner.check(not held["cells"].has(Grid.idx(15, 30)), "a Boiler is never what holds stability back")
 	_done()
 
 

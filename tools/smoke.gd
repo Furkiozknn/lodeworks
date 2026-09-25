@@ -200,6 +200,10 @@ func _run() -> void:
 	# The Factory Core's card: its numbers are the factory's, and "need
 	# help" is the warning key's own count.
 	_main.call("_show_core")
+	# The counts the card was built from, in the same frame: a machine can
+	# stall or recover during the wait below.
+	var p: Dictionary = Sim.sim.problem_counts()
+	var machines_then: int = Sim.grid.cells.size()
 	await _settle(0.6)
 	await _shot("10_core")
 	var rep: Dictionary = {}
@@ -209,9 +213,8 @@ func _run() -> void:
 	if rep.is_empty():
 		_failures.append("the Core card did not open")
 	else:
-		var p: Dictionary = Sim.sim.problem_counts()
 		var key_count: int = int(p["starved"]) + int(p["blocked"]) + int(p["thermal"])
-		if int(rep["machines"]) != Sim.grid.cells.size() or int(rep["problems"]) != key_count:
+		if int(rep["machines"]) != machines_then or int(rep["problems"]) != key_count:
 			_failures.append("the Core card says %d machines, %d need help; the board has %d and the key %d"
 				% [int(rep["machines"]), int(rep["problems"]), Sim.grid.cells.size(), key_count])
 		print("  core card: %d machines, %d working, %d need help" % [int(rep["machines"]),
@@ -283,7 +286,13 @@ func _run() -> void:
 	_main.call("_refresh")
 
 	# What lies below: a tap on Descend before the quota shows the next
-	# stratum instead of going there, and so does holding Descend.
+	# stratum instead of going there, and so does holding Descend. The
+	# board has been earning in real time, so the quota is emptied first:
+	# on a fast machine it could already be met, and at the Core's limit a
+	# tap opens the Core card instead (tested in test_core_levels).
+	var credits_was: float = Sim.credits
+	Sim.credits = 0.0
+	_main.call("_refresh")
 	var depth_was: int = Sim.depth
 	_main.call("_on_descend")
 	await _settle(0.6)
@@ -314,6 +323,7 @@ func _run() -> void:
 			else "nothing", depth_was, Sim.depth])
 	print("  below: stratum %d shown, held %s" % [below, "ok" if held_open else "no"])
 	_main.call("_close_overlay")
+	Sim.credits = credits_was
 	await _settle(0.3)
 
 	# Deep, where nothing new is unlocked and a rule may move no machine the

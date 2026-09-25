@@ -489,6 +489,9 @@ TR = {
     "Assembly": "Montaj",
     "Amplification": "Güçlendirme",
     "Deep works": "Derin İşler",
+    "%d too hot": "%d çok sıcak",
+    "%d too cold": "%d çok soğuk",
+    "%d idle": "%d boşta",
 }
 
 

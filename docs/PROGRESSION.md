@@ -15,8 +15,9 @@ be connected to the graph below waits.
   the numbers in this file come from the run named beside them.
 
 Status, 25 September 2026: the vertical slice (sections 10 and 11) is built
-and tested. Core levels 1-4 are measured with the scripted player; levels 5-8
-are designed and graph-checked, but no played run has reached them yet.
+and tested. Core levels 1-5 are measured with the scripted player; levels 6-8
+are designed and graph-checked, but no played run has reached them yet. The
+features that come next are in [`research/feature-pool.md`](research/feature-pool.md).
 
 ---
 
@@ -99,10 +100,10 @@ requirement needs is shown in brackets.
 | **2 Processing** | Strata 3-4: Press (Plates, stratum 3) and Amplifier (4). Machine levels up to 3, store up to 256. Research: Deeper Bore, Standing Orders, Drafting Table. | 1,000 credits; 40 Ingots in the store (Vault 2); 2 Smelters at working heat; Crusher at level 2; Tighter Tolerances 1; stratum 2 |
 | **3 Fabrication** | Strata 5-6: Assembler (Components, stratum 5). Machine levels up to 4, store up to 819. Research: Refinery Contracts, Ceramic Lining, Seismic Survey. | 60,000 credits; 250 Plates and 250 Ingots (Vault 3); 2 Presses at working heat; Smelter at level 3; Deeper Bore 2; Tighter Tolerances 3; stratum 4 |
 | **4 Assembly** | Strata 7-9: Duplicator (stratum 8). Machine levels up to 5, store up to 2,621. Research: Field Notes. | 1.2M credits; 800 Components and 800 Plates (Vault 4); 3 Assemblers at working heat; Press 4 and Drill 4; an Amplifier serving 3; Refinery Contracts 2; Deeper Bore 4; stratum 6 |
-| **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 6M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Tighter Tolerances 6; 60 machines at working heat with none overheating; stratum 9 |
-| **6 Amplification** | Strata 13-15. Machine levels up to 7. | 60M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; Tighter Tolerances 8; Drill 6; stable 80; stratum 12 |
-| **7 Deep works** | Strata 16-19. Machine levels up to 8. | 1B credits; 25,000 Components and 25,000 Plates (Vault 7); a Condenser serving 3; Deeper Bore 6; Smelter 7; stable 100; stratum 15 |
-| **8 The Abyss** | Strata 20-24. Machine levels up to 9. | 15B credits; 80,000 Components and 80,000 Plates (Vault 8); an Amplifier serving 4; Field Notes 5; Assembler 8; stable 120; stratum 19 |
+| **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 10M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Tighter Tolerances 6; 40 machines at working heat with none overheating; stratum 9 |
+| **6 Amplification** | Strata 13-15. Machine levels up to 7. | 60M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; Tighter Tolerances 8; Drill 6; stable 60; stratum 12 |
+| **7 Deep works** | Strata 16-19. Machine levels up to 8. | 1B credits; 25,000 Components and 25,000 Plates (Vault 7); a Condenser serving 3; Deeper Bore 6; Smelter 7; stable 80; stratum 15 |
+| **8 The Abyss** | Strata 20-24. Machine levels up to 9. | 15B credits; 80,000 Components and 80,000 Plates (Vault 8); an Amplifier serving 4; Field Notes 5; Assembler 8; stable 100; stratum 19 |
 | **9 and up** | 5 more strata each; machine limit +1 each. | Level 8's pattern, with rising numbers: credits ×15 a level; store ×2.2 (capped at what the Vault can then hold); stable +20; one production machine at the limit, rotating; one research line, rotating |
 
 **Why these rows.**
@@ -431,53 +432,53 @@ reports **330 tests passed (126,679 assertions)**.
   the words were shortened.
 - `tools/layout_check.tscn` passed in English and Turkish (11 screens × 3
   safe areas).
-- The portrait smoke (360×720) fails two Descend checks. The same two checks
-  fail on the last commit without these changes: it is timing on this
-  machine, not a regression.
+- The portrait smoke (360×720) used to fail two Descend checks, and so did
+  the commit before these changes. The cause was timing: the board earns in
+  real time, so on some runs the quota was already met. The smoke now
+  empties the quota before that check, and reads the Core card's counts in
+  the frame the card is built. Both resolutions pass.
 
 **Played pace.** `godot --headless --path . --script res://tools/core_journey.gd`
 is a scripted player. It plays pre-solved layouts for the first three
-Core-level lines, then "What now?" and the Core's rows. It plays actively
-for four hours; a human plans slower and has offline time on top.
+Core-level lines; after that it lays whole self-fed lines, clears machines
+that barely run, and works from the Core's rows and "What now?". It plays
+actively for six hours (`LODEWORKS_CORE_HOURS=6`); a human plans slower
+and has offline time on top.
 
-Firsts:
+Firsts (run of 25 September 2026, after the Core-row legibility round):
 
 | Core level | Reached | Earning then |
 |---|---|---|
-| Core 2 | 11 min | 62/s |
-| Core 3 | 22 min | 465/s |
-| Core 4 | 45 min | 1.5K/s |
+| Core 2 | 9 min 30 s | 54/s |
+| Core 3 | 18 min 45 s | 449/s |
+| Core 4 | 33 min 49 s | 2.3K/s |
+| Core 5 | 2 h 06 min | 5.0K/s |
 
 Snapshots:
 
-- **30 min:** Core 3, stratum 6, 126 machines. Open: credits, and Plates in
-  the store.
-- **1 h:** Core 4, stratum 9, 170 machines, 2.5K/s. Open: credits, 4 Labs
-  at working heat, stable 60.
-- **2 h:** Core 4, 3.2K/s, 14.4M earned in all, the Core's 6M credits
-  met, every machine at its level-5 limit. Still open: 2 of 4 Labs working,
-  23 of 60 machines at working heat, 22 research levels, the Condenser not
-  yet found, three strata waiting under the next level.
-- **4 h:** the same Core 4, 3.4K/s, 38.3M earned. Stable 24 of 60, 21
-  research levels open.
-- **Longest stretch with no new first:** 1 h 36 min, from 2:23:45 to the
-  end.
+- **30 min:** Core 3, stratum 6, 126 machines, 1.9K/s. Open: credits only.
+- **1 h:** Core 4, stratum 9, 164 machines, 3.9K/s. Open: credits (0.5M of
+  10M); every machine type at its level-5 limit.
+- **2 h:** Core 4, 5.0K/s, 8.0M of 10M credits saved.
+- **3-6 h:** Core 5, stratum 12, about 173 machines, 5.1K/s. Open: 60M
+  credits and stable 60, which stays at 0 because stratum 12 is hot enough
+  that something is always overheating; 23 research levels open.
+- **Longest stretch with no new first:** 1 h 57 min at the end.
 
-**What the four hours say.**
+**What the six hours say.**
 
 - **Nothing to do?** No point in the run had nothing left to do: the Core's
-  next level, 21 research levels and a new machine were always open.
-- **A long quiet stretch:** the scripted player still spent the last
-  1 h 36 min without a new first.
-- **Where the player stopped:** the scripted player stopped at Core 5's Labs
-  and stability rows. It builds Labs where "What now?" places them and fixes
-  heat one tile at a time, and after three hours it had not reached 60
-  machines at working heat.
-- **What that means:** this is a limit of the model, but it is also a real
-  finding. Core 5's stability row is the first that asks for control of the
-  whole factory, and it is where a player first has to rebuild rather than
-  add.
-- **Unmeasured:** a human's time for Core 5 and beyond.
+  next level and 21-23 research levels were always open, and every stratum
+  under the Core was reached.
+- **Waiting between Core 4 and Core 5.** From about 1 h every machine type
+  sat at its limit and the rest was saving 10M credits: roughly an hour
+  with nothing to build. This is the gap the feature pool's Dispatch board
+  (FP-06) and Overdrive (FP-12) are for.
+- **Stability.** Stability at the hot strata (ambient 2.2 at stratum 12)
+  is where the scripted player stops. It cools one tile at a time and
+  never gets every machine under its tolerance. For a human this is the
+  first row that asks for rebuilding a hot factory, and it is unmeasured.
+- **Unmeasured:** a human's time at any level; levels 6-8.
 
 **Balance history** (all from `core_journey` runs):
 
@@ -487,18 +488,36 @@ Snapshots:
 - **Change:** levels now give +10% for 150 credits ×12 a level, with
   materials ×3 a level, and Core prices were raised and paced against the
   income measured at each level.
+- **Stability:** 60 machines at working heat for Core 5 was out of reach
+  of a factory that the scripted player judged reasonable (35-50 counted of
+  about 110). It is now 40 for Core 5, and 60, 80 and 100 for Cores 6-8.
+- **Core 5's price:** 6M left the player with nothing but stability to do.
+  15M left over an hour of saving. It is now 10M.
+
+**Core rows that say what holds them back** (built in the same round).
+
+- **Each row names what holds it back.** A working-heat or stability row
+  that is not met lists why its machines do not count. For example: "2 / 4
+  · 1 starved, 1 too cold".
+- **A tap walks to the next machine.** It focuses the machine, opens its
+  sheet and turns the heat view on when heat is the cause.
+- **Logic and tests.** The logic is `CoreLevels.why_not_working` and
+  `CoreLevels.holding_back`, tested in `tests/test_core_levels.gd`.
 
 ---
 
 ## 12. Next single priority
 
-**Core 5's rows made reachable and legible for a real player.** A played run
-has to reach Core 5 before the later levels' numbers can be trusted.
+**The Dispatch board** ([`research/feature-pool.md`](research/feature-pool.md),
+FP-06). Played, the longest gap is between Core levels, once every machine
+type sits at its limit and only credits are left to save.
 
-- **The Labs row:** "What now?" should point at Labs that are starved.
-- **The stability row:** it should point at machines off their heat, one
-  tap each.
-- **Then measure:** a scripted run to Core 5 and a first human run.
+- **What it is:** contracts that pull materials from the Core's store, with
+  no clock.
+- **What it fills:** the short-term layer in that gap. It also makes old
+  materials worth making again.
+- **Before it:** the save migration step (TD1) and lifetime counters (TD2).
+- **Measured:** by a contract-filling player in `core_journey`.
 
 ---
 

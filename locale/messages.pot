@@ -443,6 +443,18 @@ msgid "%d machines at working heat, none overheating"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "%d too hot"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d too cold"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d idle"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Lv.%d"
 msgstr ""
 

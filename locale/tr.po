@@ -444,6 +444,18 @@ msgid "%d machines at working heat, none overheating"
 msgstr "%d makine çalışma ısısında, hiçbiri aşırı ısınmıyor"
 
 #: res://scripts/ui/main.gd
+msgid "%d too hot"
+msgstr "%d çok sıcak"
+
+#: res://scripts/ui/main.gd
+msgid "%d too cold"
+msgstr "%d çok soğuk"
+
+#: res://scripts/ui/main.gd
+msgid "%d idle"
+msgstr "%d boşta"
+
+#: res://scripts/ui/main.gd
 msgid "Lv.%d"
 msgstr "Sv.%d"
 

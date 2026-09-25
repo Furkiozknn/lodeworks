@@ -77,14 +77,14 @@ const LEVELS := [
 		[Req.DEPTH, 6],
 	]},
 	{"level": 5, "era": "Research", "depth_cap": 12, "machine_cap": 6, "requires": [
-		[Req.CREDITS, 6000000.0],
+		[Req.CREDITS, 10000000.0],
 		[Req.STOCK, MachineDB.Res.COMPONENT, 2500],
 		[Req.STOCK, MachineDB.Res.PLATE, 2500],
 		[Req.WORKING, "lab", 4],
 		[Req.MACHINE, "assembler", 5],
 		[Req.RESEARCH, "research_1", 2],
 		[Req.RESEARCH, "throughput_1", 6],
-		[Req.STABLE, 60],
+		[Req.STABLE, 40],
 		[Req.DEPTH, 9],
 	]},
 	{"level": 6, "era": "Amplification", "depth_cap": 15, "machine_cap": 7, "requires": [
@@ -94,7 +94,7 @@ const LEVELS := [
 		[Req.SERVES, "duplicator", 3],
 		[Req.RESEARCH, "throughput_1", 8],
 		[Req.MACHINE, "drill", 6],
-		[Req.STABLE, 80],
+		[Req.STABLE, 60],
 		[Req.DEPTH, 12],
 	]},
 	{"level": 7, "era": "Deep works", "depth_cap": 19, "machine_cap": 8, "requires": [
@@ -104,7 +104,7 @@ const LEVELS := [
 		[Req.SERVES, "condenser", 3],
 		[Req.RESEARCH, "yield_1", 6],
 		[Req.MACHINE, "smelter", 7],
-		[Req.STABLE, 100],
+		[Req.STABLE, 80],
 		[Req.DEPTH, 15],
 	]},
 	{"level": 8, "era": "The Abyss", "depth_cap": 24, "machine_cap": 9, "requires": [
@@ -114,7 +114,7 @@ const LEVELS := [
 		[Req.SERVES, "amplifier", 4],
 		[Req.RESEARCH, "research_1", 5],
 		[Req.MACHINE, "assembler", 8],
-		[Req.STABLE, 120],
+		[Req.STABLE, 100],
 		[Req.DEPTH, 19],
 	]},
 ]
@@ -282,6 +282,64 @@ static func working(state: Object, id: String) -> int:
 				and sim.heat_efficiency_at(cell) >= WORKING_HEAT:
 			n += 1
 	return n
+
+
+## Why the machine on `cell` is not at its working heat and producing:
+## "hot" (overheating, or too hot to count), "cold", "starved", "blocked",
+## "idle", or "" when it is.
+static func why_not_working(state: Object, cell: int) -> String:
+	var grid: Grid = state.get("grid")
+	var sim: Simulation = state.get("sim")
+	var id: String = grid.machine_at(cell)
+	if id == "":
+		return "idle"
+	var eff: float = sim.heat_efficiency_at(cell)
+	if sim.overheated_at(cell):
+		return "hot"
+	match sim.status_of(cell):
+		Simulation.Status.STARVED:
+			return "starved"
+		Simulation.Status.BLOCKED:
+			return "blocked"
+		Simulation.Status.RUNNING, Simulation.Status.PASSIVE:
+			if eff >= WORKING_HEAT:
+				return ""
+			var m: Dictionary = MachineDB.get_machine(id)
+			return "cold" if grid.heat_at(cell) < float(m.get("heat_optimum", 0.0)) else "hot"
+	return "idle"
+
+
+## What keeps machines from counting towards a row, worst first: for a
+## working row, machines of type `id`; for the stability row (`id` ""),
+## every machine that overheats, then every one running off its working
+## heat. {"cells": [cell, ...], "why": {reason: count}}.
+static func holding_back(state: Object, id: String = "") -> Dictionary:
+	var grid: Grid = state.get("grid")
+	var order := ["hot", "starved", "blocked", "cold", "idle"]
+	var by: Dictionary = {}
+	for reason: String in order:
+		by[reason] = []
+	for cell: int in grid.cells:
+		var here: String = grid.machine_at(cell)
+		if id != "" and here != id:
+			continue
+		if id == "" and not MachineDB.has_levels(here):
+			continue
+		var why: String = why_not_working(state, cell)
+		if why == "":
+			continue
+		# Stability asks about heat: a stalled machine does not break it.
+		if id == "" and not (why == "hot" or why == "cold"):
+			continue
+		(by[why] as Array).append(cell)
+	var cells: Array[int] = []
+	var counts: Dictionary = {}
+	for reason: String in order:
+		for c: int in by[reason]:
+			cells.append(c)
+		if not (by[reason] as Array).is_empty():
+			counts[reason] = (by[reason] as Array).size()
+	return {"cells": cells, "why": counts}
 
 
 ## The most working machines one support machine of type `id` serves.

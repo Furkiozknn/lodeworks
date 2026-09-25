@@ -1,6 +1,6 @@
 # What the competitors were actually doing
 
-Eight investigations, run against primary sources in September 2026, that
+Nine investigations, run against primary sources in September 2026, that
 decided what changed in this release. They are kept in the repository because
 the decisions they drove are not obvious from the code, and because the next
 person to argue for a change should have to argue with the evidence rather
@@ -15,6 +15,7 @@ than with a preference.
 | [`monetization-2026.md`](monetization-2026.md) | what the idle games their own communities respect actually charge for, where the price band sits, and the Google Play Billing requirements that turned into three real fixes in the purchase client |
 | [`clash-ux.md`](clash-ux.md) | (25 Sep 2026) how Clash of Clans tells a player what to do next -- first minutes, the Town Hall gate, builders, goals at every time scale, the interface, Builder Base, clans, the Clan Capital, retention -- with official Supercell sources first, and what Lodeworks should take, adapt or leave; the source of the backlog in [`../GAP-AUDIT.md`](../GAP-AUDIT.md) |
 | [`progression-reference.md`](progression-reference.md) | (25 Sep 2026) the progression architecture of Clash of Clans, Boom Beach, Whiteout Survival and Rise of Kingdoms (with what Township and State of Survival add): what gates the central building, level caps, resource staging, research, regions, parallel work, goals by cadence, and twenty principles and twenty cross-game patterns; the reference model behind the Factory Core's levels in [`../PROGRESSION.md`](../PROGRESSION.md) |
+| [`feature-pool.md`](feature-pool.md) | (25 Sep 2026) the pool of features for development: five full studies ([`reference-games/`](reference-games/): Clash of Clans, Boom Beach, Whiteout Survival, Rise of Kingdoms, and Hay Day with Township and State of Survival -- about 600 features, each with how it works, what it solves, fit, adaptation, dependencies, challenges and conflicts) merged into recommended features, clusters, reshaping rules, rejections, conflicts with existing decisions, later items, technical dependencies and new design opportunities |
 | [`prestige-pacing.md`](prestige-pacing.md) | (25 Sep 2026) how long first prestiges and permanent layers last in the reference idle games, the one primary-source reset rule (+50-200%), and how those compare with the collapse lab's measured runs; input to the collapse-payout decision (GAP-AUDIT B-2) |
 
 Each document separates what a source says from what the author inferred, and

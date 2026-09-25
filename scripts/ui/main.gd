@@ -1632,6 +1632,10 @@ const BAND_NAMES := ["The Surface", "The Workings", "The Deep", "The Abyss"]
 ## The Core level at which the Foreman last said the Core stands in the way.
 var _core_gate_said: int = 0
 
+## The machines a Core row's tap is walking through, and where it is.
+var _fix_list: Array = []
+var _fix_cursor: int = -1
+
 ## What the tray and the warning key last showed, so a tick that changes
 ## nothing changes no theme (see _refresh).
 var _afford_shown: Dictionary = {}
@@ -2155,6 +2159,8 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 			var wid: String = String(r[1])
 			pic = Chips.MachineSprite.new(wid, 44.0)
 			words = Loc.t("%s running at working heat") % MachineDB.name_of(wid)
+			if not met:
+				amount = _held_back_words(amount, CoreLevels.holding_back(Sim, wid))
 			go = func() -> void: _show_working(wid, int(st["need"]))
 		CoreLevels.Req.MACHINE:
 			var mid: String = String(r[1])
@@ -2181,7 +2187,9 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 		_:
 			pic = _icon_rect("heat", 44)
 			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
-			go = func() -> void: _btn_heat.button_pressed = true
+			if not met:
+				amount = _held_back_words(amount, CoreLevels.holding_back(Sim))
+			go = func() -> void: _show_fixes(CoreLevels.holding_back(Sim)["cells"])
 	return {"pic": pic, "words": words, "amount": amount, "go": go}
 
 
@@ -2205,21 +2213,54 @@ func _core_req_row(st: Dictionary) -> Button:
 	return b
 
 
-## A "working heat" requirement, tapped: too few of them, arm one; one
-## starved or blocked (a full store with no Vault beside it, say), go to the
-## first machine in trouble; otherwise it is the heat: show it.
+## A "working heat" requirement, tapped: too few of them, arm one;
+## otherwise go to the ones that do not count, one a tap, worst first --
+## overheating, starved, backed up (a full store with no Vault beside it,
+## say), too cold -- with the heat view on when heat is the reason.
 func _show_working(id: String, need: int) -> void:
-	if Sim.grid.count_of(id) < need:
+	var held: Array = CoreLevels.holding_back(Sim, id)["cells"]
+	if Sim.grid.count_of(id) < need and held.is_empty():
 		_arm_only(id)
 		return
-	for cell: int in Sim.grid.cells:
-		if Sim.grid.machine_at(cell) == id and Sim.sim.status_of(cell) in [Simulation.Status.STARVED,
-				Simulation.Status.BLOCKED]:
-			iso_view.focus_cell(cell)
-			iso_view.selected_cell = cell
-			_show_cell_info(cell)
-			return
-	_btn_heat.button_pressed = true
+	_show_fixes(held)
+
+
+## The machines keeping a Core row from being met, one a tap: the next one
+## focused, its sheet open, and the heat view on if its heat is the reason.
+## The same list tapped again moves on; a new list starts at its worst.
+func _show_fixes(cells: Array) -> void:
+	if cells.is_empty():
+		_btn_heat.button_pressed = true
+		return
+	if cells != _fix_list:
+		_fix_list = cells.duplicate()
+		_fix_cursor = -1
+	_fix_cursor = (_fix_cursor + 1) % cells.size()
+	var cell: int = int(cells[_fix_cursor])
+	var why: String = CoreLevels.why_not_working(Sim, cell)
+	if why == "hot" or why == "cold":
+		_btn_heat.button_pressed = true
+	iso_view.selected_cell = cell
+	iso_view.pulse(cell)
+	iso_view.focus_cell(cell)
+	_show_cell_info(cell)
+
+
+## "2 / 4", and what holds the rest back: "2 / 4 · 1 starved, 1 too cold".
+func _held_back_words(amount: String, held: Dictionary) -> String:
+	var parts: Array[String] = []
+	var why: Dictionary = held["why"]
+	for reason: String in ["hot", "starved", "blocked", "cold", "idle"]:
+		if not why.has(reason):
+			continue
+		var n: int = int(why[reason])
+		match reason:
+			"hot": parts.append(Loc.t("%d too hot") % n)
+			"starved": parts.append(Loc.t("%d starved") % n)
+			"blocked": parts.append(Loc.t("%d backed up") % n)
+			"cold": parts.append(Loc.t("%d too cold") % n)
+			_: parts.append(Loc.t("%d idle") % n)
+	return amount if parts.is_empty() else amount + "  ·  " + ", ".join(parts.slice(0, 2))
 
 
 ## Select a machine of type `id` on the board -- its sheet carries the level
