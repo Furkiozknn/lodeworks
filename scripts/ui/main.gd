@@ -1117,8 +1117,34 @@ func _make_palette_button(id: String) -> Control:
 	help.add_theme_font_size_override("font_size", 22)
 	help.position = Vector2(98 - 42, 2)
 	b.add_child(help)
+	# The "?" is small, so holding the whole key opens the same words: a
+	# 96-unit target where the "?" is 40. A press that moves is the tray
+	# scrolling, not a hold.
+	var hold := {"down": false, "at": Vector2.ZERO, "n": 0, "fired": false}
+	b.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			hold["down"] = e.pressed
+			if e.pressed:
+				hold["fired"] = false
+				hold["at"] = (e as InputEventMouseButton).position
+				hold["n"] = int(hold["n"]) + 1
+				var n: int = int(hold["n"])
+				get_tree().create_timer(IsoView.LONG_PRESS_SECONDS).timeout.connect(func():
+					if bool(hold["down"]) and int(hold["n"]) == n and is_instance_valid(help):
+						hold["down"] = false
+						hold["fired"] = true
+						help.pressed.emit())
+		elif e is InputEventMouseMotion and bool(hold["down"]) \
+				and (e as InputEventMouseMotion).position.distance_to(hold["at"]) > IsoView.DRAG_THRESHOLD:
+			hold["down"] = false)
 
-	b.pressed.connect(func(): _arm(id))
+	b.pressed.connect(func():
+		if bool(hold["fired"]):
+			# The hold opened the words; the release that ends it arms nothing.
+			hold["fired"] = false
+			b.set_pressed_no_signal(_armed == id)
+			return
+		_arm(id))
 	_palette_buttons[id] = b
 	_palette_costs[id] = cost_lbl
 	return b
