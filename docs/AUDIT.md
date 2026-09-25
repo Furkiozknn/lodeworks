@@ -1710,6 +1710,16 @@ matches. What it was:
 A phone is still UNKNOWN; on one, the late board is the number to read
 first.
 
+Two more from running the smoke test on a deep save instead of a fresh
+one: **looking below a deep stratum leaked a node every time** (the row
+of new machines was built, found empty -- past stratum 10 nothing is new
+-- and never added or freed; the same for a rule that moves none of the
+player's machines), and **the tray and the warning key re-applied their
+colours on every tick**, which is a relayout each time. The rows are freed
+now, and the smoke test looks below stratum 12 and fails on any node left
+behind; the colours change only when what they show does (the HUD's
+share of a late-board tick 2.0 -> 1.4 ms).
+
 ### Toward more than one factory (not built)
 
 Nothing tonight builds a second factory or talks to a network (D3 still

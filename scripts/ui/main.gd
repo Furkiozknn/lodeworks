@@ -239,6 +239,7 @@ func _rebuild_interface() -> void:
 	_armed = ""
 	_palette_buttons.clear()
 	_palette_costs.clear()
+	_problem_level_shown = -1
 	_build()
 	_rebuild_palette()
 	_apply_safe_area()
@@ -767,6 +768,10 @@ func _show_below() -> void:
 		opens.add_child(_label(Loc.tn("A new machine down there.", "New machines down there.",
 			opens.get_child_count()), 20, Palette.TEXT_DIM))
 		body.add_child(opens)
+	else:
+		# Past the last new machine there is none: not kept, or it is a node
+		# nothing owns (the smoke test's leak check found one per look below).
+		opens.free()
 	if d > Sim.max_depth and BuildArea.size_at(d) != BuildArea.size_at(Sim.max_depth):
 		var grow := HBoxContainer.new()
 		grow.add_theme_constant_override("separation", 12)
@@ -822,6 +827,8 @@ func _rule_rows(body: VBoxContainer, depth: int, machines: Array[String]) -> voi
 				moved.add_child(pic)
 		if moved.get_child_count() > 0:
 			words.add_child(moved)
+		else:
+			moved.free()
 		row.add_child(words)
 		body.add_child(row)
 
@@ -1284,6 +1291,7 @@ func _rebuild_palette() -> void:
 		c.queue_free()
 	_palette_buttons.clear()
 	_palette_costs.clear()
+	_afford_shown.clear()
 	var last: int = -1
 	for id in MachineDB.by_group(MachineDB.ORDER.filter(func(k): return Sim.is_unlocked(k))):
 		var g: int = MachineDB.group_of(id)
@@ -1596,6 +1604,11 @@ func _on_reward_failed(_placement: String, reason: String) -> void:
 const BAND_NAMES := ["The Surface", "The Workings", "The Deep", "The Abyss"]
 
 
+## What the tray and the warning key last showed, so a tick that changes
+## nothing changes no theme (see _refresh).
+var _afford_shown: Dictionary = {}
+var _problem_level_shown: int = -1
+
 func _refresh() -> void:
 	# The headline figure counts up rather than snapping. In a game whose
 	# whole feedback loop is a number going up, a number that jumps reads as
@@ -1656,13 +1669,18 @@ func _refresh() -> void:
 		var cost: Label = _palette_costs.get(id, null)
 		if cost != null:
 			cost.text = Economy.fmt(Sim.cost_of(id))
-			cost.add_theme_color_override("font_color",
-				Palette.CORE if afford else Palette.TEXT_FAINT)
-		# The whole card dims when it is out of reach, so "can I afford this"
-		# is answered by the brightness of the picture rather than by reading
-		# a number and comparing it with another number.
-		(_palette_buttons[id] as Button).modulate = Color(1, 1, 1,
-			1.0 if afford else 0.45)
+		# Only when it changes: a theme override is a relayout of the label,
+		# and this runs every tick.
+		if _afford_shown.get(id, null) != afford:
+			_afford_shown[id] = afford
+			if cost != null:
+				cost.add_theme_color_override("font_color",
+					Palette.CORE if afford else Palette.TEXT_FAINT)
+			# The whole card dims when it is out of reach, so "can I afford
+			# this" is answered by the brightness of the picture rather than
+			# by reading a number and comparing it with another number.
+			(_palette_buttons[id] as Button).modulate = Color(1, 1, 1,
+				1.0 if afford else 0.45)
 	if _stratum_card != null:
 		_layout_hud()
 
@@ -1793,8 +1811,10 @@ func _refresh_problems() -> void:
 		var hs: Array = iso_view.badges.heat_state(Sim.sim, Sim.grid.cells)
 		_heat_state = int(hs[0])
 		_heat_icon.texture = IsoArt.icon("cold" if bool(hs[1]) else "heat")
-	_lbl_problem_count.add_theme_color_override("font_color",
-		[Palette.TEXT, Palette.TEXT, Palette.WARN, Palette.WARN, Palette.BAD][level])
+	if level != _problem_level_shown:
+		_problem_level_shown = level
+		_lbl_problem_count.add_theme_color_override("font_color",
+			[Palette.TEXT, Palette.TEXT, Palette.WARN, Palette.WARN, Palette.BAD][level])
 	# The Foreman steps in once per stratum, the first time something on the
 	# board is actually in trouble -- a machine at critical heat -- and points
 	# at the key that finds it. Once, so it is news rather than nagging.

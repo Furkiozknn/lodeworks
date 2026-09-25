@@ -316,6 +316,21 @@ func _run() -> void:
 	_main.call("_close_overlay")
 	await _settle(0.3)
 
+	# Deep, where nothing new is unlocked and a rule may move no machine the
+	# player has: looking below must leave no node behind. It left one per
+	# look (an empty row never added to the card).
+	var depth_keep: int = Sim.depth
+	var orphans0: float = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+	Sim.depth = 12
+	_main.call("_show_below")
+	_main.call("_close_overlay")
+	Sim.depth = depth_keep
+	await _settle(0.3)
+	var orphans1: float = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+	if orphans1 > orphans0:
+		_failures.append("looking below stratum 12 left %d orphaned nodes" % int(orphans1 - orphans0))
+	print("  below at depth: %d orphaned" % int(orphans1 - orphans0))
+
 	# What now?: the card lists Worklist's lines, one row each, in its order,
 	# and a tap on a row closes the card and does what the row says.
 	# A lit Core always has at least one line (the quota, at worst).
