@@ -244,7 +244,13 @@ func test_turning_tracking_off_turns_it_off() -> void:
 	runner.eq(Analytics.event_count(), 0, "the buffer is cleared, not just paused")
 	Analytics.track("session_start", {"depth": 1})
 	runner.eq(Analytics.event_count(), 0, "and nothing new is recorded")
+	# And it stays off: the next launch reads it before its first event.
+	Analytics.enabled = true
+	Analytics._load_consent()
+	runner.check(not Analytics.enabled, "off survives a restart")
 	Analytics.set_enabled(true)
+	Analytics._load_consent()
+	runner.check(Analytics.enabled, "and so does on")
 
 
 ## --- the self test itself --------------------------------------------------

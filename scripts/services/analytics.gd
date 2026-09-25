@@ -34,6 +34,10 @@ extends Node
 const MAX_BUFFER := 400
 const LOCAL_PATH := "user://events.json"
 const MILESTONE_PATH := "user://milestones.json"
+## Present when the player has turned statistics off in Settings. Read at
+## start, before the session's first event, so "off" means off from the
+## first moment of every later launch, not only for the rest of this one.
+const OFF_PATH := "user://analytics_off"
 
 ## The complete event vocabulary. Adding to this list is a decision, not a
 ## detail: every entry has to be justified in the Data Safety declaration.
@@ -94,6 +98,12 @@ func _ready() -> void:
 	_session_id = _random_id()
 	_session_start = Time.get_unix_time_from_system()
 	_load_milestones()
+	_load_consent()
+
+
+## Whether the player turned statistics off, from disk.
+func _load_consent() -> void:
+	enabled = not FileAccess.file_exists(OFF_PATH)
 
 
 func _random_id() -> String:
@@ -225,11 +235,18 @@ func event_count() -> int:
 ## Turning this off has to actually turn it off, including the local buffer.
 func set_enabled(on: bool) -> void:
 	enabled = on
-	if not on:
-		_buffer.clear()
-		var d := DirAccess.open("user://")
-		if d != null and d.file_exists(LOCAL_PATH):
-			d.remove(LOCAL_PATH)
+	var d := DirAccess.open("user://")
+	if on:
+		if d != null and d.file_exists(OFF_PATH):
+			d.remove(OFF_PATH)
+		return
+	_buffer.clear()
+	if d != null and d.file_exists(LOCAL_PATH):
+		d.remove(LOCAL_PATH)
+	var f := FileAccess.open(OFF_PATH, FileAccess.WRITE)
+	if f != null:
+		f.store_string("off")
+		f.close()
 
 
 ## Test hook: forget which milestones have fired. Debug builds only.

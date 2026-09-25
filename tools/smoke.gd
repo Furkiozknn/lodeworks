@@ -88,6 +88,7 @@ func _run() -> void:
 			return cap.get_theme_font_size("font_size") > int(cap.get_meta("base_fs"))],
 		["audio", "Ambience", func() -> bool: return bool(Juice.ambient_enabled)],
 		["controls", "Vibration", func() -> bool: return bool(Juice.haptics_enabled)],
+		["game", "Anonymous statistics", func() -> bool: return Analytics.enabled and not FileAccess.file_exists(Analytics.OFF_PATH)],
 	]
 	for c: Array in checks:
 		_main.set("_settings_tab", String(c[0]))

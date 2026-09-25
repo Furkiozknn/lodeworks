@@ -697,6 +697,35 @@ func test_a_new_game_can_start_the_core_pays_for_the_first_two_machines() -> voi
 	Save.wipe()
 
 
+func test_a_descend_does_not_throw_away_the_offline_rate() -> void:
+	# A Descend restarts the rate on screen (the stratum's rules change it),
+	# and saves at once. Saved as zero, a player who closed the game in the
+	# next three seconds came back to nothing. The board is the same board:
+	# the last measured rate is the honest estimate. A collapse empties the
+	# board, and zero is right there.
+	_new_game()
+	Sim.power_core()
+	Sim.try_place(Grid.idx(19, 21), "drill")
+	Sim.try_place(Grid.idx(19, 22), "vault")
+	var was_started: bool = bool(Sim.get("_started"))
+	Sim.set("_started", true)
+	for i in range(45):
+		Sim._process(0.1)
+	var before: float = Sim.credits_per_sec
+	runner.gt(before, 0.0, "the board has a measured rate")
+	Sim.credits = Sim.quota() + 1.0
+	runner.check(Sim.descend(), "down one stratum")
+	runner.eq(Sim.credits_per_sec, 0.0, "the number on screen restarts its measurement")
+	runner.near(float(Sim.to_dict()["rate"]), before, 0.0001,
+		"a save made now banks offline at the last measured rate")
+	Sim.max_depth = Economy.COLLAPSE_MIN_DEPTH
+	Sim.lifetime_credits = 1.0e6
+	runner.gt(float(Sim.collapse()), 0.0, "a collapse")
+	runner.eq(float(Sim.to_dict()["rate"]), 0.0, "after it the board is empty and banks nothing")
+	Sim.set("_started", was_started)
+	Save.wipe()
+
+
 func test_a_collapse_darkens_the_core_and_the_next_shaft_starts_the_same_way() -> void:
 	_new_game()
 	Sim.power_core()

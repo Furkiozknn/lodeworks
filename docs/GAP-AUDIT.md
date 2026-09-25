@@ -87,14 +87,14 @@ mid-term, P3 a future system, P4 not needed now.
 | B8 | **Tile size at deep strata** | default zoom floor 0.6, about 19-22 dp; green tiles and picture picking help | a closer look while placing, if the device run shows mis-taps | P1 (P0 if the device run confirms) |
 | B9 | Save architecture | one flat save; `"v": 1` written, never read; migration only by defaults | a `_migrate(d)` step keyed on `v`; player and factory split later | P2 |
 | B10 | **Collapse economy measurement** | `journey_lab` plays one run and projects the rest | a lab that plays collapse after collapse with upgrades carried over | P1 (the payout decision waits on it) |
-| B11 | **Welcome back panel** | shows credits only; offline research is added but never shown | the research line; "what now" (research ready, can descend, problems) | P1 |
+| B11 | **Welcome back panel** | credits, and now the research the Labs banked (it was added but never shown) | "what now" (research ready, can descend, problems): with the Worklist, B-1 | P1 |
 
 ### C — EXISTS BUT SHOULD IMPROVE
 
 | # | item | state | fix | priority |
 |---|---|---|---|---|
-| C1 | **Analytics opt-out does not persist** | the Settings switch calls `Analytics.set_enabled` only; every launch starts enabled | keep it in settings and apply it at start | P1 (privacy) |
-| C2 | Offline rate can be saved as zero | Descend and Collapse zero the rate and save at once; backgrounding in the next 3 s banks nothing | keep the last good rate for offline | P3 |
+| C1 | ~~Analytics opt-out does not persist~~ **FIXED** | the choice is kept in `user://analytics_off`, read before the first event of every launch (`Analytics._load_consent`); test and smoke switch | — | done |
+| C2 | ~~Offline rate can be saved as zero~~ **FIXED** | a Descend keeps the last measured rate for offline (`Sim.offline_rate`); a collapse still banks zero for its empty board; `test_a_descend_does_not_throw_away_the_offline_rate` | — | done |
 | C3 | Docs that overstate | README advertises "reroll a stratum" ads and blueprints that "save and load"; the data-safety form declares collection that does not happen | correct the words | P2 |
 | C4 | CI | `ci` runs on push to `main` only; this branch runs by hand | run on this branch's pushes too | P2 |
 | C5 | Settings audio switches | Sounds and Volume not in the smoke test | add them | P3 |

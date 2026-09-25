@@ -46,6 +46,12 @@ var settings: Dictionary = {"sound": true, "haptics": true}
 ## Live measured rates, used for the header and for offline earnings.
 var credits_per_sec: float = 0.0
 var research_per_sec: float = 0.0
+## The last rates actually measured on this board. The display restarts at
+## zero after a Descend (the stratum's rules change the rate), but a save
+## made before the new stratum's first measurement banks offline income at
+## these, not at nothing. A collapse clears them with the board.
+var _measured_rate: float = 0.0
+var _measured_research_rate: float = 0.0
 
 var _rate_accum_credits: float = 0.0
 var _rate_accum_research: float = 0.0
@@ -129,6 +135,8 @@ func _process(delta: float) -> void:
 	if _rate_elapsed >= RATE_WINDOW and _started:
 		credits_per_sec = _rate_accum_credits / _rate_elapsed
 		research_per_sec = _rate_accum_research / _rate_elapsed
+		_measured_rate = credits_per_sec
+		_measured_research_rate = research_per_sec
 		_rate_accum_credits = 0.0
 		_rate_accum_research = 0.0
 		_rate_elapsed = 0.0
@@ -290,6 +298,8 @@ func collapse() -> int:
 	# empty board is rebuilt from.
 	core_online = false
 	_reset_rate_window(true)
+	_measured_rate = 0.0
+	_measured_research_rate = 0.0
 	_recompute()
 	collapsed.emit(gained)
 	stats_changed.emit()
@@ -402,6 +412,13 @@ func blueprint_slots() -> int:
 	return base + Store.bonus_blueprint_slots()
 
 
+## The credits per second a save banks offline income at: the rate on
+## screen, or, in the seconds after a Descend before the new stratum's first
+## measurement, the last one measured on this same board.
+func offline_rate() -> float:
+	return credits_per_sec if credits_per_sec > 0.0 else _measured_rate
+
+
 func offline_hours() -> float:
 	return float(_mult.get("offline_hours", Economy.OFFLINE_BASE_HOURS)) \
 		+ Store.bonus_offline_hours()
@@ -498,8 +515,8 @@ func to_dict() -> Dictionary:
 		"tutorial_moves": tutorial_moves,
 		"tutorial_saw_heat": tutorial_saw_heat,
 		"core_online": core_online,
-		"rate": credits_per_sec,
-		"research_rate": research_per_sec,
+		"rate": offline_rate(),
+		"research_rate": research_per_sec if research_per_sec > 0.0 else _measured_research_rate,
 		"saved_at": Time.get_unix_time_from_system(),
 	}
 
@@ -519,7 +536,9 @@ func from_dict(d: Dictionary) -> void:
 	tutorial_moves = int(d.get("tutorial_moves", 0))
 	tutorial_saw_heat = bool(d.get("tutorial_saw_heat", false))
 	credits_per_sec = float(d.get("rate", 0.0))
+	_measured_rate = credits_per_sec
 	research_per_sec = float(d.get("research_rate", 0.0))
+	_measured_research_rate = research_per_sec
 	grid.from_dict(d.get("grid", {}))
 	# A save from before the Core had to be brought online: a shaft with
 	# anything on its board, or the price of a first Drill in the purse, is

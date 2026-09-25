@@ -1288,7 +1288,6 @@ func _rebuild_palette() -> void:
 
 
 func _make_palette_button(id: String) -> Control:
-	var m: Dictionary = MachineDB.get_machine(id)
 	var b := Button.new()
 	b.custom_minimum_size = Vector2(98, MIN_TOUCH)
 	b.toggle_mode = true
@@ -2765,7 +2764,22 @@ func _show_offline(report: Dictionary) -> void:
 	if bool(report.get("capped", false)):
 		detail += "\n\n" + Loc.t("Your offline banking is full at %.0f hours. Night Shift in Research raises it.") % Sim.offline_hours()
 	head.add_child(_help_button(Loc.t("While you were away"), func() -> String: return detail))
-	body.add_child(head)
+	# The research the Labs banked too: it is added to the purse on return
+	# (Save.load_game), so it is shown, beside the credits' own picture.
+	var banked_research: float = float(report.get("research", 0.0))
+	if banked_research > 0.0:
+		var rrow := HBoxContainer.new()
+		rrow.add_theme_constant_override("separation", 12)
+		var pad := Control.new()
+		pad.custom_minimum_size = Vector2(110.0, 0.0)
+		rrow.add_child(pad)
+		rrow.add_child(_icon_rect("research", 56))
+		rrow.add_child(_label("+%s" % Economy.fmt(banked_research), 34, Palette.RESEARCH))
+		body.set_meta("research_row", true)
+		body.add_child(head)
+		body.add_child(rrow)
+	else:
+		body.add_child(head)
 
 	var actions: Array = []
 	if Ads.can_offer(Ads.P_DOUBLE_OFFLINE):

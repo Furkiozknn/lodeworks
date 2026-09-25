@@ -108,7 +108,7 @@ func _run() -> void:
 	_main.call("_on_unlocked", ["smelter", "boiler"])
 	await _settle(0.5)
 	await _screen("26_new_machines")
-	_main.call("_show_offline", {"amount": 1234.0, "seconds_away": 7300.0,
+	_main.call("_show_offline", {"amount": 1234.0, "research": 56.0, "seconds_away": 7300.0,
 		"seconds_counted": 7300.0, "rate": 0.45, "capped": true})
 	await _settle(0.4)
 	await _screen("27_welcome_back")
