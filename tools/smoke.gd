@@ -486,6 +486,37 @@ func _run() -> void:
 		store_after.call("debug_revoke")
 	await _settle(0.4)
 
+	# Every card again, deep in a run, where the code takes other branches
+	# (nothing new to unlock, the collapse open, rules that move nothing):
+	# none of them may leave a node behind. A deep save found one that did.
+	var keep: Array = [Sim.depth, Sim.max_depth, Sim.research, Sim.cores, Sim.lifetime_credits]
+	Sim.depth = 15
+	Sim.max_depth = 15
+	Sim.research = 1.0e6
+	Sim.cores = 60
+	Sim.lifetime_credits = 5.0e7
+	await _settle(0.2)
+	var leaked: Array[String] = []
+	for card: String in ["_show_below", "_show_stratum_info", "_show_core", "_show_research",
+			"_show_collapse", "_show_worklist", "_show_settings"]:
+		var before: float = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+		_main.call(card)
+		await _settle(0.15)
+		_main.call("_close_overlay")
+		await _settle(0.1)
+		var after: float = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+		if after > before:
+			leaked.append("%s (%d)" % [card, int(after - before)])
+	if not leaked.is_empty():
+		_failures.append("deep in a run, these cards left orphaned nodes: " + ", ".join(leaked))
+	print("  deep cards: %s" % ("no node left behind" if leaked.is_empty() else ", ".join(leaked)))
+	Sim.depth = int(keep[0])
+	Sim.max_depth = int(keep[1])
+	Sim.research = float(keep[2])
+	Sim.cores = int(keep[3])
+	Sim.lifetime_credits = float(keep[4])
+	await _settle(0.2)
+
 	# The diagnostics screen itself: instantiated, run, and rendered.
 	_main.call("_open_diagnostics")
 	await _settle(2.0)

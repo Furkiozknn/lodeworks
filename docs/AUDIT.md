@@ -1716,8 +1716,10 @@ of new machines was built, found empty -- past stratum 10 nothing is new
 -- and never added or freed; the same for a rule that moves none of the
 player's machines), and **the tray and the warning key re-applied their
 colours on every tick**, which is a relayout each time. The rows are freed
-now, and the smoke test looks below stratum 12 and fails on any node left
-behind; the colours change only when what they show does (the HUD's
+now, and so is the collapse card's when its Cores open nothing new (a
+third one, found the same way); the smoke test now opens every card again
+at stratum 15 with the collapse open and fails, naming the card, on any
+node left behind; the colours change only when what they show does (the HUD's
 share of a late-board tick 2.0 -> 1.4 ms).
 
 ### Toward more than one factory (not built)

@@ -2809,6 +2809,8 @@ func _show_collapse() -> void:
 		opens.add_child(_label(Loc.tn("These Cores open this research line.",
 			"These Cores open these research lines.", opened.size()), 20, Palette.TEXT_DIM))
 		body.add_child(opens)
+	else:
+		opens.free()
 	body.set_meta("opens", opened)
 	body.set_meta("state", "ready" if Sim.can_collapse() else "empty")
 	_open_overlay(Loc.t("Collapse"), body,
