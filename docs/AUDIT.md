@@ -1030,8 +1030,10 @@ Every row changes something real, applied in one place
   along a link: they are the information, not decoration. Machine
   animation has its own switch, Machine effects.
 
-The smoke test flips six of these switches and checks that each one
-changes what it names, and that flipping it back restores it. Things the
+The smoke test flips nine of these switches (with Sounds, Anonymous
+statistics and Reduce motion since) and checks that each one changes
+what it names, and that flipping it back restores it; it presses
+Volume's - and + and checks the master bus moves and comes back. Things the
 brief listed but the game does not have got no row: music, notifications,
 language, an account or cloud save, and camera sensitivity. The version
 number sits under the groups.

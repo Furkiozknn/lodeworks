@@ -96,8 +96,8 @@ mid-term, P3 a future system, P4 not needed now.
 | C1 | ~~Analytics opt-out does not persist~~ **FIXED** | the choice is kept in `user://analytics_off`, read before the first event of every launch (`Analytics._load_consent`); test and smoke switch | — | done |
 | C2 | ~~Offline rate can be saved as zero~~ **FIXED** | a Descend keeps the last measured rate for offline (`Sim.offline_rate`); a collapse still banks zero for its empty board; `test_a_descend_does_not_throw_away_the_offline_rate` | — | done |
 | C3 | ~~Docs that overstate~~ **FIXED** | README advertised a "reroll a stratum" ad that ships unreachable, "one IAP" where there are two, and blueprints that "save and load"; RELEASE said the tree "sells slots"; the data-safety form declared analytics collection that never happens | corrected; the form now follows `Analytics.endpoint` (empty: "not collected", with the note to re-run when one is set). Left for the owner: the privacy policy still describes statistics as if they may be sent, which is right only once an endpoint exists | done |
-| C4 | CI | `ci` runs on push to `main` only; this branch runs by hand | run on this branch's pushes too | P2 |
-| C5 | Settings audio switches | Sounds and Volume not in the smoke test | add them | P3 |
+| C4 | CI | `ci` runs on push to `main` only; this branch runs by hand | run on this branch's pushes too. **Not done on purpose**: each run is about ten jobs on a private repository's metered minutes, and every checkpoint on this branch is already dispatched by hand and confirmed green; turning it on is one line when the owner wants it (PROPOSED) | P3 |
+| C5 | ~~Settings audio switches~~ **FIXED** | Sounds and Volume were not in the smoke test | the smoke test flips Sounds, and presses Volume's - and + and checks the master bus moves and comes back | done |
 
 ### D — UNKNOWN (a real phone or store)
 
@@ -249,6 +249,21 @@ the world.
   The key appears when the Foreman's first chapter ends (or after a
   collapse); before that the Foreman is the worklist.
 
+**B-1b — "What now?" can lead into a board with no room for the next
+step (P2).** Found by the collapse lab: a player who places only what
+the list names, on the tiles where it says the machine works, builds
+Drills and Vaults in a checkerboard. On that board no empty tile touches
+both a Drill and a Vault, so a Crusher never "works" anywhere, the list
+never names it, and the chain never grows (one run: 49 Drills, 52
+Vaults, nothing else). The green tiles in the game follow the same rule,
+so a player placing only on green tiles meets the same wall. The Vault is
+now named only when nothing else would work, which fixes the order but
+not the wall. PROPOSED fix: when the furthest unlocked step works on no
+tile but is fed on one with an empty tile beside it, the list says
+"Place a Crusher beside a Drill, with a Vault next to it", and the
+placement preview marks those tiles in a second colour. Tested in the
+lab by a player who follows only the list.
+
 **B-2 — A collapse lab (P1, measurement).**
 - WHY: the payout decision (§4) needs real multi-collapse numbers, not
   a projection.
@@ -283,6 +298,27 @@ the world.
 - Proposal: a slice that saves the yard's layout and applies it with the
   green-tile preview and its cost. Or remove the slots.
 - The owner chooses.
+- MEMO (**PROPOSED**, owner's decision):
+  - *The cost it would remove, measured.* The collapse lab's player
+    (B-2) rebuilds 257, 351 and 372 machines in its first three runs, by
+    hand, and the tree takes three or four collapses: over a thousand
+    placements that repeat a board the player already designed.
+  - *A. Layouts (recommended).* Save the yard as a layout (machine ids
+    and offsets from the Core). After a collapse, a Rebuild key places
+    the layout as the yard and the purse allow, in chain order, each
+    placement exactly a manual one (same price, same rules); what does
+    not fit waits and continues as the yard grows. It saves taps, not
+    credits. One free slot; the hidden Drafting Table line and the
+    Licence's two slots become real. About two rounds: a slot list with a
+    small map, the save/apply logic in the simulation (pure, testable).
+  - *B. Remove the slots.* Delete the Drafting Table line, the Licence's
+    grant and `Sim.blueprints`. Small; no screen.
+  - *C. Keep them hidden* (today): harmless, but dead weight in the code
+    and in a paid product's grants.
+  - *Why it is the owner's:* it changes what a paid product grants, and
+    a faster rebuild makes every run after a collapse shorter, so the
+    permanent tree finishes sooner still: decide it together with the
+    collapse payout (B-2).
 
 **B-6 — Save format v2 groundwork (P2).** `_migrate` keyed on `v`, with
 a round-trip test; no split yet.

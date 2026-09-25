@@ -96,6 +96,7 @@ func _run() -> void:
 		["access", "Larger text", func() -> bool:
 			var cap: Label = (_main.get("_btn_research") as Button).find_children("*", "Label", true, false)[0]
 			return cap.get_theme_font_size("font_size") > int(cap.get_meta("base_fs"))],
+		["audio", "Sounds", func() -> bool: return bool(Juice.sound_enabled)],
 		["audio", "Ambience", func() -> bool: return bool(Juice.ambient_enabled)],
 		["controls", "Vibration", func() -> bool: return bool(Juice.haptics_enabled)],
 		["game", "Anonymous statistics", func() -> bool: return Analytics.enabled and not FileAccess.file_exists(Analytics.OFF_PATH)],
@@ -120,6 +121,27 @@ func _run() -> void:
 		if after == before or back != before:
 			_failures.append("the '%s' switch does not change what it names" % c[1])
 	print("  settings: %d switches checked" % checks.size())
+	# Volume: its - and + keys move the master bus, one step each way.
+	_main.set("_settings_tab", "audio")
+	_main.call("_fill_settings_page")
+	await _settle(0.1)
+	var steps: Dictionary = {}
+	for n: Node in _main.find_children("*", "Button", true, false):
+		if n.has_meta("volume_step") and not n.is_queued_for_deletion():
+			steps[int(n.get_meta("volume_step"))] = n
+	if steps.size() != 2:
+		_failures.append("the Volume row has %d keys, not - and +" % steps.size())
+	else:
+		# Down then up, or up then down from silence.
+		var first: int = 1 if int(Sim.settings.get("volume", 5)) == 0 else -1
+		var db0: float = AudioServer.get_bus_volume_db(0)
+		(steps[first] as Button).pressed.emit()
+		var db1: float = AudioServer.get_bus_volume_db(0)
+		(steps[-first] as Button).pressed.emit()
+		if is_equal_approx(db1, db0) or not is_equal_approx(AudioServer.get_bus_volume_db(0), db0):
+			_failures.append("Volume - and + do not move the sound: %.1f, %.1f, %.1f dB"
+				% [db0, db1, AudioServer.get_bus_volume_db(0)])
+	print("  volume: - and + checked")
 	_main.call("_close_overlay")
 	await _settle(0.3)
 
