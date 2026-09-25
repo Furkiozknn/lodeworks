@@ -171,7 +171,8 @@ func _check_listing() -> void:
 	# them (tools/check-store-assets.py) and keeps them as the `screenshots`
 	# artifact. A local render counts as well.
 	var ci_renders: bool = _read("res://.github/workflows/ci.yml").contains("tools/store-assets.sh")
-	var where: String = "; CI renders and checks them on every build (artifact `screenshots`)" 		if ci_renders else ""
+	var where: String = "; CI renders and checks them on every build (artifact `screenshots`)" \
+		if ci_renders else ""
 	_row("listing", "phone screenshots (Play wants 2-8, 4+ for games)",
 		DONE if shots >= 4 or ci_renders else MANUAL, "%d here%s" % [shots, where])
 	_row("listing", "tablet screenshots (4 minimum for a games listing)",

@@ -169,31 +169,37 @@ static func best_placement(state: Object) -> Dictionary:
 	var sim: Simulation = state.get("sim")
 	var unlocked: Array = state.get("unlocked")
 	var yard: Array[int] = BuildArea.cells(int(state.get("max_depth")))
-	var best: Dictionary = {}
+	# The empty tiles next to a machine, once: the only ones anything could
+	# work on. Then the chain from its far end, stopping at the first step
+	# that works -- the answer -- instead of trying every machine on every
+	# tile (40 ms on a half-built late yard).
+	var open: Array[int] = []
+	for cell: int in yard:
+		if grid.is_empty(cell) and not bool(state.call("is_blocked", cell)) \
+				and not grid.neighbour_machines(cell).is_empty():
+			open.append(cell)
 	var sink: Dictionary = {}
-	for id: String in MachineDB.ORDER:
+	for k in range(MachineDB.ORDER.size() - 1, -1, -1):
+		var id: String = String(MachineDB.ORDER[k])
 		if not unlocked.has(id) or not bool(state.call("can_afford", id)):
 			continue
 		var m: Dictionary = MachineDB.get_machine(id)
-		var tags: Array = m.get("tags", [])
+		var tags: Array = m["tags"]
 		if (m["inputs"] as Dictionary).is_empty() and (m["outputs"] as Dictionary).is_empty() \
 				and not tags.has("sink") and not tags.has("research"):
 			continue
+		if tags.has("sink") and not sink.is_empty():
+			continue
 		var n: int = 0
 		var first: int = -1
-		for cell: int in yard:
-			if not grid.is_empty(cell) or bool(state.call("is_blocked", cell)):
-				continue
-			if grid.neighbour_machines(cell).is_empty():
-				continue
+		for cell: int in open:
 			var l: Dictionary = sim.links_if_placed(cell, id)
 			if bool(l["fed"]) and bool(l["delivers"]):
 				if n == 0:
 					first = cell
 				n += 1
 		if n > 0:
-			if tags.has("sink"):
-				sink = {"id": id, "cells": n, "cell": first}
-			else:
-				best = {"id": id, "cells": n, "cell": first}
-	return sink if best.is_empty() else best
+			if not tags.has("sink"):
+				return {"id": id, "cells": n, "cell": first}
+			sink = {"id": id, "cells": n, "cell": first}
+	return sink
