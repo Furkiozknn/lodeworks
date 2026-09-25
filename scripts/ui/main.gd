@@ -1467,7 +1467,7 @@ func _on_collapsed(gained: int) -> void:
 	# punishment, and the wording is half of that.
 	_refresh_hint()
 	_info("The shaft collapses",
-		"You brought up %d Cores.\n\nCores are the only thing that survives a collapse — and everything you spend them on survives with them. The next shaft goes deeper and faster than this one did." % gained)
+		"You brought up %d Cores.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did." % gained)
 
 
 func _on_reward(placement: String) -> void:
@@ -2571,10 +2571,42 @@ func _show_collapse() -> void:
 		kept.add_child(_fated(pic, 76.0, true))
 	fate.add_child(kept)
 	body.add_child(fate)
+
+	# What the Cores are for: the research lines whose Core price the new
+	# total reaches and today's does not. They still cost Research, which a
+	# collapse takes, so the words say "open", not "buy".
+	var opens := HBoxContainer.new()
+	opens.alignment = BoxContainer.ALIGNMENT_CENTER
+	opens.add_theme_constant_override("separation", 12)
+	var opened: Array[String] = _cores_open(gained)
+	for id: String in opened:
+		opens.add_child(_research_art(id, 64.0, false))
+	if not opened.is_empty():
+		opens.add_child(_label("These Cores open %s." % ("this research line" if opened.size() == 1
+			else "these research lines"), 20, Palette.TEXT_DIM))
+		body.add_child(opens)
+	body.set_meta("opens", opened)
 	body.set_meta("state", "ready" if Sim.can_collapse() else "empty")
 	_open_overlay("Collapse", body,
 		[{"text": "Collapse", "color": Palette.CORE, "disabled": not Sim.can_collapse(),
 			"cb": func(): Sim.collapse()}], 1000.0)
+
+
+## The research lines (not yet at their top level) whose next level needs
+## more Cores than the player has, and no more than they would have with
+## `gained` more.
+func _cores_open(gained: int) -> Array[String]:
+	var out: Array[String] = []
+	for id: String in Economy.TREE_ORDER:
+		if HIDDEN_RESEARCH.has(id):
+			continue
+		var lvl: int = Sim.upgrade_level(id)
+		if lvl >= int(Economy.RESEARCH_TREE[id]["max"]):
+			continue
+		var need: int = int(Economy.upgrade_cost(id, lvl)["cores"])
+		if need > Sim.cores and need <= Sim.cores + gained:
+			out.append(id)
+	return out
 
 
 ## A picture greyed, with a lock in its corner: not yet.

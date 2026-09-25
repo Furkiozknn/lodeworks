@@ -130,7 +130,7 @@ Then:
 | first session | the first strata take two or three minutes each, the middle ones three or four, and the first machine that only matters because of what it is next to arrives |
 | next day | offline production banked while you were away |
 | first week | the component chain, Labs, and the research tree |
-| long term | collapse the shaft for Cores, which are the only thing that survives, and start again deeper and faster |
+| long term | collapse the shaft for Cores, which survive it with every upgrade you researched, and start again deeper and faster |
 
 Every stratum is generated from its depth — the same stratum 14 for everybody,
 no server involved — with up to two modifiers drawn from a table of twelve,
@@ -206,7 +206,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 288 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 289 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -294,7 +294,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            288 tests, no framework dependency
+tests/            289 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs

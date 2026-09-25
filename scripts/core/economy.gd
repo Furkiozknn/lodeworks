@@ -35,8 +35,10 @@ const RESEARCH_TREE := {
 	},
 	"yield_1": {
 		"name": "Deeper Bore",
-		"short": "Every machine makes more.",
-		"desc": "Every machine makes 20% more of whatever it makes.",
+		# Yield multiplies what a Digger or a Maker turns out (Simulation
+		# `yield_mult`). A Lab's research and a Vault's sale are not yields.
+		"short": "Diggers and Makers turn out more.",
+		"desc": "Every Digger and Maker turns out 20% more of what it makes. Labs and Vaults are not changed.",
 		"cost_research": 65.0,
 		"cost_cores": 0,
 		"max": 6,

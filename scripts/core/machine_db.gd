@@ -186,7 +186,7 @@ const MACHINES := {
 	"lab": {
 		"name": "Lab",
 		"short": "Turns parts into research.",
-		"desc": "Turns components into Research instead of credits. Research is the only thing that survives a collapse, so a board with no Lab is a board with no future.",
+		"desc": "Turns components into Research instead of credits. What Research buys survives a collapse, so a board with no Lab is a board with no future.",
 		"cost": 2600.0,
 		"cost_growth": 1.22,
 		"inputs": {Res.COMPONENT: 1},

@@ -1390,11 +1390,31 @@ test flips it and checks that a caption grows. Key glyphs ("?", "✕") and
 the words on the few keys that set their own size are not scaled. They
 are 22-32 units already.
 
+### What the Cores open, and three sentences that said too much
+
+The collapse card showed the Cores a collapse pays, and nothing said what
+Cores are for. It now shows the research lines whose Core price the new
+total reaches and today's does not, as the research grid's own pictures:
+"These Cores open these research lines." They still cost Research, which
+a collapse takes, so the card says "open", not "buy". On the hero board
+with 2 Cores, +5 opens Ceramic Lining, Night Shift and Standing Orders
+(`ui_collapse`, `LODEWORKS_CAPTURE=ui`).
+
+Three texts said more than the game does:
+- Deeper Bore said "Every machine makes more" and "Every machine makes
+  20% more of whatever it makes". Yield multiplies what a Digger or a
+  Maker turns out. A Lab's research and a Vault's sale do not change. It
+  now says so, and `test_deeper_bore_does_what_its_words_say` holds it.
+- The Lab said "Research is the only thing that survives a collapse".
+  Unspent Research is lost at a collapse; what it bought is kept. It now
+  says "What Research buys survives a collapse".
+- After a collapse the Foreman's card said "Cores are the only thing that
+  survives a collapse". Every researched upgrade survives too. The README
+  said the same. Both are corrected.
+
 ### Follow-ups from the audits
 
 - **Resource nodes with a use**: needs the owner's decision (above).
-- **Deeper Bore's short line** "Every machine makes more" still overstates
-  it for the Lab; the long description is right.
 - **The collapse payout** and **blueprints**: the owner's decisions, noted
   in the master audit.
 - **Portrait store screenshots**: the game is landscape-only; the store

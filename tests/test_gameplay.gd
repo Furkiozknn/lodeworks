@@ -881,6 +881,24 @@ func test_a_tray_arrow_is_what_the_simulation_does_to_the_machine() -> void:
 				"a reason given is one of the stratum's own rules")
 
 
+func test_deeper_bore_does_what_its_words_say() -> void:
+	# "Every Digger and Maker turns out 20% more of what it makes. Labs and
+	# Vaults are not changed." It said "every machine" until 25 September
+	# 2026, and a Lab's research never moved.
+	var st: Dictionary = Strata.describe(0)
+	var plain := Simulation.new(Grid.new(), 1)
+	Strata.apply(plain, plain.grid, st, Economy.multipliers({}))
+	var bored := Simulation.new(Grid.new(), 1)
+	Strata.apply(bored, bored.grid, st, Economy.multipliers({"yield_1": 1}))
+	runner.near(bored.yield_mult / plain.yield_mult, 1.0 + float(Economy.RESEARCH_TREE["yield_1"]["per_level"]),
+		0.0001, "what a Digger or Maker turns out")
+	runner.near(bored.research_mult, plain.research_mult, 0.0001, "a Lab's research is not changed")
+	runner.near(bored.value_mult, plain.value_mult, 0.0001, "nor what a Vault sells for")
+	runner.check(String(Economy.RESEARCH_TREE["yield_1"]["desc"]).contains("20%"),
+		"the words carry the number the tree uses")
+	runner.near(float(Economy.RESEARCH_TREE["yield_1"]["per_level"]), 0.20, 0.0001, "")
+
+
 func test_the_yard_is_the_same_after_a_collapse() -> void:
 	for i in range(0, Grid.W * Grid.H, 5):
 		runner.eq(BuildArea.is_open(i, 3, 1), BuildArea.is_open(i, 3, 0),
