@@ -138,7 +138,7 @@ const PAGES := [
 		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "vault"]],
 		"ambient": 2.6,
 		"watch": "The same three tiles, nine strata down.",
-		"body": "Depth multiplies what every machine yields and raises the ambient heat of the whole board. Some strata stop heat spreading, some collapse a third of the grid, some double what Amplifiers do. The board that was right up there is rarely right down here.",
+		"body": "Depth multiplies what every machine yields and raises the ambient heat of the whole board. Some strata stop heat spreading, some collapse a third of the grid, some double what Amplifiers do. The board that was right up there is rarely right down here. Hold Descend to see the next one first; arrows on the tray show what it does.",
 	},
 ]
 

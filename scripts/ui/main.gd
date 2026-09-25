@@ -646,7 +646,70 @@ func _show_stratum_info() -> void:
 	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	cost.add_child(bar)
 	body.add_child(cost)
-	var mods: Array = Sim.stratum().get("modifiers", [])
+	_rule_rows(body, Sim.depth, Sim.unlocked)
+	_open_overlay("Stratum %d" % Sim.depth, body, [])
+
+
+## What lies below: the next stratum before going down to it -- how far the
+## quota is, its rules with the machines they will move, the machines it
+## opens and the ground the yard gains. A tap on Descend before the quota
+## shows it, and so does holding Descend at any time. A board that is right
+## up here is rarely right down there (Codex, "Deeper is different"); this
+## is the chance to see how before paying for it.
+func _show_below() -> void:
+	var d: int = Sim.depth + 1
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	body.set_meta("below", d)
+	var where := HBoxContainer.new()
+	where.add_theme_constant_override("separation", 14)
+	where.add_child(_icon_rect("descend", 64))
+	var band: int = int(Palette.band_at(d)[0])
+	where.add_child(_label(BAND_NAMES[band], 28, Color(Palette.BAND_VEIN[band]).lightened(0.2)))
+	body.add_child(where)
+	# How far off it is.
+	var cost := HBoxContainer.new()
+	cost.add_theme_constant_override("separation", 12)
+	cost.add_child(_icon_rect("credits", 52))
+	cost.add_child(_label("%s / %s" % [Economy.fmt(Sim.credits), Economy.fmt(Sim.quota())], 26,
+		Palette.CORE))
+	var bar := Chips.Gauge.new(260, 18)
+	bar.value = clampf(Sim.credits / maxf(Sim.quota(), 1.0), 0.0, 1.0)
+	bar.fill = Palette.ACCENT
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cost.add_child(bar)
+	body.add_child(cost)
+	# Its rules, on the machines the player will have there.
+	var will_have: Array[String] = MachineDB.unlocked_at(maxi(d, Sim.max_depth))
+	_rule_rows(body, d, will_have)
+	# The machines it opens, and the ground.
+	var now: Array[String] = MachineDB.unlocked_at(Sim.depth)
+	var opens := HBoxContainer.new()
+	opens.add_theme_constant_override("separation", 8)
+	for id: String in MachineDB.unlocked_at(d):
+		if not now.has(id) and not Sim.unlocked.has(id):
+			opens.add_child(Chips.MachineSprite.new(id, 56.0))
+	if opens.get_child_count() > 0:
+		opens.add_child(_label("New machines down there.", 20, Palette.TEXT_DIM))
+		body.add_child(opens)
+	if d > Sim.max_depth and BuildArea.size_at(d) != BuildArea.size_at(Sim.max_depth):
+		var grow := HBoxContainer.new()
+		grow.add_theme_constant_override("separation", 12)
+		grow.add_child(_core_picture(48.0))
+		var s: Vector2i = BuildArea.size_at(d)
+		grow.add_child(_label("The yard grows to %d x %d." % [s.x, s.y], 20, Palette.TEXT_DIM))
+		body.add_child(grow)
+	var actions: Array = []
+	if Sim.can_descend():
+		actions.append({"text": "Descend", "color": Palette.WARN, "cb": _on_descend})
+	_open_overlay("Below: stratum %d" % d, body, actions)
+
+
+## A stratum's rules as rows: a star, the rule's name and words, and the
+## machines in `machines` it moves, with the arrows their tray keys show.
+## Plain rock says so.
+func _rule_rows(body: VBoxContainer, depth: int, machines: Array[String]) -> void:
+	var mods: Array[String] = Strata.modifiers_for(depth)
 	if mods.is_empty():
 		var calm := HBoxContainer.new()
 		calm.add_theme_constant_override("separation", 12)
@@ -669,8 +732,8 @@ func _show_stratum_info() -> void:
 		# The machines this rule moves, with the arrow their tray key shows.
 		var moved := HBoxContainer.new()
 		moved.add_theme_constant_override("separation", 6)
-		for mid: String in MachineDB.by_group(Sim.unlocked):
-			for e: Array in Strata.effects_on(mid, Sim.depth):
+		for mid: String in MachineDB.by_group(machines):
+			for e: Array in Strata.effects_on(mid, depth):
 				if String(e[0]) != String(id):
 					continue
 				var pic := Control.new()
@@ -686,7 +749,6 @@ func _show_stratum_info() -> void:
 			words.add_child(moved)
 		row.add_child(words)
 		body.add_child(row)
-	_open_overlay("Stratum %d" % Sim.depth, body, [])
 
 
 func _pill(icon_name: String, value: Label, sub: Label = null) -> Control:
@@ -869,7 +931,11 @@ func _build_descend() -> Control:
 	col.add_child(_next_row)
 	row.add_child(col)
 	_btn_descend.add_child(row)
-	_btn_descend.pressed.connect(_on_descend)
+	# Holding it shows what lies below, at any time.
+	_on_hold(_btn_descend, _show_below)
+	_btn_descend.pressed.connect(func():
+		if not _held_off(_btn_descend):
+			_on_descend())
 	return _btn_descend
 
 
@@ -1204,36 +1270,50 @@ func _make_palette_button(id: String) -> Control:
 	help.position = Vector2(98 - 42, 2)
 	b.add_child(help)
 	# The "?" is small, so holding the whole key opens the same words: a
-	# 96-unit target where the "?" is 40. A press that moves is the tray
-	# scrolling, not a hold.
-	var hold := {"down": false, "at": Vector2.ZERO, "n": 0, "fired": false}
-	b.gui_input.connect(func(e: InputEvent):
-		if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
-			hold["down"] = e.pressed
-			if e.pressed:
-				hold["fired"] = false
-				hold["at"] = (e as InputEventMouseButton).position
-				hold["n"] = int(hold["n"]) + 1
-				var n: int = int(hold["n"])
-				get_tree().create_timer(IsoView.LONG_PRESS_SECONDS).timeout.connect(func():
-					if bool(hold["down"]) and int(hold["n"]) == n and is_instance_valid(help):
-						hold["down"] = false
-						hold["fired"] = true
-						help.pressed.emit())
-		elif e is InputEventMouseMotion and bool(hold["down"]) \
-				and (e as InputEventMouseMotion).position.distance_to(hold["at"]) > IsoView.DRAG_THRESHOLD:
-			hold["down"] = false)
+	# 96-unit target where the "?" is 40.
+	_on_hold(b, func(): help.pressed.emit())
 
 	b.pressed.connect(func():
-		if bool(hold["fired"]):
+		if _held_off(b):
 			# The hold opened the words; the release that ends it arms nothing.
-			hold["fired"] = false
 			b.set_pressed_no_signal(_armed == id)
 			return
 		_arm(id))
 	_palette_buttons[id] = b
 	_palette_costs[id] = cost_lbl
 	return b
+
+
+## Holding key `b` still for half a second calls `cb`. A press that moves
+## is a drag or a scroll, not a hold. The release that ends a hold still
+## reaches the key's `pressed`, which asks `_held_off` first.
+func _on_hold(b: Button, cb: Callable) -> void:
+	var hold := {"down": false, "at": Vector2.ZERO, "n": 0}
+	b.set_meta("held", false)
+	b.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			hold["down"] = e.pressed
+			if e.pressed:
+				b.set_meta("held", false)
+				hold["at"] = (e as InputEventMouseButton).position
+				hold["n"] = int(hold["n"]) + 1
+				var n: int = int(hold["n"])
+				get_tree().create_timer(IsoView.LONG_PRESS_SECONDS).timeout.connect(func():
+					if bool(hold["down"]) and int(hold["n"]) == n and is_instance_valid(b):
+						hold["down"] = false
+						b.set_meta("held", true)
+						cb.call())
+		elif e is InputEventMouseMotion and bool(hold["down"]) \
+				and (e as InputEventMouseMotion).position.distance_to(hold["at"]) > IsoView.DRAG_THRESHOLD:
+			hold["down"] = false)
+
+
+## True once, for the release that ended a hold on `b`: not a press.
+func _held_off(b: Button) -> bool:
+	if bool(b.get_meta("held", false)):
+		b.set_meta("held", false)
+		return true
+	return false
 
 
 ## --- interaction -----------------------------------------------------------
@@ -1310,8 +1390,9 @@ func _on_cell_long_pressed(cell: int) -> void:
 
 func _on_descend() -> void:
 	if not Sim.can_descend():
-		Juice.reject()
-		_toast_msg("Reach %s credits to descend." % Economy.fmt(Sim.quota()))
+		# Not yet: what is down there, and how far off it is.
+		Juice.tap()
+		_show_below()
 		return
 	if Sim.descend():
 		_undo.clear()

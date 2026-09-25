@@ -232,6 +232,40 @@ func _run() -> void:
 	Sim.cores = had_cores
 	_main.call("_refresh")
 
+	# What lies below: a tap on Descend before the quota shows the next
+	# stratum instead of going there, and so does holding Descend.
+	var depth_was: int = Sim.depth
+	_main.call("_on_descend")
+	await _settle(0.6)
+	await _shot("11_below")
+	var below: int = -1
+	for n: Node in _main.find_children("*", "VBoxContainer", true, false):
+		if n.has_meta("below") and (n as Control).is_visible_in_tree():
+			below = int(n.get_meta("below"))
+	if Sim.can_descend() or below != depth_was + 1 or Sim.depth != depth_was:
+		_failures.append("Descend before the quota: showed %d, depth %d -> %d" % [below,
+			depth_was, Sim.depth])
+	_main.call("_close_overlay")
+	await _settle(0.3)
+	var dkey: Button = _main.get("_btn_descend")
+	var hold_down := InputEventMouseButton.new()
+	hold_down.button_index = MOUSE_BUTTON_LEFT
+	hold_down.pressed = true
+	hold_down.position = dkey.size * 0.5
+	dkey.gui_input.emit(hold_down)
+	await _settle(0.7)
+	var held_open: bool = (_main.get("_overlay") as Control).visible
+	var hold_up := hold_down.duplicate() as InputEventMouseButton
+	hold_up.pressed = false
+	dkey.gui_input.emit(hold_up)
+	dkey.pressed.emit()
+	if not held_open or Sim.depth != depth_was:
+		_failures.append("holding Descend: %s, depth %d -> %d" % ["opened" if held_open
+			else "nothing", depth_was, Sim.depth])
+	print("  below: stratum %d shown, held %s" % [below, "ok" if held_open else "no"])
+	_main.call("_close_overlay")
+	await _settle(0.3)
+
 	# Arriving at a stratum, the Foreman names its rules, and points at the
 	# arrows only when a rule moves a machine the player has.
 	var line8: String = String(_main.call("_stratum_line", 8))

@@ -1335,6 +1335,21 @@ rule the Research panel's cards use to show "ready". The hero board shows
 7. The smoke test gives the player everything, expects the count of every
 line, then nothing, and expects no count.
 
+**What lies below.** A stratum's rules used to be learned by arriving,
+and by then the board had been built for the stratum above. A tap on
+Descend before the quota is met now opens the next stratum instead of a
+toast. So does holding Descend at any time. The card shows:
+- the band and how far off the quota is;
+- its rules, with the machines they will move and their arrows;
+- the machines it opens;
+- the ground the yard gains.
+With the quota met, a tap still goes straight down, and the card has a
+Descend key. The rule rows are the same code as the current stratum's
+card (`main._rule_rows`). The hold is the same as a tray key's
+(`main._on_hold`), so a press that moves never counts, and the release
+that ends a hold does not descend. The smoke test checks all three
+(`11_below`). The Codex's "Deeper is different" page says both.
+
 This round also put back seven line breaks that a shell had turned into
 runs of tabs in earlier rounds (`main.gd`, `tools/smoke.gd`). The code
 ran the same; it was unreadable.

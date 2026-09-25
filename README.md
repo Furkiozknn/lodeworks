@@ -97,7 +97,9 @@ brings. Tapping a crystal, an ore vein or a heat vent round the yard says
 what it is, what uses it, and when the yard will reach it. On a stratum
 whose rules help or hold back a machine, its tray key carries a green or
 red arrow -- the simulation's own answer for that machine on that rock --
-and the stratum's card shows the same machines under each rule. Settings has a
+and the stratum's card shows the same machines under each rule. Holding Descend (or
+tapping it before the quota) shows the next stratum's rules, machines and
+ground before you go. Settings has a
 **Larger text** switch that makes every word a quarter bigger.
 
 The heat button glows before it is pressed when some machine is too hot, or
