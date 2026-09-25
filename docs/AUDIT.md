@@ -1296,6 +1296,34 @@ covering it. Holding the whole key for half a second now opens the same
 words, a 96-unit target. A press that moves is still the tray
 scrolling, and the release that ends a hold arms nothing (smoke test).
 
+### A stratum's rules, on the machines they move
+
+A stratum's modifiers were words on its card. "Every one of them should
+make you want to move a tile" (`scripts/core/strata.gd`), but nothing
+said which machine a rule moves, or at the moment the player chooses one.
+Now:
+- a tray key carries an arrow when this stratum helps its machine (green,
+  up) or holds it back (red, down), by 5% or more against plain rock at
+  the same depth;
+- its "?" names the rule and what it does ("Helped here: Brittle Rock.");
+- the stratum's card shows, under each rule, the machines it moves with
+  the same arrows.
+
+The arrow is `Strata.effect_on`: one machine alone on this rock, its
+speed, yield, sale value or research, and its own tile's heat, which is
+what `Strata.apply` and `Grid` give it. A test puts each of the twelve
+machines alone on every stratum from 1 to 59 and checks every arrow
+against the simulation's own numbers. The arrows say more than the
+words did. On stratum 1 (Thermal Vent, "Your smelters will love it. Your
+presses will not.") the rock's heat also costs a Drill 14% and a Vault
+7%, and the tray says so. A rule that changes the whole board (Unstable,
+Cramped, how far heat spreads) gives no machine an arrow. Screenshots
+`field_i_rules` and `field_j_stratum` (stratum 8, Brittle Rock).
+
+This round also put back seven line breaks that a shell had turned into
+runs of tabs in earlier rounds (`main.gd`, `tools/smoke.gd`). The code
+ran the same; it was unreadable.
+
 ### Follow-ups from the audits
 
 - **Resource nodes with a use**: needs the owner's decision (above).

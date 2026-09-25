@@ -94,7 +94,10 @@ four numbers -- machines, how many are working, how many need help (the
 warning key's own count, with a key that goes to the first one), and what
 it earns -- with how much of the yard is built and what the next stratum
 brings. Tapping a crystal, an ore vein or a heat vent round the yard says
-what it is, what uses it, and when the yard will reach it.
+what it is, what uses it, and when the yard will reach it. On a stratum
+whose rules help or hold back a machine, its tray key carries a green or
+red arrow -- the simulation's own answer for that machine on that rock --
+and the stratum's card shows the same machines under each rule.
 
 The heat button glows before it is pressed when some machine is too hot, or
 shows frost when one is too cold. Pressed, it relabels every tile with how far
@@ -200,7 +203,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 287 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 288 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -288,7 +291,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            287 tests, no framework dependency
+tests/            288 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs
