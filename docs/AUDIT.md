@@ -1360,8 +1360,20 @@ every price on the tray, and "next:" was 12. All of them are now 16.
 Every screen shape and safe area still passes the layout check. 9.6 dp is
 still under Android's 12 sp body text. Reaching 12 sp would take 20 units
 everywhere, and that means redrawing the keys, not changing a number.
-It is a follow-up, and so is a "Larger text" setting. How the text reads
-on a real phone at arm's length is UNKNOWN (DEVICE-TEST `text`).
+It is a follow-up. How the text reads on a real phone at arm's length is
+UNKNOWN (DEVICE-TEST `text`).
+
+**Settings, Accessibility, "Larger text".** It makes every word the
+interface writes a quarter bigger. On the reference phone the smallest
+text goes to 20 units, 12.0 dp, which is Android's body text size. Every
+label goes through `Palette.text_px`: the main screen's, the panels', the
+Codex's and the Supply Office's. Words already on screen are resized when
+the switch changes, without a restart. The layout check runs the deep
+shaft a second time with the switch on: all 11 shapes x 3 safe areas pass,
+and the smallest text is 11.4-12.0 dp on the landscape phones. The smoke
+test flips it and checks that a caption grows. Key glyphs ("?", "✕") and
+the words on the few keys that set their own size are not scaled. They
+are 22-32 units already.
 
 ### Follow-ups from the audits
 

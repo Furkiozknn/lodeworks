@@ -103,6 +103,26 @@ func _ready() -> void:
 					await tree.process_frame
 				_check_yard(main, String(s[0]), Vector2(s[1]), int(s[2]), inset)
 		print("")
+	# Settings' "Larger text": the same deep shaft, every word a quarter
+	# bigger, on every shape and safe area.
+	var had: Variant = Sim.settings.get("large_text", false)
+	Sim.settings["large_text"] = true
+	main.call("_apply_settings")
+	_set_state("board", main, 14)
+	await tree.process_frame
+	await tree.process_frame
+	print("larger text: the deep shaft again")
+	for s: Array in SIZES:
+		tree.root.size = s[1]
+		for inset: Vector4 in INSETS:
+			main.call("set_safe_insets", inset)
+			for i in range(3):
+				await tree.process_frame
+			_check(main, "large " + String(s[0]), Vector2(s[1]), int(s[2]), inset,
+				s.size() < 4 or bool(s[3]))
+	Sim.settings["large_text"] = had
+	main.call("_apply_settings")
+	print("")
 	if _fail.is_empty():
 		print("=== layout check passed: %d screens x %d safe areas ===" % [SIZES.size(), INSETS.size()])
 		tree.quit(0)

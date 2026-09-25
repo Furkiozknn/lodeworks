@@ -687,6 +687,19 @@ func _run_field() -> void:
 	await _settle(0.8)
 	await _audit_shot("field_j_stratum" + tag)
 	_main.call("_close_overlay")
+
+	# Settings' "Larger text", on the same board, and the switch itself.
+	Sim.settings["large_text"] = true
+	_main.call("_apply_settings")
+	await _settle(0.6)
+	await _audit_shot("field_k_large" + tag)
+	_main.set("_settings_tab", "access")
+	_main.call("_show_settings")
+	await _settle(0.6)
+	await _audit_shot("field_l_settings" + tag)
+	_main.call("_close_overlay")
+	Sim.settings["large_text"] = false
+	_main.call("_apply_settings")
 	print("wrote the field screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 

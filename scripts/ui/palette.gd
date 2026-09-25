@@ -233,6 +233,19 @@ static func machine_color(id: String) -> Color:
 	return MACHINE_COLOR.get(id, Color("8fa5bd"))
 
 
+## Settings' "Larger text" makes every word the interface writes a quarter
+## bigger: the smallest (main.TEXT_MIN) goes from 9.6 to 12 dp on the
+## reference phone, Android's body text size. Every panel's labels are
+## sized through here.
+const LARGE_TEXT := 1.25
+
+
+static func text_px(size_px: int) -> int:
+	if bool(Sim.settings.get("large_text", false)):
+		return int(round(float(size_px) * LARGE_TEXT))
+	return size_px
+
+
 static func res_color(res: int) -> Color:
 	var arr: Array = Themes.resource_colors(_theme)
 	if res >= 0 and res < arr.size():

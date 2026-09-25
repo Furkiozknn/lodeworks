@@ -82,6 +82,10 @@ func _run() -> void:
 		["graphics", "Battery saver", func() -> bool: return Engine.max_fps == 30],
 		["access", "Zoom key", func() -> bool: return bool((_main.get("_btn_zoom") as Control).visible)],
 		["access", "Reduce motion", func() -> bool: return bool(_main.get("iso_view").get("calm_motion"))],
+		# The Research key's caption, made at TEXT_MIN: bigger with the switch on.
+		["access", "Larger text", func() -> bool:
+			var cap: Label = (_main.get("_btn_research") as Button).find_children("*", "Label", true, false)[0]
+			return cap.get_theme_font_size("font_size") > int(cap.get_meta("base_fs"))],
 		["audio", "Ambience", func() -> bool: return bool(Juice.ambient_enabled)],
 		["controls", "Vibration", func() -> bool: return bool(Juice.haptics_enabled)],
 	]

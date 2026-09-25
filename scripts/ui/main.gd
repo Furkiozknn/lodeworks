@@ -55,6 +55,8 @@ var _pill_research: Control
 var _pill_cores: Control
 var _btn_research: Button
 var _research_badge: Label
+## The text size the labels on screen were last sized for.
+var _large_text_now: bool = false
 var _btn_collapse: Button
 var _resources: Control
 var _tools: Control
@@ -430,10 +432,23 @@ func _build() -> void:
 func _label(text: String, size_px: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", size_px)
+	# The size it was made at, so Settings' "Larger text" can resize it later.
+	l.set_meta("base_fs", size_px)
+	l.add_theme_font_size_override("font_size", Palette.text_px(size_px))
 	l.add_theme_color_override("font_color", col)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
+
+
+## Resize every word already on screen after "Larger text" changes, then
+## lay the corners out again round the bigger or smaller panels.
+func _apply_text_size() -> void:
+	for n: Node in find_children("*", "Label", true, false):
+		if n.has_meta("base_fs"):
+			(n as Label).add_theme_font_size_override("font_size",
+				Palette.text_px(int(n.get_meta("base_fs"))))
+	if _stratum_card != null:
+		_layout_hud()
 
 
 ## Panels are dark glass: the world shows through them a little, so the
@@ -2615,6 +2630,11 @@ func _apply_settings() -> void:
 		iso_view.calm_motion = bool(st.get("reduce_motion", false))
 	if _btn_zoom != null:
 		_show_what_matters()
+	# Only when it changes: a pass over every label is not free.
+	var large: bool = bool(st.get("large_text", false))
+	if large != _large_text_now:
+		_large_text_now = large
+		_apply_text_size()
 
 
 ## Settings, in five groups down the left and the switches for the chosen
@@ -2760,6 +2780,10 @@ func _fill_settings_page() -> void:
 				"No swelling, flickering or plunging",
 				bool(Sim.settings.get("reduce_motion", false)),
 				func(on: bool): _set_setting("reduce_motion", on)))
+			page.add_child(_setting_switch(Chips.Glyph.new("text", 52.0), "Larger text",
+				"Every word a quarter bigger",
+				bool(Sim.settings.get("large_text", false)),
+				func(on: bool): _set_setting("large_text", on)))
 
 
 func _set_setting(key: String, value: Variant) -> void:

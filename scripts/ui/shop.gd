@@ -412,7 +412,7 @@ func _theme_picker() -> Control:
 func _label(text: String, size_px: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", size_px)
+	l.add_theme_font_size_override("font_size", Palette.text_px(size_px))
 	l.add_theme_color_override("font_color", col)
 	return l
 

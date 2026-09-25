@@ -209,6 +209,11 @@ class Glyph extends Control:
 					_p(0.72, 0.32)]), red, w, true)
 				for x in [0.42, 0.5, 0.58]:
 					draw_line(_p(x, 0.42), _p(x, 0.74), red, w * 0.8)
+			"text":
+				# A big letter and a small one: the size of the words.
+				var f: Font = get_theme_default_font()
+				draw_string(f, _p(0.1, 0.8), "A", HORIZONTAL_ALIGNMENT_LEFT, -1, int(s * 0.66), col)
+				draw_string(f, _p(0.58, 0.8), "a", HORIZONTAL_ALIGNMENT_LEFT, -1, int(s * 0.4), acc)
 			"up", "down":
 				# A stratum's verdict on a machine: a round badge with an
 				# arrow, up in green or down in red -- the shape says it too.
