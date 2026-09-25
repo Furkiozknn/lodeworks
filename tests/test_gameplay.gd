@@ -786,6 +786,45 @@ func test_a_new_shaft_builds_in_a_small_yard_round_the_core() -> void:
 	Save.wipe()
 
 
+func test_the_core_card_counts_what_the_warning_key_counts() -> void:
+	# A working pair and a lone Drill with nowhere to sell, round the Core.
+	var g := Grid.new()
+	g.place(Grid.idx(19, 20), "drill")
+	g.place(Grid.idx(19, 21), "vault")
+	g.place(Grid.idx(25, 25), "drill")
+	var s := Simulation.new(g, 7)
+	s.run_ticks(600)
+	var rep: Dictionary = FactoryReport.of(g, s, 1)
+	var p: Dictionary = s.problem_counts()
+	runner.eq(int(rep["machines"]), 3, "three machines")
+	runner.eq(int(rep["problems"]), int(p["starved"]) + int(p["blocked"]) + int(p["thermal"]),
+		"need help is the warning key's own count")
+	runner.gte(float(rep["problems"]), 1.0, "the lone Drill needs help")
+	runner.eq(int(rep["working"]) + int(rep["problems"]), 3, "every other machine is working")
+	runner.eq(int(rep["tiles"]), 48, "stratum 1's yard: 48 tiles")
+	var rubble: Dictionary = {Grid.idx(19, 19): true, Grid.idx(3, 3): true}
+	runner.eq(int(FactoryReport.of(g, s, 1, rubble)["tiles"]), 47,
+		"rubble in the yard is not a tile to build on; rubble outside it changes nothing")
+
+
+func test_the_core_card_says_when_the_yard_next_grows() -> void:
+	var s := Simulation.new(Grid.new(), 7)
+	for d in range(0, 40):
+		var rep: Dictionary = FactoryReport.of(s.grid, s, d)
+		var at: int = int(rep["next_stratum"])
+		if at < 0:
+			runner.check(BuildArea.is_whole_board(d), "no next growth only on the whole board")
+			continue
+		runner.gt(float(at), float(d), "stratum %d: the next growth is deeper" % d)
+		runner.gt(float(BuildArea.radius_at(at)), float(BuildArea.radius_at(d)),
+			"stratum %d: and the yard is wider there" % d)
+		runner.eq(BuildArea.radius_at(at - 1), BuildArea.radius_at(d),
+			"stratum %d: and not before" % d)
+		runner.eq(rep["next_size"], BuildArea.size_at(at), "its size is the yard's there")
+	runner.eq(int(FactoryReport.of(s.grid, s, 0)["next_stratum"]), 1, "a new shaft grows at 1")
+	runner.eq(int(FactoryReport.of(s.grid, s, 4)["next_stratum"]), 7, "stratum 4 waits for 7")
+
+
 func test_the_yard_is_the_same_after_a_collapse() -> void:
 	for i in range(0, Grid.W * Grid.H, 5):
 		runner.eq(BuildArea.is_open(i, 3, 1), BuildArea.is_open(i, 3, 0),

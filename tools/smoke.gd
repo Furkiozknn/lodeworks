@@ -156,6 +156,72 @@ func _run() -> void:
 	_main.call("_close_overlay")
 	await _settle(0.3)
 
+	# The Factory Core's card: its numbers are the factory's, and "need
+	# help" is the warning key's own count.
+	_main.call("_show_core")
+	await _settle(0.6)
+	await _shot("10_core")
+	var rep: Dictionary = {}
+	for n: Node in _main.find_children("*", "VBoxContainer", true, false):
+		if n.has_meta("report") and (n as Control).is_visible_in_tree():
+			rep = n.get_meta("report")
+	if rep.is_empty():
+		_failures.append("the Core card did not open")
+	else:
+		var p: Dictionary = Sim.sim.problem_counts()
+		var key_count: int = int(p["starved"]) + int(p["blocked"]) + int(p["thermal"])
+		if int(rep["machines"]) != Sim.grid.cells.size() or int(rep["problems"]) != key_count:
+			_failures.append("the Core card says %d machines, %d need help; the board has %d and the key %d"
+				% [int(rep["machines"]), int(rep["problems"]), Sim.grid.cells.size(), key_count])
+		print("  core card: %d machines, %d working, %d need help" % [int(rep["machines"]),
+			int(rep["working"]), int(rep["problems"])])
+	_main.call("_close_overlay")
+	await _settle(0.3)
+
+	# Holding a tray key opens its words, and the release that ends the hold
+	# arms nothing.
+	var tray: Dictionary = _main.get("_palette_buttons")
+	if not tray.is_empty():
+		var key: Button = tray[tray.keys()[0]]
+		var armed_before: String = String(_main.get("_armed"))
+		var down := InputEventMouseButton.new()
+		down.button_index = MOUSE_BUTTON_LEFT
+		down.pressed = true
+		down.position = key.size * 0.5
+		key.gui_input.emit(down)
+		await _settle(0.7)
+		if not (_main.get("_overlay") as Control).visible:
+			_failures.append("holding a tray key opened no words")
+		var up := down.duplicate() as InputEventMouseButton
+		up.pressed = false
+		key.gui_input.emit(up)
+		key.pressed.emit()
+		if String(_main.get("_armed")) != armed_before:
+			_failures.append("the release after a hold armed '%s'" % String(_main.get("_armed")))
+		print("  tray hold: %s" % ("words" if (_main.get("_overlay") as Control).visible else "nothing"))
+		_main.call("_close_overlay")
+		await _settle(0.3)
+
+	# A resource node's card: opens over a node, and closes on any other tap.
+	var view: Control = _main.get("iso_view")
+	var node_i: int = -1
+	var props: Array = IsoArt.placement().get("props", [])
+	for i in range(props.size()):
+		if ResourceNodes.is_node(String(props[i][2])) and not view.call("_prop_cleared", props[i]):
+			node_i = i
+			break
+	if node_i < 0:
+		_failures.append("no resource node stands round the yard")
+	else:
+		_main.call("_on_node_tapped", node_i)
+		await _settle(0.3)
+		var card: Control = _main.get("_node_card")
+		if card == null or not card.is_visible_in_tree():
+			_failures.append("a tap on a resource node opened no card")
+		_main.call("_close_node_card")
+		print("  node card: %s" % ("ok" if card != null else "missing"))
+	await _settle(0.2)
+
 	# The Codex. Every page on it runs a real simulation, so a page that
 	# fails to build is a page that renders as an empty box -- which is
 	# exactly what the lit-sample check below catches.

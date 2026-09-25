@@ -663,6 +663,16 @@ func _run_field() -> void:
 		await _settle(0.8)
 		await _audit_shot("field_g_node" + tag)
 		_main.call("_close_node_card")
+
+	# The Factory Core's card, on the hero board.
+	_apply_build("hero")
+	_main.call("_close_overlay")
+	gv.frame_board()
+	await _settle(3.2)
+	_main.call("_show_core")
+	await _settle(0.8)
+	await _audit_shot("field_h_core" + tag)
+	_main.call("_close_overlay")
 	print("wrote the field screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 

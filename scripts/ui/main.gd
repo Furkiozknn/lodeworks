@@ -1593,14 +1593,119 @@ func _on_core_tapped() -> void:
 		_refresh()
 		_refresh_hint()
 		return
+	_show_core()
+
+
+## The Factory Core's card: its level, and the factory it runs in pictures
+## and a few numbers -- machines, how many work, how many need help, what it
+## earns, how much of the yard is built, and what the next stratum brings.
+## The words are behind the "?". The numbers are FactoryReport's, which sums
+## up any factory it is handed, and "need help" is the warning key's count.
+func _show_core() -> void:
+	var rep: Dictionary = FactoryReport.of(Sim.grid, Sim.sim, Sim.max_depth,
+		Strata.blocked_cells(Sim.depth))
 	var lvl: int = IsoView.core_level()
-	var next: String = "It is as big as it gets." if lvl >= IsoView.CORE_LEVELS \
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 18)
+	body.set_meta("report", rep)
+
+	# The Core, its level as pips, and the words behind a "?".
+	var top := HBoxContainer.new()
+	top.alignment = BoxContainer.ALIGNMENT_CENTER
+	top.add_theme_constant_override("separation", 24)
+	top.add_child(_core_picture(150.0))
+	var lv := VBoxContainer.new()
+	lv.alignment = BoxContainer.ALIGNMENT_CENTER
+	lv.add_theme_constant_override("separation", 8)
+	lv.add_child(_label("LEVEL %d" % lvl, 34, Palette.CORE))
+	var pips := HBoxContainer.new()
+	pips.add_theme_constant_override("separation", 6)
+	for k in range(IsoView.CORE_LEVELS):
+		var pip := _pip(k < lvl) as ColorRect
+		pip.color = Palette.CORE if k < lvl else Color(Palette.BG, 0.9)
+		pips.add_child(pip)
+	lv.add_child(pips)
+	lv.add_child(_label("Stratum %d" % Sim.depth, 18, Palette.TEXT_DIM))
+	top.add_child(lv)
+	var next_lvl: String = "It is as big as it gets." if lvl >= IsoView.CORE_LEVELS \
 		else "It grows with its yard: at stratum %d it reaches level %d." % [
 			IsoView.stratum_for_level(lvl + 1), lvl + 1]
-	_info("Factory Core, level %d" % lvl, ("The heart of this shaft. It gave you the "
-		+ "credits for your first Drill and Vault; everything since, the board has "
-		+ "earned.\n\nStratum %d. %s Every stratum is richer rock, and new machines "
-		+ "open on the way down.") % [Sim.depth, next])
+	top.add_child(_help_button("Factory Core", func() -> String:
+		return ("The heart of this shaft. It gave you the credits for your first Drill "
+			+ "and Vault; everything since, the board has earned.\n\n%s Every stratum "
+			+ "is richer rock, and new machines open on the way down.") % next_lvl))
+	body.add_child(top)
+
+	# The factory in four numbers.
+	var stats := HBoxContainer.new()
+	stats.alignment = BoxContainer.ALIGNMENT_CENTER
+	stats.add_theme_constant_override("separation", 12)
+	var problems: int = int(rep["problems"])
+	stats.add_child(_core_stat(Chips.MachineSprite.new("drill", 46.0),
+		str(int(rep["machines"])), "machines", Palette.TEXT))
+	stats.add_child(_core_stat(_icon_rect("ok", 46), str(int(rep["working"])),
+		"working", Palette.GOOD))
+	stats.add_child(_core_stat(_icon_rect("warning", 46), str(problems), "need help",
+		Palette.WARN if problems > 0 else Palette.TEXT_DIM))
+	stats.add_child(_core_stat(_icon_rect("credits", 46),
+		"+%s/s" % Economy.fmt(Sim.credits_per_sec), "earning", Palette.CORE))
+	body.add_child(stats)
+
+	# How much of the yard is built.
+	var yard := HBoxContainer.new()
+	yard.alignment = BoxContainer.ALIGNMENT_CENTER
+	yard.add_theme_constant_override("separation", 14)
+	yard.add_child(_label("Yard", 22, Palette.TEXT))
+	var bar := Chips.Gauge.new(300, 18)
+	bar.value = clampf(float(rep["machines"]) / float(maxi(int(rep["tiles"]), 1)), 0.0, 1.0)
+	bar.fill = Palette.ACCENT
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	yard.add_child(bar)
+	yard.add_child(_label("%d / %d tiles" % [int(rep["machines"]), int(rep["tiles"])], 22,
+		Palette.TEXT))
+	body.add_child(yard)
+
+	# What going down brings next.
+	var nxt := HBoxContainer.new()
+	nxt.alignment = BoxContainer.ALIGNMENT_CENTER
+	nxt.add_theme_constant_override("separation", 12)
+	nxt.add_child(_icon_rect("descend", 44))
+	var at: int = int(rep["next_stratum"])
+	var grow: Vector2i = rep["next_size"]
+	var line: String = "The yard covers all the ground there is."
+	if at >= 0 and lvl < IsoView.CORE_LEVELS:
+		line = "Stratum %d: level %d, and the yard grows to %d x %d." % [at,
+			IsoView.level_at(at), grow.x, grow.y]
+	elif at >= 0:
+		line = "Stratum %d: the yard grows to %d x %d." % [at, grow.x, grow.y]
+	nxt.add_child(_label(line, 20, Palette.TEXT_DIM))
+	body.add_child(nxt)
+
+	# Something is wrong: one key takes the player to it.
+	var actions: Array = []
+	if problems > 0:
+		actions.append({"text": "Show me", "color": Palette.WARN, "cb": _cycle_problem})
+	_open_overlay("Factory Core", body, actions, 900.0)
+
+
+## One of the Core card's numbers: a picture, the number, a word under it.
+func _core_stat(pic: Control, value: String, word: String, col: Color) -> Control:
+	var p := _panel(Palette.PANEL_HI, 0.9)
+	p.custom_minimum_size = Vector2(170, 0)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(pic)
+	var words := VBoxContainer.new()
+	words.add_theme_constant_override("separation", -4)
+	words.alignment = BoxContainer.ALIGNMENT_CENTER
+	words.add_child(_label(value, 28, col))
+	words.add_child(_label(word, 15, Palette.TEXT_DIM))
+	row.add_child(words)
+	p.add_child(row)
+	return p
 
 
 ## Some steps have their answer on a button rather than on the board.
