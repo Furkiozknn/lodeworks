@@ -216,6 +216,44 @@ func _run() -> void:
 	_row("memory over the soak (static)", "%.1f MB -> %.1f MB (%+.1f MB), nodes %d -> %d" % [
 		m0, m1, m1 - m0, n0, n1])
 
+	# A late board: the whole yard at stratum 16, 380-odd tiles, where the
+	# collapse lab's player has 257-372 machines after an hour or two
+	# (docs/AUDIT.md, "Collapse after collapse, played"). The reference board
+	# above is 42. Rings round the Core: Vault, Crusher, Drill, repeating out.
+	Sim.grid.clear()
+	Sim.depth = 16
+	Sim.max_depth = 16
+	var rings: Array = ["vault", "crusher", "drill"]
+	for cell: int in BuildArea.cells(16):
+		if not Sim.is_blocked(cell):
+			Sim.grid.place(cell, String(rings[(BuildArea.reach(cell) - 1) % 3]))
+	Sim._recompute()
+	Sim.stats_changed.emit()
+	_main.call("_refresh")
+	_main.call("_close_overlay")
+	if view != null:
+		view.call("frame_board")
+	await _settle(3.0)
+	var late: int = Sim.grid.cells.size()
+	t = Time.get_ticks_usec()
+	for _i in range(100):
+		Sim.sim.tick()
+	_row("sim tick (late board, %d machines)" % late, "%.3f ms average over 100" % (
+		float(Time.get_ticks_usec() - t) / 100000.0))
+	# What each tick costs the screen on it, piece by piece: the board view
+	# (links, pipes lit by what moved, badges), the HUD, and the per-frame
+	# badge pass.
+	var parts: Array[String] = []
+	for part: Array in [["board view", func(): view.call("_on_stats")],
+			["HUD", func(): _main.call("_refresh")],
+			["badge pass", func(): view.get("badges").call("update", view.call("_raw_states"), 0.016)]]:
+		t = Time.get_ticks_usec()
+		for _i in range(10):
+			(part[1] as Callable).call()
+		parts.append("%s %.2f ms" % [part[0], float(Time.get_ticks_usec() - t) / 10000.0])
+	_row("per tick on the late board", ", ".join(parts))
+	_frame_row("frames, idle (late board, stratum 16, whole yard in view)", await _sample(5.0))
+
 	var md: Array[String] = ["| measure | value |", "|---|---|"]
 	for r: Array in _rows:
 		md.append("| %s | %s |" % [r[0], r[1]])

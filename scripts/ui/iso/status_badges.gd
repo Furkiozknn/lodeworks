@@ -156,7 +156,8 @@ func update(raw: Dictionary, dt: float) -> void:
 
 
 func shown(cell: int) -> int:
-	return int(_cells.get(cell, {}).get("shown", Show.NONE))
+	var c: Variant = _cells.get(cell)
+	return Show.NONE if c == null else int(c["shown"])
 
 
 ## --- the heat key -------------------------------------------------------------

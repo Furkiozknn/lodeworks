@@ -426,7 +426,13 @@ static func model_name() -> String:
 static func get_machine(id: String) -> Dictionary:
 	if _active.is_empty():
 		_build(ACTIVE_MODEL)
-	return _active.get(id, {})
+	# Not `_active.get(id, {})`: the default is built on every call, and this
+	# is asked for every machine several times a tick.
+	var m: Variant = _active.get(id)
+	return NONE if m == null else m
+
+## What get_machine answers for an id it does not know. Read-only.
+const NONE := {}
 
 
 ## What a unit of each resource sells for under the active model.

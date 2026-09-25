@@ -103,7 +103,9 @@ mid-term, P3 a future system, P4 not needed now.
 
 - **D1 device run**: frame time, memory, battery, heat, touch, text at
   arm's length, haptics, speaker, cutouts. Desktop numbers only (idle p50
-  11.06 ms, 177-193 draw calls). DEVICE-TEST.md is not yet run. P0 gate.
+  6.2 ms on the hero board, 18.0 ms on a 308-machine late board, 190-206
+  draw calls; AUDIT "A late board"). DEVICE-TEST.md is not yet run. P0
+  gate.
 - **D2 live monetization**: no AdMob unit ids, no Play products, no
   purchase or ad ever made, consent flow unverified.
 - **D3 release build**: size, 16 KB alignment, Billing Library version on

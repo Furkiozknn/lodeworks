@@ -173,11 +173,9 @@ func effective_rate(i: int) -> float:
 	if id == "":
 		return 0.0
 	var m: Dictionary = MachineDB.get_machine(id)
-	var eff: float = MachineDB.heat_efficiency(
-		grid.heat_at(i), float(m["heat_optimum"]),
-		float(m["heat_tolerance"]) + tolerance_bonus)
+	var eff: float = heat_efficiency_at(i)
 	var amp: float = 1.0 + (grid.amplify_at(i) - 1.0) * amplify_mult
-	var src: float = source_speed_mult if (m.get("tags", []) as Array).has("source") else 1.0
+	var src: float = source_speed_mult if (m["tags"] as Array).has("source") else 1.0
 	return float(m["rate"]) * eff * amp * speed_mult * src
 
 
@@ -310,6 +308,16 @@ func _work(dt: float) -> void:
 	last_credits = 0.0
 	last_research = 0.0
 	last_cycles = 0
+	# A machine's rate moves only with the board, the heat field and the
+	# stratum's and research's multipliers: kept across ticks until one of
+	# them does. Half of this pass on a 300-machine board (docs/AUDIT.md,
+	# "A late board").
+	grid.heat_at(0)
+	var key: Array = [grid.version, grid.heat_stamp, speed_mult, source_speed_mult,
+		amplify_mult, tolerance_bonus]
+	if key != _rate_key:
+		_rate_key = key
+		_rate_cache.clear()
 
 	for i: int in grid.cells:
 		var cell: Dictionary = grid.cells[i]
@@ -325,7 +333,10 @@ func _work(dt: float) -> void:
 			uptime[i] = 1.0
 			continue
 
-		var rate: float = effective_rate(i)
+		var hit: Variant = _rate_cache.get(i)
+		var rate: float = effective_rate(i) if hit == null else float(hit)
+		if hit == null:
+			_rate_cache[i] = rate
 		if rate <= 0.0:
 			status[i] = Status.IDLE
 			_record(i, 0, 0.0)
@@ -360,6 +371,10 @@ func _work(dt: float) -> void:
 		else:
 			status[i] = _settle(i, Status.RUNNING)
 		_record(i, ran, rate * dt)
+
+
+var _rate_cache: Dictionary = {}
+var _rate_key: Array = []
 
 
 ## Why a cycle did not happen, expressed as the direction to look in.
@@ -501,10 +516,30 @@ func heat_efficiency_at(i: int) -> float:
 	var id: String = grid.machine_at(i)
 	if id == "":
 		return 1.0
+	# The heat field changes only when the board or the stratum does, and
+	# the tick, the badges and the warning count each ask this of every
+	# machine: kept until the field is worked out again or the research that
+	# widens the tolerance changes.
+	var heat: float = grid.heat_at(i)
+	if grid.heat_stamp != _eff_stamp or grid.version != _eff_version \
+			or tolerance_bonus != _eff_tol:
+		_eff_cache.clear()
+		_eff_stamp = grid.heat_stamp
+		_eff_version = grid.version
+		_eff_tol = tolerance_bonus
+	var hit: Variant = _eff_cache.get(i)
+	if hit != null:
+		return hit
 	var m: Dictionary = MachineDB.get_machine(id)
-	return MachineDB.heat_efficiency(grid.heat_at(i),
-		float(m["heat_optimum"]),
+	var e: float = MachineDB.heat_efficiency(heat, float(m["heat_optimum"]),
 		float(m["heat_tolerance"]) + tolerance_bonus)
+	_eff_cache[i] = e
+	return e
+
+var _eff_cache: Dictionary = {}
+var _eff_stamp: int = -1
+var _eff_version: int = -1
+var _eff_tol: float = -1.0
 
 
 ## Signed distance from this machine's ideal temperature, in heat units.

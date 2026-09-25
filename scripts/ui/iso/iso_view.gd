@@ -125,6 +125,20 @@ var _flow: Dictionary = {}
 ## Seams whose material runs from the higher cell index to the lower.
 var _flow_from_b: Dictionary = {}
 var _links: Array = []
+## The board version `_links` was worked out for, the links' paths by
+## from * PAIR + to, and the badges' raw states as of the last tick.
+var _links_version: int = -1
+var _links_grid: Grid = null
+var _paths: Dictionary = {}
+var _raw: Dictionary = {}
+const PAIR := 4096
+## Each pipe's fixed shape, worked out with the links: [key, a, b, p0, p1,
+## normal, colour]. The casing, its shadow and the brass collars are drawn
+## with the ground, which redraws only when the board changes; the floor
+## draws only the part that lights up.
+var _pipe_geo: Array = []
+var _side_down: Dictionary = {}
+var _side_up: Dictionary = {}
 ## Iso.chain for the selected machine, worked out again only when the
 ## selection or the board changes.
 var _chain: Array = []
@@ -422,6 +436,7 @@ func _refresh_sheet() -> void:
 	_sheet_name = n
 	_sheet = IsoArt.sheet(n)
 	_atlas = IsoArt.texture(String(_sheet.get("file", "")))
+	_sprite_geo = {}
 
 
 ## Called when a palette is chosen. Swapping the atlas is the whole cost.
@@ -432,26 +447,42 @@ func palette_changed() -> void:
 func _on_stats() -> void:
 	if Sim.grid == null:
 		return
-	_links = Iso.links(Sim.grid)
-	_segments = Iso.segments(_links)
+	# The links only change with the board. Worked out on every tick, and
+	# matched against every transfer by a scan of all of them, they cost a
+	# 300-machine board 11 ms a tick (docs/AUDIT.md, "A late board").
+	if Sim.grid.version != _links_version or Sim.grid != _links_grid:
+		_links_version = Sim.grid.version
+		_links_grid = Sim.grid
+		_links = Iso.links(Sim.grid)
+		_segments = Iso.segments(_links)
+		_paths = {}
+		for l: Dictionary in _links:
+			(_paths.get_or_add(int(l["from"]) * PAIR + int(l["to"]), []) as Array).append(l["path"])
+		_pipe_geo = []
+		for key: String in _segments:
+			_pipe_geo.append(_pipe_shape(key))
+		_link_sides()
+		# The ground draws the casings: draw it again with the new ones.
+		_ground_sig = []
 	_refresh_sheet()
 	# Material the simulation actually moved this tick lights its pipes.
 	if Sim.sim != null:
 		for t: Array in Sim.sim.last_transfers:
-			for l: Dictionary in _links:
-				if int(l["from"]) == int(t[0]) and int(l["to"]) == int(t[1]):
-					var path: Array = l["path"]
-					for i in range(path.size() - 1):
-						var a: int = int(path[i])
-						var b: int = int(path[i + 1])
-						var key: String = "%d-%d" % [mini(a, b), maxi(a, b)]
-						_flow[key] = 0.6
-						# Which way it went, so the bead rides the right way.
-						if a > b:
-							_flow_from_b[key] = true
-						else:
-							_flow_from_b.erase(key)
-	badges.update(_raw_states(), 0.0)
+			for path: Array in _paths.get(int(t[0]) * PAIR + int(t[1]), []):
+				for i in range(path.size() - 1):
+					var a: int = int(path[i])
+					var b: int = int(path[i + 1])
+					var key: String = "%d-%d" % [mini(a, b), maxi(a, b)]
+					_flow[key] = 0.6
+					# Which way it went, so the bead rides the right way.
+					if a > b:
+						_flow_from_b[key] = true
+					else:
+						_flow_from_b.erase(key)
+	# The badges' raw states change only when the simulation does: once a
+	# tick here, not once a frame.
+	_raw = _raw_states()
+	badges.update(_raw, 0.0)
 
 
 func _raw_states() -> Dictionary:
@@ -698,7 +729,7 @@ func _process(delta: float) -> void:
 			_flow.erase(k)
 
 	if Sim.grid != null and Sim.sim != null:
-		badges.update(_raw_states(), delta)
+		badges.update(_raw, delta)
 
 	# Published for the device self test: a cell's short axis on the physical
 	# screen, now and at the closest zoom, so it can be turned into dp.
@@ -965,6 +996,19 @@ func _draw_ground() -> void:
 		_rubble(tris, cell)
 	tris.flush(ci)
 
+	# Contact shadows: a machine that casts nothing floats. With the ground,
+	# because they move only when the machines do.
+	var g: Texture2D = IsoArt.glow()
+	for cell: int in Sim.grid.cells:
+		var c: Vector2 = Iso.cell_center(cell) + Vector2(4.0, 6.0)
+		ci.draw_texture_rect(g, Rect2(c - Vector2(Iso.TW * 0.46, Iso.TH * 0.46),
+			Vector2(Iso.TW * 0.92, Iso.TH * 0.92)), false, Color(0, 0, 0, 0.55))
+	# The pipes' casings, shadows and brass collars.
+	var casings := Tris.new()
+	for geo: Array in _pipe_geo:
+		_pipe_casing(casings, geo)
+	casings.flush(ci)
+
 
 func _draw_floor() -> void:
 	var ci: CanvasItem = _floor
@@ -972,21 +1016,15 @@ func _draw_floor() -> void:
 	_draw_core_footprint(ci)
 	_draw_floor_marks(ci)
 
-	# Contact shadows: a machine that casts nothing floats.
-	var g: Texture2D = IsoArt.glow()
-	for cell: int in Sim.grid.cells:
-		var c: Vector2 = Iso.cell_center(cell) + Vector2(4.0, 6.0)
-		ci.draw_texture_rect(g, Rect2(c - Vector2(Iso.TW * 0.46, Iso.TH * 0.46),
-			Vector2(Iso.TW * 0.92, Iso.TH * 0.92)), false, Color(0, 0, 0, 0.55))
-
 	# The pipes lie on the floor, in the seams between plates, all in one
 	# batch. Drawn under every machine rather than interleaved with them: a
 	# pipe between two machines is behind the nearer one either way, and
 	# keeping them out of the machine pass lets all the machines -- one atlas
-	# -- draw as one batch instead of breaking at every pipe.
+	# -- draw as one batch instead of breaking at every pipe. Only the body,
+	# which lights up with what moves, is drawn here; the rest is the ground's.
 	var pipes := Tris.new()
-	for key: String in _segments:
-		_pipe(pipes, key)
+	for geo: Array in _pipe_geo:
+		_pipe_body(pipes, geo)
 	pipes.flush(ci)
 
 
@@ -998,11 +1036,22 @@ class Tris:
 	var cols := PackedColorArray()
 	var idx := PackedInt32Array()
 
+	# Appended one value at a time: an array literal per call is an
+	# allocation per quad, and a late board draws thousands a frame.
 	func quad(a: Vector2, b: Vector2, c: Vector2, d: Vector2, col: Color) -> void:
 		var i: int = pts.size()
-		pts.append_array([a, b, c, d])
-		cols.append_array([col, col, col, col])
-		idx.append_array([i, i + 1, i + 2, i, i + 2, i + 3])
+		pts.push_back(a)
+		pts.push_back(b)
+		pts.push_back(c)
+		pts.push_back(d)
+		for _k in range(4):
+			cols.push_back(col)
+		idx.push_back(i)
+		idx.push_back(i + 1)
+		idx.push_back(i + 2)
+		idx.push_back(i)
+		idx.push_back(i + 2)
+		idx.push_back(i + 3)
 
 	## A straight band `w` wide from p0 to p1.
 	func band(p0: Vector2, p1: Vector2, w: float, col: Color) -> void:
@@ -1015,26 +1064,48 @@ class Tris:
 
 	func tri(a: Vector2, b: Vector2, c: Vector2, col: Color) -> void:
 		var i: int = pts.size()
-		pts.append_array([a, b, c])
-		cols.append_array([col, col, col])
-		idx.append_array([i, i + 1, i + 2])
+		pts.push_back(a)
+		pts.push_back(b)
+		pts.push_back(c)
+		cols.push_back(col)
+		cols.push_back(col)
+		cols.push_back(col)
+		idx.push_back(i)
+		idx.push_back(i + 1)
+		idx.push_back(i + 2)
+
+	## The unit circle in n steps, worked out once per n: a badge is three
+	## circles, and a late board has a hundred badges.
+	static var _units: Dictionary = {}
+
+	static func _unit(n: int) -> PackedVector2Array:
+		var u: Variant = _units.get(n)
+		if u == null:
+			var a := PackedVector2Array()
+			for k in range(n + 1):
+				a.append(Vector2.from_angle(TAU * float(k) / float(n)))
+			_units[n] = a
+			u = a
+		return u
 
 	func circle(c: Vector2, r: float, col: Color, n: int = 16) -> void:
 		var i: int = pts.size()
+		var u: PackedVector2Array = _unit(n)
 		pts.append(c)
 		cols.append(col)
 		for k in range(n):
-			pts.append(c + Vector2.from_angle(TAU * float(k) / float(n)) * r)
+			pts.append(c + u[k] * r)
 			cols.append(col)
 		for k in range(n):
-			idx.append_array([i, i + 1 + k, i + 1 + (k + 1) % n])
+			idx.push_back(i)
+			idx.push_back(i + 1 + k)
+			idx.push_back(i + 1 + (k + 1) % n)
 
 	func ring(c: Vector2, r: float, w: float, col: Color, n: int = 18) -> void:
+		var u: PackedVector2Array = _unit(n)
 		for k in range(n):
-			var a0: Vector2 = Vector2.from_angle(TAU * float(k) / float(n))
-			var a1: Vector2 = Vector2.from_angle(TAU * float(k + 1) / float(n))
-			quad(c + a0 * (r - w * 0.5), c + a1 * (r - w * 0.5), c + a1 * (r + w * 0.5),
-				c + a0 * (r + w * 0.5), col)
+			quad(c + u[k] * (r - w * 0.5), c + u[k + 1] * (r - w * 0.5), c + u[k + 1] * (r + w * 0.5),
+				c + u[k] * (r + w * 0.5), col)
 
 	func flush(ci: CanvasItem) -> void:
 		if idx.is_empty():
@@ -1301,42 +1372,48 @@ func _draw_floor_glow() -> void:
 ## is floor between neighbours for a pipe to cross -- the reason pipes
 ## vanished when machines grew.
 func _footprint() -> float:
-	return float(IsoArt.placement().get("footprint", 0.80))
+	if _fp < 0.0:
+		_fp = float(IsoArt.placement().get("footprint", 0.80))
+	return _fp
+
+var _fp: float = -1.0
 
 
 func _draw_things() -> void:
 	var ci: CanvasItem = _things
-	var o: Vector2i = Iso.board_offset()
 	# Everything that stands on the slab -- machines, the Core, props --
-	# in one list sorted by slab depth, so a lamp on the front rim covers the
-	# machine behind it and the Core's tower is covered by the machines in
-	# front of it.
-	var items: Array = []
-	for cell: int in Sim.grid.cells:
-		var p: Vector2i = Grid.xy(cell)
-		items.append([float(p.x + o.x + p.y + o.y), 0, cell])
+	# drawn by slab depth, so a lamp on the front rim covers the machine
+	# behind it and the Core's tower is covered by the machines in front of
+	# it. The machines' order changes only with the board and the props'
+	# only with the depth, so both are sorted then, and each frame merges
+	# them: sorting all of it every frame was a third of this pass on a
+	# 300-machine board (docs/AUDIT.md, "A late board").
+	_sort_things()
+	var props: Array = _props_by_depth
+	var core_key: float = _core_key
+	var core_done: bool = core_key == INF
+	var j: int = 0
 	# Only the props on screen: each one out of sight would still be drawn,
 	# and would split the machines' batch where it sorts between them.
 	var seen: Rect2 = cam.visible_world().grow(Iso.TW)
-	for f: Array in _props_now():
-		if not f[2] and seen.intersects(f[1]):
-			items.append([f[3] - 0.25, 2, f])
-	var cc: Array = IsoArt.placement().get("core_cell", [])
-	if cc.size() == 2:
-		var n: int = int(IsoArt.placement().get("core_size", 3))
-		items.append([float(int(cc[0]) + int(cc[1]) + n) - 0.75, 3, null])
-	items.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
-	for it: Array in items:
-		match int(it[1]):
-			0:
-				var cell: int = int(it[2])
-				var id: String = Sim.grid.machine_at(cell)
-				if id != "" and not (_dragging and cell == selected_cell):
-					_draw_machine(ci, cell, id)
-			2:
-				_draw_prop(ci, it[2])
-			3:
+	for i in range(_order.size() + 1):
+		var key: float = _order_keys[i] if i < _order.size() else INF
+		while j < props.size() and float(props[j][3]) - 0.25 < key:
+			var f: Array = props[j]
+			j += 1
+			if not core_done and core_key <= float(f[3]) - 0.25:
+				core_done = true
 				_draw_core(ci)
+			if not f[2] and seen.intersects(f[1]):
+				_draw_prop(ci, f)
+		if not core_done and core_key <= key:
+			core_done = true
+			_draw_core(ci)
+		if i < _order.size():
+			var cell: int = _order[i]
+			var id: String = Sim.grid.machine_at(cell)
+			if id != "" and not (_dragging and cell == selected_cell):
+				_draw_machine(ci, cell, id)
 	# Machines the Core's tower hides, drawn again faintly over it: what
 	# stands behind the Core can be seen, and tapped (pick_at_screen).
 	for cell: int in cells_behind_core():
@@ -1349,6 +1426,41 @@ func _draw_things() -> void:
 		var w: Vector2 = cam.screen_to_world(_drag_pos)
 		_draw_sprite(ci, Sim.grid.machine_at(selected_cell), w + Vector2(0, Iso.TH * 0.2),
 			Color(1, 1, 1, 0.8), 1.0)
+
+
+## The machines in drawing order (slab depth), with their keys; the props
+## in the same order; the Core's key (INF when there is none). The first
+## two follow the board and the depth.
+var _order: Array[int] = []
+var _order_keys: PackedFloat32Array = PackedFloat32Array()
+var _order_sig: Array = []
+var _props_by_depth: Array = []
+var _core_key: float = INF
+var _sprite_geo: Dictionary = {}
+
+func _sort_things() -> void:
+	var sig: Array = [Sim.grid, Sim.grid.version, Sim.max_depth]
+	if sig == _order_sig:
+		return
+	_order_sig = sig
+	var o: Vector2i = Iso.board_offset()
+	var keyed: Array = []
+	for cell: int in Sim.grid.cells:
+		var p: Vector2i = Grid.xy(cell)
+		keyed.append(Vector2(float(p.x + o.x + p.y + o.y), float(cell)))
+	keyed.sort()
+	_order = []
+	_order_keys = PackedFloat32Array()
+	for k: Vector2 in keyed:
+		_order.append(int(k.y))
+		_order_keys.append(k.x)
+	_props_by_depth = _props_now().duplicate()
+	_props_by_depth.sort_custom(func(x: Array, y: Array) -> bool: return float(x[3]) < float(y[3]))
+	_core_key = INF
+	var cc: Array = IsoArt.placement().get("core_cell", [])
+	if cc.size() == 2:
+		var n: int = int(IsoArt.placement().get("core_size", 3))
+		_core_key = float(int(cc[0]) + int(cc[1]) + n) - 0.75
 
 
 ## The Factory Core: three cells of the slab, behind the board, never on it.
@@ -1525,9 +1637,16 @@ func _draw_sprite(ci: CanvasItem, id: String, at: Vector2, mod: Color, squash: f
 	if _atlas == null:
 		ci.draw_circle(at, Iso.TH * 0.35, Palette.machine_color(id))
 		return
-	var region: Rect2 = IsoArt.machine_region(_sheet, id)
-	var s: float = Iso.TW * _footprint() / IsoArt.base_px(_sheet)
-	var a: Vector2 = IsoArt.anchor(_sheet)
+	# Where the machine is on the sheet and how it scales: read from the
+	# sheet's dictionaries once per sheet, not for every machine every frame.
+	var geo: Variant = _sprite_geo.get(id)
+	if geo == null:
+		geo = [IsoArt.machine_region(_sheet, id), Iso.TW * _footprint() / IsoArt.base_px(_sheet),
+			IsoArt.anchor(_sheet)]
+		_sprite_geo[id] = geo
+	var region: Rect2 = geo[0]
+	var s: float = geo[1]
+	var a: Vector2 = geo[2]
 	var size_w := Vector2(region.size.x * s, region.size.y * s * squash)
 	var pos := Vector2(at.x - a.x * s, at.y - a.y * s * squash)
 	ci.draw_texture_rect_region(_atlas, Rect2(pos, size_w), region, mod)
@@ -1586,38 +1705,49 @@ func _draw_machine(ci: CanvasItem, cell: int, id: String) -> void:
 
 
 
-func _pipe(t: Tris, key: String) -> void:
+## A pipe's fixed shape: plate edge to plate edge, and a little under each
+## plate, so the ends are tucked in rather than floating; raised a little off
+## the floor so it reads as a pipe lying across the seam.
+func _pipe_shape(key: String) -> Array:
 	var s: Dictionary = _segments[key]
 	var a: Vector2 = Iso.cell_center(int(s["a"]))
 	var b: Vector2 = Iso.cell_center(int(s["b"]))
 	var dir: Vector2 = (b - a).normalized()
-	# Plate edge to plate edge, and a little under each plate, so the ends are
-	# tucked in rather than floating; raised a little off the floor so it
-	# reads as a pipe lying across the seam.
 	var reach: float = a.distance_to(b) * (0.5 - _footprint() * 0.5) + 16.0
 	var mid: Vector2 = (a + b) * 0.5 - Vector2(0, 9.0)
-	var p0: Vector2 = mid - dir * reach
-	var p1: Vector2 = mid + dir * reach
-	var col: Color = Palette.res_color(int(s["res"]))
-	var live: bool = _flow.has(key)
+	return [key, int(s["a"]), int(s["b"]), mid - dir * reach, mid + dir * reach,
+		Vector2(-dir.y, dir.x), Palette.res_color(int(s["res"]))]
+
+
+func _pipe_casing(t: Tris, geo: Array) -> void:
+	var p0: Vector2 = geo[3]
+	var p1: Vector2 = geo[4]
+	var n: Vector2 = geo[5]
+	t.band(p0 + Vector2(0, 5), p1 + Vector2(0, 5), 14.0, Color(0, 0, 0, 0.35))
+	t.band(p0, p1, 14.0, Color(0.16, 0.15, 0.18))
+	var brass := Color(0.80, 0.62, 0.30)
+	t.band(p0 - n * 8.5, p0 + n * 8.5, 4.5, brass)
+	t.band(p1 - n * 8.5, p1 + n * 8.5, 4.5, brass)
+
+
+## The body: bright while material moves along it, and pulsing amber or red
+## while a machine at either end is badged backed up or starved.
+func _pipe_body(t: Tris, geo: Array) -> void:
+	var p0: Vector2 = geo[3]
+	var p1: Vector2 = geo[4]
+	var live: bool = _flow.has(String(geo[0]))
 	var warn: Color = Color(0, 0, 0, 0)
-	for cell: int in [int(s["a"]), int(s["b"])]:
+	for cell: int in [int(geo[1]), int(geo[2])]:
 		var sh: int = badges.shown(cell)
 		if sh == StatusBadges.Show.BLOCKED:
 			warn = Palette.ST_BLOCKED
 		elif sh == StatusBadges.Show.STARVED and warn.a == 0.0:
 			warn = Palette.ST_STARVED
-	t.band(p0 + Vector2(0, 5), p1 + Vector2(0, 5), 14.0, Color(0, 0, 0, 0.35))
-	t.band(p0, p1, 14.0, Color(0.16, 0.15, 0.18))
-	var body: Color = col.lerp(Color(0.25, 0.25, 0.3), 0.15 if live else 0.55)
+	var body: Color = (geo[6] as Color).lerp(Color(0.25, 0.25, 0.3), 0.15 if live else 0.55)
 	if warn.a > 0.0:
 		body = body.lerp(warn, 0.35 + 0.25 * sin(_anim * 5.0))
 	t.band(p0, p1, 9.5, body)
 	t.band(p0 - Vector2(0, 2.5), p1 - Vector2(0, 2.5), 2.5, body.lightened(0.5))
-	var brass := Color(0.80, 0.62, 0.30)
-	var n := Vector2(-dir.y, dir.x)
-	for p in [p0, p1]:
-		t.band(p - n * 8.5, p + n * 8.5, 4.5, brass)
 
 
 ## --- light on top ------------------------------------------------------------
@@ -1652,12 +1782,10 @@ func _draw_glow() -> void:
 		var a: Vector2 = Iso.cell_center(int(s["a"]))
 		var b: Vector2 = Iso.cell_center(int(s["b"]))
 		var t: float = fposmod(_anim * 1.6 + float(int(s["a"]) % 7) * 0.13, 1.0)
-		var from_a: bool = true
-		for l: Dictionary in _links:
-			if (l["path"] as Array).has(int(s["a"])) and (l["path"] as Array).has(int(s["b"])):
-				var path: Array = l["path"]
-				from_a = path.find(int(s["a"])) < path.find(int(s["b"]))
-				break
+		# Which way it went, as the tick recorded it (segments run low cell to
+		# high). Looked up rather than found by scanning every link, which on a
+		# 300-machine board was most of this layer's frame.
+		var from_a: bool = not _flow_from_b.has(key)
 		var p: Vector2 = (a.lerp(b, t) if from_a else b.lerp(a, t)) - Vector2(0, 12)
 		var live: float = clampf(float(_flow[key]) * 2.0, 0.0, 1.0)
 		var col2: Color = Palette.res_color(int(s["res"])).lerp(Color.WHITE, 0.55)
@@ -1685,11 +1813,19 @@ func _draw_glow() -> void:
 ## moves is what is producing; and only close enough to be seen -- zoomed
 ## out, a factory is its glow.
 const WORK_LOD := 0.55
+## At most this many machines show their work at once. Past it, a fixed
+## share of them does -- the same ones every frame, so nothing flickers --
+## which on a 300-machine board halves the pass, and on a board that size
+## the eye reads the glow, not each drill's dust.
+const WORK_BUDGET := 150
 
 func _draw_work(ci: CanvasItem, g: Texture2D) -> void:
 	if cam.zoom < WORK_LOD:
 		return
+	var stride: int = maxi(ceili(float(Sim.grid.cells.size()) / float(WORK_BUDGET)), 1)
 	for cell: int in Sim.grid.cells:
+		if stride > 1 and (cell * 7 + cell / Grid.W) % stride != 0:
+			continue
 		if Sim.sim.status_of(cell) != Simulation.Status.RUNNING:
 			continue
 		var id: String = Sim.grid.machine_at(cell)
@@ -1913,16 +2049,28 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 ## --- screen-space overlay ------------------------------------------------------
 
 func _badge_side(cell: int, downstream: bool) -> Vector2:
-	var c: Vector2 = Iso.cell_center(cell)
-	var acc := Vector2.ZERO
+	return (_side_down if downstream else _side_up).get(cell, Vector2(0.55, -0.4))
+
+
+## Per machine, the way its links leave (downstream) and arrive (upstream),
+## for the side a badge sits on. Worked out with the links, not per badge
+## per frame by a scan of every link.
+func _link_sides() -> void:
+	_side_down = {}
+	_side_up = {}
 	for l: Dictionary in _links:
-		if downstream and int(l["from"]) == cell:
-			acc += Iso.cell_center(int(l["to"])) - c
-		elif not downstream and int(l["to"]) == cell:
-			acc += Iso.cell_center(int(l["from"])) - c
-	if acc == Vector2.ZERO:
-		return Vector2(0.55, -0.4)
-	return acc.normalized()
+		var a: int = int(l["from"])
+		var b: int = int(l["to"])
+		var d: Vector2 = Iso.cell_center(b) - Iso.cell_center(a)
+		_side_down[a] = Vector2(_side_down.get(a, Vector2.ZERO)) + d
+		_side_up[b] = Vector2(_side_up.get(b, Vector2.ZERO)) - d
+	for side: Dictionary in [_side_down, _side_up]:
+		for k: int in side.keys():
+			var v: Vector2 = side[k]
+			if v == Vector2.ZERO:
+				side.erase(k)
+			else:
+				side[k] = v.normalized()
 
 
 func _draw_over() -> void:

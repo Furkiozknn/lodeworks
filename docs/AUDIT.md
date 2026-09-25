@@ -1655,6 +1655,61 @@ now writes "NOT the bare screen" on a row measured with a card open or
 the Foreman talking. The chain lines, the per-band dust and the rest of
 the round draw nothing on the idle screen. A phone is still UNKNOWN.
 
+### A late board (25 September 2026)
+
+Every frame measurement so far was of the hero board: 42 machines. The
+collapse lab's player holds 257 to 372 after an hour or two, and nobody
+had measured a board that size. The perf probe now builds one after its
+soak: the whole yard at stratum 16, rings of Vault, Crusher and Drill
+round the Core, 308 machines, the whole yard in view.
+
+| | before | after |
+|---|---|---|
+| late board, idle frame p50 / p95 | 64.6 / 69.2 ms (15 fps) | 18.0 / 24.9 ms (56 fps) |
+| late board, simulation tick | 7.64 ms | 1.83 ms |
+| late board, the view's work per tick | 9.7 ms | 1.9 ms |
+| hero board, idle frame p50 / p95 | 11.3 / 15.2 ms | 6.2 / 8.1 ms |
+| hero board, simulation tick | 1.05 ms | 0.26 ms |
+| draw calls, idle / soak | 189 / 205 | 190 / 206 |
+
+Desktop, Intel UHD, `LODEWORKS_SOAK=20`. Found by timing each drawing
+layer and each piece of a tick on that board; none of it changes a
+number of the economy (the 307 tests, which compare economies to the
+last credit, pass unchanged), and a close-up rendered before and after
+matches. What it was:
+
+- **The board's position was read through the layout's dictionaries**
+  every time a cell was drawn -- several times per cell per layer per
+  frame. Read once (`Iso._cache`). A third of the late frame.
+- **Links and pipes were worked out again on every tick**, and each
+  transfer was matched to its pipe by scanning every link. Now worked
+  out when the board changes, and looked up (`IsoView._paths`).
+- **The pipes' casings, shadows and collars and the machines' contact
+  shadows** were drawn every frame; they change only with the board, so
+  they are drawn with the ground. Only the part that lights up is drawn
+  each frame.
+- **The machines were sorted by depth every frame** with a script
+  comparator; now sorted when the board changes and merged with the
+  props each frame.
+- **Triangles were appended through array literals** (an allocation per
+  quad) and circles recomputed their sines; appended value by value,
+  from a unit circle worked out once.
+- **Each badge found its side by scanning every link**, and the badges'
+  raw states were classified every frame instead of every tick.
+- **The simulation asked the grid the same questions every tick**: which
+  machines stand next to which, through which support tiles, how
+  amplified, how hot, how fast. Those answers change only with the
+  board or the heat field, so they are kept until they do
+  (`Grid._topo`, `Simulation.heat_efficiency_at`, `_rate_cache`).
+  `MachineDB.get_machine` no longer builds an empty dictionary on every
+  call.
+- **Machine work effects** (dust, sparks, coins) are drawn for at most
+  150 machines, a fixed share of them past that, so a big board reads by
+  its glow and the pass stays bounded.
+
+A phone is still UNKNOWN; on one, the late board is the number to read
+first.
+
 ### Toward more than one factory (not built)
 
 Nothing tonight builds a second factory or talks to a network (D3 still

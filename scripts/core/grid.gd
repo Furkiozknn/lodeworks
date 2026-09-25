@@ -109,22 +109,54 @@ func move(from_i: int, to_i: int) -> bool:
 	return true
 
 
+## A cell's neighbours never change: worked out once for the whole board.
+## The arrays are shared -- read them, never change them.
+static var _nb: Array = []
+
 func neighbours(i: int) -> Array[int]:
-	var p: Vector2i = xy(i)
-	var out: Array[int] = []
-	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		var n: Vector2i = p + d
-		if in_bounds(n.x, n.y):
-			out.append(idx(n.x, n.y))
-	return out
+	if _nb.is_empty():
+		for c in range(W * H):
+			var p: Vector2i = xy(c)
+			var out: Array[int] = []
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var n: Vector2i = p + d
+				if in_bounds(n.x, n.y):
+					out.append(idx(n.x, n.y))
+			_nb.append(out)
+	return _nb[i]
+
+
+## What the machines stand next to changes only when a machine is placed,
+## removed or moved, and the simulation asks it for every machine on every
+## tick. So these answers are kept until `version` moves: on a 300-machine
+## board they were most of a tick (docs/AUDIT.md, "A late board"). Shared
+## arrays again: read them, never change them.
+var _topo_version: int = -1
+var _nm_cache: Dictionary = {}
+var _bridged_cache: Dictionary = {}
+var _amp_cache: Dictionary = {}
+var _dup_cache: Dictionary = {}
+
+func _topo() -> void:
+	if _topo_version != version:
+		_topo_version = version
+		_nm_cache.clear()
+		_bridged_cache.clear()
+		_amp_cache.clear()
+		_dup_cache.clear()
 
 
 ## Occupied neighbours only -- the common case, and it keeps the sim loops tight.
 func neighbour_machines(i: int) -> Array[int]:
+	_topo()
+	var hit: Variant = _nm_cache.get(i)
+	if hit != null:
+		return hit
 	var out: Array[int] = []
 	for n in neighbours(i):
 		if not is_empty(n):
 			out.append(n)
+	_nm_cache[i] = out
 	return out
 
 
@@ -142,11 +174,16 @@ func _rebuild_heat() -> void:
 	for k in range(_heat.size()):
 		_heat[k] += ambient_heat
 	_heat_dirty = false
+	heat_stamp += 1
 
 
 ## Heat in a cell, floored at zero. Negative heat from coolant cancels positive
 ## heat but never makes a cell "cold enough to be bad" -- there is no benefit to
 ## modelling cryogenics here and it would only add a second way to lose.
+## Moves every time the heat field is worked out again, so what is derived
+## from it (Simulation.heat_efficiency_at) knows when to forget.
+var heat_stamp: int = 0
+
 func heat_at(i: int) -> float:
 	if _heat_dirty:
 		_rebuild_heat()
@@ -236,6 +273,10 @@ func is_support(i: int) -> bool:
 ## make "what is this machine connected to" impossible to see at a glance,
 ## which is the thing the whole visual design is for.
 func bridged_machines(i: int) -> Array[int]:
+	_topo()
+	var hit: Variant = _bridged_cache.get(i)
+	if hit != null:
+		return hit
 	var out: Array[int] = []
 	var seen: Dictionary = {i: true}
 	for n in neighbour_machines(i):
@@ -251,6 +292,7 @@ func bridged_machines(i: int) -> Array[int]:
 			continue
 		out.append(n)
 	out.sort()
+	_bridged_cache[i] = out
 	return out
 
 
@@ -330,6 +372,10 @@ func _stacked(values: Array) -> float:
 
 ## Amplify from neighbours that carry the tag, as a multiplier.
 func amplify_at(i: int) -> float:
+	_topo()
+	var hit: Variant = _amp_cache.get(i)
+	if hit != null:
+		return hit
 	var parts: Array = []
 	for n in neighbour_machines(i):
 		var m: Dictionary = MachineDB.get_machine(machine_at(n))
@@ -337,10 +383,16 @@ func amplify_at(i: int) -> float:
 			var f: float = serve_factor(n)
 			if f > 0.0:
 				parts.append(float(m["amplify"]) * f)
-	return 1.0 + _stacked(parts)
+	var v: float = 1.0 + _stacked(parts)
+	_amp_cache[i] = v
+	return v
 
 
 func duplicate_chance_at(i: int) -> float:
+	_topo()
+	var hit: Variant = _dup_cache.get(i)
+	if hit != null:
+		return hit
 	var parts: Array = []
 	for n in neighbour_machines(i):
 		var m: Dictionary = MachineDB.get_machine(machine_at(n))
@@ -350,7 +402,9 @@ func duplicate_chance_at(i: int) -> float:
 				parts.append(float(m["duplicate_chance"]) * f)
 	# Capped below 1.0: a guaranteed double would make the rest of the board
 	# irrelevant, and an idle game with one correct tile is not a game.
-	return minf(_stacked(parts), 0.9)
+	var v: float = minf(_stacked(parts), 0.9)
+	_dup_cache[i] = v
+	return v
 
 
 ## Changing a stratum parameter invalidates the cached field.

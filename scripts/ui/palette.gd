@@ -164,7 +164,12 @@ const MACHINE_LIGHT := {
 
 
 static func machine_light(id: String) -> Color:
-	return Color(String(MACHINE_LIGHT.get(id, "ffd479")))
+	if not _light.has(id):
+		_light[id] = Color(String(MACHINE_LIGHT.get(id, "ffd479")))
+	return _light[id]
+
+## Parsed once: every machine on the board asks for its light every frame.
+static var _light: Dictionary = {}
 
 
 ## --- the active palette -----------------------------------------------------

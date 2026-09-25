@@ -27,8 +27,9 @@ static func slab_cells() -> int:
 
 
 static func board_offset() -> Vector2i:
-	var o: Array = _placement().get("board_offset", [1, 1])
-	return Vector2i(int(o[0]), int(o[1]))
+	if not _cached:
+		_cache()
+	return _offset
 
 
 ## The world point the slab is centred on: the empty middle of the painting.
@@ -39,7 +40,24 @@ static func anchor() -> Vector2:
 
 ## Top corner of slab cell (0, 0).
 static func origin() -> Vector2:
-	return anchor() - Vector2(0.0, float(slab_cells()) * TH * 0.5)
+	if not _cached:
+		_cache()
+	return _origin
+
+
+## Where the board sits never changes once the layout is read, and every
+## cell drawn asks it several times a frame: read through the layout's
+## dictionaries each time, that was a third of a 300-machine board's frame
+## (docs/AUDIT.md, "A late board"). Read once instead.
+static var _cached: bool = false
+static var _offset: Vector2i = Vector2i(1, 1)
+static var _origin: Vector2 = Vector2.ZERO
+
+static func _cache() -> void:
+	var o: Array = _placement().get("board_offset", [1, 1])
+	_offset = Vector2i(int(o[0]), int(o[1]))
+	_origin = anchor() - Vector2(0.0, float(slab_cells()) * TH * 0.5)
+	_cached = not IsoArt.layout().is_empty()
 
 
 static func slab_top(sx: float, sy: float) -> Vector2:
