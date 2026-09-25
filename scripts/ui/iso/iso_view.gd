@@ -144,8 +144,8 @@ var _glide_pending: bool = false
 var hold_effects: bool = false
 ## Settings: the dust, sparks, steam and coins round working machines.
 var effects: bool = true
-## Settings: "Reduce motion" -- no plunge on descending; the colour still
-## changes.
+## Settings: "Reduce motion" -- no plunge on descending (the colour still
+## changes), no bobbing marks, and the camera cuts instead of gliding.
 var calm_motion: bool = false
 ## 1 the moment the Core comes online, falling to 0.
 var _core_flash: float = 0.0
@@ -1270,7 +1270,7 @@ func _draw_floor_glow() -> void:
 		var shown: int = badges.shown(cell)
 		if shown == StatusBadges.Show.HOT or shown == StatusBadges.Show.CRITICAL:
 			col = Palette.ST_HOT
-			k *= 1.3 + 0.3 * sin(_anim * 5.0)
+			k *= 1.3 + (0.0 if calm_motion else 0.3 * sin(_anim * 5.0))
 		col.a = 0.20 * k
 		var c: Vector2 = Iso.cell_center(cell)
 		ci.draw_texture_rect(g, Rect2(c - Vector2(Iso.TW, Iso.TH) * 0.95,
@@ -2007,7 +2007,7 @@ func _draw_over() -> void:
 		_selected_links(ov)
 		var top: Vector2 = cam.world_to_screen(Iso.cell_center(selected_cell)
 			- Vector2(0, Iso.TH * 1.55))
-		var bob: float = sin(_anim * 4.0) * 4.0
+		var bob: float = 0.0 if calm_motion else sin(_anim * 4.0) * 4.0
 		var t := top + Vector2(0, bob)
 		var w: float = clampf(11.0 * z, 8.0, 15.0)
 		ov.tri(t + Vector2(-w, -w * 1.2), t + Vector2(w, -w * 1.2), t, Color(0, 0, 0, 0.4))
@@ -2059,8 +2059,8 @@ func _selected_links(ov: Tris) -> void:
 
 
 func _badge(ov: Tris, p: Vector2, r: float, kind: int) -> void:
-	var bob: float = sin(_anim * 3.0) * 1.5
-	p.y += bob
+	if not calm_motion:
+		p.y += sin(_anim * 3.0) * 1.5
 	ov.circle(p + Vector2(0, 2), r + 1.5, Color(0, 0, 0, 0.45))
 	var col: Color
 	match kind:

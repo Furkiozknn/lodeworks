@@ -1512,7 +1512,7 @@ func _on_unlocked(ids: Array) -> void:
 		var col := VBoxContainer.new()
 		col.alignment = BoxContainer.ALIGNMENT_CENTER
 		col.add_theme_constant_override("separation", 6)
-		col.add_child(Chips.MachineSprite.new(String(id), 190.0, true))
+		col.add_child(Chips.MachineSprite.new(String(id), 190.0, not Juice.calm))
 		# Its name and one line of what it is for: the reward is knowing
 		# what the new thing does.
 		var un := _label(MachineDB.name_of(String(id)), 28, Palette.TEXT)
@@ -2933,6 +2933,8 @@ func _apply_settings() -> void:
 	if iso_view != null:
 		iso_view.effects = bool(st.get("effects", true))
 		iso_view.calm_motion = bool(st.get("reduce_motion", false))
+		iso_view.cam.instant = iso_view.calm_motion
+	Juice.calm = bool(st.get("reduce_motion", false))
 	if _btn_zoom != null:
 		_show_what_matters()
 	# Only when it changes: a pass over every label is not free.

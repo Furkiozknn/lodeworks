@@ -110,6 +110,19 @@ func _cam(view: Vector2) -> IsoCamera:
 	return c
 
 
+func test_with_reduce_motion_the_camera_cuts_instead_of_gliding() -> void:
+	var c := _cam(Vector2(1440, 720))
+	var to: Vector2 = Iso.cell_center(Grid.idx(30, 30))
+	c.focus(to, 1.2)
+	runner.check(c.is_moving(), "a focus glides")
+	c = _cam(Vector2(1440, 720))
+	c.instant = true
+	c.focus(to, 1.2)
+	runner.check(not c.is_moving(), "with Reduce motion it is already there")
+	runner.near(c.zoom, c.clamp_zoom(1.2), 0.0001, "at the zoom asked for")
+	runner.check(c.center.distance_to(c.clamp_center(to, c.zoom)) < 0.01, "and the place")
+
+
 func _covers(c: IsoCamera) -> bool:
 	var v: Rect2 = c.visible_bg()
 	return v.position.x >= -0.5 and v.position.y >= -0.5 \

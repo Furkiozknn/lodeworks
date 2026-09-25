@@ -33,6 +33,10 @@ const VOICES := 6
 ## being louder is not.
 const MASTER_DB := -9.0
 
+## Settings' "Reduce motion": no punch, no bob. Static, because the
+## functions that move things are.
+static var calm: bool = false
+
 var sound_enabled: bool = true
 var haptics_enabled: bool = true
 ## The machine hum under everything, apart from the sounds of what you do.
@@ -389,7 +393,7 @@ static func roll(label: Label, from_value: float, to_value: float,
 ## A short punch on a control. Used when something the player did landed.
 static func punch(node: Control, amount: float = 0.10,
 		seconds: float = 0.22) -> void:
-	if node == null or not node.is_inside_tree():
+	if node == null or not node.is_inside_tree() or calm:
 		return
 	node.pivot_offset = node.size * 0.5
 	node.scale = Vector2.ONE * (1.0 + amount)

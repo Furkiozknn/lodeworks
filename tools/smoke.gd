@@ -89,7 +89,9 @@ func _run() -> void:
 		["graphics", "Machine effects", func() -> bool: return bool(_main.get("iso_view").get("effects"))],
 		["graphics", "Battery saver", func() -> bool: return Engine.max_fps == 30],
 		["access", "Zoom key", func() -> bool: return bool((_main.get("_btn_zoom") as Control).visible)],
-		["access", "Reduce motion", func() -> bool: return bool(_main.get("iso_view").get("calm_motion"))],
+		["access", "Reduce motion", func() -> bool:
+			var v: Control = _main.get("iso_view")
+			return bool(v.get("calm_motion")) and bool(v.get("cam").get("instant")) and Juice.calm],
 		# The Research key's caption, made at TEXT_MIN: bigger with the switch on.
 		["access", "Larger text", func() -> bool:
 			var cap: Label = (_main.get("_btn_research") as Button).find_children("*", "Label", true, false)[0]

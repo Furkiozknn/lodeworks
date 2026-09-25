@@ -81,7 +81,7 @@ mid-term, P3 a future system, P4 not needed now.
 | B2 | Reading the production chain | pipes hide behind nearer machines at default zoom; beads and the selected machine's links carry it | a flow overlay drawing every link | P2 |
 | B3 | Machine variety | 12 single-frame sprites; no per-machine level | per-part motion (N5) | P3 |
 | B4 | Larger text coverage | labels, keys and board numbers scale (today); symbol keys (?, ✕, +) keep their size on purpose | nothing further planned | done enough |
-| B5 | Reduce motion | covers pulses, swells, halo, flicker, plunge | camera glides, the yard wave, number roll, key punches, band banner | P2 |
+| B5 | Reduce motion | covers pulses, swells, halo, flicker, plunge | **FIXED** (B-8): camera glides cut, key punches, bobbing marks, the Foreman's bob and the hot flicker now still; the yard wave, the banner and the number roll are fades and counts, not movement, and stay | P2 |
 | B6 | Colour-blind reading | badges, arrows and the heat key have shapes | no colour-vision simulation check | P3 |
 | B7 | Touch targets | HUD keys 96 units, enforced; tray "?" backed by hold-to-open | 43-44 dp on a 720p phone, reported only | P3 |
 | B8 | **Tile size at deep strata** | default zoom floor 0.6, about 19-22 dp; green tiles and picture picking help | a closer look while placing, if the device run shows mis-taps | P1 (P0 if the device run confirms) |
@@ -296,6 +296,10 @@ a round-trip test; no split yet.
   mix.
 
 **B-8 — Reduce-motion coverage and a flow overlay (P2).**
+- STATUS: the coverage is **DONE** (see B5 in the table above): one
+  switch now stills every moving thing that is not information, the
+  smoke test checks it reaches the view, the camera and Juice, and a unit
+  test checks the camera cuts. The flow overlay is not built.
 
 **B-9 — A resource-node slice (P3, owner).** For example, a Drill on or
 beside an ore vein digs more; measured with the labs before it ships.

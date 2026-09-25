@@ -43,6 +43,8 @@ var zoom := 1.0
 var _target_zoom := 1.0
 var _target_center := Vector2(1920, 1015)
 var _gliding := false
+## Settings' "Reduce motion": a focus cuts to its framing instead of gliding.
+var instant := false
 var _pivot_screen := Vector2.ZERO
 var _pivot_world := Vector2.ZERO
 var _pivoting := false
@@ -185,9 +187,12 @@ func focus(world_point: Vector2, z: float = -1.0) -> void:
 	if z > 0.0:
 		_target_zoom = clamp_zoom(z)
 	_target_center = clamp_center(world_point, _target_zoom)
-	_gliding = true
+	_gliding = not instant
 	_pivoting = false
 	velocity = Vector2.ZERO
+	if instant:
+		zoom = _target_zoom
+		center = _target_center
 
 
 func is_moving() -> bool:

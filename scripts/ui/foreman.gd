@@ -41,7 +41,7 @@ static func draw_at(ci: CanvasItem, rect: Rect2, pose: int = Pose.IDLE,
 	var ch: float = float(cell[1])
 	var k: int = clampi(pose, 0, Pose.size() - 1)
 	var s: float = minf(rect.size.x / cw, rect.size.y / ch)
-	var bob: float = sin(phase * TAU) * rect.size.y * 0.012
+	var bob: float = 0.0 if Juice.calm else sin(phase * TAU) * rect.size.y * 0.012
 	var size := Vector2(cw, ch) * s
 	var pos := Vector2(rect.position.x + (rect.size.x - size.x) * 0.5,
 		rect.position.y + rect.size.y - size.y + bob)

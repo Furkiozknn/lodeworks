@@ -1021,8 +1021,14 @@ Every row changes something real, applied in one place
 - **Battery saver** caps the game at 30 frames a second instead of 60.
 - **Zoom key** brings back the key taken off the right edge.
 - **Reduce motion** stills the Problems key's swell, the flame key's
-  flicker, the tutorial's pulse and the plunge on descending. The lights
-  and colours stay.
+  flicker, the tutorial's pulse and the plunge on descending, and (since
+  the gap audit, B5) the bobbing marks over a selected machine and on
+  status badges, the Foreman's idle bob, the new-machine card's bob, the
+  hot machines' flicker and the punch on Descend and the stratum card;
+  the camera cuts to where it was going instead of gliding. The lights,
+  colours and fades stay, and so do the beads that show material moving
+  along a link: they are the information, not decoration. Machine
+  animation has its own switch, Machine effects.
 
 The smoke test flips six of these switches and checks that each one
 changes what it names, and that flipping it back restores it. Things the
