@@ -108,8 +108,27 @@ in their own shader: saturation x1.28-1.30 and a warm tint. That keeps them
 nearer the concept's warmth without touching the machines, the lights or
 the interface (docs/AUDIT.md, "The world's colour").
 
-**Props** (crystals, an ore vein, rubble, lamps, a crate, a steam vent) are
-hand-placed in `layout.json` -> `placement.props`.
+**Props** (crystals, an ore vein, rubble, lamps, a crate, a steam vent) sit
+in `layout.json` -> `placement.props` as `[slab x, slab y, kind, size]`;
+size is 0.5 to 1.5 and missing means 1. The eight lamps are hand-set; the
+rest are written by `tools/props_layout.py` (a fixed seed, so the same file
+every time; `--check` prints the counts). It lays them out in regions: the
+purple crystal behind the Core, ore seams to its right, heat vents to its
+left, the rare blue crystal only far out, and two clearings in front left
+bare for a factory to grow into. Nothing stands within reach 6 in front of
+the Core, where a prop would cover the yard's front edge.
+
+Four kinds are **resource nodes** (`ResourceNodes`: both crystals, the ore
+vein, the vent); a tap on one opens a small card. Rubble, crates and lamps
+are clutter and take no tap. The yard clears a prop when it reaches its
+cell, as before.
+
+**The Core's foundation** is drawn as the Core's own grey plinth with a
+brass outline, not as locked ground, and a tap on it is a tap on the Core.
+The open cells the Core picture covers (`IsoView.cells_behind_core()`, four
+at stratum 1) outline themselves while a machine is armed or dragged, the
+Core thins to 40% at the same time, and a machine standing on one is drawn
+again over the Core as a pale blue ghost so it can be seen and tapped.
 
 **Depth bands** (0-3 Surface, 4-9 Workings, 10-16 Deep, 17+ Abyss) tint the
 one painting: daylight, lamp light, red, violet. Four paintings would be

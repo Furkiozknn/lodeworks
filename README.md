@@ -193,7 +193,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 262 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 285 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -281,7 +281,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            262 tests, no framework dependency
+tests/            285 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs

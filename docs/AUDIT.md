@@ -1180,6 +1180,104 @@ can only be judged says so.
 | 11 | Atmosphere | **PARTIAL** | the painting is still (waterfalls and mist do not move); dust and lamp light move; other depth bands are a tint (N3) |
 | 12 | Overall premium feel | **UNKNOWN** | a judgement, and nobody but the author has looked. The four audit screens are in CI's `screenshots` artifact; the "before" screen was captured from `1c57304` on the same machine |
 
+### The ground round the Core (25 September 2026)
+
+**The cells behind the Core.** The Core picture is taller than its block,
+so at stratum 1 it covers four open yard cells: (19,19) all of it, (18,18)
+90%, (20,19) 74%, (19,20) 66% (share of the cell's diamond under an opaque
+pixel of the Core, `IsoView.cells_behind_core()`). A player could buy
+them and not see them, and a machine placed there could not be tapped:
+the Core took the tap. The camera and the Core were not moved; moving
+either changes every screen the layout check measures. Instead:
+- while a machine is armed or dragged, the hidden cells outline themselves
+  and the Core thins to 40%, so the finger can see where it lands;
+- a machine standing on one is drawn again over the Core as a pale blue
+  ghost, and a tap on that ghost selects the machine, not the Core;
+- the list is worked out per Core level, because the picture grows.
+
+**The Core's foundation.** The Core's own 4 x 4 block was drawn like
+locked ground, and its front and side cells show 23-52% of their diamond
+beside the Core picture. They are now the Core's grey plinth with a brass
+outline, and a tap on them is a tap on the Core.
+
+**The props.** They were 60 hand-placed props, 4.5% of the ground in
+reach 3 to 10 of the Core, spread evenly. `tools/props_layout.py` now
+writes them (docs/ART.md, "Props"): 92 props with the lamps, 6.8% of
+that ground, in one-kind clusters by region, with two clearings in front
+left bare. No new art, no new kinds. Measured by `tools/layout_check.tscn`
+(props whose picture is on screen at the default view, and how many of
+them are nodes):
+
+| view | before | after |
+|---|---|---|
+| stratum 0, 18:9 | 12 (9 nodes) | 10 (9 nodes) |
+| stratum 0, 16:9 | 14 (10 nodes) | 11 (10 nodes) |
+| stratum 1, 18:9 | 14 (10 nodes) | 11 (11 nodes) |
+| stratum 1, 16:9 | 9 (6 nodes) | 9 (9 nodes) |
+| stratum 3, 18:9 | 13 (7 nodes) | 16 (14 nodes) |
+| stratum 3, 16:9 | 11 (7 nodes) | 11 (11 nodes) |
+
+At the default view the count barely moves, because most of the new
+props stand further out; what changes is what is seen: clutter near the
+Core gave way to nodes, and the ground in front of it is bare. The yard,
+the Core and the cells on screen did not change: 20 / 48 / 84 yard cells
+at strata 0 / 1 / 3, 16 Core cells, on every shape.
+
+**What it cost the frame.** The perf probe (`LODEWORKS_SOAK=20`, hero
+board, the same desktop, back to back) on `531a9ed` and on this round:
+
+| | 531a9ed | first try | this round |
+|---|---|---|---|
+| idle frame p50 / p95 | 11.98 / 15.68 ms | 13.13 / 17.47 ms | 10.94 / 14.68 ms |
+| 20 s soak p50 | 11.67 ms | 12.96 ms | 10.71 ms |
+| draw calls, idle | 165 | 180 | 174 |
+| static memory | 47.2 MB | 50.5 MB | 47.4 MB |
+
+The first try was 1.2 ms slower, and the cost was not the drawing. Every
+frame, every prop was asked where it stands and whether the yard had
+cleared it, and each answer is a few dictionary lookups in GDScript: 11
+microseconds a prop, measured, so about a millisecond for 92 props. The
+props do not move, so those facts are now worked out once, and again only
+when the yard grows (`IsoView._props_now()`). The frame ends up a
+millisecond faster than before the round. The first try also read the
+Core's whole picture into memory for its tap test (3.3 MB). The Core's
+and the props' tap tests now keep one bit per pixel. The other nine draw
+calls come from the Core's outline, the machines drawn over the Core,
+and more props between the machines. A phone is still UNKNOWN.
+
+### Resource nodes
+
+Four prop kinds are **resource nodes**: the purple and the blue crystal,
+the ore vein and the heat vent (`scripts/core/resource_nodes.gd`). A tap
+on one opens a small card over it: its name, one line, what uses it, and
+the stratum at which the yard reaches it. The card follows the node when
+the world moves and closes on any other tap. Rubble, crates and lamps are
+clutter and take no tap. A machine keeps the tap where a machine and a
+node overlap, and nothing is picked while a machine is armed.
+
+The card says only what is true. There is no resource-node economy: a
+Drill digs ore from any tile, and the yard clears a node when it reaches
+it. So the ore vein says "Drills dig ore." with the Drill beside it, and
+the crystals and the vent say that no machine uses them yet. A node has
+no link to the Core, so the same nodes can later serve a second factory.
+
+Making nodes matter is a new mechanic, and it is left for the owner to
+decide. For example, a Drill on or beside an ore vein could dig faster,
+or a crystal could be mined for Research. Either one changes the economy
+and the balance labs.
+
+### Follow-ups from the audits
+
+- **Resource nodes with a use**: needs the owner's decision (above).
+- **Deeper Bore's short line** "Every machine makes more" still overstates
+  it for the Lab; the long description is right.
+- **The tray's "?"** keys are 40 units, under the 48 dp floor on a small
+  phone.
+- **The collapse payout** and **blueprints**: the owner's decisions, noted
+  in the master audit.
+- **Portrait store screenshots**: the game is landscape-only; the store
+  listing needs landscape shots or a decision.
+
 ---
 
 
