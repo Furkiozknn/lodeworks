@@ -250,6 +250,13 @@ All generated from the running game by `tools/store-assets.sh`. Nothing is
 composited, painted or retouched, and every board shown is one the simulation
 actually ran.
 
+The screenshots and the preview are **build outputs and are not kept in the
+repository** (60 MB a render would double it each time): CI's "screenshots
+render" job makes them under xvfb at the exact sizes, checks them, and keeps
+them as the `screenshots` artifact. The icon, the feature graphic and this
+text stay in `store/`. The portrait set that went before is in
+`_eski/store-portrait-2026-09-23/`.
+
 ### Screenshots — `screenshots/`, 8 at 1920×1080 (landscape), 24-bit PNG
 
 | file | shows | what it proves |

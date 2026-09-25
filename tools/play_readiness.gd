@@ -166,17 +166,24 @@ func _check_listing() -> void:
 		for f: String in td.get_files():
 			if f.ends_with(".png"):
 				tablet += 1
+	# The screenshots and the preview are build outputs, not kept in the
+	# repository: CI's screenshots job renders them at Play's sizes, checks
+	# them (tools/check-store-assets.py) and keeps them as the `screenshots`
+	# artifact. A local render counts as well.
+	var ci_renders: bool = _read("res://.github/workflows/ci.yml").contains("tools/store-assets.sh")
+	var where: String = "; CI renders and checks them on every build (artifact `screenshots`)" 		if ci_renders else ""
 	_row("listing", "phone screenshots (Play wants 2-8, 4+ for games)",
-		DONE if shots >= 4 else MANUAL, "%d present" % shots)
+		DONE if shots >= 4 or ci_renders else MANUAL, "%d here%s" % [shots, where])
 	_row("listing", "tablet screenshots (4 minimum for a games listing)",
-		DONE if tablet >= 4 else MANUAL, "%d present" % tablet)
+		DONE if tablet >= 4 or ci_renders else MANUAL, "%d here%s" % [tablet, where])
 	var listing: String = _read("res://store/listing.md")
 	_row("listing", "title, short and full description",
 		DONE if listing.length() > 500 else MANUAL,
 		"store/listing.md, %d characters" % listing.length())
-	_row("listing", "preview video", DONE if _exists("res://store/preview.mp4") else MANUAL,
-		"a local mp4 exists; Play takes a YouTube URL, so it has to be "
-		+ "uploaded to a YouTube account first")
+	_row("listing", "preview video", MANUAL,
+		("an mp4 is rendered%s; " % (" by CI" if ci_renders else ""))
+		+ "Play takes a YouTube URL, so it has to be uploaded to a YouTube "
+		+ "account first")
 
 
 ## --- in-app products -------------------------------------------------------

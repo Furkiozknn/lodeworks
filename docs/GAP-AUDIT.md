@@ -270,8 +270,13 @@ the world.
   check now also measures every listing field against its limit (it said
   it did; it did not). The description names the Core, the yard, the
   "What now?" key and the languages; the Turkish listing uses the game's
-  own Turkish words. Still a person's: the YouTube upload of the preview,
-  and whether to list in Turkish at all.
+  own Turkish words. The renders are build outputs, kept as CI's
+  `screenshots` artifact rather than in the repository (about 60 MB a
+  render); the portrait set moved to `_eski/`. Still a person's: choosing
+  the shots, the YouTube upload of the preview, and whether to list in
+  Turkish at all. A follow-up: the "full" board the shots use has 31
+  machines in trouble, which the hero shot and Welcome back show; a
+  better-built board would sell the game better (B-4b, P2).
 
 **B-5 — The blueprint decision (P1 decision memo).**
 - Research: layouts shared by code are valuable (Factory Tours).

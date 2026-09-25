@@ -324,6 +324,7 @@ graphic has the name and two plain lines on the left, and the Core with its
 first four machines on the right. `tools/store-assets.sh` renders and
 copies them.
 
-**Not yet on the new art**: the store screenshots in `store/screenshots`
-are the old portrait ones. The landscape capture is automated, but which
-shots to upload is a person's choice.
+The store screenshots and the preview are landscape now, rendered by CI
+at Play's sizes on every build (the `screenshots` artifact); the old
+portrait ones are in `_eski/store-portrait-2026-09-23/`. Which shots to
+upload is a person's choice.

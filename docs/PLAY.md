@@ -61,12 +61,12 @@ narrowly as possible.
    number and email on the store page anyway.
 7. **Paste `store/data-safety.md`** into App content → Data safety, and answer
    the content rating questionnaire (prepared answers below).
-8. **Re-shoot the store assets in landscape, then upload the preview video
-   to YouTube.** The game is landscape since the isometric round; the
-   screenshots, feature graphic and `store/preview.mp4` in `store/` are still
-   the portrait, procedural-renderer ones and no longer show the game. The
-   capture is automated (`tools/shots.tscn` at 1920x1080); choosing and
-   uploading is not. Play takes the video as a YouTube URL.
+8. **Take the store assets from CI and upload the preview video to
+   YouTube.** Every CI build renders the landscape screenshots (1920x1080
+   phone, 2560x1440 tablet), the icon, the feature graphic and
+   `preview.mp4`, checks them against Play's specs, and keeps them as the
+   `screenshots` artifact of the "screenshots render" job. Choosing and
+   uploading is a person's job. Play takes the video as a YouTube URL.
 9. **Closed testing: 12 testers, 14 continuous days.** A new personal
    developer account cannot reach production without it.
 10. **Run `docs/DEVICE-TEST.md` on a real Android phone.** 18 of its 25 checks

@@ -265,9 +265,9 @@ screenshots, and seven tags where five is the maximum.
 |---|---|
 | App icon 512x512, 192, adaptive foreground | generated, no alpha, no self-rounded corners |
 | Feature graphic 1024x500 | generated — previously missing, which blocks publication outright |
-| Phone screenshots | 8 at 1920x1080 (landscape), 24-bit, with alt text |
-| Tablet screenshots | 8 at 2560x1440 (landscape) |
-| Preview video | `store/preview.mp4`, 13 s of captured gameplay — **needs a human to upload it to YouTube** |
+| Phone screenshots | 8 at 1920x1080 (landscape), 24-bit, with alt text — rendered by CI, in the `screenshots` artifact |
+| Tablet screenshots | 8 at 2560x1440 (landscape) — the same artifact |
+| Preview video | `preview.mp4`, 13 s of captured gameplay, in the same artifact — **needs a human to upload it to YouTube** |
 | Title, descriptions, tags | rewritten for the landscape game, in English and Turkish; every field's length checked by `tools/check-store-assets.py` |
 
 ## 9. Known gaps in the build itself

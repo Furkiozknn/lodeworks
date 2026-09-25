@@ -13,3 +13,9 @@ android/
 # committed: large prebuilt AARs that update on Google's schedule, and the
 # game is written to build and run without them.
 addons/
+# Store renders are build outputs: tools/store-assets.sh makes them and CI's
+# screenshots job keeps them as the `screenshots` artifact.
+store/screenshots/
+store/screenshots-tablet/
+store/preview.mp4
+store/preview.gif
