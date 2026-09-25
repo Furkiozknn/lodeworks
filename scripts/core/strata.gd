@@ -129,7 +129,12 @@ static func modifiers_for(depth: int) -> Array[String]:
 
 
 static func describe(depth: int) -> Dictionary:
-	var mods: Array[String] = modifiers_for(depth)
+	return _describe(depth, modifiers_for(depth))
+
+
+## A stratum at `depth` with the modifiers `mods`: describe(), and the same
+## rock with only some of its rules for effects_on().
+static func _describe(depth: int, mods: Array[String]) -> Dictionary:
 	var d: Dictionary = {
 		"depth": depth,
 		"name": "Stratum %d" % depth,
@@ -232,6 +237,70 @@ static func apply(sim: Simulation, grid: Grid, st: Dictionary,
 	sim.research_mult = float(mu.get("research", 1.0)) * float(st["research"])
 	sim.tolerance_bonus = float(mu.get("tolerance", 0.0))
 	sim.buffer_cap = maxi(Simulation.BUF_CAP + int(st["buffer_delta"]), 1)
+
+
+## How this stratum's rock treats machine `id` standing on it: 1 when it
+## works faster, yields more or earns more here than on plain rock at the
+## same depth (by NOTICEABLE or more), -1 when less, 0 otherwise. The tray shows
+## it as an arrow on the machine's key. Only what the machine does itself
+## counts; a rule that changes the whole board (Unstable, Cramped, how far
+## heat spreads) gives no machine an arrow.
+static func effect_on(id: String, st: Dictionary) -> int:
+	var f: float = _factor(id, st)
+	if f >= 1.0 + NOTICEABLE:
+		return 1
+	if f <= 1.0 - NOTICEABLE:
+		return -1
+	return 0
+
+
+## Less than this, and a rule is not worth an arrow: a 2% change on a key
+## would be noise the player learns to ignore.
+const NOTICEABLE := 0.05
+
+
+## The rules of stratum `depth` that move machine `id`, each with its sign:
+## [[modifier id, 1 or -1], ...]. The words on a tray key's "?".
+static func effects_on(id: String, depth: int) -> Array:
+	var out: Array = []
+	for mod: String in modifiers_for(depth):
+		var only: Array[String] = [mod]
+		var e: int = effect_on(id, _describe(depth, only))
+		if e != 0:
+			out.append([mod, e])
+	return out
+
+
+## What `apply` does to one machine alone on this rock, as a single factor
+## against plain rock at the same depth: its speed, its yield, what it
+## sells or researches, and the heat of its own tile (the rock's, plus its
+## own, as Grid adds them).
+static func _factor(id: String, st: Dictionary) -> float:
+	var m: Dictionary = MachineDB.get_machine(id)
+	if m.is_empty():
+		return 1.0
+	var tags: Array = m.get("tags", [])
+	var passive: bool = (m["inputs"] as Dictionary).is_empty() \
+		and (m["outputs"] as Dictionary).is_empty() \
+		and not tags.has("sink") and not tags.has("research")
+	if passive:
+		# A tile that works by existing: only a stronger push changes it.
+		return float(st["amplify"]) if tags.has("amplify") else 1.0
+	var f: float = float(st["process_speed"])
+	if tags.has("source"):
+		f *= float(st["source_speed"]) * float(st["source_yield"])
+	if tags.has("sink"):
+		f *= float(st["value"])
+	if tags.has("research"):
+		f *= float(st["research"])
+	var own: float = float(m.get("heat_out", 0.0))
+	var opt: float = float(m["heat_optimum"])
+	var tol: float = float(m["heat_tolerance"])
+	var plain: float = MachineDB.heat_efficiency(
+		maxf(AMBIENT_PER_DEPTH * float(st["depth"]) + own, 0.0), opt, tol)
+	if plain > 0.0:
+		f *= MachineDB.heat_efficiency(maxf(float(st["ambient_heat"]) + own, 0.0), opt, tol) / plain
+	return f
 
 
 static func modifier_name(id: String) -> String:

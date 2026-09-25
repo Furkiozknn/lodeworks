@@ -209,6 +209,17 @@ class Glyph extends Control:
 					_p(0.72, 0.32)]), red, w, true)
 				for x in [0.42, 0.5, 0.58]:
 					draw_line(_p(x, 0.42), _p(x, 0.74), red, w * 0.8)
+			"up", "down":
+				# A stratum's verdict on a machine: a round badge with an
+				# arrow, up in green or down in red -- the shape says it too.
+				var good: bool = kind == "up"
+				var c: Color = Palette.GOOD if good else Palette.BAD
+				draw_circle(_p(0.5, 0.5), s * 0.48, Color(Palette.BG, 0.92))
+				draw_arc(_p(0.5, 0.5), s * 0.45, 0.0, TAU, 24, c, w, true)
+				var tri: PackedVector2Array = PackedVector2Array([_p(0.5, 0.2), _p(0.8, 0.64),
+					_p(0.2, 0.64)]) if good else PackedVector2Array([_p(0.5, 0.8), _p(0.8, 0.36),
+					_p(0.2, 0.36)])
+				draw_colored_polygon(tri, c)
 			"motion":
 				draw_circle(_p(0.66, 0.5), s * 0.16, acc)
 				for k in range(3):

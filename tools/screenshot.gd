@@ -673,6 +673,20 @@ func _run_field() -> void:
 	await _settle(0.8)
 	await _audit_shot("field_h_core" + tag)
 	_main.call("_close_overlay")
+
+	# Stratum 8, Brittle Rock: its rules move machines both ways -- arrows on
+	# the tray, and under each rule on the stratum's card.
+	Sim.depth = 8
+	Sim.max_depth = 8
+	Sim._recompute()
+	_main.call("_rebuild_palette")
+	_main.call("_refresh")
+	await _settle(1.0)
+	await _audit_shot("field_i_rules" + tag)
+	_main.call("_show_stratum_info")
+	await _settle(0.8)
+	await _audit_shot("field_j_stratum" + tag)
+	_main.call("_close_overlay")
 	print("wrote the field screens to %s" % ProjectSettings.globalize_path(AUDIT_DIR))
 
 

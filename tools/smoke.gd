@@ -91,7 +91,8 @@ func _run() -> void:
 		await _settle(0.1)
 		var row: Button = null
 		for n: Node in _main.find_children("*", "Button", true, false):
-			if n.has_meta("setting") and String(n.get_meta("setting")) == String(c[1]) 					and not n.is_queued_for_deletion():
+			if n.has_meta("setting") and String(n.get_meta("setting")) == String(c[1]) \
+					and not n.is_queued_for_deletion():
 				row = n as Button
 		if row == null:
 			_failures.append("settings has no '%s' switch" % c[1])
@@ -116,7 +117,8 @@ func _run() -> void:
 	var grids: Array[Node] = _main.find_children("*", "GridContainer", true, false)
 	var cards: GridContainer = null
 	for g: Node in grids:
-		if g.is_visible_in_tree() and g.get_child_count() > 0 				and (g.get_child(0) as Node).has_meta("research_id"):
+		if g.is_visible_in_tree() and g.get_child_count() > 0 \
+				and (g.get_child(0) as Node).has_meta("research_id"):
 			cards = g as GridContainer
 	if cards == null:
 		_failures.append("the research panel has no card grid")
@@ -130,7 +132,8 @@ func _run() -> void:
 		for card: Node in cards.get_children():
 			var id: String = String(card.get_meta("research_id"))
 			var st: String = String(card.get_meta("state"))
-			var want: String = "max" if Sim.upgrade_level(id) >= int(Economy.RESEARCH_TREE[id]["max"]) 				else ("ready" if Sim.can_buy_upgrade(id) else "")
+			var want: String = "max" if Sim.upgrade_level(id) >= int(Economy.RESEARCH_TREE[id]["max"]) \
+				else ("ready" if Sim.can_buy_upgrade(id) else "")
 			if want != "" and st != want:
 				_failures.append("research card %s shows %s, the Sim says %s" % [id, st, want])
 			if want == "" and st in ["max", "ready"]:
@@ -145,7 +148,8 @@ func _run() -> void:
 	_main.call("_show_collapse")
 	await _settle(0.6)
 	await _shot("09_collapse")
-	var want_c: String = "locked" if not Economy.can_collapse(Sim.max_depth) 		else ("ready" if Sim.can_collapse() else "empty")
+	var want_c: String = "locked" if not Economy.can_collapse(Sim.max_depth) \
+		else ("ready" if Sim.can_collapse() else "empty")
 	var got_c: String = ""
 	for n: Node in _main.find_children("*", "VBoxContainer", true, false):
 		if n.has_meta("state") and (n as Control).is_visible_in_tree():

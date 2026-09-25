@@ -264,7 +264,8 @@ func _place_pointer() -> void:
 		var r: Rect2 = iso_view.core_rect()
 		at = iso_view.cam.world_to_screen(r.get_center() - Vector2(0, r.size.y * 0.06))
 		at = iso_view.get_global_transform() * at
-	elif tutoring and _pulsing != null and is_instance_valid(_pulsing) 			and _pulsing.is_visible_in_tree():
+	elif tutoring and _pulsing != null and is_instance_valid(_pulsing) \
+			and _pulsing.is_visible_in_tree():
 		var gr: Rect2 = _pulsing.get_global_rect()
 		at = Vector2(gr.get_center().x, gr.position.y + 4.0)
 	elif tutoring and pointer_cell() >= 0:
@@ -566,7 +567,9 @@ func _build_stratum_card() -> Control:
 	col.add_child(_lbl_mods)
 	# A tap on the card says what this stratum is and what its rules do.
 	p.gui_input.connect(func(e: InputEvent):
-		if (e is InputEventMouseButton and not e.pressed 				and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT) 				or (e is InputEventScreenTouch and not e.pressed):
+		if (e is InputEventMouseButton and not e.pressed \
+				and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT) \
+				or (e is InputEventScreenTouch and not e.pressed):
 			Juice.tap()
 			_show_stratum_info())
 	return p
@@ -614,6 +617,24 @@ func _show_stratum_info() -> void:
 		var d := _label(Strata.modifier_desc(String(id)), 18, Palette.TEXT_DIM)
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		words.add_child(d)
+		# The machines this rule moves, with the arrow their tray key shows.
+		var moved := HBoxContainer.new()
+		moved.add_theme_constant_override("separation", 6)
+		for mid: String in MachineDB.by_group(Sim.unlocked):
+			for e: Array in Strata.effects_on(mid, Sim.depth):
+				if String(e[0]) != String(id):
+					continue
+				var pic := Control.new()
+				pic.custom_minimum_size = Vector2(48, 48)
+				pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				pic.add_child(Chips.MachineSprite.new(mid, 48.0))
+				var mark := Chips.Glyph.new("up" if int(e[1]) > 0 else "down", 22.0)
+				mark.position = Vector2(28, 28)
+				mark.size = Vector2(22, 22)
+				pic.add_child(mark)
+				moved.add_child(pic)
+		if moved.get_child_count() > 0:
+			words.add_child(moved)
 		row.add_child(words)
 		body.add_child(row)
 	_open_overlay("Stratum %d" % Sim.depth, body, [])
@@ -1110,6 +1131,16 @@ func _make_palette_button(id: String) -> Control:
 	grp.position = Vector2(4, 4)
 	grp.size = Vector2(26, 26)
 	b.add_child(grp)
+	# What this stratum's rock does to it, at the moment of choosing: an
+	# arrow up or down, the simulation's own answer (Strata.effect_on). The
+	# rule that does it is in the words behind the "?".
+	var verdict: int = Strata.effect_on(id, Sim.stratum())
+	if verdict != 0:
+		var arrow := Chips.Glyph.new("up" if verdict > 0 else "down", 28.0)
+		arrow.position = Vector2(98 - 32, 44)
+		arrow.size = Vector2(28, 28)
+		b.add_child(arrow)
+	b.set_meta("verdict", verdict)
 	# The name and what it does, behind a "?" in the corner.
 	var help: Button = _machine_help(id)
 	help.custom_minimum_size = Vector2(40, 40)
@@ -1280,7 +1311,12 @@ func _machine_help(id: String) -> Button:
 	var m: Dictionary = MachineDB.get_machine(id)
 	var b: Button = _help_button(String(m["name"]), func() -> String:
 		var t: String = MachineDB.recipe_text(id)
-		return (t + "\n\n" if t != "" else "") + String(m["desc"]))
+		var words: String = (t + "\n\n" if t != "" else "") + String(m["desc"])
+		# The rules of this stratum that move it: why its key has an arrow.
+		for e: Array in Strata.effects_on(id, Sim.depth):
+			words += "\n\n%s here: %s %s" % ["Helped" if int(e[1]) > 0 else "Held back",
+				Strata.modifier_name(String(e[0])) + ".", Strata.modifier_desc(String(e[0]))]
+		return words)
 	return b
 
 
@@ -1967,7 +2003,8 @@ func _open_overlay(title: String, body: Control, actions: Array,
 func _fit_overlay(card: Control, body: Control, max_h: float) -> void:
 	for i in range(2):
 		await get_tree().process_frame
-	if not is_instance_valid(card) or not is_instance_valid(body) 			or not card.is_inside_tree():
+	if not is_instance_valid(card) or not is_instance_valid(body) \
+			or not card.is_inside_tree():
 		return
 	var scroll: Control = body.get_parent() as Control
 	var chrome: float = card.size.y - scroll.size.y

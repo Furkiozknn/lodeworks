@@ -825,6 +825,62 @@ func test_the_core_card_says_when_the_yard_next_grows() -> void:
 	runner.eq(int(FactoryReport.of(s.grid, s, 4)["next_stratum"]), 7, "stratum 4 waits for 7")
 
 
+## What the simulation makes of one machine alone on a stratum: its speed
+## on its own tile, times what it yields, sells or researches, or for a tile
+## that works by existing, how hard it pushes.
+func _alone(id: String, st: Dictionary) -> float:
+	var g := Grid.new()
+	var cell: int = Grid.idx(10, 10)
+	g.place(cell, id)
+	var s := Simulation.new(g, 1)
+	Strata.apply(s, g, st, {})
+	var m: Dictionary = MachineDB.get_machine(id)
+	var tags: Array = m["tags"]
+	if (m["inputs"] as Dictionary).is_empty() and (m["outputs"] as Dictionary).is_empty() \
+			and not tags.has("sink") and not tags.has("research"):
+		return s.amplify_mult if tags.has("amplify") else 1.0
+	var f: float = s.effective_rate(cell)
+	if tags.has("source"):
+		f *= s.yield_mult
+	if tags.has("sink"):
+		f *= s.value_mult
+	if tags.has("research"):
+		f *= s.research_mult
+	return f
+
+
+func test_a_tray_arrow_is_what_the_simulation_does_to_the_machine() -> void:
+	# The arrow on a tray key says a stratum helps or hinders that machine.
+	# It must be the simulation's own answer, on every stratum a player can
+	# reach, or it is a rumour.
+	var ups: int = 0
+	var downs: int = 0
+	for d in range(1, 60):
+		var st: Dictionary = Strata.describe(d)
+		var none: Array[String] = []
+		var plain: Dictionary = Strata._describe(d, none)
+		for id: String in MachineDB.MACHINES.keys():
+			var ratio: float = _alone(id, st) / maxf(_alone(id, plain), 0.0001)
+			var want: int = 1 if ratio >= 1.0 + Strata.NOTICEABLE \
+				else (-1 if ratio <= 1.0 - Strata.NOTICEABLE else 0)
+			var got: int = Strata.effect_on(id, st)
+			runner.eq(got, want, "stratum %d, %s: arrow %d, simulation x%.3f" % [d, id, got, ratio])
+			ups += 1 if got > 0 else 0
+			downs += 1 if got < 0 else 0
+	runner.gt(float(ups), 20.0, "strata help some machines")
+	runner.gt(float(downs), 20.0, "and hinder others")
+	# Brittle Rock: Drills faster, everything downstream slower.
+	var brittle: Array[String] = ["brittle"]
+	var br: Dictionary = Strata._describe(3, brittle)
+	runner.eq(Strata.effect_on("drill", br), 1, "Brittle Rock helps the Drill")
+	runner.eq(Strata.effect_on("crusher", br), -1, "and slows the Crusher")
+	runner.eq(Strata.effect_on("boiler", br), 0, "and leaves a Boiler alone")
+	for d in range(1, 30):
+		for e: Array in Strata.effects_on("drill", d):
+			runner.check(Strata.modifiers_for(d).has(String(e[0])),
+				"a reason given is one of the stratum's own rules")
+
+
 func test_the_yard_is_the_same_after_a_collapse() -> void:
 	for i in range(0, Grid.W * Grid.H, 5):
 		runner.eq(BuildArea.is_open(i, 3, 1), BuildArea.is_open(i, 3, 0),
