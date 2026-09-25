@@ -216,9 +216,8 @@ class Run extends RefCounted:
 
 	func try_upgrade() -> String:
 		for id: String in Economy.TREE_ORDER:
-			var u: Dictionary = Economy.RESEARCH_TREE[id]
 			var lvl: int = int(upgrades.get(id, 0))
-			if lvl >= int(u["max"]):
+			if lvl >= Economy.max_level(id, collapses):
 				continue
 			var c: Dictionary = Economy.upgrade_cost(id, lvl)
 			if research >= float(c["research"]) and cores >= int(c["cores"]):
@@ -426,9 +425,8 @@ func _long_game() -> void:
 		while bought:
 			bought = false
 			for id: String in Economy.TREE_ORDER:
-				var u: Dictionary = Economy.RESEARCH_TREE[id]
 				var lvl: int = int(spent.get(id, 0))
-				if lvl >= int(u["max"]):
+				if lvl >= Economy.max_level(id, runs):
 					continue
 				var c: int = int(Economy.upgrade_cost(id, lvl)["cores"])
 				if c > 0 and bank >= c:
@@ -439,7 +437,7 @@ func _long_game() -> void:
 		for id: String in Economy.RESEARCH_TREE:
 			if int(Economy.upgrade_cost(id, 0)["cores"]) <= 0:
 				continue
-			if int(spent.get(id, 0)) >= int(Economy.RESEARCH_TREE[id]["max"]):
+			if int(spent.get(id, 0)) >= Economy.max_level(id, runs):
 				maxed += 1
 		if runs <= 6 or maxed == core_upgrades:
 			print("   after collapse %2d: %3d Cores banked, %d/%d permanent upgrades maxed"
@@ -475,16 +473,17 @@ func _collapses() -> void:
 	print("\n== COLLAPSE AFTER COLLAPSE, played (stall %s, up to %d runs) =="
 		% [Economy.fmt_duration(stall_limit), runs_max])
 	var lines: Array[String] = []
-	var tree_cores: int = 0
+	var growing: int = 0
 	for id: String in Economy.TREE_ORDER:
 		if Worklist.HIDDEN.has(id):
 			continue
 		lines.append(id)
-		for lvl: int in range(int(Economy.RESEARCH_TREE[id]["max"])):
-			tree_cores += int(Economy.upgrade_cost(id, lvl)["cores"])
-	print("   the tree the game offers: %d lines, %d Cores in all" % [lines.size(), tree_cores])
-	print("   %-4s %-9s %-6s %-9s %-6s %-9s %-7s %s" % ["run", "length", "depth",
-		"lifetime", "Cores", "Cores/h", "levels", "played"])
+		if bool(Economy.RESEARCH_TREE[id].get("grows", false)):
+			growing += 1
+	print("   %d lines, %d of them growing one level a collapse (Economy.max_level)"
+		% [lines.size(), growing])
+	print("   %-4s %-9s %-6s %-9s %-6s %-9s %-13s %s" % ["run", "length", "depth",
+		"lifetime", "Cores", "Cores/h", "levels (open)", "played"])
 	var r := Run.new()
 	var played: float = 0.0
 	var spent_cores: int = 0
@@ -527,29 +526,25 @@ func _collapses() -> void:
 		while _buy_offered(r, lines) != "":
 			pass
 		spent_cores += before - r.cores
+		# Levels bought, and levels the new limits leave open to buy.
 		var levels: int = 0
-		var maxed: int = 0
+		var open: int = 0
 		for id: String in lines:
 			levels += int(r.upgrades.get(id, 0))
-			if int(r.upgrades.get(id, 0)) >= int(Economy.RESEARCH_TREE[id]["max"]):
-				maxed += 1
-		print("   %-4d %-9s %-6d %-9s %-6d %-9.1f %-7s %s" % [run, Economy.fmt_duration(t),
+			open += Economy.max_level(id, r.collapses) - int(r.upgrades.get(id, 0))
+		print("   %-4d %-9s %-6d %-9s %-6d %-9.1f %-13s %s" % [run, Economy.fmt_duration(t),
 			depth, Economy.fmt(lifetime), got, float(got) / (t / 3600.0),
-			"%d (%d/%d)" % [levels, maxed, lines.size()], Economy.fmt_duration(played)])
-		print("        board: " + ", ".join(board))
-		if maxed == lines.size():
-			print("   THE TREE IS DONE after %d collapses and %s of play." % [run,
-				Economy.fmt_duration(played)])
-			return
-	print("   after %d collapses: %d of %d Cores of the tree bought, %s of play."
-		% [runs_max, spent_cores, tree_cores, Economy.fmt_duration(played)])
+			"%d (%d)" % [levels, open], Economy.fmt_duration(played)])
+		print("        board: " + ", ".join(board) + "  | Cores left %d" % r.cores)
+	print("   after %d collapses: %d Cores spent, %s of play; the tree has no end."
+		% [runs_max, spent_cores, Economy.fmt_duration(played)])
 
 
 ## The first line the game offers that the run can pay for, bought; "" if none.
 func _buy_offered(r: Run, lines: Array[String]) -> String:
 	for id: String in lines:
 		var lvl: int = int(r.upgrades.get(id, 0))
-		if lvl >= int(Economy.RESEARCH_TREE[id]["max"]):
+		if lvl >= Economy.max_level(id, r.collapses):
 			continue
 		var c: Dictionary = Economy.upgrade_cost(id, lvl)
 		if r.research >= float(c["research"]) and r.cores >= int(c["cores"]):

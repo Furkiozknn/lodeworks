@@ -151,6 +151,16 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: res://scripts/ui/main.gd
+msgid "+1 level on %d research line"
+msgid_plural "+1 level on %d research lines"
+msgstr[0] ""
+msgstr[1] ""
+
+#: res://scripts/ui/main.gd
+msgid "A new record: stratum %d, deeper than any shaft before."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr ""
 
@@ -487,7 +497,15 @@ msgid "MAX"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "+1 after a collapse"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "This one also costs Cores. You get Cores when you collapse the shaft."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "This line has no end: every collapse lets it go one level higher."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -496,6 +514,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Collapse the shaft"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Deepest ever: stratum %d"
 msgstr ""
 
 #: res://scripts/ui/main.gd

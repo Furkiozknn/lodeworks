@@ -999,3 +999,67 @@ func test_a_machine_outside_the_yard_from_an_older_save_keeps_working() -> void:
 	runner.gt(earned, 0.0, "and still earning")
 	runner.check(Sim.sell(Grid.idx(4, 0)), "one can be sold")
 	Save.wipe()
+
+
+func test_a_line_at_its_limit_opens_again_after_a_collapse() -> void:
+	Save.wipe()
+	Sim._ensure()
+	Sim.collapses = 0
+	Sim.upgrade_levels = {"throughput_1": int(Economy.RESEARCH_TREE["throughput_1"]["max"])}
+	Sim.research = 1.0e12
+	Sim.cores = 100000
+	runner.check(not Sim.can_buy_upgrade("throughput_1"), "at its limit")
+	Sim.collapses = 1
+	runner.check(Sim.can_buy_upgrade("throughput_1"), "one collapse later, one more level")
+	runner.check(Sim.buy_upgrade("throughput_1"), "and it can be bought")
+	runner.check(not Sim.can_buy_upgrade("throughput_1"), "and then it waits for the next")
+	var heat_top: int = int(Economy.RESEARCH_TREE["heat_tolerance"]["max"])
+	Sim.upgrade_levels["heat_tolerance"] = heat_top
+	Sim.collapses = 9
+	runner.check(not Sim.can_buy_upgrade("heat_tolerance"), "a line with a ceiling stays done")
+	Sim.collapses = 0
+	Sim.upgrade_levels = {}
+	Sim.research = 0.0
+	Sim.cores = 0
+	Sim._recompute()
+	Save.wipe()
+
+
+func test_a_new_record_depth_is_news_only_after_the_first_shaft() -> void:
+	Save.wipe()
+	Sim._ensure()
+	Sim.grid.clear()
+	Sim.core_online = true
+	Sim.collapses = 0
+	Sim.deepest = 0
+	Sim.depth = 0
+	Sim.max_depth = 0
+	Sim._recompute()
+	var heard: Array = []
+	var cb := func(d: int): heard.append(d)
+	Sim.new_record.connect(cb)
+	Sim.credits = Sim.quota() + 1.0
+	runner.check(Sim.descend(), "down one")
+	runner.eq(Sim.deepest, 1, "the record follows the first shaft")
+	runner.eq(heard.size(), 0, "but in the first shaft it is not news")
+	# A second shaft, past the first one's record.
+	Sim.collapses = 1
+	Sim.deepest = 1
+	Sim.depth = 1
+	Sim.max_depth = 1
+	Sim._recompute()
+	Sim.credits = Sim.quota() + 1.0
+	runner.check(Sim.descend(), "down again")
+	runner.eq(heard, [2], "past every shaft before: news, once")
+	var saved: Dictionary = Sim.to_dict()
+	Sim.deepest = 0
+	Sim.from_dict(saved)
+	runner.eq(Sim.deepest, 2, "and the record is saved")
+	Sim.new_record.disconnect(cb)
+	Sim.collapses = 0
+	Sim.deepest = 0
+	Sim.depth = 0
+	Sim.max_depth = 0
+	Sim.credits = 0.0
+	Sim._recompute()
+	Save.wipe()

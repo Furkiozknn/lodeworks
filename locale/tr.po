@@ -152,6 +152,16 @@ msgstr[0] "Bu Çekirdekler bu araştırmayı açar."
 msgstr[1] "Bu Çekirdekler bu araştırmaları açar."
 
 #: res://scripts/ui/main.gd
+msgid "+1 level on %d research line"
+msgid_plural "+1 level on %d research lines"
+msgstr[0] "%d araştırma hattına +1 seviye"
+msgstr[1] "%d araştırma hattına +1 seviye"
+
+#: res://scripts/ui/main.gd
+msgid "A new record: stratum %d, deeper than any shaft before."
+msgstr "Yeni rekor: %d. katman. Hiçbir maden bu kadar derine inmemişti."
+
+#: res://scripts/ui/main.gd
 msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr "Katman %d. Saha büyüdü: kuracak daha çok yer var."
 
@@ -488,8 +498,16 @@ msgid "MAX"
 msgstr "MAKS"
 
 #: res://scripts/ui/main.gd
+msgid "+1 after a collapse"
+msgstr "Çöküşten sonra +1"
+
+#: res://scripts/ui/main.gd
 msgid "This one also costs Cores. You get Cores when you collapse the shaft."
 msgstr "Bu, Çekirdek de ister. Çekirdeği kuyuyu çökertince alırsın."
+
+#: res://scripts/ui/main.gd
+msgid "This line has no end: every collapse lets it go one level higher."
+msgstr "Bu hattın sonu yok: her çöküş onu bir seviye daha yükseğe taşır."
 
 #: res://scripts/ui/main.gd
 msgid "Collapsing the shaft turns everything you have built into Cores, and Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You have reached %d."
@@ -498,6 +516,10 @@ msgstr "Kuyuyu çökertmek, kurduğun her şeyi Çekirdeğe çevirir; Çekirdekl
 #: res://scripts/ui/main.gd
 msgid "Collapse the shaft"
 msgstr "Kuyuyu çökert"
+
+#: res://scripts/ui/main.gd
+msgid "Deepest ever: stratum %d"
+msgstr "En derin: %d. katman"
 
 #: res://scripts/ui/main.gd
 msgid "The shaft kept running.\n\nAway %s. Counted %s at %d%% of your live rate."

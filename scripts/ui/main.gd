@@ -151,6 +151,11 @@ func _ready() -> void:
 	_build()
 	Sim.stats_changed.connect(_refresh)
 	Sim.stats_changed.connect(_tutorial_watch)
+	# Deeper than any shaft before: said after the stratum's own news.
+	Sim.new_record.connect(func(d: int):
+		_say(Loc.t("A new record: stratum %d, deeper than any shaft before.") % d,
+			Foreman.Pose.CHEER, 4.5)
+		Juice.upgrade())
 	Sim.depth_changed.connect(func(d: int):
 		_rebuild_palette()
 		_refresh()
@@ -2565,8 +2570,9 @@ func _show_research() -> void:
 func _research_card(id: String) -> Control:
 	var u: Dictionary = Economy.RESEARCH_TREE[id]
 	var lvl: int = Sim.upgrade_level(id)
-	var top: int = int(u["max"])
+	var top: int = Economy.max_level(id, Sim.collapses)
 	var maxed: bool = lvl >= top
+	var grows: bool = bool(u.get("grows", false))
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	var can: bool = Sim.can_buy_upgrade(id)
 	var locked: bool = not maxed and Sim.cores < int(c["cores"])
@@ -2605,11 +2611,13 @@ func _research_card(id: String) -> Control:
 	var short_lbl := _label(Loc.t(String(u.get("short", ""))), 17, Palette.TEXT_DIM)
 	short_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(short_lbl)
-	# How far along: one pip a level, and the count.
+	# How far along: one pip a level, and the count. A line that grows past
+	# ten levels shows the count alone: a row of thirty pips is a ruler.
 	var pips := HBoxContainer.new()
 	pips.add_theme_constant_override("separation", 4)
-	for k in range(top):
-		pips.add_child(_pip(k < lvl))
+	if top <= 10:
+		for k in range(top):
+			pips.add_child(_pip(k < lvl))
 	var count := _label("%d/%d" % [lvl, top], 16, Palette.TEXT_FAINT)
 	pips.add_child(count)
 	words.add_child(pips)
@@ -2626,6 +2634,11 @@ func _research_card(id: String) -> Control:
 		done.add_theme_constant_override("separation", 8)
 		done.add_child(_icon_rect("ok", 52))
 		done.add_child(_label(Loc.t("MAX"), 26, Palette.CORE))
+		if grows:
+			# Not the end: the next collapse raises it, as a Town Hall does.
+			var more := _label(Loc.t("+1 after a collapse"), TEXT_MIN, Palette.TEXT_DIM)
+			more.set_meta("grows", true)
+			done.add_child(more)
 		bottom.add_child(done)
 	else:
 		# The price as pictures and numbers on the key that buys it. What is
@@ -2662,6 +2675,8 @@ func _research_card(id: String) -> Control:
 		var t: String = Loc.t(String(u["desc"]))
 		if locked:
 			t += "\n\n" + Loc.t("This one also costs Cores. You get Cores when you collapse the shaft.")
+		if grows:
+			t += "\n\n" + Loc.t("This line has no end: every collapse lets it go one level higher.")
 		return t)
 	help.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	bottom.add_child(help)
@@ -2812,6 +2827,25 @@ func _show_collapse() -> void:
 	else:
 		opens.free()
 	body.set_meta("opens", opened)
+	# And every growing line one level higher (Economy.max_level): the
+	# collapse is the shaft's next level, not only a trade.
+	var raise := HBoxContainer.new()
+	raise.alignment = BoxContainer.ALIGNMENT_CENTER
+	raise.add_theme_constant_override("separation", 12)
+	raise.add_child(_icon_rect("research", 52))
+	var growing: int = 0
+	for id: String in Economy.TREE_ORDER:
+		if not HIDDEN_RESEARCH.has(id) and bool(Economy.RESEARCH_TREE[id].get("grows", false)):
+			growing += 1
+	raise.add_child(_label(Loc.tn("+1 level on %d research line", "+1 level on %d research lines",
+		growing) % growing, 22, Palette.RESEARCH))
+	body.add_child(raise)
+	body.set_meta("raises", growing)
+	if Sim.collapses > 0:
+		# The record the next shaft plays against.
+		var rec := _label(Loc.t("Deepest ever: stratum %d") % Sim.deepest, TEXT_MIN, Palette.TEXT_DIM)
+		rec.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		body.add_child(rec)
 	body.set_meta("state", "ready" if Sim.can_collapse() else "empty")
 	_open_overlay(Loc.t("Collapse"), body,
 		[{"text": Loc.t("Collapse"), "color": Palette.CORE, "disabled": not Sim.can_collapse(),

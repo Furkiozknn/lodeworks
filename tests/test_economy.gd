@@ -178,3 +178,64 @@ func test_number_formatting_is_readable() -> void:
 func test_duration_formatting() -> void:
 	runner.eq(Economy.fmt_duration(45.0), "45s")
 	runner.eq(Economy.fmt_duration(3600.0 * 5 + 60.0 * 7), "5h 7m")
+
+
+## --- research without an end (owner's decision, 25 September 2026) ----------
+
+func test_every_collapse_raises_the_growing_lines_and_only_those() -> void:
+	var growing: int = 0
+	for id: String in Economy.RESEARCH_TREE:
+		var u: Dictionary = Economy.RESEARCH_TREE[id]
+		var base: int = int(u["max"])
+		runner.eq(Economy.max_level(id, 0), base, id + ": the first limit is the line's own")
+		if bool(u.get("grows", false)):
+			growing += 1
+			runner.eq(Economy.max_level(id, 7), base + 7, id + ": one level a collapse")
+			runner.eq(Economy.max_level(id, 400), base + 400, id + ": and no end to it")
+		else:
+			runner.eq(Economy.max_level(id, 7), base, id + ": a line with a ceiling keeps it")
+	runner.gte(float(growing), 5.0, "speed, yield, value, research and Cores all grow")
+	runner.check(not bool(Economy.RESEARCH_TREE["heat_tolerance"].get("grows", false)),
+		"heat tolerance stops, or the heat puzzle would end")
+
+
+func test_past_the_first_limit_a_level_costs_more_but_stays_reachable() -> void:
+	for id: String in Economy.RESEARCH_TREE:
+		if not bool(Economy.RESEARCH_TREE[id].get("grows", false)):
+			continue
+		var base: int = int(Economy.RESEARCH_TREE[id]["max"])
+		var last: float = 0.0
+		for lvl: int in range(base + 12):
+			var r: float = float(Economy.upgrade_cost(id, lvl)["research"])
+			# The first deep level trades most of its Research price for Cores.
+			if lvl != base:
+				runner.gt(r, last, "%s level %d costs more than the one before" % [id, lvl])
+			last = r
+		var a: float = float(Economy.upgrade_cost(id, base + 3)["research"])
+		var b: float = float(Economy.upgrade_cost(id, base + 4)["research"])
+		runner.near(b / a, Economy.LATE_GROWTH, 0.0001,
+			id + ": past the first limit each level is LATE_GROWTH dearer, not the steep curve")
+
+
+func test_a_deep_level_multiplies_and_costs_cores() -> void:
+	# Past the first limit, what a level does compounds: the twentieth level
+	# of a line is worth what the first was, not a twentieth of it.
+	var base: int = int(Economy.RESEARCH_TREE["throughput_1"]["max"])
+	var per: float = float(Economy.RESEARCH_TREE["throughput_1"]["per_level"])
+	var at_limit: float = float(Economy.multipliers({"throughput_1": base})["speed"])
+	runner.near(at_limit, 1.0 + per * float(base), 0.0001, "the first levels still add")
+	var deep3: float = float(Economy.multipliers({"throughput_1": base + 3})["speed"])
+	runner.near(deep3, at_limit * pow(1.0 + per, 3.0), 0.0001, "the deep ones multiply")
+	var cy: float = float(Economy.multipliers({"core_yield": 7})["core_yield"])
+	runner.near(1.0 + cy, (1.0 + 0.25 * 5.0) * 1.25 * 1.25, 0.0001,
+		"Seismic Survey's deep levels multiply the Cores a collapse pays")
+	for id: String in Economy.RESEARCH_TREE:
+		if not bool(Economy.RESEARCH_TREE[id].get("grows", false)):
+			continue
+		var b: int = int(Economy.RESEARCH_TREE[id]["max"])
+		var c0: int = int(Economy.upgrade_cost(id, b)["cores"])
+		var c5: int = int(Economy.upgrade_cost(id, b + 5)["cores"])
+		runner.gte(float(c0), Economy.DEEP_CORES, id + ": a deep level costs Cores")
+		runner.gt(float(c5), float(c0), id + ": and more the deeper it goes")
+	runner.eq(int(Economy.upgrade_cost("throughput_1", base - 1)["cores"]), 0,
+		"the first levels of a Research line still cost no Cores")

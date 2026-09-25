@@ -169,7 +169,7 @@ func _run() -> void:
 		for card: Node in cards.get_children():
 			var id: String = String(card.get_meta("research_id"))
 			var st: String = String(card.get_meta("state"))
-			var want: String = "max" if Sim.upgrade_level(id) >= int(Economy.RESEARCH_TREE[id]["max"]) \
+			var want: String = "max" if Sim.upgrade_level(id) >= Economy.max_level(id, Sim.collapses) \
 				else ("ready" if Sim.can_buy_upgrade(id) else "")
 			if want != "" and st != want:
 				_failures.append("research card %s shows %s, the Sim says %s" % [id, st, want])

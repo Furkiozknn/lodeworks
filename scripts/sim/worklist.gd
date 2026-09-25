@@ -93,14 +93,16 @@ static func research_ready(state: Object) -> int:
 
 ## Research lines whose next level needs more Cores than the player has, and
 ## no more than they would have with `gained` more (the Collapse card's row).
+## The limits are the ones after that collapse, which raises them.
 static func cores_open(state: Object, gained: int) -> Array[String]:
 	var out: Array[String] = []
 	var cores: int = int(state.get("cores"))
+	var after: int = int(state.get("collapses")) + 1
 	for id: String in Economy.TREE_ORDER:
 		if HIDDEN.has(id):
 			continue
 		var lvl: int = int(state.call("upgrade_level", id))
-		if lvl >= int(Economy.RESEARCH_TREE[id]["max"]):
+		if lvl >= Economy.max_level(id, after):
 			continue
 		var need: int = int(Economy.upgrade_cost(id, lvl)["cores"])
 		if need > cores and need <= cores + gained:

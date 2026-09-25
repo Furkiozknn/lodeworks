@@ -29,6 +29,7 @@ const RESEARCH_TREE := {
 		"cost_research": 40.0,
 		"cost_cores": 0,
 		"max": 8,
+		"grows": true,
 		"cost_growth": 2.1,
 		"effect": "speed",
 		"per_level": 0.15,
@@ -42,6 +43,7 @@ const RESEARCH_TREE := {
 		"cost_research": 65.0,
 		"cost_cores": 0,
 		"max": 6,
+		"grows": true,
 		"cost_growth": 2.3,
 		"effect": "yield",
 		"per_level": 0.20,
@@ -53,6 +55,7 @@ const RESEARCH_TREE := {
 		"cost_research": 90.0,
 		"cost_cores": 0,
 		"max": 6,
+		"grows": true,
 		"cost_growth": 2.4,
 		"effect": "value",
 		"per_level": 0.18,
@@ -64,6 +67,7 @@ const RESEARCH_TREE := {
 		"cost_research": 120.0,
 		"cost_cores": 0,
 		"max": 5,
+		"grows": true,
 		"cost_growth": 2.5,
 		"effect": "research",
 		"per_level": 0.25,
@@ -108,6 +112,7 @@ const RESEARCH_TREE := {
 		"cost_research": 400.0,
 		"cost_cores": 9,
 		"max": 5,
+		"grows": true,
 		"cost_growth": 3.0,
 		"effect": "core_yield",
 		"per_level": 0.25,
@@ -145,15 +150,72 @@ const OFFLINE_MAX_HOURS := 24.0
 const CORE_COST_GROWTH := 1.2
 
 
+## --- research without an end ----------------------------------------------
+##
+## The tree used to finish: four collapses and about four hours of play
+## (docs/AUDIT.md, "Collapse after collapse, played"), after which a
+## collapse bought nothing. The owner's decision of 25 September 2026: the
+## game is to keep a player growing for as long as they play, the way Clash
+## of Clans does, so the tree does not end.
+##
+## It works the way a Town Hall does (docs/research/clash-ux.md, section 2):
+## **every collapse raises the limit of every line marked `grows` by one
+## level.** The limit is always there to reach, and the next collapse always
+## moves it -- so there is always a next level, and always a reason to
+## collapse. The lines that do not grow are the ones whose effect has a
+## ceiling of its own (offline hours and rate) or would remove the heat
+## puzzle if it kept going (Ceramic Lining).
+##
+## Past a line's first limit a level is a **deep level**, and three things
+## change, each measured by the collapse lab (docs/AUDIT.md, "Research
+## without an end"):
+##
+##   - Its effect multiplies instead of adding: a deep level of Tighter
+##     Tolerances makes machines 15% faster than they already are. Added,
+##     the twentieth level was worth a twentieth of the first, and the runs
+##     stopped at the same stratum however many were bought.
+##   - It is priced mainly in Cores: DEEP_CORES, DEEP_CORE_GROWTH dearer
+##     each deep level. Cores are what a collapse pays, so the deeper a
+##     player goes the more they buy -- priced in Research, Cores piled up
+##     unspent from the fourth collapse on while a run's Research bought one
+##     deep level or two.
+##   - It still costs some Research, so the Labs stay worth their tiles:
+##     DEEP_RESEARCH_SHARE of what the line's steep curve would ask at its
+##     first limit, LATE_GROWTH dearer each deep level after that. Kept on
+##     the steep curve for ever, every level after the tenth would be
+##     unreachable: an end by another name.
+##
+## The limit is the pace: at most one deep level a line a collapse, so the
+## growth a run can buy is bounded however rich the player is.
+const LATE_GROWTH := 1.2
+const DEEP_RESEARCH_SHARE := 0.1
+const DEEP_CORES := 20.0
+const DEEP_CORE_GROWTH := 1.3
+
+
+## The highest level line `id` can reach after `collapses` collapses.
+static func max_level(id: String, collapses: int) -> int:
+	var u: Dictionary = RESEARCH_TREE.get(id, {})
+	if u.is_empty():
+		return 0
+	var base: int = int(u["max"])
+	return base + maxi(collapses, 0) if bool(u.get("grows", false)) else base
+
+
 static func upgrade_cost(id: String, level: int) -> Dictionary:
 	var u: Dictionary = RESEARCH_TREE.get(id, {})
 	if u.is_empty():
 		return {"research": INF, "cores": 999999}
-	var g: float = pow(float(u["cost_growth"]), float(level))
+	var base: int = int(u["max"])
+	var g: float = pow(float(u["cost_growth"]), float(mini(level, base)))
+	var cores: float = float(u["cost_cores"]) * (1.0 + CORE_COST_GROWTH * float(level))
+	if level >= base and bool(u.get("grows", false)):
+		var deep: int = level - base
+		g *= DEEP_RESEARCH_SHARE * pow(LATE_GROWTH, float(deep))
+		cores = maxf(cores, DEEP_CORES) * pow(DEEP_CORE_GROWTH, float(deep))
 	return {
 		"research": float(u["cost_research"]) * g,
-		"cores": int(ceil(float(u["cost_cores"])
-			* (1.0 + CORE_COST_GROWTH * float(level)))),
+		"cores": int(ceil(cores)),
 	}
 
 
@@ -220,10 +282,16 @@ static func multipliers(levels: Dictionary) -> Dictionary:
 		var u: Dictionary = RESEARCH_TREE[id]
 		var per: float = float(u["per_level"])
 		var effect: String = String(u["effect"])
+		# Deep levels (past the first limit) multiply; see max_level.
+		var deep: int = maxi(lvl - int(u["max"]), 0) if bool(u.get("grows", false)) else 0
+		var flat: int = lvl - deep
 		match effect:
 			"speed", "yield", "value", "research":
-				m[effect] = float(m[effect]) + per * float(lvl)
-			"tolerance", "core_yield":
+				m[effect] = (float(m[effect]) + per * float(flat)) * pow(1.0 + per, float(deep))
+			"core_yield":
+				m[effect] = (1.0 + float(m[effect]) + per * float(flat)) \
+					* pow(1.0 + per, float(deep)) - 1.0
+			"tolerance":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"offline_hours":
 				m[effect] = minf(float(m[effect]) + per * float(lvl), OFFLINE_MAX_HOURS)

@@ -6,6 +6,8 @@ extends Node
 ## exercised headless -- which is how the tests work and how the balance was
 ## checked without ever opening a window.
 
+## A shaft went deeper than any before it (Sim.deepest).
+signal new_record(depth: int)
 signal stats_changed()
 signal depth_changed(depth: int)
 signal machines_unlocked(ids: Array)
@@ -37,6 +39,9 @@ var depth: int = 0
 var max_depth: int = 0
 var lifetime_credits: float = 0.0
 var collapses: int = 0
+## The deepest stratum any shaft has reached. It survives a collapse: the
+## record a new shaft plays against, the way a trophy count is kept.
+var deepest: int = 0
 
 var upgrade_levels: Dictionary = {}
 var blueprints: Array = []
@@ -252,6 +257,10 @@ func descend() -> bool:
 	credits -= quota()
 	depth += 1
 	max_depth = maxi(max_depth, depth)
+	# Past every shaft before this one: news, from the second shaft on (in
+	# the first, every stratum is a record and none of them is news).
+	var record: bool = collapses > 0 and depth > deepest
+	deepest = maxi(deepest, depth)
 	var before: Array[String] = unlocked.duplicate()
 	_recompute()
 	var gained: Array = []
@@ -262,6 +271,8 @@ func descend() -> bool:
 	depth_changed.emit(depth)
 	if not gained.is_empty():
 		machines_unlocked.emit(gained)
+	if record:
+		new_record.emit(depth)
 	stats_changed.emit()
 	Save.save_game(self)
 	Analytics.track("depth_reached", {"depth": depth})
@@ -319,7 +330,7 @@ func can_buy_upgrade(id: String) -> bool:
 	if u.is_empty():
 		return false
 	var lvl: int = upgrade_level(id)
-	if lvl >= int(u["max"]):
+	if lvl >= Economy.max_level(id, collapses):
 		return false
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	return research >= float(c["research"]) and cores >= int(c["cores"])
@@ -507,6 +518,7 @@ func to_dict() -> Dictionary:
 		"max_depth": max_depth,
 		"lifetime_credits": lifetime_credits,
 		"collapses": collapses,
+		"deepest": deepest,
 		"upgrades": upgrade_levels,
 		"blueprints": blueprints,
 		"grid": grid.to_dict(),
@@ -529,6 +541,7 @@ func from_dict(d: Dictionary) -> void:
 	max_depth = maxi(int(d.get("max_depth", 0)), depth)
 	lifetime_credits = float(d.get("lifetime_credits", 0.0))
 	collapses = int(d.get("collapses", 0))
+	deepest = maxi(int(d.get("deepest", 0)), maxi(int(d.get("max_depth", 0)), int(d.get("depth", 0))))
 	upgrade_levels = d.get("upgrades", {})
 	blueprints = d.get("blueprints", [])
 	settings = d.get("settings", {"sound": true, "haptics": true})
