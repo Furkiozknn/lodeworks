@@ -50,6 +50,7 @@ var _stratum_card: Control
 var _pill_research: Control
 var _pill_cores: Control
 var _btn_research: Button
+var _research_badge: Label
 var _btn_collapse: Button
 var _resources: Control
 var _tools: Control
@@ -145,7 +146,7 @@ func _ready() -> void:
 			_yard_news = "Stratum %d. The yard is bigger: more ground to build on." % d
 			call_deferred("_tell_yard_news")
 		elif d > 0:
-			_say("Stratum %d. Richer rock, stranger rules." % d, Foreman.Pose.JUMP, 3.5)
+			_say(_stratum_line(d), Foreman.Pose.JUMP, 3.5)
 		# A new band is a new world: its name, big, once the view is clear.
 		if d > 0 and int(Palette.band_at(d)[0]) != int(Palette.band_at(d - 1)[0]):
 			_band_news = int(Palette.band_at(d)[0])
@@ -510,6 +511,35 @@ func _icon_button(icon_name: String, caption: String, col: Color) -> Button:
 	return b
 
 
+## A number in a key's corner: how many things behind the key can be done
+## now. Hidden at zero.
+func _count_badge(col: Color) -> Label:
+	var l := _label("", 17, Palette.TEXT)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = col
+	sb.set_corner_radius_all(15)
+	sb.set_border_width_all(2)
+	sb.border_color = Palette.BG
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	l.add_theme_stylebox_override("normal", sb)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.custom_minimum_size = Vector2(30, 30)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.visible = false
+	return l
+
+
+## Research lines the player could buy this moment.
+func _research_ready() -> int:
+	var n: int = 0
+	for id: String in Economy.TREE_ORDER:
+		if not HIDDEN_RESEARCH.has(id) and Sim.can_buy_upgrade(id):
+			n += 1
+	return n
+
+
 func _icon_rect(icon_name: String, px: float) -> TextureRect:
 	var ic := TextureRect.new()
 	ic.texture = IsoArt.icon(icon_name)
@@ -766,6 +796,12 @@ func _build_actions() -> Control:
 	_btn_research = _icon_button("research", "Research", Palette.PANEL_HI)
 	_btn_research.pressed.connect(_show_research)
 	row.add_child(_btn_research)
+	# How many research lines can be bought right now, in the key's corner:
+	# the one-time nudge says "spend it" once; this says it whenever it is
+	# true, and is gone when it is not.
+	_research_badge = _count_badge(Palette.RESEARCH)
+	_research_badge.position = Vector2(ACTION_W - 26, -8)
+	_btn_research.add_child(_research_badge)
 	_btn_collapse = _icon_button("cores", "Collapse", Palette.PANEL_HI)
 	_btn_collapse.pressed.connect(_show_collapse)
 	row.add_child(_btn_collapse)
@@ -1376,6 +1412,9 @@ func _refresh() -> void:
 	_lbl_rate.text = "+%s /s" % Economy.fmt(Sim.credits_per_sec)
 	_lbl_research.text = Economy.fmt(Sim.research)
 	_lbl_cores.text = str(Sim.cores)
+	var buyable: int = _research_ready()
+	_research_badge.text = str(buyable)
+	_research_badge.visible = buyable > 0
 	_show_what_matters()
 
 	var s: Dictionary = Sim.stratum()
@@ -1778,6 +1817,25 @@ func _close_overlay() -> void:
 	if iso_view != null:
 		iso_view.hold_effects = false
 	_tell_yard_news()
+
+
+## What the Foreman says on arriving at stratum `d`: its rules by name, and
+## where to see what they do -- the arrows on the tray when a rule moves a
+## machine the player has, the stratum's card otherwise.
+func _stratum_line(d: int) -> String:
+	var mods: Array[String] = Strata.modifiers_for(d)
+	if mods.is_empty():
+		return "Stratum %d. Richer rock, stranger rules." % d
+	var names := PackedStringArray()
+	for m: String in mods:
+		names.append(Strata.modifier_name(m))
+	var st: Dictionary = Strata.describe(d)
+	for id: String in Sim.unlocked:
+		if Strata.effect_on(id, st) != 0:
+			return "Stratum %d: %s. The arrows on the tray show what changes." % [d,
+				" and ".join(names)]
+	return "Stratum %d: %s. The card at the top left says what changes." % [d,
+		" and ".join(names)]
 
 
 func _tell_yard_news() -> void:

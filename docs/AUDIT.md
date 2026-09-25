@@ -1320,6 +1320,21 @@ presses will not.") the rock's heat also costs a Drill 14% and a Vault
 Cramped, how far heat spreads) gives no machine an arrow. Screenshots
 `field_i_rules` and `field_j_stratum` (stratum 8, Brittle Rock).
 
+Arriving at a stratum, the Foreman now names its rules and says where to
+look: "Stratum 8: Cramped and Brittle Rock. The arrows on the tray show
+what changes." He mentions the arrows only when a rule moves a machine
+the player has; otherwise he points at the stratum's card. The old line,
+"Richer rock, stranger rules.", is kept for a stratum with no rules.
+
+**The Research key counts what can be bought.** The Foreman's Research
+nudge is said once per game. After that, nothing said an upgrade had
+become affordable. The key now carries a count in its corner, the
+research lines that can be bought this moment (`main._research_ready`).
+It is gone at zero, so it is never a standing reminder. It is the same
+rule the Research panel's cards use to show "ready". The hero board shows
+7. The smoke test gives the player everything, expects the count of every
+line, then nothing, and expects no count.
+
 This round also put back seven line breaks that a shell had turned into
 runs of tabs in earlier rounds (`main.gd`, `tools/smoke.gd`). The code
 ran the same; it was unreadable.

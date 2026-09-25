@@ -206,6 +206,38 @@ func _run() -> void:
 		_main.call("_close_overlay")
 		await _settle(0.3)
 
+	# The Research key counts what can be bought now, and says nothing when
+	# nothing can.
+	var badge: Label = _main.get("_research_badge")
+	var had: float = Sim.research
+	var had_cores: int = Sim.cores
+	Sim.research = 1.0e9
+	Sim.cores = 100000
+	_main.call("_refresh")
+	var want_n: int = int(_main.call("_research_ready"))
+	if want_n <= 0 or not badge.visible or badge.text != str(want_n):
+		_failures.append("with everything affordable the Research key shows '%s' (%s), not %d"
+			% [badge.text, "shown" if badge.visible else "hidden", want_n])
+	Sim.research = 0.0
+	Sim.cores = 0
+	_main.call("_refresh")
+	if badge.visible:
+		_failures.append("with nothing affordable the Research key still shows a count")
+	print("  research badge: %d when all is affordable, hidden at none" % want_n)
+	Sim.research = had
+	Sim.cores = had_cores
+	_main.call("_refresh")
+
+	# Arriving at a stratum, the Foreman names its rules, and points at the
+	# arrows only when a rule moves a machine the player has.
+	var line8: String = String(_main.call("_stratum_line", 8))
+	if not line8.contains("Brittle Rock") or not line8.contains("arrows"):
+		_failures.append("the Foreman at stratum 8 says: " + line8)
+	var line2: String = String(_main.call("_stratum_line", 2))
+	if not line2.contains("Unstable") or line2.contains("arrows"):
+		_failures.append("the Foreman at stratum 2 says: " + line2)
+	print("  foreman at 8: " + line8)
+
 	# A resource node's card: opens over a node, and closes on any other tap.
 	var view: Control = _main.get("iso_view")
 	var node_i: int = -1
