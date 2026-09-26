@@ -87,6 +87,7 @@ func fresh() -> void:
 	S.credits = 0.0
 	S.research = 0.0
 	S.cores = 0
+	S.salvage = 0
 	S.depth = 0
 	S.max_depth = 0
 	S.lifetime_credits = 0.0
@@ -443,6 +444,11 @@ func _research() -> void:
 	for id: String in Economy.TREE_ORDER:
 		if not want.has(id):
 			want.append(id)
+	# Salvaged Gearing whenever the galleries have paid for it: its research
+	# is small, and nothing else takes salvage but Rig Plating.
+	if S.can_buy_upgrade("salvage_gearing") and not _plating_wanted():
+		S.buy_upgrade("salvage_gearing")
+		return
 	for id: String in want:
 		# Rig Plating only when the crew needs it: a site the Core asks for
 		# that the crew cannot clear (measured: bought whenever it was the
@@ -1930,6 +1936,7 @@ func snapshot() -> Dictionary:
 		"open": open, "research_left": research_left, "upgrades_left": upgrades_left,
 		"locked": locked, "strata_left": S.depth_cap() - S.depth,
 		"contracts": S.contracts_lifetime, "research_banked": S.research, "working": _working_all(),
+		"sites": S.ops_lifetime, "salvage": S.salvage, "crew": S.rigs_home() + S.rigs_out(),
 		"hot": _hot(), "held": CoreLevels.holding_back(S)["why"], "doctrine": S.doctrine,
 		"deep": _deep_units(), "research_per_s": S.sim.last_research, "spend": _take_spend()}
 

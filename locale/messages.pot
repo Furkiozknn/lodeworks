@@ -203,7 +203,7 @@ msgid "Contract filled: +%s research"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "Rigs home from the %s, cleared: +%s credits, +%s research"
+msgid "Rigs home from the %s, cleared: +%s credits, +%s research, +%d salvage"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -719,6 +719,10 @@ msgid "strength %d each, %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Repair: %d Plates"
 msgstr ""
 
@@ -735,7 +739,7 @@ msgid "needs %d · sending %d: strength %d, %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "pays %s credits, %s research, %d %s"
+msgid "pays %s credits, %s research, %d %s, %d salvage"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1720,6 +1724,14 @@ msgstr ""
 
 #: res://scripts/core/economy.gd
 msgid "Every Rig brings 20% more strength to a sortie, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Salvaged Gearing"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Gearing the Rigs haul out of the galleries, fitted to the factory: every machine works 5% faster, for each level. Paid in salvage, which only a cleared site brings home."
 msgstr ""
 
 #: res://scripts/core/economy.gd

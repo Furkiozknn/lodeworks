@@ -197,9 +197,13 @@ func _ready() -> void:
 	Sim.sortie_back.connect(func(rep: Dictionary):
 		Juice.income()
 		var where: String = Loc.t(String(Operations.KINDS[String(rep["kind"])]["name"]))
-		_toast_msg((Loc.t("Rigs home from the %s, cleared: +%s credits, +%s research")
-			if bool(rep["cleared"]) else Loc.t("Rigs home from the %s, not cleared: +%s credits, +%s research"))
-			% [where, Economy.fmt(float(rep["credits"])), Economy.fmt(float(rep["research"]))]))
+		if bool(rep["cleared"]):
+			_toast_msg(Loc.t("Rigs home from the %s, cleared: +%s credits, +%s research, +%d salvage")
+				% [where, Economy.fmt(float(rep["credits"])), Economy.fmt(float(rep["research"])),
+				int(rep["salvage"])])
+		else:
+			_toast_msg(Loc.t("Rigs home from the %s, not cleared: +%s credits, +%s research")
+				% [where, Economy.fmt(float(rep["credits"])), Economy.fmt(float(rep["research"]))]))
 	Sim.machine_upgraded.connect(func(id: String, _level: int):
 		# The crew goes out to the machines it levelled (IsoView.service).
 		iso_view.service(id))
@@ -2781,7 +2785,10 @@ func _ops_rows(box: VBoxContainer) -> void:
 	# The crew.
 	var crew := HBoxContainer.new()
 	crew.add_theme_constant_override("separation", 10)
-	crew.add_child(Chips.Gem.new(MachineDB.Res.RIG, 1, 40.0))
+	var gem := Chips.Gem.new(MachineDB.Res.RIG, 1, 40.0)
+	# A Gem draws to its height: stretched to the crew's lines, it covered them.
+	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	crew.add_child(gem)
 	var cw := VBoxContainer.new()
 	cw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cw.add_theme_constant_override("separation", 0)
@@ -2794,6 +2801,10 @@ func _ops_rows(box: VBoxContainer) -> void:
 		else Loc.t("whole")
 	cw.add_child(_label(Loc.t("strength %d each, %s") % [int(round(Sim.crew_strength(1))), worn], TEXT_MIN,
 		Palette.TEXT_DIM))
+	var salv := _label(Loc.t("Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research") % Sim.salvage,
+		TEXT_MIN, Palette.TEXT_DIM)
+	salv.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cw.add_child(salv)
 	crew.add_child(cw)
 	if Sim.repair_cost() > 0:
 		var fix := _button(Loc.t("Repair: %d Plates") % Sim.repair_cost(),
@@ -2846,9 +2857,9 @@ func _site_row(i: int) -> Control:
 	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(need)
 	var r: Dictionary = Sim.site_reward(i)
-	var pays := _label(Loc.t("pays %s credits, %s research, %d %s") % [Economy.fmt(float(r["credits"])),
-		Economy.fmt(float(r["research"])), int(r["n"]), Loc.t(String(MachineDB.RES_NAME[int(r["res"])]))],
-		TEXT_MIN, Palette.TEXT_DIM)
+	var pays := _label(Loc.t("pays %s credits, %s research, %d %s, %d salvage") % [Economy.fmt(float(r["credits"])),
+		Economy.fmt(float(r["research"])), int(r["n"]), Loc.t(String(MachineDB.RES_NAME[int(r["res"])])),
+		int(r["salvage"])], TEXT_MIN, Palette.TEXT_DIM)
 	pays.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(pays)
 	row.add_child(words)
@@ -3768,6 +3779,13 @@ func _show_research() -> void:
 	wallet.add_child(gap)
 	wallet.add_child(_icon_rect("cores", 40))
 	wallet.add_child(_label(str(Sim.cores), 26, Palette.CORE))
+	# Salvage, once the galleries have opened: what the Robotics lines cost.
+	if Operations.slots(Sim.core_level) > 0 or Sim.salvage > 0:
+		var gap3 := Control.new()
+		gap3.custom_minimum_size = Vector2(18, 0)
+		wallet.add_child(gap3)
+		wallet.add_child(_icon_rect("settings", 38))
+		wallet.add_child(_label(str(Sim.salvage), 26, Palette.TEXT))
 	var gap2 := Control.new()
 	gap2.custom_minimum_size = Vector2(12, 0)
 	wallet.add_child(gap2)
@@ -3978,6 +3996,10 @@ func _research_card(id: String) -> Control:
 			price.add_child(_icon_rect("cores", 38))
 			price.add_child(_label(str(int(c["cores"])), 24,
 				ok_col if Sim.cores >= int(c["cores"]) else Palette.BAD))
+		if int(c["salvage"]) > 0:
+			price.add_child(_icon_rect("settings", 36))
+			price.add_child(_label(str(int(c["salvage"])), 24,
+				ok_col if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
 		b.add_child(price)
 		b.disabled = not can
 		b.pressed.connect(func():

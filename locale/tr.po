@@ -204,8 +204,8 @@ msgid "Contract filled: +%s research"
 msgstr "Sözleşme teslim edildi: +%s araştırma"
 
 #: res://scripts/ui/main.gd
-msgid "Rigs home from the %s, cleared: +%s credits, +%s research"
-msgstr "Robotlar döndü (%s, temizlendi): +%s kredi, +%s araştırma"
+msgid "Rigs home from the %s, cleared: +%s credits, +%s research, +%d salvage"
+msgstr "Robotlar döndü (%s, temizlendi): +%s kredi, +%s araştırma, +%d hurda"
 
 #: res://scripts/ui/main.gd
 msgid "Rigs home from the %s, not cleared: +%s credits, +%s research"
@@ -720,6 +720,10 @@ msgid "strength %d each, %s"
 msgstr "her biri %d güç, %s"
 
 #: res://scripts/ui/main.gd
+msgid "Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research"
+msgstr "Hurda: %d -- Araştırma'da Hurda Dişliler ve Robot Zırhı alır"
+
+#: res://scripts/ui/main.gd
 msgid "Repair: %d Plates"
 msgstr "Onar: %d Levha"
 
@@ -736,8 +740,8 @@ msgid "needs %d · sending %d: strength %d, %s"
 msgstr "%d güç gerekir · %d gönderilirse: güç %d, %s"
 
 #: res://scripts/ui/main.gd
-msgid "pays %s credits, %s research, %d %s"
-msgstr "%s kredi, %s araştırma, %d %s öder"
+msgid "pays %s credits, %s research, %d %s, %d salvage"
+msgstr "%s kredi, %s araştırma, %d %s, %d hurda öder"
 
 #: res://scripts/ui/main.gd
 msgid "Rigs out"
@@ -1722,6 +1726,14 @@ msgstr "Her Robot daha güçlü."
 #: res://scripts/core/economy.gd
 msgid "Every Rig brings 20% more strength to a sortie, for each level."
 msgstr "Her seviye, her Robotun sefere %20 daha fazla güç getirmesini sağlar."
+
+#: res://scripts/core/economy.gd
+msgid "Salvaged Gearing"
+msgstr "Hurda Dişliler"
+
+#: res://scripts/core/economy.gd
+msgid "Gearing the Rigs haul out of the galleries, fitted to the factory: every machine works 5% faster, for each level. Paid in salvage, which only a cleared site brings home."
+msgstr "Robotların galerilerden çıkardığı dişliler fabrikaya takılır: her seviye her makineyi %5 hızlandırır. Hurdayla ödenir; hurdayı yalnızca temizlenmiş bir alan getirir."
 
 #: res://scripts/core/economy.gd
 msgid "Crystal Lattice"

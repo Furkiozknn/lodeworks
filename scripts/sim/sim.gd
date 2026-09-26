@@ -43,6 +43,9 @@ var sim: Simulation
 var credits: float = 0.0
 var research: float = 0.0
 var cores: int = 0
+## What the Rigs hauled out of the galleries' cleared sites and has not been
+## spent (Operations.salvage). A collapse keeps it, as it keeps Cores.
+var salvage: int = 0
 var depth: int = 0
 var max_depth: int = 0
 var lifetime_credits: float = 0.0
@@ -705,6 +708,7 @@ func _sortie_home(s: Dictionary) -> void:
 		stock[res] = mini(stock_of(res) + units, stock_cap())
 	var slot: int = int(s["slot"])
 	if bool(out["cleared"]):
+		salvage += int(r["salvage"])
 		ops_cleared += 1
 		ops_lifetime += 1
 		if slot < ops_board.size():
@@ -715,7 +719,8 @@ func _sortie_home(s: Dictionary) -> void:
 	_sync_core()
 	sortie_back.emit({"kind": String((s["site"] as Dictionary)["kind"]), "cleared": bool(out["cleared"]),
 		"credits": paid, "research": float(r["research"]) * share, "res": res, "n": units,
-		"wear": float(out["wear"]), "rigs": n, "slot": slot})
+		"wear": float(out["wear"]), "rigs": n, "slot": slot,
+		"salvage": int(r["salvage"]) if bool(out["cleared"]) else 0})
 	stats_changed.emit()
 
 
@@ -1027,7 +1032,7 @@ func can_buy_upgrade(id: String) -> bool:
 	if Economy.doctrine_of(id) != "" and Economy.doctrine_of(id) != doctrine:
 		return false
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
-	return research >= float(c["research"]) and cores >= int(c["cores"])
+	return research >= float(c["research"]) and cores >= int(c["cores"]) and salvage >= int(c["salvage"])
 
 
 ## How far research line `id` may go under this shaft's Core.
@@ -1042,6 +1047,7 @@ func buy_upgrade(id: String) -> bool:
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	research -= float(c["research"])
 	cores -= int(c["cores"])
+	salvage -= int(c["salvage"])
 	upgrade_levels[id] = lvl + 1
 	_recompute()
 	stats_changed.emit()
@@ -1499,6 +1505,7 @@ func to_dict() -> Dictionary:
 		"credits": credits,
 		"research": research,
 		"cores": cores,
+		"salvage": salvage,
 		"depth": depth,
 		"max_depth": max_depth,
 		"lifetime_credits": lifetime_credits,
@@ -1538,6 +1545,7 @@ func from_dict(d: Dictionary) -> void:
 	credits = float(d.get("credits", 0.0))
 	research = float(d.get("research", 0.0))
 	cores = int(d.get("cores", 0))
+	salvage = int(d.get("salvage", 0))
 	depth = int(d.get("depth", 0))
 	max_depth = maxi(int(d.get("max_depth", 0)), depth)
 	lifetime_credits = float(d.get("lifetime_credits", 0.0))

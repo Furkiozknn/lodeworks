@@ -222,6 +222,7 @@ func _set_state(state: String, main: Control, depth: int = 0) -> void:
 	Sim.max_depth = depth
 	Sim.research = 0.0
 	Sim.cores = 0
+	Sim.salvage = 0
 	Sim.upgrade_levels = {}
 	Sim.collapses = 1 if state == "board" else 0
 	# Dark only in a new game: by the first descent it has long been online.

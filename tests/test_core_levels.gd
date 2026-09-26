@@ -27,6 +27,7 @@ func _fresh() -> void:
 	Sim.credits = 0.0
 	Sim.research = 0.0
 	Sim.cores = 0
+	Sim.salvage = 0
 	Sim.depth = 0
 	Sim.max_depth = 0
 	Sim.lifetime_credits = 0.0

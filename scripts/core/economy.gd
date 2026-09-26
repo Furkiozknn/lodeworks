@@ -170,12 +170,31 @@ const RESEARCH_TREE := {
 		"desc": "Every Rig brings 20% more strength to a sortie, for each level.",
 		"cost_research": 400.0,
 		"cost_cores": 0,
+		"cost_salvage": 2.0,
 		"max": 12,
 		"cost_growth": 2.1,
 		"effect": "rig_power",
 		"branch": "robotics",
 		"per_level": 0.2,
 		"core": MachineDB.RIG_CORE,
+	},
+	# The first line the galleries pay for: what the Rigs haul out makes the
+	# factory faster, so a sortie is a choice between the crew and the
+	# lines (docs/GAME-LOOP.md, section 7). Open from the first gallery's
+	# Core, 2.
+	"salvage_gearing": {
+		"name": "Salvaged Gearing",
+		"short": "Every machine works faster.",
+		"desc": "Gearing the Rigs haul out of the galleries, fitted to the factory: every machine works 5% faster, for each level. Paid in salvage, which only a cleared site brings home.",
+		"cost_research": 100.0,
+		"cost_cores": 0,
+		"cost_salvage": 4.0,
+		"max": 10,
+		"cost_growth": 1.6,
+		"effect": "speed",
+		"branch": "robotics",
+		"per_level": 0.05,
+		"core": 2,
 	},
 	# The doctrines' lines (DOCTRINES): research only, opened by the Core's
 	# level DOCTRINE_CORE, and bought -- and worth anything -- only in a
@@ -268,7 +287,8 @@ const RESEARCH_TREE := {
 
 const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resonance",
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
-	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1", "rig_plating"]
+	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1", "rig_plating",
+	"salvage_gearing"]
 
 ## What each line of the tree is about: the research grid shows it branch by
 ## branch, in this order.
@@ -351,12 +371,14 @@ static func research_cap(id: String, core_level: int) -> int:
 static func upgrade_cost(id: String, level: int) -> Dictionary:
 	var u: Dictionary = RESEARCH_TREE.get(id, {})
 	if u.is_empty():
-		return {"research": INF, "cores": 999999}
+		return {"research": INF, "cores": 999999, "salvage": 999999}
 	var g: float = pow(float(u["cost_growth"]), float(level))
 	return {
 		"research": float(u["cost_research"]) * g,
 		"cores": int(ceil(float(u["cost_cores"])
 			* (1.0 + CORE_COST_GROWTH * float(level)))),
+		# Salvage, which only the galleries' sites pay (Operations.salvage).
+		"salvage": int(ceil(float(u.get("cost_salvage", 0.0)) * g)),
 	}
 
 

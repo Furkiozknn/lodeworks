@@ -21,6 +21,7 @@ func _fresh(core: int = MachineDB.RIG_CORE, depth: int = 6) -> void:
 	Sim.credits = 0.0
 	Sim.research = 0.0
 	Sim.cores = 0
+	Sim.salvage = 0
 	Sim.depth = depth
 	Sim.max_depth = depth
 	Sim.lifetime_credits = 0.0
@@ -286,11 +287,13 @@ func test_a_sortie_out_when_the_game_closes_comes_home_on_loading() -> void:
 func test_a_collapse_takes_the_crew_and_the_board_and_keeps_rig_plating() -> void:
 	_fresh(6, 12)
 	Sim.cores = 0
+	Sim.salvage = 0
 	Sim.lifetime_credits = 1.0e9
 	Sim.stock = {RIG: 3, INGOT: 100}
 	Sim.upgrade_levels["rig_plating"] = 1
 	Sim.ops_cleared = 4
 	Sim.ops_lifetime = 4
+	Sim.salvage = 7
 	Sim.send_sortie(0, 1)
 	Sim.depth = 12
 	if Sim.can_collapse():
@@ -299,6 +302,36 @@ func test_a_collapse_takes_the_crew_and_the_board_and_keeps_rig_plating() -> voi
 		runner.eq(Sim.ops_cleared, 0, "and the count of its sites")
 		runner.eq(Sim.ops_lifetime, 4, "not the lifetime count")
 		runner.eq(Sim.upgrade_level("rig_plating"), 1, "Rig Plating stays, as the tree does")
+		runner.eq(Sim.salvage, 7, "and so does salvage, as Cores do")
 	else:
 		runner.check(false, "a Core 6 shaft on stratum 12 can collapse")
+	_done()
+
+
+## --- salvage: what only the galleries pay ---------------------------------------------
+
+func test_a_cleared_site_pays_salvage_which_buys_what_research_alone_cannot() -> void:
+	_fresh()
+	Sim.stock = {RIG: 3, INGOT: 100}
+	Sim._sync_core()
+	Sim.ops_board[0]["left"] = 1.0
+	var s: Dictionary = Sim.site(0).duplicate()
+	var due: int = 1 + int(s["tier"]) + (Operations.SALVAGE_NEST if String(s["kind"]) == "nest" else 0)
+	runner.eq(int(Sim.site_reward(0)["salvage"]), due, "a site prints its salvage with its pay")
+	runner.check(Sim.send_sortie(0, 1), "")
+	Sim.advance_ops(Operations.trip(s) + 1.0)
+	runner.eq(Sim.salvage, due, "and pays it, cleared")
+	# Only salvage buys Salvaged Gearing, however much research there is.
+	Sim.research = 1.0e6
+	Sim.salvage = 3
+	runner.check(not Sim.can_buy_upgrade("salvage_gearing"), "four salvage for the first level: three is short")
+	Sim.salvage = 10
+	runner.check(Sim.buy_upgrade("salvage_gearing"), "ten is enough")
+	runner.eq(Sim.salvage, 6, "and four are spent")
+	runner.near(float(Economy.multipliers({"salvage_gearing": 1})["speed"]), 1.05, 0.0001,
+		"every machine works 5% faster")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(Sim.to_dict()))
+	Sim.salvage = 0
+	Sim.from_dict(d)
+	runner.eq(Sim.salvage, 6, "a save keeps it")
 	_done()

@@ -634,7 +634,12 @@ TR = {
     "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core.":
         "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür.",
     "needs %d · sending %d: strength %d, %s": "%d güç gerekir · %d gönderilirse: güç %d, %s",
-    "pays %s credits, %s research, %d %s": "%s kredi, %s araştırma, %d %s öder",
+    "pays %s credits, %s research, %d %s, %d salvage": "%s kredi, %s araştırma, %d %s, %d hurda öder",
+    "Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research":
+        "Hurda: %d -- Araştırma'da Hurda Dişliler ve Robot Zırhı alır",
+    "Salvaged Gearing": "Hurda Dişliler",
+    "Gearing the Rigs haul out of the galleries, fitted to the factory: every machine works 5% faster, for each level. Paid in salvage, which only a cleared site brings home.":
+        "Robotların galerilerden çıkardığı dişliler fabrikaya takılır: her seviye her makineyi %5 hızlandırır. Hurdayla ödenir; hurdayı yalnızca temizlenmiş bir alan getirir.",
     "Rigs out": "Robotlar dışarıda",
     "Send %d": "%d gönder",
     "Send": "Gönder",
@@ -644,8 +649,8 @@ TR = {
     "even": "denk",
     "hard: a share of it": "zor: bir payını alır",
     "out of reach": "erişilemez",
-    "Rigs home from the %s, cleared: +%s credits, +%s research":
-        "Robotlar döndü (%s, temizlendi): +%s kredi, +%s araştırma",
+    "Rigs home from the %s, cleared: +%s credits, +%s research, +%d salvage":
+        "Robotlar döndü (%s, temizlendi): +%s kredi, +%s araştırma, +%d hurda",
     "Rigs home from the %s, not cleared: +%s credits, +%s research":
         "Robotlar döndü (%s, temizlenmedi): +%s kredi, +%s araştırma",
     "%d sites in the galleries cleared since the Core last grew": "Çekirdek son büyüdüğünden beri temizlenen %d galeri alanı",

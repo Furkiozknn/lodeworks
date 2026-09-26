@@ -277,6 +277,7 @@ func _run() -> void:
 			% [badge.text, "shown" if badge.visible else "hidden", want_n])
 	Sim.research = 0.0
 	Sim.cores = 0
+	Sim.salvage = 0
 	_main.call("_refresh")
 	if badge.visible:
 		_failures.append("with nothing affordable the Research key still shows a count")

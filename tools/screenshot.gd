@@ -204,6 +204,7 @@ func _apply_build(kind: String) -> void:
 	Sim.credits = 0.0
 	Sim.research = 0.0
 	Sim.cores = 0
+	Sim.salvage = 0
 	Sim.lifetime_credits = 0.0
 	Sim.collapses = 0
 	Sim.upgrade_levels = {}
@@ -450,6 +451,17 @@ func _run_rigs() -> void:
 	_main.call("_show_core")
 	await _settle(0.8)
 	await _capture("rigs_core_card")
+	_clear_transient()
+	# The Robotics branch: Salvaged Gearing and Rig Plating, priced in salvage.
+	Sim.salvage = 12
+	Sim.research = 5000.0
+	_main.call("_show_research")
+	await _settle(0.6)
+	var scroll: ScrollContainer = _main.get("_overlay_scroll")
+	if scroll != null:
+		scroll.scroll_vertical = 100000
+	await _settle(0.6)
+	await _capture("rigs_research")
 	_clear_transient()
 	# Before the crew is made: the Foreman's Rig in the one gallery Core 2
 	# opens, the other two mouths boarded up.

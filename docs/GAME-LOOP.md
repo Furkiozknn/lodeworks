@@ -63,7 +63,7 @@ the second brought a small version of it into the first minutes.
 | Upgrades | DONE | machine levels, Overdrive, research | -- |
 | Missions / operations | **MISSING** → PARTIAL (this round) | the galleries: one site from Core 2, three from Core 4; sorties, rewards (section 7) | four kinds of site; no chain of sites, no region |
 | Combat potential | **WRONG-DIRECTION** → PARTIAL | V4 said "no combat"; amended by the owner this round (section 5). The rogue drill nest is the first site that fights back: strength against strength, wear as the cost | no roles, no counters, no defence |
-| Rewards | PARTIAL | a Core level's opens, contracts' pay, Overdrive; now what sorties bring home: credits, research and materials | no reward only a sortie gives (a schematic, a blueprint) |
+| Rewards | PARTIAL | a Core level's opens, contracts' pay, Overdrive; what sorties bring home: credits, research, materials, and **salvage**, which only a cleared site pays and which buys Salvaged Gearing (every machine faster) and Rig Plating (section 7) | one currency of its own; no one-time finds (a schematic, a blueprint) |
 | Collapse / prestige | PARTIAL | the tree, Cores, blueprints and half the best Core kept | the second shaft saves for machine levels again (84% of Core 5 → 6) |
 | Blueprint | DONE | save, check, lay from each line's end | no ghost on the board; no share codes |
 | Long-term goals | PARTIAL | the Core's rows give goals of 30 min to 3 h | nothing beyond the next Core: no roadmap, no region, no army to grow |
@@ -175,6 +175,7 @@ These have no units. Their "send it out, bring something back" loop is delivery:
 | Training or healing timers, speed-ups, paid queues | WOS C3; RoK 1 | **REJECT** | V3 (no timers as gates), D4. |
 | Capacity | CoC #112; WOS U6 | **ADAPT** | A crew limit set by the Core's level, shown as have / limit. |
 | Upkeep out of production | BB F17 | **DEFER** | A drain while offline reads as a punishment. |
+| Loot only a battle brings, spent on the base | CoC #7; BB Power Stones; RoK 22 | **ADAPT** | Salvage: only a cleared site pays it; it buys a production line (Salvaged Gearing) and the crew's own (Rig Plating), so every sortie is spent on the base or on the crew. |
 | One research line that raises every unit | BB Armory; WOS P9 | **ADAPT** | "Rig Plating", paid in research: research gets a second customer. |
 | Upgrade in place; old tiers keep jobs | RoK 28, 106 | **TAKE** | FP-09, no waste. |
 | Heroes, talents, equipment | CoC #10; RoK 14 | **DEFER** | After the first loop holds. |
@@ -300,11 +301,21 @@ same crew on it, went from 336 draw calls to 227. A phone: not measured.
 - **The Foreman's line at Core 2** says the first gallery is open.
 - **The scripted player** repairs as soon as wear alone keeps its crew from every site, and lays no Rig Frame again under a Core whose rock overheated one (measured: see section 8).
 
+**The third slice: salvage, the galleries' own pay.**
+
+- **What a cleared site holds that the factory cannot make.** Every cleared site pays salvage besides its credits, research and material: one from a first-tier site, one more a tier, two more from the rogue drill nest (`Operations.salvage`). A sortie too weak to clear a site takes its share of the rest, and no salvage. The site's row prints it.
+- **What salvage buys.** Two lines of the research tree also cost salvage (`Economy`, `cost_salvage`):
+  - **Salvaged Gearing**, new, in the Robotics branch: every machine works 5% faster a level, ten levels, from Core 2. Its first level is 4 salvage and 100 research;
+  - **Rig Plating**, which now costs 2 salvage at its first level as well as its research.
+  So a sortie's salvage goes to the factory or to the crew: the reference games' army-or-base choice.
+- **Kept like Cores:** a collapse keeps unspent salvage; a save keeps it. The Core card's crew line says how much there is and what it buys; the research card shows its price beside the research.
+- **The scripted player** buys Salvaged Gearing whenever it can, unless the crew needs Rig Plating first.
+
 **Not yet:**
 
 - a sprite for the Rig and the gallery mouths as rich as the machines';
 - a second kind of Rig;
-- a reward only the galleries give.
+- one-time finds in the galleries (a schematic, a blueprint).
 
 ## 8. Played
 
@@ -346,3 +357,20 @@ A new game by the scripted player, against the same game before the crew:
   - still made no Frames. Every Frame Jig on the Core's side starved of Components: two of the three Alloy Parts machines it laid stood beside the Core, not beside a Jig, and filled the store; the one beside a Jig had no Alloy; and in two and a half hours no feeder was laid beside a starved Jig.
   This is the scripted player's limit, not yet the game's: a person lays an Alloy Parts machine between a White Heat Smelter and a Frame Jig. The Core 9 era is measured in `PROGRESSION.md` from a kept Core 8 save (3 h 24 min).
 - **A finding for the design, not the player:** at Core 8 the Core's store held 85,899 Components and 85,899 Alloy while its Frame Jigs starved. The store only takes: nothing on the board draws from it. Whether a machine beside the Core should is a design question for a later round.
+
+**The third slice, played** (salvage; the same new game and player):
+
+| | without salvage | with salvage |
+|---|---|---|
+| Core 4 | 30 min 59 s | 30 min 09 s |
+| Core 5 | 45 min 54 s | 43 min 49 s |
+| Core 6 | 1 h 18 min 04 s | 1 h 23 min 25 s |
+| Core 7 | 4 h 49 min | 7 h 15 min |
+| Core 8 | 6 h 52 min | 10 h 05 min |
+| Salvaged Gearing | -- | level 1 at 13 min, 3 at 30 min, 5 at 2 h 54 min |
+| sites cleared | -- | 22 by 30 min, 28 by 1 h, 48 by 3 h, then none to 10 h |
+
+- **Salvage turns the first half hour's sorties into the factory's speed:** 22 sites and three levels of Salvaged Gearing before Core 4, and Cores 4 and 5 two minutes sooner.
+- **Core 7 came 2 h 26 min later, and it was the purchases that moved it.** The same game with salvage paid but Salvaged Gearing never bought reached Cores 2 to 7 at the same second as the game without salvage. With it, the Core 6 stage's stability row (80 machines running at working heat) took 5 h instead of 12 min. Not yet explained: a faster machine makes no more heat, but the row counts only machines running, and a faster factory fills its store and blocks its lines sooner. That is a hypothesis, not a measurement.
+- **The crew stopped at 48 sites.** From about 3 h to 10 h the scripted player cleared no site, with eight to ten Rigs. Why is not yet measured; its sortie and repair rules are the next thing to look at before the galleries' late game is measured.
+

@@ -54,6 +54,21 @@ static func earned_rigs(sites: int) -> int:
 	return mini(maxi(sites, 0) / SITES_PER_RIG, SITE_RIGS_MAX)
 
 
+## What a cleared site holds that the factory cannot make: salvage -- old
+## gearing and parts, hauled out -- which pays for the research lines marked
+## "cost_salvage" (Salvaged Gearing, Rig Plating). One from a first-tier
+## site, one more a tier, SALVAGE_NEST more from the nest; only a site
+## cleared pays it. The reference games' loot that only a battle brings
+## (docs/GAME-LOOP.md, section 4).
+const SALVAGE_NEST := 2
+
+
+static func salvage(s: Dictionary) -> int:
+	if s.is_empty():
+		return 0
+	return 1 + int(s["tier"]) + (SALVAGE_NEST if String(s["kind"]) == "nest" else 0)
+
+
 ## What one Rig brings to a sortie, whole and with no Rig Plating.
 const RIG_POWER := 10.0
 ## Sites on the board at a time.
@@ -176,7 +191,7 @@ static func deal(core_level: int, depth: int, serial: int) -> Dictionary:
 
 
 ## What clearing site `s` pays, given the factory's measured credits a
-## second: {"credits", "research", "res", "n"}.
+## second: {"credits", "research", "res", "n", "salvage"}.
 static func reward(s: Dictionary, credits_per_sec: float) -> Dictionary:
 	if s.is_empty():
 		return {}
@@ -188,6 +203,7 @@ static func reward(s: Dictionary, credits_per_sec: float) -> Dictionary:
 		"research": need * RESEARCH_PER_NEED * pay,
 		"res": int(KINDS[String(s["kind"])]["res"]),
 		"n": int(ceil(need * UNITS_PER_NEED)),
+		"salvage": salvage(s),
 	}
 
 
