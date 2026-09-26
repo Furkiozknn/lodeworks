@@ -259,13 +259,34 @@ func act() -> void:
 		_event("m" + id, "first " + id)
 
 
+## What the store keeps for the Core's next level: {res: count}. Its store
+## rows; and, from Core 7, what its open Overdrive and machine rows are paid
+## in (measured: contracts and spare levels took the Ingots and Plates of
+## an Overdrive step the Core asked for, for ten hours).
+func _keep_materials() -> Dictionary:
+	var keep: Dictionary = {}
+	for st: Dictionary in S.core_status():
+		var r: Array = st["req"]
+		match int(r[0]):
+			CoreLevels.Req.STOCK:
+				keep[int(r[1])] = int(keep.get(int(r[1]), 0)) + int(st["need"])
+			CoreLevels.Req.OVERDRIVE:
+				if S.core_level >= MachineDB.OVERDRIVE_CORE and not bool(st["met"]):
+					var od: Dictionary = S.overdrive_cost(String(r[1]))["materials"]
+					for m: int in od:
+						keep[m] = int(keep.get(m, 0)) + int(od[m])
+			CoreLevels.Req.MACHINE:
+				if S.core_level >= MachineDB.OVERDRIVE_CORE and not bool(st["met"]):
+					var lv: Dictionary = S.machine_upgrade_cost(String(r[1]))["materials"]
+					for m: int in lv:
+						keep[m] = int(keep.get(m, 0)) + int(lv[m])
+	return keep
+
+
 ## Fill a contract on the Dispatch board when the store can spare it: what
 ## the Core's own next level asks for stays in the store.
 func _contracts() -> void:
-	var keep: Dictionary = {}
-	for st: Dictionary in S.core_status():
-		if int(st["req"][0]) == CoreLevels.Req.STOCK:
-			keep[int(st["req"][1])] = int(st["need"])
+	var keep: Dictionary = _keep_materials()
 	for i in range(Dispatch.SLOTS):
 		if not S.can_fill_contract(i):
 			continue
@@ -491,10 +512,7 @@ var _last_lab: float = -1.0e9
 func _spare_overdrive() -> void:
 	if S.core_level < MachineDB.OVERDRIVE_CORE:
 		return
-	var keep: Dictionary = {}
-	for st: Dictionary in S.core_status():
-		if int(st["req"][0]) == CoreLevels.Req.STOCK:
-			keep[int(st["req"][1])] = int(st["need"])
+	var keep: Dictionary = _keep_materials()
 	for id: String in ["assembler", "press", "smelter", "crusher", "drill", "lab", "coolant", "condenser"]:
 		if not S.can_overdrive(id):
 			continue
@@ -511,12 +529,17 @@ func _spare_overdrive() -> void:
 ## Machine levels past what the Core asks for, from what the store can
 ## spare after the Core's own materials.
 func _spare_upgrades() -> void:
-	var keep: Dictionary = {}
-	for st: Dictionary in S.core_status():
-		if int(st["req"][0]) == CoreLevels.Req.STOCK:
-			keep[int(st["req"][1])] = int(st["need"])
+	var keep: Dictionary = _keep_materials()
+	# A level is heat as well as speed: in a shaft after a collapse, and on
+	# the Core 7 era's rock, a level no row asks for waits while something
+	# overheats (measured: cheap levels bought on every type put a second
+	# shaft's lines past their tolerance on stratum 12 for twelve hours).
+	var hot: bool = (S.collapses > 0 or S.core_level >= MachineDB.OVERDRIVE_CORE) \
+		and CoreLevels.stable(S) == 0
 	for id: String in ["vault", "smelter", "crusher", "drill", "press", "assembler", "lab"]:
 		if not S.can_upgrade_machine(id):
+			continue
+		if hot and id != "vault":
 			continue
 		var cost: Dictionary = S.machine_upgrade_cost(id)
 		var ok: bool = S.credits - _keep >= float(cost["credits"]) * 1.5
@@ -1519,14 +1542,18 @@ func _working_all() -> Dictionary:
 		if n > 0:
 			out[id] = n
 	# The deep chain's makers among them, by job.
-	for job: String in ["crystal", "alloy", "frame"]:
+	for job: String in ["crystal", "alloy", "sheet", "parts", "frame"]:
 		var k: int = 0
+		var placed: int = 0
 		for cell: int in S.grid.cells:
-			if S.grid.job_at(cell) == job and S.sim.status_of(cell) == Simulation.Status.RUNNING \
+			if S.grid.job_at(cell) != job:
+				continue
+			placed += 1
+			if S.sim.status_of(cell) == Simulation.Status.RUNNING \
 					and S.sim.heat_efficiency_at(cell) >= CoreLevels.WORKING_HEAT:
 				k += 1
-		if k > 0:
-			out[job] = k
+		if placed > 0:
+			out[job] = "%d/%d" % [k, placed]
 	return out
 
 
@@ -1537,4 +1564,12 @@ func _req_text(st: Dictionary) -> String:
 	if r.size() > 2:
 		var what: String = String(MachineDB.RES_NAME[int(r[1])]) if int(r[0]) == CoreLevels.Req.STOCK else str(r[1])
 		name += " " + what
-	return "%s %s/%s" % [name, Economy.fmt(float(st["have"])), Economy.fmt(float(st["need"]))]
+	# What stands in a level's or a step's way: the reason the row waits.
+	var why: String = ""
+	match int(r[0]):
+		CoreLevels.Req.MACHINE:
+			why = S.machine_upgrade_blocker(String(r[1]))
+		CoreLevels.Req.OVERDRIVE:
+			why = S.overdrive_blocker(String(r[1]))
+	return "%s %s/%s%s" % [name, Economy.fmt(float(st["have"])), Economy.fmt(float(st["need"])),
+		" (%s)" % why if why != "" else ""]

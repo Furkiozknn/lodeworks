@@ -170,9 +170,9 @@ shaft choose one of three **doctrines**, each with research of its own. A
 **blueprints**, which are checked against the new ground and laid as
 credits allow. Played by a scripted player, Core 2 falls at 8 minutes,
 Core 3 at 16, Core 4 at 33, Core 5 at 46, Core 6 at 1 h 20, Core 7 at 6 h 55
-and Core 8 at 9 h 31 of active play; every stage asks for work in several
+and Core 8 at 8 h 50 of active play; every stage asks for work in several
 systems at once. After a collapse at Core 8 the second shaft reaches Core 7
-in 2 h 36 min. [docs/BENCHMARK.md](docs/BENCHMARK.md) takes stock of the
+in 2 h 32 min and Core 8 in 4 h 35 min. [docs/BENCHMARK.md](docs/BENCHMARK.md) takes stock of the
 player loop against Clash of Clans and the other benchmark games;
 [docs/PROGRESSION.md](docs/PROGRESSION.md)
 is the design, the graph and the measurements, and

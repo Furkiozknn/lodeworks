@@ -1158,6 +1158,8 @@ The scripted player (`tools/core_journey.gd`) was extended for the era:
 - on hot rock it lays a line with a Coolant Cell where the rock has a machine at its edge, and prefers the jobs built for heat;
 - it spends on repairs at most a fifth of what it earns;
 - it keeps the Core's price once it has saved it;
+- it keeps in the store what the Core's Overdrive and machine rows are paid in, so contracts and spare levels do not take it;
+- it buys no spare level while something overheats;
 - it goes a stratum down only while nothing overheats.
 
 It is still a model: the numbers are its, not a person's.
@@ -1167,24 +1169,24 @@ It is still a model: the numbers are its, not a person's.
 | | before (a1) | after |
 |---|---|---|
 | Cores 1 → 7 | 6 h 55 min | 6 h 55 min (the same run: nothing before Core 7 changed) |
-| Core 7 → 8 | not reached in 9 h 04 min | **2 h 36 min** (Core 8 at 9 h 31 min) |
-| income over the stage | 8.39K/s → 2.82K/s on stratum 19; 2.8K/s average | 8.39K/s → 23.1K/s on stratum 19 (8 h) → 25.6K/s; 23.4K/s average |
-| decisions | 803 in 296 of 546 minutes (384 machines sold) | 341 in 63 of 157 minutes (116 sold) |
-| saving (only credits left) | 0% (nothing could be met) | 0% (20 s) |
-| research made / spent | 506K / 526K, all on Overdrive | 217K / 513K: Overdrive 363K, doctrine 150K |
+| Core 7 → 8 | not reached in 9 h 04 min | **1 h 55 min** (Core 8 at 8 h 50 min) |
+| income over the stage | 8.39K/s → 2.82K/s on stratum 19; 2.8K/s average | 8.39K/s → 23.4K/s on stratum 19 (8 h) → 27.6K/s; 21.5K/s average |
+| decisions | 803 in 296 of 546 minutes (384 machines sold) | 401 in 53 of 116 minutes (187 sold) |
+| saving | 0% (nothing could be met) | 14% (16 min) |
+| research made / spent | 506K / 526K, all on Overdrive | 17.5K / 341K: Overdrive 191K, doctrine 150K (Core 6's banked research) |
 
 **Its rows, first met after** (stage start 6 h 55 min):
 
 | row | met after |
 |---|---|
 | a doctrine's 4 levels | 14 s |
-| stratum 19 | 23 min |
-| stable 100 | 32 min |
-| 25,000 Alloy | 14 min |
-| 50,000 Components | 1 h 28 min |
-| a Smelter driven 3 steps | 1 h 47 min |
-| Smelter 8 | 2 h 02 min |
-| 40M credits | 2 h 34 min |
+| 25,000 Alloy | 20 min |
+| stratum 19 | 41 min |
+| a Smelter driven 3 steps | 53 min |
+| 50,000 Components | 1 h 11 min |
+| stable 100 | 1 h 12 min |
+| Smelter 8 | 1 h 25 min |
+| 40M credits | 1 h 55 min |
 
 The last two rows are credits (a level at 38M and the Core at 40M), met in
 the half hour after the rest. That is the Core 7 model.
@@ -1194,29 +1196,46 @@ kept at 6 h 55 min):
 
 | doctrine | Core 7 → 8 | saving | decision minutes | income, average | research made / spent | stable 100 met after |
 |---|---|---|---|---|---|---|
-| Deep Survey | 2 h 13 min | 33% | 56 of 134 | 27.4K/s | 411K / 688K (Overdrive 418K) | 55 min |
-| Heat Engineering | 2 h 12 min | 34% | 59 of 133 | 27.1K/s | 340K / 761K (Overdrive 581K) | 2 min |
-| Precision Works | 3 h 04 min | 8% | 74 of 184 | 26.6K/s | 200K / 598K (Overdrive 418K) | 1 h 46 min |
+| Deep Survey | 1 h 49 min | 2% | 41 of 110 | 25.0K/s | 16K / 366K (doctrine 150K) | 48 min |
+| Heat Engineering | 1 h 47 min | 20% | 46 of 108 | 24.7K/s | 56K / 470K (doctrine 180K; Overdrive 290K, 9 steps) | 2 min |
+| Precision Works | 1 h 52 min | 31% | 55 of 113 | 22.5K/s | 131K / 516K (doctrine 300K) | 56 min |
 
-- **Each doctrine plays differently.** Heat Engineering met stability at once and put its research into Overdrive (15 steps). Deep Survey got there by the deep chain. Precision Works was slowest for this player: it builds few Labs and no Frames before Core 8, so the doctrine had little to work on.
-- **None is a trap,** but the right one depends on the factory built around it. That is the choice the brief asks for.
+- **The pace is close, but each doctrine plays differently.** Heat Engineering met stability at once. Precision Works made eight times the research of Deep Survey (Lab Benches) and bought twice the doctrine levels. Deep Survey saved least: its deep chain paid the credits while the rest was met.
+- **No doctrine is a trap,** and none is the only answer. That is the choice the brief asks for.
+- **The Labs go quiet on the hot rock** in every doctrine. Research is paid from what Core 6 banked.
 
-**The collapse at Core 8, and the second shaft** (the Deep Survey game,
+**The collapse at Core 8, and the second shaft** (a Deep Survey game,
 collapsed the moment Core 8 was reached):
 
 - **The collapse:** 154 Cores, the tree kept, a blueprint of 245 machines, and a Core foundation at level 4.
 - **The blueprint, checked on the new shaft's ground:** 225 of its machines outside the yard, 5 ready, 15 that would run cold at stratum 0. It filled in as the yard grew.
 
-| | first shaft | second shaft |
+| | first shaft | second shaft, after the collapse |
 |---|---|---|
-| Core 5 | 46 min | **12 min** after the collapse |
-| Core 6 | 1 h 20 min | **39 min** |
-| Core 7 | 6 h 55 min | **2 h 36 min** |
-| Core 8 | 9 h 31 min | not reached in 13 h 53 min |
+| Core 5 | 46 min | **13 min** |
+| Core 6 | 1 h 20 min | **37 min** |
+| Core 7 | 6 h 55 min | **2 h 32 min** |
+| Core 8 | 8 h 50 min | **4 h 35 min** |
+| Core 9 | -- | not reached in 11 h 54 min (Core 9 asks for Frames, which this player does not make) |
 
-- **Why the second shaft is faster.** The foundation skips Cores 1-3, and the blueprint lays 200 machines in its first 12 minutes.
-- **Where it still waits:** Cores 5 → 6 and 6 → 7 were 89% and 71% saving. The machine levels the rows ask for have to be bought again with credits, and the shaft's income there is the first shaft's.
-- **Why it stopped at Core 7 → 8.** It was stopped by an Overdrive step paid in Ingots. Its blueprint was the Core 8 factory, which makes almost no Ingots on the deep rock, and this player did not lay an Ingot line again (1,028 machines placed and 986 sold in the attempt).
+- **Why the second shaft is faster.** The foundation skips Cores 1-3, and the blueprint lays 200 machines in its first 13 minutes.
+- **Where it still waits:** Cores 5 → 6 and 6 → 7 were 84% and 61% saving. The machine levels the rows ask for have to be bought again with credits, and the shaft's income there is the first shaft's.
+- **Its Core 7 → 8** took 2 h 03 min. A first measurement of this second shaft stopped there for 13 h 53 min, because the player spent the Ingots and Plates of the Overdrive step the Core asked for on contracts and spare levels. It keeps them now.
+
+**Tried and not kept: Standard Tooling.** The two saving stages above are
+the pool's FP-19 (a) problem, and two answers paid in Cores were built and
+played on the same second shaft:
+
+- **Every machine type starts a shaft levels up.** The second shaft stayed at Core 5, with stability at 15-20 of 60, and income fell to 1.8K/s.
+- **Every machine level costs 12% fewer credits a level.** The second shaft stayed at Core 5 for the six hours watched, stability 0 of 60.
+
+Both failed the same way. A level is heat as well as speed. Cheaper or free
+levels came before the lines laid for Cores 1-5 could take the heat, and on
+stratum 12 those lines overheated where no Coolant Cell fits. What a
+collapse keeps must not add heat before the layout can take it. The tree's
+existing Core-priced line for heat, Ceramic Lining, already does the
+opposite. Neither answer was kept; the second shaft's saving stages are
+still open (`BENCHMARK.md`, section 11).
 
 **Performance** (desktop, Intel UHD; the perf probe's late board: 308
 machines, a headless tick, best of 5 × 300):
@@ -1247,9 +1266,9 @@ Credits a second a tile:
 
 ### Not done in this round
 
-- **The second shaft's Core 7 era** stopped on Ingots for Overdrive. The first shaft had an old Ingot line; the second, laid from a Core 8 blueprint, did not.
-- **Standard levels.** Machine levels are not kept by a collapse (FP-19 a), so the second shaft saves for them again.
-- **Labs on deep rock.** Labs still go quiet on strata 17-19 (research units with a Coolant Cell help, but this player keeps few). Research in the Core 7 era was 217K in 2 h 36 min, against 506K in 9 h before.
+- **The second shaft saves for machine levels again** (84% and 61% of Cores 5 → 7). Two answers were tried and dropped (above).
+- **Labs on deep rock.** Labs still go quiet on strata 17-19. Research units with a Coolant Cell help, but this player keeps few. The Core 7 era ran on the research Core 6 banked.
+- **Core 8 → 9.** A second shaft at Core 8 was not in Core 9 after 11 h 54 min: Core 9's Frames need the Frame Jig, which the player does not lay, and its income fell from 26.2K/s to 17.6K/s on strata 23-24.
 - **Core 9** is designed and graph-checked, not played; **Core 10 and up** are a formula.
 - **No picture yet:** no ghost of a blueprint on the board, no mark for a tile's job, no Overdrive glow.
 - **World nodes** still draw nothing (FP-18).

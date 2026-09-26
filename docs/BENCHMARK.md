@@ -296,24 +296,29 @@ live build and players.
 
 | | before | after |
 |---|---|---|
-| Core 7 → 8 | not reached in 9 h | 2 h 36 min; saving 0% |
-| income on stratum 19 | 2.8K/s | 23.1K/s at 8 h, 25.6K/s at Core 8 |
-| decision minutes, Core 7 → 8 | 296 of 546 | 63 of 157 |
-| machines sold | 384 | 116 |
-| a second shaft, after a collapse at Core 7 (before) or Core 8 (after): Core 6 / Core 7 | 42 min / not in 16 h | 39 min / 2 h 36 min |
+| Core 7 → 8 | not reached in 9 h | 1 h 55 min; saving 14% |
+| income on stratum 19 | 2.8K/s | 23.4K/s at 8 h, 27.6K/s at Core 8 |
+| decision minutes, Core 7 → 8 | 296 of 546 | 53 of 116 |
+| machines sold | 384 | 187 |
+| a second shaft, after a collapse at Core 7 (before) or Core 8 (after): Core 6 / Core 7 / Core 8 | 42 min / not in 16 h / -- | 37 min / 2 h 32 min / 4 h 35 min |
 
 **The three doctrines** from the same Core 7 factory:
 
-| doctrine | Core 7 → 8 |
-|---|---|
-| Deep Survey | 2 h 13 min |
-| Heat Engineering | 2 h 12 min (stable in 2 min; 15 Overdrive steps) |
-| Precision Works | 3 h 04 min (it rewards Labs and Frames, which this player builds few of) |
+| doctrine | Core 7 → 8 | what it changed |
+|---|---|---|
+| Deep Survey | 1 h 49 min | saved least (2%): the deep chain paid the credits |
+| Heat Engineering | 1 h 47 min | stable in 2 min; 9 Overdrive steps |
+| Precision Works | 1 h 52 min | eight times Deep Survey's research; twice the doctrine levels |
+
+**Tried and dropped: Standard Tooling** (FP-19 a). Machine levels that start
+a shaft higher, or cost fewer credits, held the second shaft at Core 5: a
+level is heat as well as speed, and the lines laid for Cores 1-5 overheated
+on stratum 12 (`PROGRESSION.md`, "Played, after").
 
 **Still open, in order.**
 
-1. **The second shaft's Core 7 → 8** was not reached in 13 h 53 min. It was stopped on Ingots for Overdrive: its blueprint, the Core 8 factory, makes almost none on deep rock.
-2. **The second shaft saves for machine levels again:** Cores 5 → 6 and 6 → 7 were 89% and 71% saving. Standard levels (FP-19 a) are the pool's answer.
-3. **Labs go quiet on strata 17-19.** Research in the Core 7 era was about 84K an hour.
+1. **The second shaft saves for machine levels again:** Cores 5 → 6 and 6 → 7 were 84% and 61% saving. The answer must not add heat before the layout can take it.
+2. **Labs go quiet on strata 17-19.** The Core 7 era runs on the research Core 6 banked (17.5K made in the stage, 341K spent).
+3. **Core 8 → 9 is not played through:** the player lays no Frame Jig, and income falls on strata 23-24.
 4. **Core 10 and up are a formula.**
 5. **The long game is not shown:** no roadmap of eras, no picture for a tile's job, no blueprint ghost.
