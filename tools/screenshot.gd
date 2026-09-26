@@ -106,6 +106,10 @@ func _run() -> void:
 		await _run_field()
 		get_tree().quit()
 		return
+	if OS.get_environment("LODEWORKS_CAPTURE") == "rigs":
+		await _run_rigs()
+		get_tree().quit()
+		return
 	for s: Dictionary in SHOTS:
 		_apply_build(String(s["build"]))
 		_set_overlay(bool(s.get("overlay", false)))
@@ -418,6 +422,35 @@ func _capture(name: String) -> void:
 	else:
 		print("  %s  %dx%d" % [ProjectSettings.globalize_path(path),
 			img.get_width(), img.get_height()])
+
+
+## The crew and the galleries (Operations), for the eye: a working Core 5
+## board with Rigs standing at the Core, a sortie walking out to a gallery
+## mouth past the yard's edge and one at work in another, and the Core card's
+## Galleries section. `LODEWORKS_CAPTURE=rigs`.
+func _run_rigs() -> void:
+	_apply_build("full")
+	Sim.core_level = 5
+	Sim.clear_ops()
+	Sim._recompute()
+	Sim.stock[MachineDB.Res.RIG] = Sim.crew_cap()
+	Sim.stock[MachineDB.Res.INGOT] = 500
+	Sim.stock[MachineDB.Res.PLATE] = 500
+	Sim.rig_wear = 0.25
+	Sim._sync_core()
+	Sim.send_sortie(0, 2)
+	Sim.send_sortie(1, 1)
+	# One sortie on its way out, the other at work in its gallery's mouth.
+	(Sim.sorties[0] as Dictionary)["left"] = float(Sim.sorties[0]["trip"]) * 0.8
+	(Sim.sorties[1] as Dictionary)["left"] = float(Sim.sorties[1]["trip"]) * 0.5
+	# Whatever this machine's save left open (a welcome-back card) goes.
+	_clear_transient()
+	await _settle(1.5)
+	await _capture("rigs_board")
+	_main.call("_show_core")
+	await _settle(0.8)
+	await _capture("rigs_core_card")
+	_clear_transient()
 
 
 ## Alt text, up to 140 characters each, written next to the images so whoever

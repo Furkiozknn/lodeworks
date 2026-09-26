@@ -21,7 +21,14 @@ extends RefCounted
 ## on another job (JOBS): Crystal is found from stratum CRYSTAL_DEPTH, an
 ## Alloy wants white heat, and a Frame joins an Alloy to a Component. It is
 ## appended, so every save's numbers keep their meaning.
-enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT, CRYSTAL, ALLOY, FRAME }
+##
+## A Rig is no material: it is a robot, made by an Assembler on the Rig Frame
+## job and kept at the Core as its crew, which the Core sends out on
+## operations (Operations; docs/GAME-LOOP.md). Made anywhere in the yard, it
+## walks to the Core by itself (Simulation._transfer); its Plates and
+## Components come down the factory's own lines, so the factory is the
+## crew's supply line.
+enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT, CRYSTAL, ALLOY, FRAME, RIG }
 
 const RES_NAME := {
 	Res.ORE: "Ore",
@@ -32,6 +39,7 @@ const RES_NAME := {
 	Res.CRYSTAL: "Crystal",
 	Res.ALLOY: "Alloy",
 	Res.FRAME: "Frame",
+	Res.RIG: "Rig",
 }
 
 const DEEP_VALUES := [3.0, 12.0, 50.0]
@@ -51,6 +59,10 @@ const RES_VALUE := {
 	Res.CRYSTAL: DEEP_VALUES[0],
 	Res.ALLOY: DEEP_VALUES[1],
 	Res.FRAME: DEEP_VALUES[2],
+	# What a Vault pays for a Rig: the Plate and the Component it was made of,
+	# and a little for the work, so a Rig sold is never a loss and never the
+	# reason to make one.
+	Res.RIG: 140.0,
 }
 
 ## Heat is the spatial constraint that makes placement a puzzle rather than a
@@ -340,8 +352,46 @@ const JOBS := {
 		"heat_optimum": 3.0,
 		"heat_tolerance": 6.5,
 		"core": FRAME_CORE,
+	}, "rig": {
+		"name": "Rig Frame",
+		"short": "Builds a Rig: a robot the Core sends out into the galleries.",
+		"inputs": {Res.PLATE: 2},
+		"outputs": {Res.RIG: 1},
+		"rate": RIG_RATE,
+		"core": RIG_CORE,
+	}},
+	"lab": {"assay": {
+		"name": "Assay Bench",
+		"short": "Learns from Frames alone -- far more than a Lab, on rock too hot for one.",
+		"inputs": {Res.FRAME: 1},
+		"learns": {Res.FRAME: ASSAY_LEARNS},
+		"heat_optimum": 2.0,
+		"heat_tolerance": 6.5,
+		"core": ASSAY_CORE,
 	}},
 }
+
+## Assay Bench, a Lab from the Core's level ASSAY_CORE: it learns only from
+## Frames, ASSAY_LEARNS research each where a Lab learns 4, and takes the
+## heat of the deepest rock. Measured before it: the Core 8 era's Labs, a
+## Coolant Cell each on strata 19-24, made 87 research a second; the
+## doctrine's research was the last row of Core 9 to be met, and the store
+## held 108,000 Frames with no use but the Core's row and a Vault. So the
+## Frame gets a third use -- the store, the Vault's credits, or research --
+## and research in the deep eras becomes a line of the factory: Deep Bores,
+## White Heat, Alloy Parts, a Frame Jig, an Assay Bench (docs/PROGRESSION.md,
+## "Core 9").
+const ASSAY_CORE := 9
+const ASSAY_LEARNS := 10.0
+
+## Rig Frame, an Assembler from the Core's level RIG_CORE: a Rig
+## from two Plates, at a tenth of the Assembler's pace -- a robot is a
+## machine's minutes of work, not a part's seconds. Plates, not Components:
+## beside a Press is a place a player finds in any yard; played, a Rig Frame
+## that had to stand between a Press and an Assembler took the Core 3 line's
+## Vault, and that line backed up and was torn down when the store filled.
+const RIG_CORE := 4
+const RIG_RATE := 0.09
 
 
 ## The jobs machine type `id` can be set to: "" (its own recipe) first.
@@ -377,7 +427,7 @@ static func job_machine(id: String, job: String) -> Dictionary:
 	if info.is_empty():
 		return base
 	var m: Dictionary = base.duplicate(true)
-	for k: String in ["inputs", "outputs", "heat_optimum", "heat_tolerance", "vein", "heat_drive"]:
+	for k: String in ["inputs", "outputs", "learns", "rate", "heat_optimum", "heat_tolerance", "vein", "heat_drive"]:
 		if info.has(k):
 			m[k] = info[k]
 	m["job"] = job
@@ -649,6 +699,8 @@ static func recipe_text(id: String, job: String = "") -> String:
 		outs.append("%d %s" % [int(m["outputs"][res]), Loc.t(String(RES_NAME[res]))])
 	if tags.has("research"):
 		outs.append(Loc.t("Research"))
+		if ins.size() == 1:
+			return ins[0] + " → " + " + ".join(outs)
 		return Loc.t("%s or %s") % [", ".join(ins.slice(0, ins.size() - 1)), ins[ins.size() - 1]] \
 			+ " → " + " + ".join(outs)
 	if ins.is_empty() and outs.is_empty():
@@ -715,6 +767,16 @@ static func unlock_depth(id: String) -> int:
 ## 1.7 hours of the Core 6 factory's income and a level 8 about fifteen:
 ## the credit wall of docs/PROGRESSION.md, "Core 7". At 3.5 times a level 7
 ## costs about half an hour of that income.
+##
+## From DEEP_LEVEL_FROM a level costs DEEP_LEVEL_GROWTH times the one
+## before. Those levels are paid in Alloy and Components as well, and the
+## Core opens one more level an era, while the deep eras' income grows 1.2
+## to 1.5 times an era (played: 21.5K/s over the Core 7 era, 25.1K/s over
+## the Core 8 era). At 3.5 times, the Vault 9 that Core 9's store needs cost
+## 133M; with the other levels its rows asked for, Core 8 -> 9 was 500M of
+## credits, five hours of the Core 8 factory's income (docs/PROGRESSION.md,
+## "Core 9"). At 1.5 times a level 9 is 57M, about 40 minutes of it, and
+## each era's level stays about that share of its era's income.
 const LEVEL_SPEED := 0.1
 const LEVEL_PRICE := 150.0
 const LEVEL_PRICE_GROWTH := 12.0
@@ -725,6 +787,7 @@ const LEVEL_MATERIAL_GROWTH := 3.0
 const VAULT_MATERIAL_SHARE := 0.3
 const LEVEL_TIERS := [Res.INGOT, Res.PLATE, Res.COMPONENT]
 const DEEP_LEVEL_FROM := 9
+const DEEP_LEVEL_GROWTH := 1.5
 
 ## What the Core's store keeps, and how much of each a Vault level holds:
 ## STOCK_BASE at level 1, STOCK_GROWTH times as much each level. It grows
@@ -750,7 +813,8 @@ static func _steps(level: int, drive: int) -> float:
 static func level_price(_id: String, to_level: int) -> float:
 	var l: int = maxi(to_level, 2)
 	return LEVEL_PRICE * pow(LEVEL_PRICE_GROWTH, float(mini(l, LATE_LEVEL_FROM) - 2)) \
-		* pow(LATE_LEVEL_GROWTH, float(maxi(l - LATE_LEVEL_FROM, 0)))
+		* pow(LATE_LEVEL_GROWTH, float(clampi(l - LATE_LEVEL_FROM, 0, DEEP_LEVEL_FROM - 1 - LATE_LEVEL_FROM))) \
+		* pow(DEEP_LEVEL_GROWTH, float(maxi(l - DEEP_LEVEL_FROM + 1, 0)))
 
 
 ## Materials to take machine type `id` to `to_level`: {res: count}.
@@ -860,7 +924,15 @@ const OVERDRIVE_RESEARCH := 25000.0
 ## A Core level's steps cost STOCK_GROWTH times the last level's, as the
 ## store a Vault at the Core's limit holds grows: every step always fits.
 const OVERDRIVE_GROWTH := 1.4736
-const OVERDRIVE_TIERS := [Res.INGOT, Res.PLATE]
+## The store tiers a step is paid in, by the shaft's Core level: the two the
+## era before made most of. Under Core 7 a step takes Ingots and Plates, the
+## Core 6 chain's; under Core 8, Plates and Components, which the Core 7
+## era's jobs make from Alloy on rock too hot for ore; from Core 9,
+## Components and Alloy. Measured: with every step in Ingots, a Core 8
+## factory on stratum 24 -- where an ore line overheats without a Coolant
+## Cell at every machine -- could not pay the Overdrive Core 9 asked for in
+## six hours (docs/PROGRESSION.md, "Core 9").
+const OVERDRIVE_TIERS := [[Res.INGOT, Res.PLATE], [Res.PLATE, Res.COMPONENT], [Res.COMPONENT, Res.ALLOY]]
 
 
 ## Can machine type `id` be driven? Every levelled type but the Vault,
@@ -869,13 +941,16 @@ static func can_overdrive(id: String) -> bool:
 	return has_levels(id) and not (get_machine(id).get("tags", []) as Array).has("sink")
 
 
-## What a type's Overdrive step `step` (1 for the first) costs:
+## What a type's Overdrive step `step` (1 for the first) costs under a Core
+## of `core_level` -- by default the level that opens the step:
 ## {"materials": {res: count}, "research": amount}.
-static func overdrive_cost(step: int) -> Dictionary:
+static func overdrive_cost(step: int, core_level: int = 0) -> Dictionary:
 	var g: float = pow(OVERDRIVE_GROWTH, float(maxi(step, 1) - 1))
 	var n: int = int(ceil(minf(OVERDRIVE_MATERIAL * g, LEVEL_NUMBER_MAX)))
+	if core_level <= 0:
+		core_level = OVERDRIVE_CORE + (maxi(step, 1) - 1) / OVERDRIVE_PER_CORE
 	var mats: Dictionary = {}
-	for res: int in OVERDRIVE_TIERS:
+	for res: int in OVERDRIVE_TIERS[clampi(core_level - OVERDRIVE_CORE, 0, OVERDRIVE_TIERS.size() - 1)]:
 		mats[res] = n
 	return {"materials": mats, "research": minf(OVERDRIVE_RESEARCH * g, LEVEL_NUMBER_MAX)}
 

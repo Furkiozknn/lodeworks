@@ -42,6 +42,7 @@ func _fresh() -> void:
 	Sim.doctrine = ""
 	Sim.blueprints = []
 	Sim.blueprint_pending = []
+	Sim.clear_ops()
 	Sim._recompute()
 
 
@@ -100,6 +101,9 @@ func _new_work(level: int, r: Array) -> bool:
 	var before: int = level - 2
 	# Before the first Core level nothing is allowed past a new shaft's start.
 	var first: bool = before < 1
+	# Machines on a job the era before could not open are new work at any count.
+	if CoreLevels.row_job(r) != "" and CoreLevels.job_at(String(r[1]), CoreLevels.row_job(r)) > before:
+		return true
 	match int(r[0]):
 		CoreLevels.Req.CREDITS:
 			return true
@@ -117,6 +121,17 @@ func _new_work(level: int, r: Array) -> bool:
 			return int(r[2]) > (0 if first else CoreLevels.overdrive_cap(before))
 		CoreLevels.Req.DOCTRINE:
 			return int(r[1]) > (0 if first else CoreLevels.doctrine_cap(before))
+		CoreLevels.Req.OPERATIONS:
+			# Sites cleared: work once the era before could not yet send a crew,
+			# and after it, more than any level before asked.
+			if CoreLevels.available_at(r) > before:
+				return true
+			var asked: int = 0
+			for l in range(2, level):
+				for e: Array in CoreLevels.requirements(l):
+					if int(e[0]) == CoreLevels.Req.OPERATIONS:
+						asked = maxi(asked, int(e[1]))
+			return int(r[1]) > asked
 	var most: int = -1
 	for l in range(2, level):
 		for e: Array in CoreLevels.requirements(l):

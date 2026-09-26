@@ -31,6 +31,7 @@ func _fresh() -> void:
 	Sim.doctrine = ""
 	Sim.blueprints = []
 	Sim.blueprint_pending = []
+	Sim.clear_ops()
 	Sim._recompute()
 
 
@@ -117,6 +118,32 @@ func test_a_job_changes_what_a_machine_takes_makes_and_how_hot_it_wants_to_be() 
 	runner.lt(MachineDB.value_of(MachineDB.Res.PLATE), MachineDB.value_of(MachineDB.Res.ALLOY), "")
 	runner.eq(CoreLevels.job_of(MachineDB.Res.CRYSTAL), "crystal", "")
 	runner.check(MachineDB.recipe_text("smelter", "alloy").contains("Crystal"), "its recipe says so")
+
+
+func test_an_assay_bench_learns_from_frames_alone_on_the_hottest_rock() -> void:
+	var fr: int = MachineDB.Res.FRAME
+	var m: Dictionary = MachineDB.job_machine("lab", "assay")
+	runner.eq(m["inputs"], {fr: 1}, "an Assay Bench takes Frames and nothing else")
+	runner.gt(float(m["learns"][fr]), 2.0 * float(MachineDB.get_machine("lab")["learns"][fr]),
+		"and learns more than twice what a Lab does from one")
+	runner.eq(CoreLevels.job_at("lab", "assay"), MachineDB.ASSAY_CORE, "the Core's level 9 opens it")
+	runner.check((CoreLevels.opens(MachineDB.ASSAY_CORE)["jobs"] as Array).has(["lab", "assay"]), "and says so")
+	runner.eq(MachineDB.recipe_text("lab", "assay"), "1 Frame → Research", "its recipe")
+	# On stratum 29's rock a Lab chokes; the Bench does not.
+	var bench: Dictionary = _alone("lab", "assay", 29)
+	var lab: Dictionary = _alone("lab", "", 29)
+	runner.check((lab["sim"] as Simulation).overheated_at(int(lab["cell"])), "a Lab chokes on stratum 29")
+	runner.check(not (bench["sim"] as Simulation).overheated_at(int(bench["cell"])), "an Assay Bench does not")
+	# One Frame handed to it: ASSAY_LEARNS research, and a Component nothing.
+	var s: Simulation = bench["sim"]
+	var cell: Dictionary = (bench["grid"] as Grid).cells[int(bench["cell"])]
+	cell["buf_in"][fr] = 1
+	cell["buf_in"][MachineDB.Res.COMPONENT] = 3
+	var learnt: float = 0.0
+	for _i in range(int(20.0 * Simulation.TICK_HZ)):
+		learnt += float(s.tick()["research"])
+	runner.near(learnt, MachineDB.ASSAY_LEARNS, 0.001, "one Frame, %.1f research" % learnt)
+	runner.eq(int(cell["buf_in"].get(MachineDB.Res.COMPONENT, 0)), 3, "the Components are not learnt from")
 
 
 func test_the_shaft_opens_a_job_where_its_rock_and_its_core_say() -> void:
@@ -294,6 +321,123 @@ func test_survey_charges_make_the_way_down_cheaper() -> void:
 	_done()
 
 
+## The lowest income the scripted player's Core 8 factory earned on the
+## strata Core 9 asks it to reach (21.5K/s on stratum 23; docs/PROGRESSION.md,
+## "Core 9").
+const CORE8_INCOME := 21500.0
+
+
+func test_core_9_is_hours_of_the_core_8_income_not_a_day() -> void:
+	# The Core's price and the levels its rows need past what Core 8 asked:
+	# the Vault its store needs, each machine row, and the level a type
+	# must reach before the Overdrive row can drive it.
+	var credits: float = 0.0
+	var store: int = 0
+	for r: Array in CoreLevels.requirements(9):
+		match int(r[0]):
+			CoreLevels.Req.CREDITS:
+				credits += float(r[1])
+			CoreLevels.Req.STOCK:
+				store = maxi(store, int(r[2]))
+			CoreLevels.Req.MACHINE:
+				credits += MachineDB.level_price(String(r[1]), int(r[2]))
+			CoreLevels.Req.OVERDRIVE:
+				credits += MachineDB.level_price(String(r[1]), CoreLevels.overdrive_from(8))
+	credits += MachineDB.level_price("vault", CoreLevels.storage_level(store))
+	var hours: float = credits / CORE8_INCOME / 3600.0
+	# The first design (Drill 9, a 160M Core, levels at 3.5 times) was 6 h.
+	runner.lt(hours, 4.0, "Core 9's credits are %.1f h of the Core 8 factory's income" % hours)
+	runner.gt(hours, 1.0, "and still a long goal")
+	# A level from 9 up costs 1.5 times the one before, not 3.5 times.
+	runner.near(MachineDB.level_price("vault", 9), MachineDB.level_price("vault", 8) * MachineDB.DEEP_LEVEL_GROWTH,
+		0.5, "a level 9 is 1.5 times a level 8")
+	runner.near(MachineDB.level_price("vault", 8), MachineDB.level_price("vault", 7) * MachineDB.LATE_LEVEL_GROWTH,
+		0.5, "and a level 8 still 3.5 times a level 7")
+
+
+func test_core_10_puts_the_assay_bench_to_work_and_opens_the_cores_export() -> void:
+	var assay: Array = []
+	for r: Array in CoreLevels.requirements(10):
+		if CoreLevels.row_job(r) == "assay":
+			assay = r
+	runner.check(not assay.is_empty(), "Core 10 asks for Assay Benches at work")
+	runner.eq(CoreLevels.available_at(assay), MachineDB.ASSAY_CORE, "which Core 9 opens")
+	runner.eq(CoreLevels.available_at([CoreLevels.Req.WORKING, "lab", 2, "nothing"]), -1,
+		"a job no machine has can never be had")
+	runner.check(bool(CoreLevels.opens(CoreLevels.EXPORT_CORE)["export"]), "Core 10 opens the Core's export")
+	runner.check(not bool(CoreLevels.opens(9)["export"]), "")
+	# Every level past the table still asks for them, more each level.
+	for level in range(11, 16):
+		var w: Array = []
+		for r: Array in CoreLevels.requirements(level):
+			if CoreLevels.row_job(r) == "assay":
+				w = r
+		runner.check(not w.is_empty() and int(w[2]) > int(assay[2]), "Core %d asks for more Assay Benches" % level)
+	# A Core past the table costs about what an era's income grows by more
+	# than the one before it, not four times.
+	var p10: float = 0.0
+	var p11: float = 0.0
+	for r: Array in CoreLevels.requirements(10):
+		if int(r[0]) == CoreLevels.Req.CREDITS:
+			p10 = float(r[1])
+	for r: Array in CoreLevels.requirements(11):
+		if int(r[0]) == CoreLevels.Req.CREDITS:
+			p11 = float(r[1])
+	runner.near(p11 / p10, CoreLevels.LATE_CREDIT_GROWTH, 0.001, "Core 11 costs 1.5 times Core 10")
+	# The shaft's Core tells the board whether it exports.
+	_shaft(9, 24)
+	runner.eq(Sim.sim.core_export, 0.0, "a Core 9 keeps what its store has no room for")
+	_shaft(10, 29)
+	runner.eq(Sim.sim.core_export, CoreLevels.EXPORT_SHARE, "a Core 10 sells it")
+	_done()
+
+
+func test_an_exporting_core_sells_its_stores_overflow_at_half_price() -> void:
+	var sold := func(export: float) -> Array:
+		var g := Grid.new()
+		var s := Simulation.new(g, 3)
+		Strata.apply(s, g, Strata.describe(1), Economy.multipliers({}))
+		# A Smelter touching the Core's left side, fed by a Crusher and two
+		# Drills; the store full.
+		g.place(Grid.idx(19, 21), "smelter")
+		g.place(Grid.idx(18, 21), "crusher")
+		g.place(Grid.idx(17, 21), "drill")
+		g.place(Grid.idx(18, 20), "drill")
+		s.core_wants = {}
+		s.core_export = export
+		var credits: float = 0.0
+		for _i in range(int(120.0 * Simulation.TICK_HZ)):
+			credits += float(s.tick()["credits"])
+		return [credits, s.core_exported, s.links_if_placed(Grid.idx(19, 22), "smelter")["delivers"]]
+	var shut: Array = sold.call(0.0)
+	runner.eq(float(shut[0]), 0.0, "a full store and no export: the Smelter stands still")
+	runner.check(not bool(shut[2]), "and a tile beside the Core is no outlet")
+	var open: Array = sold.call(CoreLevels.EXPORT_SHARE)
+	runner.gt(float(open[1]), 0.0, "exporting, the Core takes the Ingots it has no room for")
+	runner.near(float(open[0]), float(open[1]) * MachineDB.value_of(MachineDB.Res.INGOT) * CoreLevels.EXPORT_SHARE,
+		0.01, "and sells each at half what a Vault pays")
+	runner.check(bool(open[2]), "and a tile beside the Core is an outlet again")
+
+
+func test_overdrive_is_paid_in_what_the_era_before_made() -> void:
+	var tiers := func(step: int, core: int) -> Array:
+		var k: Array = (MachineDB.overdrive_cost(step, core)["materials"] as Dictionary).keys()
+		k.sort()
+		return k
+	runner.eq(tiers.call(2, 7), [MachineDB.Res.INGOT, MachineDB.Res.PLATE], "under Core 7: Ingots and Plates")
+	runner.eq(tiers.call(2, 8), [MachineDB.Res.PLATE, MachineDB.Res.COMPONENT], "under Core 8, the same step: Plates and Components")
+	runner.eq(tiers.call(7, 9), [MachineDB.Res.COMPONENT, MachineDB.Res.ALLOY], "from Core 9: Components and Alloy")
+	runner.eq(tiers.call(7, 20), [MachineDB.Res.COMPONENT, MachineDB.Res.ALLOY], "and after")
+	runner.eq(tiers.call(4, 0), [MachineDB.Res.PLATE, MachineDB.Res.COMPONENT], "a step's own Core by default: step 4 is Core 8's")
+	runner.near(float(MachineDB.overdrive_cost(3, 8)["research"]), float(MachineDB.overdrive_cost(3, 7)["research"]),
+		0.001, "the research is the step's, whatever the Core")
+	# A shaft pays under its own Core.
+	_shaft(8, 19)
+	var mats: Dictionary = Sim.overdrive_cost("assembler")["materials"]
+	runner.check(mats.has(MachineDB.Res.COMPONENT) and not mats.has(MachineDB.Res.INGOT), "a Core 8 shaft pays no Ingots")
+	_done()
+
+
 ## --- the Core's foundation ---------------------------------------------------------------
 
 func test_a_collapse_keeps_half_the_best_core_and_saves_carry_it() -> void:
@@ -377,6 +521,7 @@ func test_a_blueprint_is_saved_checked_and_laid_as_credits_allow() -> void:
 	runner.eq(Sim.blueprint_pending.size(), line.size() - 2, "the rest waits")
 	var d: Dictionary = JSON.parse_string(JSON.stringify(Sim.to_dict()))
 	Sim.blueprint_pending = []
+	Sim.clear_ops()
 	Sim.from_dict(d)
 	runner.eq(Sim.blueprint_pending.size(), line.size() - 2, "a save keeps what is waiting")
 	Sim.credits = 1.0e9

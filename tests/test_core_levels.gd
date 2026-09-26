@@ -42,6 +42,7 @@ func _fresh() -> void:
 	Sim.doctrine = ""
 	Sim.blueprints = []
 	Sim.blueprint_pending = []
+	Sim.clear_ops()
 	Sim._recompute()
 
 

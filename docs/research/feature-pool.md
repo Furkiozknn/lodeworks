@@ -51,7 +51,7 @@ These are binding; the pool does not propose anything that breaks them.
 | V1 | Single-player; no account, no server | README; AUDIT §2 D3 |
 | V2 | Monetization: rewarded video only (opt-in, additive), plus two one-time purchases that never change an economy number (tested) | README "Monetisation" |
 | V3 | No energy, no timers as gates, no gacha, no subscription, no daily-login guilt | README |
-| V4 | No stealable resources, raids, shields or combat | clash-ux.md "leave" |
+| V4 | No stealable resources, raids, shields or combat. **Amended 26 Sep 2026 by the owner:** robots, operations and fights against the computer are in; raids on players, stealable resources, shields and revenge stay out until a server exists (V1/D3); later, a rival factory loaded from a share code, with nothing taken (`docs/GAME-LOOP.md`, section 5) | clash-ux.md "leave"; the owner's brief of 26 Sep 2026 |
 | V5 | Every feature connects to the Core's progression graph | PROGRESSION.md |
 | D1 | No more machines, strata or currencies as a content treadmill. Amended 25 Sep 2026 by the owner: a new resource only if it is connected to other systems ("Kaynak sayısını sırf oyun uzun sürsün diye artırma") | AUDIT §2 D1; the owner's progression brief |
 | D2 | No daily or weekly challenges, no streaks | AUDIT §2 D2; the owner, 25 Sep 2026 |

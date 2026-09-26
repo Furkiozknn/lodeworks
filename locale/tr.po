@@ -178,6 +178,10 @@ msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr "Katman %d. Saha büyüdü: kuracak daha çok yer var."
 
 #: res://scripts/ui/main.gd
+msgid "The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."
+msgstr "Çekirdek artık bir ekip tutabilir. Bir Montajcıyı Robot Şasisi işine ayarla: Robotları Çekirdeğe yürür, oradan da galerilere."
+
+#: res://scripts/ui/main.gd
 msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
 msgstr "Çekirdek seviye %d. Kuyu %d. katmana kadar inebilir; makinelerin sınırı seviye %d."
 
@@ -188,6 +192,14 @@ msgstr "Sözleşme teslim edildi: +%s kredi"
 #: res://scripts/ui/main.gd
 msgid "Contract filled: +%s research"
 msgstr "Sözleşme teslim edildi: +%s araştırma"
+
+#: res://scripts/ui/main.gd
+msgid "Rigs home from the %s, cleared: +%s credits, +%s research"
+msgstr "Robotlar döndü (%s, temizlendi): +%s kredi, +%s araştırma"
+
+#: res://scripts/ui/main.gd
+msgid "Rigs home from the %s, not cleared: +%s credits, +%s research"
+msgstr "Robotlar döndü (%s, temizlenmedi): +%s kredi, +%s araştırma"
 
 #: res://scripts/ui/main.gd
 msgid "%s active. Thank you."
@@ -602,8 +614,20 @@ msgid "And Overdrive: %d steps past its level for every machine type the Core be
 msgstr "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Külçe, Levha ve araştırmayla ödenir."
 
 #: res://scripts/ui/main.gd
+msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Plates, Components and research."
+msgstr "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Levha, Parça ve araştırmayla ödenir."
+
+#: res://scripts/ui/main.gd
+msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Components, Alloy and research."
+msgstr "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Parça, Alaşım ve araştırmayla ödenir."
+
+#: res://scripts/ui/main.gd
 msgid "And a new job for the %s: %s -- %s"
 msgstr "Ve %s için yeni bir iş: %s -- %s"
+
+#: res://scripts/ui/main.gd
+msgid "And the Core sells what its store has no room for, at half what a Vault pays: a full store no longer stops the machines beside it."
+msgstr "Ve Çekirdek, deposuna sığmayanı bir Kasanın ödediğinin yarısına satar: dolu bir depo artık yanındaki makineleri durdurmaz."
 
 #: res://scripts/ui/main.gd
 msgid "And a doctrine for the shaft: one of three ways to grow it, each with research of its own. Chosen once, until the shaft collapses."
@@ -654,6 +678,86 @@ msgid "pays %s credits"
 msgstr "%s kredi öder"
 
 #: res://scripts/ui/main.gd
+msgid "Galleries"
+msgstr "Galeriler"
+
+#: res://scripts/ui/main.gd
+msgid "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots an Assembler builds on the Rig Frame job beside the Core -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger."
+msgstr "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin yanındaki bir Montajcının Robot Şasisi işinde yaptığı makineler -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir."
+
+#: res://scripts/ui/main.gd
+msgid "Old galleries, boarded up. From the Core's level %d it keeps a crew of Rigs, and sends them in."
+msgstr "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyeden bir Robot ekibi tutar ve onları içeri gönderir."
+
+#: res://scripts/ui/main.gd
+msgid "Rigs: %d at the Core, %d out, room for %d"
+msgstr "Robotlar: Çekirdekte %d, dışarıda %d, yer %d"
+
+#: res://scripts/ui/main.gd
+msgid "%d%% worn"
+msgstr "%%%d aşınmış"
+
+#: res://scripts/ui/main.gd
+msgid "whole"
+msgstr "sağlam"
+
+#: res://scripts/ui/main.gd
+msgid "strength %d each, %s"
+msgstr "her biri %d güç, %s"
+
+#: res://scripts/ui/main.gd
+msgid "Repair: %d Plates"
+msgstr "Onar: %d Levha"
+
+#: res://scripts/ui/main.gd
+msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core."
+msgstr "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür."
+
+#: res://scripts/ui/main.gd
+msgid "needs %d · sending %d: strength %d, %s"
+msgstr "%d güç gerekir · %d gönderilirse: güç %d, %s"
+
+#: res://scripts/ui/main.gd
+msgid "pays %s credits, %s research, %d %s"
+msgstr "%s kredi, %s araştırma, %d %s öder"
+
+#: res://scripts/ui/main.gd
+msgid "Rigs out"
+msgstr "Robotlar dışarıda"
+
+#: res://scripts/ui/main.gd
+msgid "Send %d"
+msgstr "%d gönder"
+
+#: res://scripts/ui/main.gd
+msgid "Send"
+msgstr "Gönder"
+
+#: res://scripts/ui/main.gd
+msgid "Fuel: %d Ingots"
+msgstr "Yakıt: %d Külçe"
+
+#: res://scripts/ui/main.gd
+msgid "too easy"
+msgstr "çok kolay"
+
+#: res://scripts/ui/main.gd
+msgid "easy"
+msgstr "kolay"
+
+#: res://scripts/ui/main.gd
+msgid "even"
+msgstr "denk"
+
+#: res://scripts/ui/main.gd
+msgid "hard: a share of it"
+msgstr "zor: bir payını alır"
+
+#: res://scripts/ui/main.gd
+msgid "out of reach"
+msgstr "erişilemez"
+
+#: res://scripts/ui/main.gd
 msgid "Credits, paid when the Core grows"
 msgstr "Kredi, Çekirdek büyüyünce ödenir"
 
@@ -696,6 +800,10 @@ msgstr "Seçilmiş bir doktrin ve onun araştırmasından %d seviye"
 #: res://scripts/ui/main.gd
 msgid "%d levels of %s research"
 msgstr "%d seviye %s araştırması"
+
+#: res://scripts/ui/main.gd
+msgid "%d sites in the galleries cleared by Rigs"
+msgstr "Robotların temizlediği %d galeri alanı"
 
 #: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
@@ -746,8 +854,8 @@ msgid "Level %d first"
 msgstr "Önce seviye %d"
 
 #: res://scripts/ui/main.gd
-msgid "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps."
-msgstr "Aşırı Sürüş: bir önceki Çekirdeğin izin verdiği seviyenin ötesinde her adım, her %s makinesini %%%d daha sıkı çalıştırır; ısısı da onunla artar. Bedeli Çekirdeğin deposundaki Külçe ve Levhalar ile araştırmadır, asla kredi değildir; %d. seviyeden başlayarak her Çekirdek seviyesi %d adım daha açar."
+msgid "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid from the Core's store, in the two materials the era before made most of (Ingots and Plates under Core 7, Plates and Components under Core 8, Components and Alloy after), and in research, never in credits; each Core level from %d allows %d more steps."
+msgstr "Aşırı Sürüş: bir önceki Çekirdeğin izin verdiği seviyenin ötesinde her adım, her %s makinesini %%%d daha sıkı çalıştırır; ısısı da onunla artar. Bedeli Çekirdeğin deposundan, bir önceki çağın en çok yaptığı iki malzemeyle (Çekirdek 7'de Külçe ve Levha, Çekirdek 8'de Levha ve Parça, sonrasında Parça ve Alaşım) ve araştırmayla ödenir, asla krediyle değil; %d. seviyeden başlayarak her Çekirdek seviyesi %d adım daha açar."
 
 #: res://scripts/ui/main.gd
 msgid "A tap takes you to the first one."
@@ -1350,6 +1458,10 @@ msgid "Frame"
 msgstr "Çerçeve"
 
 #: res://scripts/core/machine_db.gd
+msgid "Rig"
+msgstr "Robot"
+
+#: res://scripts/core/machine_db.gd
 msgid "Deep Bore"
 msgstr "Derin Sondaj"
 
@@ -1388,6 +1500,22 @@ msgstr "Çerçeve Kalıbı"
 #: res://scripts/core/machine_db.gd
 msgid "Joins alloy and parts into frames."
 msgstr "Alaşımı ve parçaları çerçeveye birleştirir."
+
+#: res://scripts/core/machine_db.gd
+msgid "Rig Frame"
+msgstr "Robot Şasisi"
+
+#: res://scripts/core/machine_db.gd
+msgid "Builds a Rig: a robot the Core sends out into the galleries."
+msgstr "Bir Robot yapar: Çekirdeğin galerilere gönderdiği bir makine."
+
+#: res://scripts/core/machine_db.gd
+msgid "Assay Bench"
+msgstr "Tahlil Tezgâhı"
+
+#: res://scripts/core/machine_db.gd
+msgid "Learns from Frames alone -- far more than a Lab, on rock too hot for one."
+msgstr "Yalnız Çerçevelerden öğrenir -- bir Laboratuvardan çok daha fazlasını, ona fazla sıcak gelen kayada."
 
 #: res://scripts/core/machine_db.gd
 msgid "Diggers"
@@ -1562,6 +1690,18 @@ msgid "One more blueprint slot for saved layouts."
 msgstr "Kayıtlı yerleşimler için bir plan yuvası daha."
 
 #: res://scripts/core/economy.gd
+msgid "Rig Plating"
+msgstr "Robot Zırhı"
+
+#: res://scripts/core/economy.gd
+msgid "Every Rig is stronger."
+msgstr "Her Robot daha güçlü."
+
+#: res://scripts/core/economy.gd
+msgid "Every Rig brings 20% more strength to a sortie, for each level."
+msgstr "Her seviye, her Robotun sefere %20 daha fazla güç getirmesini sağlar."
+
+#: res://scripts/core/economy.gd
 msgid "Crystal Lattice"
 msgstr "Kristal Örgü"
 
@@ -1677,6 +1817,10 @@ msgstr "Lojistik"
 msgid "Core"
 msgstr "Çekirdek"
 
+#: res://scripts/core/economy.gd
+msgid "Robotics"
+msgstr "Robotik"
+
 #: res://scripts/core/core_levels.gd
 msgid "Extraction"
 msgstr "Çıkarım"
@@ -1708,6 +1852,10 @@ msgstr "Uçurum"
 #: res://scripts/core/core_levels.gd
 msgid "The Forge"
 msgstr "Dökümhane"
+
+#: res://scripts/core/core_levels.gd
+msgid "The Exchange"
+msgstr "Borsa"
 
 #: res://scripts/core/strata.gd
 msgid "Thermal Vent"
@@ -1888,6 +2036,38 @@ msgstr "Derinlerden sıcak hava yükseliyor."
 #: res://scripts/core/resource_nodes.gd
 msgid "Nothing uses its heat yet."
 msgstr "Henüz bu ısıyı kullanan bir şey yok."
+
+#: res://scripts/core/operations.gd
+msgid "Flooded Gallery"
+msgstr "Su Basmış Galeri"
+
+#: res://scripts/core/operations.gd
+msgid "Old workings under water. There is pipe and plate worth hauling out."
+msgstr "Su altında eski işletmeler. Çıkarmaya değer boru ve levha var."
+
+#: res://scripts/core/operations.gd
+msgid "Collapsed Drift"
+msgstr "Çökmüş Galeri"
+
+#: res://scripts/core/operations.gd
+msgid "A caved-in drift with its seam still showing."
+msgstr "Damarı hâlâ görünen çökmüş bir galeri."
+
+#: res://scripts/core/operations.gd
+msgid "Old Pump House"
+msgstr "Eski Pompa İstasyonu"
+
+#: res://scripts/core/operations.gd
+msgid "A dead pumping station, full of parts."
+msgstr "Parçalarla dolu, ölü bir pompa istasyonu."
+
+#: res://scripts/core/operations.gd
+msgid "Rogue Drill Nest"
+msgstr "Azgın Matkap Yuvası"
+
+#: res://scripts/core/operations.gd
+msgid "Old drills gone feral down here. They fight back."
+msgstr "Burada vahşileşmiş eski matkaplar. Karşılık veriyorlar."
 
 #: res://scripts/ui/codex.gd
 msgid "Side by side"
@@ -2240,4 +2420,5 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
+
 

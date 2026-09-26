@@ -539,7 +539,7 @@ TR = {
     "Labs turn materials into research. What it buys outlasts a collapse.": "Laboratuvarlar malzemeleri araştırmaya çevirir. Onunla alınanlar çöküşten sonra da kalır.",
     "Overdrive %d/%d": "Aşırı Sürüş %d/%d",
     "Level %d first": "Önce seviye %d",
-    "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps.": "Aşırı Sürüş: bir önceki Çekirdeğin izin verdiği seviyenin ötesinde her adım, her %s makinesini %%%d daha sıkı çalıştırır; ısısı da onunla artar. Bedeli Çekirdeğin deposundaki Külçe ve Levhalar ile araştırmadır, asla kredi değildir; %d. seviyeden başlayarak her Çekirdek seviyesi %d adım daha açar.",
+    "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid from the Core's store, in the two materials the era before made most of (Ingots and Plates under Core 7, Plates and Components under Core 8, Components and Alloy after), and in research, never in credits; each Core level from %d allows %d more steps.": "Aşırı Sürüş: bir önceki Çekirdeğin izin verdiği seviyenin ötesinde her adım, her %s makinesini %%%d daha sıkı çalıştırır; ısısı da onunla artar. Bedeli Çekirdeğin deposundan, bir önceki çağın en çok yaptığı iki malzemeyle (Çekirdek 7'de Külçe ve Levha, Çekirdek 8'de Levha ve Parça, sonrasında Parça ve Alaşım) ve araştırmayla ödenir, asla krediyle değil; %d. seviyeden başlayarak her Çekirdek seviyesi %d adım daha açar.",
     "%s driven %d Overdrive steps": "%s, %d Aşırı Sürüş adımı",
     "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research.": "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Külçe, Levha ve araştırmayla ödenir.",
     "Its level %d and %d Overdrive steps give off %d%% more heat than level 1": "Seviye %d ve %d Aşırı Sürüş adımı, seviye 1'den %%%d daha fazla ısı verir",
@@ -570,6 +570,12 @@ TR = {
     "It runs on heat: the hotter, the faster, up to %.1f. Past that it chokes.":
         "Isıyla çalışır: ne kadar sıcaksa o kadar hızlı, %.1f değerine kadar. Ötesinde tıkanır.",
     "And a new job for the %s: %s -- %s": "Ve %s için yeni bir iş: %s -- %s",
+    "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Plates, Components and research.":
+        "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Levha, Parça ve araştırmayla ödenir.",
+    "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Components, Alloy and research.":
+        "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Parça, Alaşım ve araştırmayla ödenir.",
+    "And the Core sells what its store has no room for, at half what a Vault pays: a full store no longer stops the machines beside it.":
+        "Ve Çekirdek, deposuna sığmayanı bir Kasanın ödediğinin yarısına satar: dolu bir depo artık yanındaki makineleri durdurmaz.",
     "And a doctrine for the shaft: one of three ways to grow it, each with research of its own. Chosen once, until the shaft collapses.":
         "Ve kuyu için bir doktrin: onu büyütmenin üç yolundan biri, her birinin kendi araştırmasıyla. Bir kez seçilir, kuyu çökene dek sürer.",
     "A doctrine chosen, and %d levels of its research": "Seçilmiş bir doktrin ve onun araştırmasından %d seviye",
@@ -597,6 +603,57 @@ TR = {
     "Rolls alloy into plates -- on rock too hot for ingots.": "Alaşımı levhaya haddeler -- külçe için fazla sıcak kayada.",
     "Makes parts from alloy -- and takes the heat.": "Alaşımdan parça yapar -- ve ısıya dayanır.",
     "Joins alloy and parts into frames.": "Alaşımı ve parçaları çerçeveye birleştirir.",
+    "The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries.":
+        "Çekirdek artık bir ekip tutabilir. Bir Montajcıyı Robot Şasisi işine ayarla: Robotları Çekirdeğe yürür, oradan da galerilere.",
+    "Old galleries, boarded up. From the Core's level %d it keeps a crew of Rigs, and sends them in.":
+        "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyeden bir Robot ekibi tutar ve onları içeri gönderir.",
+    "Rig": "Robot",
+    "Rig Frame": "Robot Şasisi",
+    "Builds a Rig: a robot the Core sends out into the galleries.":
+        "Bir Robot yapar: Çekirdeğin galerilere gönderdiği bir makine.",
+    "Rig Plating": "Robot Zırhı",
+    "Every Rig is stronger.": "Her Robot daha güçlü.",
+    "Every Rig brings 20% more strength to a sortie, for each level.":
+        "Her seviye, her Robotun sefere %20 daha fazla güç getirmesini sağlar.",
+    "Robotics": "Robotik",
+    "Galleries": "Galeriler",
+    "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots an Assembler builds on the Rig Frame job beside the Core -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.":
+        "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin yanındaki bir Montajcının Robot Şasisi işinde yaptığı makineler -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir.",
+    "Rigs: %d at the Core, %d out, room for %d": "Robotlar: Çekirdekte %d, dışarıda %d, yer %d",
+    "%d%% worn": "%%%d aşınmış",
+    "whole": "sağlam",
+    "strength %d each, %s": "her biri %d güç, %s",
+    "Repair: %d Plates": "Onar: %d Levha",
+    "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core.":
+        "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür.",
+    "needs %d · sending %d: strength %d, %s": "%d güç gerekir · %d gönderilirse: güç %d, %s",
+    "pays %s credits, %s research, %d %s": "%s kredi, %s araştırma, %d %s öder",
+    "Rigs out": "Robotlar dışarıda",
+    "Send %d": "%d gönder",
+    "Send": "Gönder",
+    "Fuel: %d Ingots": "Yakıt: %d Külçe",
+    "too easy": "çok kolay",
+    "easy": "kolay",
+    "even": "denk",
+    "hard: a share of it": "zor: bir payını alır",
+    "out of reach": "erişilemez",
+    "Rigs home from the %s, cleared: +%s credits, +%s research":
+        "Robotlar döndü (%s, temizlendi): +%s kredi, +%s araştırma",
+    "Rigs home from the %s, not cleared: +%s credits, +%s research":
+        "Robotlar döndü (%s, temizlenmedi): +%s kredi, +%s araştırma",
+    "%d sites in the galleries cleared by Rigs": "Robotların temizlediği %d galeri alanı",
+    "Flooded Gallery": "Su Basmış Galeri",
+    "Old workings under water. There is pipe and plate worth hauling out.":
+        "Su altında eski işletmeler. Çıkarmaya değer boru ve levha var.",
+    "Collapsed Drift": "Çökmüş Galeri",
+    "A caved-in drift with its seam still showing.": "Damarı hâlâ görünen çökmüş bir galeri.",
+    "Old Pump House": "Eski Pompa İstasyonu",
+    "A dead pumping station, full of parts.": "Parçalarla dolu, ölü bir pompa istasyonu.",
+    "Rogue Drill Nest": "Azgın Matkap Yuvası",
+    "Old drills gone feral down here. They fight back.": "Burada vahşileşmiş eski matkaplar. Karşılık veriyorlar.",
+    "Assay Bench": "Tahlil Tezgâhı",
+    "Learns from Frames alone -- far more than a Lab, on rock too hot for one.":
+        "Yalnız Çerçevelerden öğrenir -- bir Laboratuvardan çok daha fazlasını, ona fazla sıcak gelen kayada.",
     "Crystal Lattice": "Kristal Örgü",
     "Deep Bores dig more crystal.": "Derin Sondajlar daha çok kristal çıkarır.",
     "Every Deep Bore digs 20% more crystal. A Deep Survey line: it works only in a shaft that follows the Deep Survey.":
@@ -633,6 +690,7 @@ TR = {
     "Logistics": "Lojistik",
     "Core": "Çekirdek",
     "The Forge": "Dökümhane",
+    "The Exchange": "Borsa",
     "Deep Bore Drills dig it from stratum 16.": "Derin Sondaj Matkapları 16. katmandan çıkarır.",
     "%d ready": "%d hazır",
     "%d standing": "%d yerinde",

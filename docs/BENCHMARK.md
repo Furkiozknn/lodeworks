@@ -319,6 +319,38 @@ on stratum 12 (`PROGRESSION.md`, "Played, after").
 
 1. **The second shaft saves for machine levels again:** Cores 5 → 6 and 6 → 7 were 84% and 61% saving. The answer must not add heat before the layout can take it.
 2. **Labs go quiet on strata 17-19.** The Core 7 era runs on the research Core 6 banked (17.5K made in the stage, 341K spent).
-3. **Core 8 → 9 is not played through:** the player lays no Frame Jig, and income falls on strata 23-24.
+3. **Core 8 → 9** was not reached in 8 h 10 min; it is now played in 3 h 24 min (section 12).
 4. **Core 10 and up are a formula.**
 5. **The long game is not shown:** no roadmap of eras, no picture for a tile's job, no blueprint ghost.
+
+## 12. Core 8 → 9: the Forge (the same day)
+
+**Measured first** (the new game's Core 8 factory, played on):
+
+- Core 9 was not reached in 8 h 10 min. The player placed 998 machines and sold 663; one row of eight was met.
+- **The player's part:** Frame Jigs set to their job with no tile for the Components they take, and Boilers laid where the rock is already hot, which overheated what stood beside them.
+- **The table's part:** 580M credits (the Core's 160M; a Vault 9, Drill 8 and 9, Assembler 8 hidden behind its rows; strata 20-24), and Overdrive paid in Ingots that only an ore line cooled at every machine makes on stratum 24.
+
+**What changed** (`PROGRESSION.md`, "Core 9: the Forge"):
+
+- **The player:** jobs only where they can be fed; Boilers only where nothing beside them would overheat; deep units judged by what they sell; research kept for the Core's research rows.
+- **The table:** the Core at 60M; Drill 9 out; an Assembler driven 4 steps, not 6.
+- **The economy:** a machine level from 9 up costs 1.5 times the one before, not 3.5 times (2 times in the first run); a stratum's quota from 20 grows 1.1 times, not 1.8 times; an Overdrive step is paid in what the era before made (Plates and Components under Core 8).
+- **What Core 9 opens: the Assay Bench,** a Lab that learns from Frames alone, 10 research each, on rock too hot for a Lab. A Frame now goes to the store, to a Vault, or to research.
+
+**Played after:** Core 8 → 9 in **3 h 24 min**. Seven rows met one by one over 3 h 19 min; 8 minutes waiting on credits alone; 445 decisions in 51 of 205 minutes.
+
+| benchmark question | before | after |
+|---|---|---|
+| is there always something to build? | yes, but most of it thrown away (663 sold) | yes: rows fall one by one |
+| does the next level open something new? | Core 9 opened strata and a level | Core 9 opens the Assay Bench |
+| does a deeper stratum make the factory stronger? | income 30.3K/s, stuck on stratum 21 | 30.2K/s on 19 to 21-23K/s on 24 while the store is full (open) |
+
+## 13. Core 10, and the loop the benchmark games are built on
+
+- **Core 10, written from the Core 9 era's play** (`PROGRESSION.md`, "Core 10"). It asks for the Assay Benches Core 9 opened, 300,000 Frames, the Frame Jig's machine driven, a doctrine level of the shaft's choice, stability and stratum 27. It opens the Core's own export.
+  - Played twice, it was not reached in 7 h 46 min (stratum 29, conductive: 1,966 machines sold) nor in 8 h 46 min (stratum 27: every row but the Assay Benches and stability met by 4 h 14 min). The rows now ask for four Benches and 130.
+- **Past the table, levels grow 1.5 times, not 4:** Core 11 is 161M of price and levels, where the old formula asked 1.65B.
+- **The whole game against the benchmark loop** is taken stock of in `GAME-LOOP.md`: every system classified, the reference games' unit and operation chains, and what Lodeworks takes, adapts, defers and rejects.
+- **Its largest gap -- the base makes an army, the army goes out, what it brings back makes the base stronger -- has a first slice:** Rigs, the galleries and sorties, from Core 4 (`GAME-LOOP.md`, sections 6-7). Binding decision V4 is amended by the owner: fights against the computer are in; raids on players stay out.
+

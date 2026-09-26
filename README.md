@@ -160,18 +160,25 @@ Under the store stands the **Dispatch board**: three contracts for stored
 materials, each paying credits or research, printed before it is filled,
 with no clock on any of them.
 The Core's seventh level opens **Overdrive**: a machine type at the level
-the Core before allowed can be driven past it, paid in Ingots, Plates and
-research rather than credits, and from stratum 16 the rock holds
-**crystal**: a Drill on the Deep Bore job digs it, a Smelter at white heat --
-faster the hotter it runs -- fuses it into Alloy, and Presses, Assemblers and
-Labs work the Alloy on rock too hot for the old chain. Core 7 also has the
+the Core before allowed can be driven past it, paid in the materials the
+era before made and in research rather than credits, and from stratum 16
+the rock holds **crystal**: a Drill on the Deep Bore job digs it, a Smelter
+at white heat -- faster the hotter it runs -- fuses it into Alloy, and
+Presses, Assemblers and Labs work the Alloy on rock too hot for the old
+chain. Core 8 opens the **Frame Jig**, Core 9 the **Assay Bench**, a Lab
+that learns from Frames alone on the hottest rock, and Core 10 the Core's
+own **export** of what its store cannot hold. From Core 4 the factory
+builds **Rigs** -- robots made on an Assembler's Rig Frame job and kept at
+the Core as its crew -- and sends them on **sorties** to sites in the
+galleries past the yard's edge: they walk out, work, and come home worn,
+with a printed reward (`docs/GAME-LOOP.md`). Core 7 also has the
 shaft choose one of three **doctrines**, each with research of its own. A
 **collapse** keeps half the Core's best level and the board's
 **blueprints**, which are checked against the new ground and laid as
 credits allow. Played by a scripted player, Core 2 falls at 8 minutes,
-Core 3 at 16, Core 4 at 33, Core 5 at 46, Core 6 at 1 h 20, Core 7 at 6 h 55
-and Core 8 at 8 h 50 of active play; every stage asks for work in several
-systems at once. After a collapse at Core 8 the second shaft reaches Core 7
+Core 3 at 16, Core 4 at 33, Core 5 at 46, Core 6 at 1 h 20, Core 7 at 6 h 55,
+Core 8 at 8 h 50 and Core 9 at 12 h 14 of active play; every stage asks for
+work in several systems at once. After a collapse at Core 8 the second shaft reaches Core 7
 in 2 h 32 min and Core 8 in 4 h 35 min. [docs/BENCHMARK.md](docs/BENCHMARK.md) takes stock of the
 player loop against Clash of Clans and the other benchmark games;
 [docs/PROGRESSION.md](docs/PROGRESSION.md)

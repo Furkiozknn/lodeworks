@@ -145,7 +145,10 @@ static func core_need(state: Object) -> Dictionary:
 				if bool(state.call("is_unlocked", "lab")):
 					return st
 			CoreLevels.Req.WORKING, CoreLevels.Req.SERVES:
-				if bool(state.call("is_unlocked", String(r[1]))):
+				var job: String = CoreLevels.row_job(r)
+				if bool(state.call("is_unlocked", String(r[1]))) \
+						and (job == "" or not state.has_method("job_open") \
+						or bool(state.call("job_open", String(r[1]), job))):
 					return st
 			_:
 				return st

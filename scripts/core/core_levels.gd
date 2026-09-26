@@ -40,7 +40,8 @@ extends RefCounted
 ## requirement's reachability, storage and research limit, so a level can
 ## never ask for the impossible.
 
-enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE, DOCTRINE }
+enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE, DOCTRINE,
+	OPERATIONS }
 
 ## A support machine touches four machines at most (Grid.serves).
 const MAX_SERVES := 4
@@ -98,6 +99,10 @@ const LEVELS := [
 		[Req.RESEARCH, "value_1", 4],
 		[Req.STABLE, 40],
 		[Req.DEPTH, 9],
+		# The crew Core 4 opens, sent out: sites in the galleries cleared
+		# (Operations; docs/GAME-LOOP.md). Three were cleared two minutes
+		# into the stage; five take the crew's repairs and a harder site.
+		[Req.OPERATIONS, 5],
 	]},
 	{"level": 6, "era": "Amplification", "depth_cap": 15, "machine_cap": 7, "requires": [
 		[Req.CREDITS, 3000000.0],
@@ -146,33 +151,83 @@ const LEVELS := [
 		[Req.STABLE, 100],
 		[Req.DEPTH, 19],
 	]},
-	# Designed and graph-checked, not yet played: the Frame the Core's level
-	# 8 opens becomes the store's row, as a newly opened building does in
-	# the reference games; the levels Alloy pays for (MachineDB
-	# DEEP_LEVEL_FROM); the doctrine taken further.
+	# The Core 8 era's work, as played (docs/PROGRESSION.md, "Core 9"): the
+	# Frame the Core's level 8 opens becomes the store's row, as a newly
+	# opened building does in the reference games; a store past the Vault's
+	# limit (a Vault at level 9, paid in Alloy); the Frame Jig's machine
+	# driven; the doctrine taken further; the whole factory under control on
+	# the hottest rock yet. Its levels -- the Vault's 9 and the Assembler's 8
+	# -- are most of the stage's credits, so the Core's own price is what the
+	# factory earns in about half an hour. The first design also asked for
+	# Drill 9: two levels, as no Core had asked for Drill 8, and with the
+	# Core at 160M, 500M of credits in all.
 	{"level": 9, "era": "The Forge", "depth_cap": 29, "machine_cap": 10, "requires": [
-		[Req.CREDITS, 160000000.0],
+		[Req.CREDITS, 60000000.0],
 		[Req.STOCK, MachineDB.Res.FRAME, 30000],
 		[Req.STOCK, MachineDB.Res.ALLOY, 100000],
-		[Req.OVERDRIVE, "assembler", 6],
+		[Req.OVERDRIVE, "assembler", 4],
 		[Req.DOCTRINE, 8],
-		[Req.MACHINE, "drill", 9],
 		[Req.STABLE, 120],
 		[Req.DEPTH, 24],
 	]},
+	# The Core 9 era's work (docs/PROGRESSION.md, "Core 10"): the Assay
+	# Bench Core 9 opens, put to work; the Frame line grown to a store no
+	# Vault 9 holds, while the Benches take Frames too -- so the Frames are
+	# shared between the Core's store and the research; the Frame Jig's
+	# machine driven further; one more doctrine level, of the twelve the
+	# shaft may have, so which line is the shaft's choice; the whole factory
+	# under control on stratum 27, the insulating one. Strata 26, 28 and 29
+	# are conductive -- heat spreads 85% -- and there a levelled White Heat
+	# Smelter pushes the Deep Bore, Vault and Assay Bench beside it past
+	# their safe range: played to stratum 29, the factory's income fell from
+	# 22.5K/s to 11.4K/s as the player tore down what overheated (1,966
+	# machines sold in 7 h 46 min, and Core 10 not reached). Going below
+	# 27 for richer crystal is the player's choice, at that price. Played on
+	# 27 with six Assay Benches and stable 140 asked, the factory held 101 at
+	# best and kept three Benches at work in 8 h 46 min, every other row met
+	# by 4 h 14 min: the rows ask for four and 130. The
+	# formula this level had asked for Crusher 10 and nine Overdrive steps:
+	# 521M credits and 1.7M research.
+	{"level": 10, "era": "The Exchange", "depth_cap": 34, "machine_cap": 11, "requires": [
+		[Req.CREDITS, 50000000.0],
+		[Req.STOCK, MachineDB.Res.FRAME, 300000],
+		[Req.WORKING, "lab", 4, "assay"],
+		[Req.OVERDRIVE, "assembler", 7],
+		[Req.DOCTRINE, 9],
+		[Req.STABLE, 130],
+		[Req.DEPTH, 27],
+	]},
 ]
 
-## Past the last level written out, every level follows the same pattern
-## with growing numbers, so the Core never stops (a later round writes these
-## out with their own identities: docs/PROGRESSION.md, P5).
+## From this level the Core sells what its store has no room for, at
+## EXPORT_SHARE of what a Vault pays (Simulation.core_export). Measured
+## before it: in the Core 8 and 9 eras the store filled -- Plates,
+## Components, Alloy and Frames all at the Vault's limit -- and every machine
+## beside the Core that could only hand the store its output stood still;
+## income fell from 30.2K/s to 21-23K/s for two hours, and the Core's crowded
+## sides had no room for a Vault (docs/PROGRESSION.md, "Core 9"). So the
+## tenth level gives the Core itself something new to do, as a Town Hall's
+## own weapon does in the reference games: it becomes the factory's
+## biggest outlet, at half price, so a Vault still pays best.
+const EXPORT_CORE := 10
+const EXPORT_SHARE := 0.5
+
+## Past the last level written out, every level asks for more of what the
+## last one did, so the Core never stops (a later round writes these out
+## with their own identities: docs/PROGRESSION.md, P5): its credits, its
+## store, its machines on a job, its Overdrive steps on the same type, its
+## doctrine, stability and depth -- each grown by about what an era's income
+## grows, and no row that asks a type the stage before never levelled. The
+## formula before it asked, from Core 10, a new type each level at the
+## Core's limit with every Overdrive step at once: Core 10 was 521M credits
+## and 1.7M research, Core 11 1.65B (docs/PROGRESSION.md, "Core 10").
 const LATE_DEPTH_STEP := 5
-## Four times a level, as Core 8 is to Core 7: close to what a machine
-## level grows past level 6 (MachineDB.LATE_LEVEL_GROWTH). Fifteen, as it
-## was, made every level past Core 6 a wall of credits (docs/PROGRESSION.md,
-## "Core 7"); these levels are still a formula, not yet measured.
-const LATE_CREDIT_GROWTH := 4.0
-const LATE_STOCK_GROWTH := 2.2
-const LATE_MACHINES := ["drill", "crusher", "smelter", "press", "assembler", "lab"]
+## The deep eras' income grew 1.2 times from the Core 7 era to the Core 8
+## era; a machine level from 9 costs 1.5 times the last
+## (MachineDB.DEEP_LEVEL_GROWTH).
+const LATE_CREDIT_GROWTH := 1.5
+const LATE_STOCK_GROWTH := 1.6
+const LATE_WORKING_STEP := 2
 const LATE_RESEARCH := ["throughput_1", "yield_1", "value_1", "research_1", "resonance"]
 
 ## A machine counts as at its working heat at the warning key's threshold.
@@ -200,10 +255,18 @@ static func _entry(level: int) -> Dictionary:
 			Req.DEPTH:
 				reqs.append([Req.DEPTH, depth_cap(level - 1)])
 			Req.DOCTRINE:
-				reqs.append([Req.DOCTRINE, mini(int(r[1]) + 2 * n, doctrine_cap(level - 1))])
-	var machine: String = String(LATE_MACHINES[n % LATE_MACHINES.size()])
-	reqs.append([Req.MACHINE, machine, machine_cap(level - 1)])
-	reqs.append([Req.OVERDRIVE, machine, overdrive_cap(level - 1)])
+				reqs.append([Req.DOCTRINE, mini(int(r[1]) + n, doctrine_cap(level - 1))])
+			Req.WORKING:
+				var w: Array = [Req.WORKING, r[1], int(r[2]) + LATE_WORKING_STEP * n]
+				if r.size() > 3:
+					w.append(r[3])
+				reqs.append(w)
+			Req.OVERDRIVE:
+				# The same type, one step more a level: a step's research grows
+				# 1.47 times the last, about what an era's research does. All
+				# three steps a level opens would be 3.2 times a level (1.75M
+				# research at Core 11, 57M at Core 14).
+				reqs.append([Req.OVERDRIVE, r[1], mini(int(r[2]) + n, overdrive_cap(level - 1))])
 	var line: String = String(LATE_RESEARCH[n % LATE_RESEARCH.size()])
 	reqs.append([Req.RESEARCH, line, mini(3 + n / LATE_RESEARCH.size(),
 		Economy.research_cap(line, level - 1))])
@@ -314,7 +377,8 @@ static func opens(level: int) -> Dictionary:
 		if int(Economy.RESEARCH_TREE[id].get("core", 1)) == level:
 			lines.append(id)
 	return {"strata": [from, to], "machines": machines, "materials": materials, "jobs": jobs,
-		"doctrine": level == Economy.DOCTRINE_CORE,
+		"doctrine": level == Economy.DOCTRINE_CORE, "export": level == EXPORT_CORE,
+		"operations": level == MachineDB.RIG_CORE,
 		"machine_cap": machine_cap(level), "research": lines,
 		"stock_cap": MachineDB.stock_cap(machine_cap(level)),
 		"overdrive": overdrive_cap(level) - overdrive_cap(level - 1)}
@@ -339,7 +403,7 @@ static func status(state: Object) -> Array:
 				need = float(r[2])
 				row["cap"] = int(state.call("stock_cap"))
 			Req.WORKING:
-				have = float(working(state, String(r[1])))
+				have = float(working(state, String(r[1]), row_job(r)))
 				need = float(r[2])
 			Req.MACHINE:
 				have = float(int(state.call("machine_level", String(r[1]))))
@@ -362,6 +426,9 @@ static func status(state: Object) -> Array:
 			Req.DOCTRINE:
 				have = float(int(state.call("doctrine_levels")))
 				need = float(r[1])
+			Req.OPERATIONS:
+				have = float(int(state.get("ops_cleared")))
+				need = float(r[1])
 		row.merge({"req": r, "met": have >= need, "have": have, "need": need})
 		out.append(row)
 	return out
@@ -374,16 +441,24 @@ static func can_upgrade(state: Object) -> bool:
 	return true
 
 
-## Machines of type `id` producing at their working heat right now.
-static func working(state: Object, id: String) -> int:
+## Machines of type `id` producing at their working heat right now; with
+## `job`, only those set to it.
+static func working(state: Object, id: String, job: String = "") -> int:
 	var grid: Grid = state.get("grid")
 	var sim: Simulation = state.get("sim")
 	var n: int = 0
 	for cell: int in grid.cells:
-		if grid.machine_at(cell) == id and sim.status_of(cell) == Simulation.Status.RUNNING \
+		if grid.machine_at(cell) == id and (job == "" or grid.job_at(cell) == job) \
+				and sim.status_of(cell) == Simulation.Status.RUNNING \
 				and sim.heat_efficiency_at(cell) >= WORKING_HEAT:
 			n += 1
 	return n
+
+
+## The job a working row asks its machines to be on (its fourth element), or
+## "" for any: [Req.WORKING, "lab", 6, "assay"] is six Assay Benches.
+static func row_job(r: Array) -> String:
+	return String(r[3]) if int(r[0]) == Req.WORKING and r.size() > 3 else ""
 
 
 ## Why the machine on `cell` is not at its working heat and producing:
@@ -415,7 +490,7 @@ static func why_not_working(state: Object, cell: int) -> String:
 ## working row, machines of type `id`; for the stability row (`id` ""),
 ## every machine that overheats, then every one running off its working
 ## heat. {"cells": [cell, ...], "why": {reason: count}}.
-static func holding_back(state: Object, id: String = "") -> Dictionary:
+static func holding_back(state: Object, id: String = "", job: String = "") -> Dictionary:
 	var grid: Grid = state.get("grid")
 	var order := ["hot", "starved", "blocked", "cold", "idle"]
 	var by: Dictionary = {}
@@ -423,7 +498,7 @@ static func holding_back(state: Object, id: String = "") -> Dictionary:
 		by[reason] = []
 	for cell: int in grid.cells:
 		var here: String = grid.machine_at(cell)
-		if id != "" and here != id:
+		if id != "" and here != id or job != "" and grid.job_at(cell) != job:
 			continue
 		if id == "" and not MachineDB.has_levels(here):
 			continue
@@ -494,7 +569,12 @@ static func available_at(r: Array) -> int:
 				return -1
 			if int(r[0]) == Req.SERVES and int(r[2]) > MAX_SERVES:
 				return -1
-			return level_for_depth(MachineDB.unlock_depth(String(r[1])))
+			var found: int = level_for_depth(MachineDB.unlock_depth(String(r[1])))
+			if row_job(r) != "":
+				if MachineDB.job_info(String(r[1]), row_job(r)).is_empty():
+					return -1
+				return maxi(found, job_at(String(r[1]), row_job(r)))
+			return found
 		Req.MACHINE:
 			return machine_level_at(String(r[1]), int(r[2]))
 		Req.RESEARCH:
@@ -503,6 +583,9 @@ static func available_at(r: Array) -> int:
 			return overdrive_at(String(r[1]), int(r[2]))
 		Req.DOCTRINE:
 			return doctrine_at(int(r[1]))
+		Req.OPERATIONS:
+			# Sites cleared by the crew, which the Rig Frame job opens.
+			return job_at("assembler", "rig")
 	return -1
 
 

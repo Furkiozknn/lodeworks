@@ -1268,10 +1268,203 @@ Credits a second a tile:
 
 - **The second shaft saves for machine levels again** (84% and 61% of Cores 5 → 7). Two answers were tried and dropped (above).
 - **Labs on deep rock.** Labs still go quiet on strata 17-19. Research units with a Coolant Cell help, but this player keeps few. The Core 7 era ran on the research Core 6 banked.
-- **Core 8 → 9.** A second shaft at Core 8 was not in Core 9 after 11 h 54 min: Core 9's Frames need the Frame Jig, which the player does not lay, and its income fell from 26.2K/s to 17.6K/s on strata 23-24.
-- **Core 9** is designed and graph-checked, not played; **Core 10 and up** are a formula.
+- **Core 8 → 9** is taken up in "Core 9: the Forge", below. **Core 10 and up** are a formula.
 - **No picture yet:** no ghost of a blueprint on the board, no mark for a tile's job, no Overdrive glow.
 - **World nodes** still draw nothing (FP-18).
+
+## Core 9: the Forge
+
+The same day, next. Core 9 had been written out with Core 8 but never
+played to. The loop: play it, find what stops it, change the smallest
+thing, play it again.
+
+### Measured first
+
+The new game's factory the moment it reached Core 8 (8 h 50 min, Deep
+Survey), played on with the player of commit `03eebac`:
+
+- **Core 9 was not reached in 8 h 10 min.** One row of seven was met (the doctrine's 8 levels, at 3 h 07 min).
+- **The player never stopped:** 2,330 decisions in 417 of 491 minutes; 998 machines placed and 663 sold; 823M credits of the stage's 891M on machines.
+- **Income held at 27.6-30.4K/s,** on stratum 21, where the player stopped going down.
+
+Three things stood in the way. Two were the player's, one was the table's.
+
+1. **Frame Jigs with nothing to join.** The player set Assemblers beside the Core to the Frame Jig where no tile was left for the Alloy Parts that feed it Components. Five of them starved for the whole stage. Each time, it laid another Frame Jig and a chain behind it.
+2. **Boilers where the rock is already hot.** To warm White Heat Smelters (whose best heat, 5.0, is above the rock's 3.8), the player laid Boilers beside them. The Boilers overheated the Vaults and Deep Bores next to them. The stability row stayed at 0 for six hours, and a player that goes down only once nothing overheats stayed on stratum 21.
+3. **The table asked for 580M credits.** Core 9 cost 160M. Its Alloy row needs a Vault at level 9 (133M), its Drill 9 row needs Drill 8 and 9 (38M and 133M; no Core had asked for Drill 8), and its Overdrive row needs Assembler 8 (38M) first. Strata 20-24 cost about 80M more. At the factory's 30K/s that is 5.3 hours of income. And the Overdrive steps were paid in Ingots, which on stratum 24 only an ore line with a Coolant Cell at every machine makes.
+
+**The player fixed, the table not** (the same Core 8 factory):
+
+- **Core 9 was still not reached in 8 h 10 min,** but four of eight rows were met: stability 120 at 13 minutes, the Frames at 29, stratum 24 at 1 h 37 min, the doctrine at 2 h 13 min.
+- **What was left was all credits or Ingots.** The Core's 160M, the Vault 9 the Alloy row needs, Drill 8 and 9. And the Overdrive row: once Assembler 8 was bought, it wanted Ingots. Every Ingot line the player laid on stratum 24 overheated and was taken up again, 74-106M credits an hour. 695M of the stage's 744M went on machines.
+- **The player had stopped churning:** 460 decisions in 74 of 491 minutes, against 2,330 in 417.
+- **Income fell to 21.5K/s on stratum 23,** and rose again to 25.6K/s on stratum 24.
+
+### What changed
+
+**In the player** (`tools/core_journey_player.gd`), from the Core's level 8
+only, so every stage before it plays as measured:
+
+- **A job only where it can be fed.** A machine is set to a job only if each of the job's inputs has a feeder beside it, or a tile for one. That tile can be free ground, or a machine off the Core's side that feeds it nothing and is no heat support; that machine gives way.
+- **A starved machine gets the input it lacks,** not another of the one it has.
+- **A Boiler goes down only where no neighbour would pass its safe range.** The heat card shows the same thing before a Boiler is placed.
+- **A deep unit is judged by what it sells.** One is added only while its Alloy pays it back within half an hour, and never out of the credits kept for the Core. Before, the rule compared its price to the whole factory's income: 74 units, most of them idle behind a full store.
+- **The level an Overdrive row needs first is kept for,** like any level a row asks for.
+
+**In the table:**
+
+| | first design | now | why |
+|---|---|---|---|
+| credits | 160M | **60M** | Its levels are most of the stage's credits. The Core's own price is what the factory earns in about half an hour, as at Core 7 and 8. |
+| Frames in the store | 30,000 | 30,000 | The Frame Jig Core 8 opens, made into the store's row. Played, it is 50 minutes of work: lines laid, not a wait. |
+| Alloy in the store | 100,000 | 100,000 | Past the level-8 Vault's 85,899: the store's spine, a Vault at level 9. |
+| an Assembler driven | 6 steps | **4 steps** | The Frame Jig's machine, driven past Core 8's limit. It needs Assembler 8 first. Six steps were five of them at once. |
+| the doctrine | 8 levels | 8 levels | Unchanged. |
+| Drill 9 | asked | **out** | Two levels, for a machine no row had levelled since Core 6. |
+| stable | 120 | 120 | Unchanged. |
+| stratum | 24 | 24 | Unchanged. |
+
+**In the economy:**
+
+- **A machine level from 9 up costs less than 3.5 times the one before** (`MachineDB.DEEP_LEVEL_GROWTH`): twice in this round's first runs, 1.5 times as committed (see "Core 10").
+  - A level 9 was 133M; at twice it was 76M, and it is now 57M, about 40 minutes of the Core 8 factory's income. A level 8 at 38M was about half an hour of the Core 7 factory's.
+  - The deep eras' income grows about 1.4 times a Core level. At 3.5 times a level, every era from Core 9 on would open with a wall of credits, as Core 7 did before its round.
+  - These levels are also paid in Alloy and Components.
+- **An Overdrive step is paid in what the era before made** (`MachineDB.OVERDRIVE_TIERS`):
+  - under Core 7: Ingots and Plates, as before;
+  - under Core 8: Plates and Components, which the Core 7 era's jobs make from Alloy on the hot rock;
+  - from Core 9: Components and Alloy.
+  So the old tiers keep a use, but the use moves with the factory. An ore line kept alive on stratum 24 only to pay Overdrive was the measured wall.
+- `tests/test_deep.gd` holds both, and that Core 9's credits (its price and the levels its rows need) are between one and four hours of the lowest income the Core 8 factory earned on those strata (21.5K/s). The first design was six.
+
+**What Core 9 opens: the Assay Bench** (`MachineDB.JOBS`, a Lab's job, from
+the Core's level 9).
+
+- **It learns from Frames alone:** 10 research each, where a Lab learns 4.
+- **It takes the heat of the deepest rock:** safe to 6.5, where a Lab is safe to 3.0. On stratum 29 a Lab chokes on the rock alone.
+- **Why:** played, the Core 8 era's Labs, a Coolant Cell each, made 87 research a second on strata 19-24. The doctrine's research was the last row met in one run, and the store held 108,000 Frames with no use but the Core's row and a Vault.
+- **So a Frame has three uses:** the store, where the Core's rows are paid; a Vault, 50 credits; or an Assay Bench, research. Research in the deep eras becomes a line of the factory: Deep Bores, White Heat, Alloy Parts, a Frame Jig, an Assay Bench.
+- **A working row can now ask for machines on a job** (`CoreLevels.row_job`): `[Req.WORKING, "lab", 6, "assay"]` is six Assay Benches at their working heat. The Core card names the job and shows the ones holding the row back.
+
+### Played, after
+
+The same Core 8 factory, played to Core 9 by the player above. One more
+change after the first run: from Core 8, a spare Overdrive step leaves the
+research the Core's open research and doctrine rows need for their next
+level. In the first run five spare steps took 600K research, and the
+doctrine row, the last open, waited 1 h 44 min for it (Core 9 at 4 h 44 min).
+
+| | before (player `03eebac`, first table) | player fixed, first table | both fixed, levels 2x | **now: levels 1.5x, quotas 1.1x from 20** |
+|---|---|---|---|---|
+| Core 8 → 9 | not reached in 8 h 10 min | not reached in 8 h 10 min | 4 h 03 min | **3 h 24 min** |
+| rows met | 1 of 8 | 4 of 8 | 7 of 7 | 7 of 7 |
+| decisions | 2,330 in 417 of 491 minutes | 460 in 74 of 491 minutes | 528 in 61 of 244 minutes | 445 in 51 of 205 minutes |
+| machines placed / sold | 998 / 663 | 359 / 54 | 354 / 103 | 305 / 71 |
+| credits on machines | 823M of 891M | 695M of 744M | 192M of 366M | 113M of 308M |
+| waiting on credits alone | -- | -- | 18 min (8%) | 8 min (4%) |
+| research made / spent | 1.88M / 1.10M | 2.74M / 2.03M | 893K / 971K | 876K / 953K: doctrine 720K, Overdrive 233K |
+| income over the stage | 30.3K/s | 25.3K/s | 25.1K/s | 25.2K/s |
+
+The fourth column is the table as committed: the level and quota prices
+of "Core 10" (below) came after the third run, and made the Vault 9 and the
+way down cheaper.
+
+**Its rows, first met after** (the committed table):
+
+| row | met after |
+|---|---|
+| stable 120 | 13 min |
+| 30,000 Frames | 32 min |
+| stratum 24 | 37 min |
+| an Assembler driven 4 steps (Assembler 8 first) | 1 h 12 min |
+| 100,000 Alloy (a Vault 9) | 2 h 07 min |
+| the doctrine's 8 levels | 2 h 32 min |
+| 60M credits | 3 h 19 min |
+
+- **The stage is work, most of it.** The rows fall one by one across three hours. The last is the Core's own price, 8 minutes after the doctrine.
+- **What the player decided:**
+  - the doctrine's research against Overdrive's;
+  - Plates and Components kept for Overdrive against those given to contracts;
+  - a deep unit only where its Alloy pays it back;
+  - Boilers only where nothing beside them overheats.
+- **Three and a half hours against Core 8's two:** each stage longer than the last, as in the reference games, and none of it a wall.
+- **Still open:**
+  - **Income falls from 30.2K/s to 21-23K/s once the store is full.** From 10 h, Plates, Components, Alloy and Frames were all at the Vault's 85,899. A machine beside the Core that can only hand the store its output stands still, and on the Core's crowded sides there is no room for a Vault. The rock is not the cause: in the first run, the Vault 9 lifted income back to 25.2K/s.
+  - **Core 10 and up are a formula.** A dump of what they ask: Core 10 is 521M credits of price and levels (Crusher 10 with nine Overdrive steps: 1.68M research), and Core 11 is 1.65B. See "Core 10", next.
+
+## Core 10: the Exchange
+
+### Measured first
+
+The Core 9 factory of the third run above (12 h 53 min), played on under the
+formula Core 10 then had:
+
+- **Its rows:** 240M credits; Frames 66,000 and Alloy 220,000; the doctrine's 10 levels; stable 140; stratum 29; Crusher 10; a Crusher driven 9 steps; Deeper Bore 3.
+- **After 4 h 07 min, three of nine were met.** 38.8M of the 240M was saved; Crusher 9 of 10 bought; the Overdrive row stopped on research; stratum 26 of 29.
+- **Research stopped:** 9,270 banked for four hours, no Lab at work. The player kept its credits for the Crusher's levels and laid no Assay Bench.
+- **What stood in the way:**
+  - **The Crusher.** A machine the deep factory had not needed since stratum 15: three levels (38M, 57M, 86M at the new prices) and nine Overdrive steps at once, 1.68M research.
+  - **The way down.** A stratum's quota grew 1.8 times a stratum: 24 to 29 cost 1.8B credits, eighteen hours of the factory's income.
+  - **Nothing the Core 9 era had opened was asked for.** The Assay Bench was not in a row.
+  - **The formula grew four times a level** in credits: Core 11 was 1.65B.
+
+### What changed
+
+**Core 10, written out** (`CoreLevels.LEVELS`):
+
+| row | why this row |
+|---|---|
+| **50M credits** | The Core's own price, about half an hour of the Core 9 factory. |
+| **300,000 Frames in the store** | Past a Vault 9's 274,878: a Vault 10, and a Frame line grown to about three times its size, while the Assay Benches take Frames too. Where each Frame goes is the player's decision. |
+| **4 Assay Benches at working heat** | What Core 9 opened, put to work: research from Frames on the hottest rock. (6 when first played.) |
+| **an Assembler driven 7 steps** | The Frame Jig's machine; first Assembler 9. |
+| **9 doctrine levels** | One more, of the 12 the shaft may have: which line takes it is the shaft's choice. |
+| **stable 130** | The whole factory under control on the insulating stratum (140 when first played). |
+| **stratum 27** | The insulating one. Strata 26, 28 and 29 are conductive: heat spreads 85%, and a levelled White Heat Smelter pushes the Deep Bore, Vault and Assay Bench beside it past their safe range. The first design asked for 29 (see "Played, after"). Going deeper for richer crystal is the player's choice. |
+
+**What Core 10 opens: the Core's export** (`CoreLevels.EXPORT_CORE`, `Simulation.core_export`).
+
+- From Core 10, what the store has no room for is not refused. The Core sells it, at half what a Vault pays.
+- **Measured before it:** in the Core 8 era the store filled with every material at the Vault's limit. The machines beside the Core stood still, and income fell from 30.2K/s to 21-23K/s for two hours.
+- **So a full store no longer stops the factory.** The Core itself becomes its biggest outlet, as a Town Hall gains a weapon of its own in the reference games.
+- **A Vault still pays twice as much.** Where to sell stays a layout decision.
+- Only materials the store keeps (Ingots to Frames) are exported. A Crusher's Gravel beside the Core still goes to its Smelter.
+
+**In the economy:**
+
+- **A stratum's quota grows 1.1 times a stratum from 20, not 1.8** (`Strata.DEEP_QUOTA_GROWTH`). Past 20 the Core caps the descent anyway. Strata 24 to 29 now cost 68M.
+- **A machine level from 9 costs 1.5 times the one before** (`MachineDB.DEEP_LEVEL_GROWTH`; 2.0 in the first Core 9 design). A level 9 is 57M and a level 10 86M. An era opens one more level, and an era's income grew about 1.2 times from Core 7 to Core 8.
+- **Past the table, each level asks for more of what the last did:**
+  - credits 1.5 times;
+  - the store 1.6 times;
+  - two more Assay Benches;
+  - one more Overdrive step on the same Assembler;
+  - one more doctrine level;
+  - stability +20;
+  - the next five strata.
+
+  Priced out (`CoreLevels` rows, levels from the type's last asked level): Core 10 is 193M of price and levels, Core 11 161M, Core 12 241M, Core 13 490M, Core 14 542M. The formula before was 521M, 1.65B, 5.34B, 17.7B, 66.9B. Its Overdrive research was 548K, 377K, 556K, 819K and 1.21M.
+
+### Played, after
+
+The Core 9 factory of the committed economy (12 h 14 min, "Core 9",
+above), played on twice:
+
+| | Core 10 at stratum 29 (first design) | **at stratum 27** |
+|---|---|---|
+| Core 9 → 10 | not reached in 7 h 46 min | not reached in 8 h 46 min |
+| rows met | the doctrine (6 h 55 min), stratum 29 (4 h 44 min) | stratum 27 (48 min), credits (1 h 56 min), Assembler driven 7 (3 h 00 min), 300,000 Frames (3 h 48 min), doctrine 9 (4 h 14 min) |
+| rows not met | credits, Frames, Assay Benches, Overdrive, stable 140 | 6 Assay Benches at work (3), stable 140 (101 at best) |
+| decisions | 4,821 in 417 of 467 minutes: 1,953 placed, 1,966 sold | 888 in 93 of 527 minutes: 516 placed, 267 sold |
+| income over the stage | 22.5K/s → 11.4K/s (13.3K/s) | 22.5K/s → 19.9K/s (21.5K/s) |
+| research made | 941K | 5.05M, the Assay Benches' |
+
+- **Stratum 29 was the wrong stratum to ask for.** The player went through the conductive strata 26 and 28 and settled on 29, also conductive. Sixty-eight machines overheated at once, and it tore down 1,966 of them.
+- **At 27 the rows fell one by one for four hours.** Then two stopped:
+  - three of the eight Assay Benches the player laid were fed and at work;
+  - the factory held 101 machines at their working heat, not 140.
+  Both are the player's layout: its Frame Jig chains break and it does not grow the factory past about 245 machines. So Core 10 now asks for four Assay Benches and stable 130. That is still new work for the era, and the next play will say whether it is enough.
+- **The Assay Bench did what it was for.** Research made over the stage went from 941K to 5.05M. Research stopped being the last row.
 
 ---
 

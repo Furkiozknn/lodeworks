@@ -178,12 +178,23 @@ func _ready() -> void:
 	Sim.core_upgraded.connect(func(level: int):
 		Juice.upgrade()
 		iso_view.pulse_core()
+		if level == MachineDB.RIG_CORE:
+			# The crew's first contact: what it is, and the one step to it.
+			_say(Loc.t("The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."),
+				Foreman.Pose.POINT, 7.0)
+			return
 		_say(Loc.t("The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d.")
 			% [level, Sim.depth_cap(), Sim.machine_level_cap()], Foreman.Pose.CHEER, 5.5))
 	Sim.contract_filled.connect(func(_i: int, paid: float, pays: String):
 		Juice.income()
 		_toast_msg(Loc.t("Contract filled: +%s credits") % Economy.fmt(paid) if pays == "credits"
 			else Loc.t("Contract filled: +%s research") % Economy.fmt(paid)))
+	Sim.sortie_back.connect(func(rep: Dictionary):
+		Juice.income()
+		var where: String = Loc.t(String(Operations.KINDS[String(rep["kind"])]["name"]))
+		_toast_msg((Loc.t("Rigs home from the %s, cleared: +%s credits, +%s research")
+			if bool(rep["cleared"]) else Loc.t("Rigs home from the %s, not cleared: +%s credits, +%s research"))
+			% [where, Economy.fmt(float(rep["credits"])), Economy.fmt(float(rep["research"]))]))
 	Sim.machine_upgraded.connect(func(id: String, level: int):
 		Juice.upgrade()
 		if iso_view.selected_cell >= 0 and Sim.grid.machine_at(iso_view.selected_cell) == id:
@@ -437,6 +448,8 @@ func _build() -> void:
 			_close_sheet())
 	iso_view.core_tapped.connect(_on_core_tapped)
 	iso_view.node_tapped.connect(_on_node_tapped)
+	# A gallery mouth: the galleries, where the sites are.
+	iso_view.site_tapped.connect(func(_i: int): _show_galleries())
 	iso_view.machine_moved.connect(func(from_cell: int, to_cell: int):
 		_push_undo({"kind": "move", "cell": to_cell, "from": from_cell})
 		_maybe_advance_tutorial()
@@ -2037,6 +2050,10 @@ func _show_core() -> void:
 		return Loc.t("The heart of this shaft. Its level decides how deep the shaft may go, how far machines and research may be upgraded, and what the Vault may store.\n\nIt does not grow for credits alone: each level asks the factory to have grown -- materials in its store, handed to it by machines touching it; machines upgraded; a line at its working heat; research; rock reached. Tap a line below to go and do it.")))
 	body.add_child(top)
 	body.add_child(_core_store())
+	_ops_reopen = _show_core
+	var galleries: Control = _core_operations()
+	if galleries != null:
+		body.add_child(galleries)
 	var board: Control = _core_contracts()
 	if board != null:
 		body.add_child(board)
@@ -2540,7 +2557,11 @@ func _core_next() -> Control:
 		drive.add_theme_constant_override("separation", 10)
 		drive.set_meta("core_opens_overdrive", int(o["overdrive"]))
 		drive.add_child(_icon_rect("energy", 36))
-		var dl := _label(Loc.t("And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research.") % int(o["overdrive"]),
+		# What a step is paid in under that Core (MachineDB.OVERDRIVE_TIERS).
+		var paid: Array = [Loc.t("And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research."),
+			Loc.t("And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Plates, Components and research."),
+			Loc.t("And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Components, Alloy and research.")]
+		var dl := _label(String(paid[clampi(next - MachineDB.OVERDRIVE_CORE, 0, paid.size() - 1)]) % int(o["overdrive"]),
 			TEXT_MIN, Palette.TEXT_DIM)
 		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2558,6 +2579,17 @@ func _core_next() -> Control:
 		jl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		jrow.add_child(jl)
 		box.add_child(jrow)
+	if bool(o.get("export", false)):
+		var erow := HBoxContainer.new()
+		erow.add_theme_constant_override("separation", 10)
+		erow.set_meta("core_opens_export", true)
+		erow.add_child(_icon_rect("credits", 36))
+		var el := _label(Loc.t("And the Core sells what its store has no room for, at half what a Vault pays: a full store no longer stops the machines beside it."),
+			TEXT_MIN, Palette.TEXT_DIM)
+		el.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		el.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		erow.add_child(el)
+		box.add_child(erow)
 	if bool(o.get("doctrine", false)):
 		var drow := HBoxContainer.new()
 		drow.add_theme_constant_override("separation", 10)
@@ -2695,6 +2727,147 @@ func _contract_pay_words(i: int) -> String:
 		return Loc.t("pays %s research") % Economy.fmt(Sim.contract_pay(i))
 	return Loc.t("pays %s credits") % Economy.fmt(Sim.contract_pay(i))
 
+## The galleries (Operations): the crew -- Rigs at the Core, out, the limit,
+## their wear and a key that repairs them -- and a row for each site on the
+## board: what it is, what it needs against the crew, what it pays, and a
+## key that sends the Rigs. null before the Core keeps a crew.
+func _core_operations(titled: bool = true) -> Control:
+	if Sim.core_level < MachineDB.RIG_CORE:
+		return null
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	box.set_meta("operations", Sim.ops_board.duplicate(true))
+	if not titled:
+		_ops_rows(box)
+		return box
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	var title := _label(Loc.t("Galleries"), 24, Palette.TEXT)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	head.add_child(_help_button(Loc.t("Galleries"), func() -> String:
+		return Loc.t("Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots an Assembler builds on the Rig Frame job beside the Core -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.")))
+	box.add_child(head)
+	_ops_rows(box)
+	return box
+
+
+## The page that opens from the Galleries section and from a gallery mouth
+## on the board, if the Core card is not already showing.
+var _ops_reopen: Callable = _show_core
+
+
+## The galleries on their own: what a tap on a gallery mouth opens.
+func _show_galleries() -> void:
+	if Sim.core_level < MachineDB.RIG_CORE:
+		_say(Loc.t("Old galleries, boarded up. From the Core's level %d it keeps a crew of Rigs, and sends them in.")
+			% MachineDB.RIG_CORE, Foreman.Pose.POINT, 6.0)
+		return
+	_ops_reopen = _show_galleries
+	_open_overlay(Loc.t("Galleries"), _core_operations(false), [], 760.0)
+
+
+## The crew and the sites, into `box`.
+func _ops_rows(box: VBoxContainer) -> void:
+	# The crew.
+	var crew := HBoxContainer.new()
+	crew.add_theme_constant_override("separation", 10)
+	crew.add_child(Chips.Gem.new(MachineDB.Res.RIG, 1, 40.0))
+	var cw := VBoxContainer.new()
+	cw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cw.add_theme_constant_override("separation", 0)
+	cw.add_child(_label(Loc.t("Rigs: %d at the Core, %d out, room for %d") % [Sim.rigs_home(), Sim.rigs_out(),
+		Sim.crew_cap()], 22, Palette.TEXT))
+	var worn: String = Loc.t("%d%% worn") % int(round(Sim.rig_wear * 100.0)) if Sim.rig_wear > 0.0 \
+		else Loc.t("whole")
+	cw.add_child(_label(Loc.t("strength %d each, %s") % [int(round(Sim.crew_strength(1))), worn], TEXT_MIN,
+		Palette.TEXT_DIM))
+	crew.add_child(cw)
+	if Sim.repair_cost() > 0:
+		var fix := _button(Loc.t("Repair: %d Plates") % Sim.repair_cost(),
+			Palette.CORE if Sim.can_repair() else Palette.PANEL)
+		fix.custom_minimum_size = Vector2(170, MIN_TOUCH)
+		fix.disabled = not Sim.can_repair()
+		fix.set_meta("repair", true)
+		fix.pressed.connect(func():
+			if Sim.repair_rigs():
+				Juice.upgrade()
+				_close_overlay()
+				_ops_reopen.call())
+		crew.add_child(fix)
+	box.add_child(crew)
+	if Sim.crew_cap() > 0 and Sim.rigs_home() + Sim.rigs_out() == 0:
+		var how := _label(Loc.t("No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core."),
+			TEXT_MIN, Palette.TEXT_DIM)
+		how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(how)
+	for i in range(Sim.ops_board.size()):
+		box.add_child(_site_row(i))
+
+
+## Site `i` on the board, as a row.
+func _site_row(i: int) -> Control:
+	var s: Dictionary = Sim.site(i)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.set_meta("site", i)
+	if not s.has("kind"):
+		return row
+	var kind: Dictionary = Operations.KINDS[String(s["kind"])]
+	row.add_child(_icon_rect("warning" if String(s["kind"]) == "nest" else "descend", 40))
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.add_theme_constant_override("separation", 0)
+	words.add_child(_label(Loc.t(String(kind["name"])), 22, Palette.TEXT))
+	var n: int = Sim.sortie_size(i)
+	var strength: float = Sim.crew_strength(maxi(n, 0))
+	var verdict: String = Operations.verdict(s, strength)
+	var vcol: Color = Palette.GOOD if verdict in ["trivial", "easy", "even"] else \
+		(Palette.WARN if verdict == "hard" else Palette.BAD)
+	var need := _label(Loc.t("needs %d · sending %d: strength %d, %s") % [int(ceil(float(s["left"]))), n,
+		int(round(strength)), _verdict_words(verdict)], TEXT_MIN, vcol)
+	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(need)
+	var r: Dictionary = Sim.site_reward(i)
+	var pays := _label(Loc.t("pays %s credits, %s research, %d %s") % [Economy.fmt(float(r["credits"])),
+		Economy.fmt(float(r["research"])), int(r["n"]), Loc.t(String(MachineDB.RES_NAME[int(r["res"])]))],
+		TEXT_MIN, Palette.TEXT_DIM)
+	pays.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(pays)
+	row.add_child(words)
+	if Sim.site_busy(i):
+		row.add_child(_label(Loc.t("Rigs out"), TEXT_MIN, Palette.CORE))
+		return row
+	var why: String = Sim.sortie_blocker(i, n)
+	var go := _button(Loc.t("Send %d") % n if n > 0 else Loc.t("Send"),
+		Palette.CORE if why == "" else Palette.PANEL)
+	go.custom_minimum_size = Vector2(130, MIN_TOUCH)
+	go.disabled = why != ""
+	go.set_meta("send", i)
+	go.tooltip_text = Loc.t("Fuel: %d Ingots") % Operations.fuel(maxi(n, 1), Sim.core_level)
+	go.pressed.connect(func():
+		if Sim.send_sortie(i, Sim.sortie_size(i)):
+			Juice.place()
+			_close_overlay()
+			_ops_reopen.call())
+	row.add_child(go)
+	return row
+
+
+## A site's verdict against the crew, in words.
+func _verdict_words(v: String) -> String:
+	match v:
+		"trivial":
+			return Loc.t("too easy")
+		"easy":
+			return Loc.t("easy")
+		"even":
+			return Loc.t("even")
+		"hard":
+			return Loc.t("hard: a share of it")
+	return Loc.t("out of reach")
+
+
 
 ## One of the next level's requirements: its picture, its words, how far
 ## along it is, and what a tap does -- for the Core card and What now?.
@@ -2724,11 +2897,13 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 				go = func() -> void: _arm_only(maker)
 		CoreLevels.Req.WORKING:
 			var wid: String = String(r[1])
+			var wjob: String = CoreLevels.row_job(r)
 			pic = Chips.MachineSprite.new(wid, 44.0)
-			words = Loc.t("%s running at working heat") % MachineDB.name_of(wid)
+			words = Loc.t("%s running at working heat") \
+				% (MachineDB.job_name(wid, wjob) if wjob != "" else MachineDB.name_of(wid))
 			if not met:
-				amount = _held_back_words(amount, CoreLevels.holding_back(Sim, wid))
-			go = func() -> void: _show_working(wid, int(st["need"]))
+				amount = _held_back_words(amount, CoreLevels.holding_back(Sim, wid, wjob))
+			go = func() -> void: _show_working(wid, int(st["need"]), wjob)
 		CoreLevels.Req.MACHINE:
 			var mid: String = String(r[1])
 			pic = Chips.MachineSprite.new(mid, 44.0)
@@ -2765,6 +2940,10 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 				words = Loc.t("%d levels of %s research") % [int(st["need"]),
 					Loc.t(String(Economy.DOCTRINES[Sim.doctrine]["name"]))]
 			go = _show_research
+		CoreLevels.Req.OPERATIONS:
+			pic = Chips.Gem.new(MachineDB.Res.RIG, 1, 40.0)
+			words = Loc.t("%d sites in the galleries cleared by Rigs") % int(st["need"])
+			go = func() -> void: _show_core()
 		_:
 			pic = _icon_rect("heat", 44)
 			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
@@ -2798,9 +2977,15 @@ func _core_req_row(st: Dictionary) -> Button:
 ## otherwise go to the ones that do not count, one a tap, worst first --
 ## overheating, starved, backed up (a full store with no Vault beside it,
 ## say), too cold -- with the heat view on when heat is the reason.
-func _show_working(id: String, need: int) -> void:
-	var held: Array = CoreLevels.holding_back(Sim, id)["cells"]
-	if Sim.grid.count_of(id) < need and held.is_empty():
+func _show_working(id: String, need: int, job: String = "") -> void:
+	var held: Array = CoreLevels.holding_back(Sim, id, job)["cells"]
+	var have: int = Sim.grid.count_of(id)
+	if job != "":
+		have = 0
+		for cell: int in Sim.grid.cells:
+			if Sim.grid.machine_at(cell) == id and Sim.grid.job_at(cell) == job:
+				have += 1
+	if have < need and held.is_empty():
 		_arm_only(id)
 		return
 	_show_fixes(held)
@@ -2960,7 +3145,7 @@ func _fill_drive_key(id: String) -> void:
 		col.add_child(price)
 	_sheet_drive.add_child(col)
 	_sheet_drive.disabled = not can
-	_sheet_drive.tooltip_text = Loc.t("Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps.") % [
+	_sheet_drive.tooltip_text = Loc.t("Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid from the Core's store, in the two materials the era before made most of (Ingots and Plates under Core 7, Plates and Components under Core 8, Components and Alloy after), and in research, never in credits; each Core level from %d allows %d more steps.") % [
 		MachineDB.name_of(id), int(round(MachineDB.LEVEL_SPEED * MachineDB.OVERDRIVE_STEP * 100.0)),
 		MachineDB.OVERDRIVE_CORE, MachineDB.OVERDRIVE_PER_CORE]
 	_sheet_drive.set_meta("overdrive", steps)

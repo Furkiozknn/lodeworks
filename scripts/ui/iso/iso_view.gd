@@ -42,6 +42,8 @@ signal core_tapped()
 ## A resource node on the ground round the yard (an index into the layout's
 ## props), tapped.
 signal node_tapped(index: int)
+## A gallery mouth past the yard's edge (Operations).
+signal site_tapped(index: int)
 
 ## What pick_at_screen returns for the Factory Core, which is on no cell.
 const CORE := -2
@@ -893,6 +895,11 @@ func _release(pos: Vector2) -> void:
 		cam.release(_fling_velocity())
 		return
 	var cell: int = pick_at_screen(pos)
+	# A gallery mouth, past the yard's edge.
+	var mouth: int = site_at(cam.screen_to_world(pos))
+	if mouth >= 0 and (cell < 0 or Sim.grid.is_empty(cell)) and cell != CORE:
+		site_tapped.emit(mouth)
+		return
 	# A resource node, unless a machine or the Core is what is drawn there.
 	var machine_here: bool = cell >= 0 and not Sim.grid.is_empty(cell)
 	if _press_node >= 0 and not machine_here and cell != CORE \
@@ -1422,6 +1429,7 @@ func _draw_things() -> void:
 			# A cool, see-through tint: it reads as "behind", not as a
 			# smudge on the Core.
 			_draw_sprite(ci, hid, Iso.cell_center(cell), Color(0.6, 0.88, 1.0, 0.5), 1.0)
+	_draw_galleries(ci)
 	if _dragging and selected_cell >= 0 and not Sim.grid.is_empty(selected_cell):
 		var w: Vector2 = cam.screen_to_world(_drag_pos)
 		_draw_sprite(ci, Sim.grid.machine_at(selected_cell), w + Vector2(0, Iso.TH * 0.2),
@@ -2029,6 +2037,152 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 			slab[2].y - t2 * (slab[2].y - slab[0].y + 260.0))
 		var col4 := Color(mote, (0.20 if band == 0 else 0.26) * sin(t2 * PI))
 		ci.draw_texture_rect(g, Rect2(p2 - Vector2(3, 3), Vector2(6, 6)), false, col4)
+
+
+## --- the crew and the galleries (Operations) --------------------------------------
+##
+## The Rigs are on the board: the ones at home stand in a row in front of the
+## Core, and a sortie walks out across the yard to its site's mouth beyond
+## the yard's edge, works there, and walks home. The sites are gallery
+## mouths, one past each of three of the yard's corners. All of it is drawn
+## on the things layer, a handful of shapes a Rig -- no node, no texture --
+## so a crew costs a few draw calls whatever its size.
+
+## The Rigs drawn standing at the Core, at most.
+const RIGS_SHOWN := 12
+## The share of a sortie's trip spent walking out; as long walking home, and
+## the rest at work in the site's mouth.
+const WALK_SHARE := 0.42
+
+
+## Where site slot `i`'s gallery mouth opens: past the middle of one of
+## the yard's edges -- the upper left, the upper right, the lower right, the
+## three a phone's panels leave in view -- most of a cell out.
+func site_pos(i: int) -> Vector2:
+	var yc: PackedVector2Array = yard_corners()
+	if yc.size() < 4:
+		return core_center()
+	var mid: Vector2 = (yc[0] + yc[1] + yc[2] + yc[3]) * 0.25
+	var edges: Array = [[3, 0], [0, 1], [1, 2]]
+	var e: Array = edges[i % edges.size()]
+	var edge: Vector2 = (yc[int(e[0])] + yc[int(e[1])]) * 0.5
+	return edge + (edge - mid).normalized() * Iso.TW * 0.9
+
+
+## Where the Rigs at home stand: a row in front of the Core.
+func rig_home(k: int, n: int) -> Vector2:
+	var cr: Rect2 = core_rect()
+	var foot := Vector2(cr.get_center().x, cr.end.y - Iso.TH * 0.1)
+	return foot + Vector2((float(k) - float(n - 1) * 0.5) * Iso.TW * 0.3, Iso.TH * 0.3)
+
+
+## A site's mouth under world point `w`, or -1. Before the crew, the
+## boarded-up mouths answer too.
+func site_at(w: Vector2) -> int:
+	var n: int = 3 if Sim.core_level < MachineDB.RIG_CORE else Sim.ops_board.size()
+	for i in range(n):
+		if Sim.core_level >= MachineDB.RIG_CORE and not Sim.site(i).has("kind"):
+			continue
+		if site_pos(i).distance_to(w) < Iso.TW * 0.45:
+			return i
+	return -1
+
+
+func _draw_galleries(ci: CanvasItem) -> void:
+	if Sim.core_level < MachineDB.RIG_CORE:
+		# Before the crew: the mouths are there from the first minute,
+		# boarded up -- the world past the yard, and a promise.
+		for i in range(3):
+			var at0: Vector2 = site_pos(i)
+			var sealed := PackedVector2Array()
+			for k in range(14):
+				var a0: float = TAU * float(k) / 14.0
+				sealed.append(at0 + Vector2(cos(a0) * Iso.TW * 0.3, sin(a0) * Iso.TH * 0.3))
+			ci.draw_colored_polygon(sealed, Color(0.08, 0.07, 0.07, 0.8))
+			for b in range(3):
+				var y: float = (float(b) - 1.0) * Iso.TH * 0.16
+				ci.draw_line(at0 + Vector2(-Iso.TW * 0.3, y - 4.0), at0 + Vector2(Iso.TW * 0.3, y + 4.0),
+					Color(0.55, 0.38, 0.2), 6.0)
+		return
+	# The gallery mouths.
+	for i in range(Sim.ops_board.size()):
+		var s: Dictionary = Sim.site(i)
+		if not s.has("kind"):
+			continue
+		var at: Vector2 = site_pos(i)
+		var nest: bool = String(s["kind"]) == "nest"
+		var mouth := PackedVector2Array()
+		for k in range(14):
+			var a: float = TAU * float(k) / 14.0
+			mouth.append(at + Vector2(cos(a) * Iso.TW * 0.3, sin(a) * Iso.TH * 0.3 - absf(sin(a)) * 0.0))
+		ci.draw_colored_polygon(mouth, Color(0.05, 0.04, 0.05, 0.92))
+		var rim: Color = Color(0.9, 0.3, 0.2) if nest else Color(1.0, 0.72, 0.35)
+		ci.draw_polyline(mouth + PackedVector2Array([mouth[0]]), Color(rim, 0.7), 3.0)
+		# A lamp over it: red for the nest that fights back.
+		var lamp: Vector2 = at - Vector2(0, Iso.TH * 0.55)
+		var pulse: float = 0.6 + 0.4 * sin(_anim * (4.0 if nest else 1.6) + float(i))
+		ci.draw_circle(lamp, 6.0, Color(rim, 0.55 + 0.4 * pulse))
+		ci.draw_line(lamp, lamp + Vector2(0, Iso.TH * 0.35), Color(0.3, 0.3, 0.32), 2.0)
+		# What is left of it, as a bar under the mouth.
+		var left: float = clampf(float(s["left"]) / maxf(float(s["need"]), 1.0), 0.0, 1.0)
+		var bar := Rect2(at + Vector2(-Iso.TW * 0.25, Iso.TH * 0.4), Vector2(Iso.TW * 0.5, 6.0))
+		ci.draw_rect(bar, Color(0, 0, 0, 0.55))
+		ci.draw_rect(Rect2(bar.position, Vector2(bar.size.x * left, bar.size.y)), Color(rim, 0.9))
+	# The crew at home.
+	var home: int = mini(Sim.rigs_home(), RIGS_SHOWN)
+	for k in range(home):
+		_draw_rig(ci, rig_home(k, home), float(k) * 1.3, false, Sim.rig_wear)
+	# Sorties out: walking out, at work in the mouth, walking home.
+	for so: Dictionary in Sim.sorties:
+		var trip: float = maxf(float(so["trip"]), 1.0)
+		var p: float = clampf(1.0 - float(so["left"]) / trip, 0.0, 1.0)
+		var n: int = mini(int(so["n"]), RIGS_SHOWN)
+		var target: Vector2 = site_pos(int(so["slot"]))
+		for k in range(n):
+			var start: Vector2 = rig_home(k, n)
+			var q: float = clampf(p - 0.015 * float(k), 0.0, 1.0)
+			var at: Vector2
+			var working: bool = false
+			if q < WALK_SHARE:
+				at = start.lerp(target, q / WALK_SHARE)
+			elif q < 1.0 - WALK_SHARE:
+				working = true
+				at = target + Vector2(sin(_anim * 3.0 + float(k)) * Iso.TW * 0.12,
+					Iso.TH * 0.1 * float(k % 2))
+			else:
+				at = target.lerp(start, (q - (1.0 - WALK_SHARE)) / WALK_SHARE)
+			_draw_rig(ci, at, _anim * 9.0 + float(k), working, float(so["wear"]))
+			if working and not calm_motion and fposmod(_anim * 2.0 + float(k) * 0.37, 1.0) < 0.25:
+				# Sparks: the work.
+				for sp in range(3):
+					var d := Vector2(cos(float(sp) * 2.1 + _anim * 7.0), -absf(sin(float(sp) * 1.7 + _anim * 5.0)))
+					ci.draw_line(at + Vector2(0, -10), at + Vector2(0, -10) + d * 12.0,
+						Color(1.0, 0.85, 0.4, 0.9), 2.0)
+
+
+## One Rig standing on `at`: treads, a body in the crew's safety orange and
+## a lamp, bobbing as it walks; greyer the more worn.
+func _draw_rig(ci: CanvasItem, at: Vector2, phase: float, working: bool, wear: float) -> void:
+	var bob: float = 0.0 if calm_motion else sin(phase) * (1.0 if working else 1.8)
+	var body: Color = Palette.res_color(MachineDB.Res.RIG).lerp(Color(0.45, 0.45, 0.45), clampf(wear, 0.0, 0.8) * 0.6)
+	var w: float = Iso.TW * 0.26
+	var h: float = Iso.TH * 0.5
+	# Its shadow, so it stands on the slab.
+	var shadow := PackedVector2Array()
+	for k in range(10):
+		var a: float = TAU * float(k) / 10.0
+		shadow.append(at + Vector2(cos(a) * w * 0.7, sin(a) * h * 0.18))
+	ci.draw_colored_polygon(shadow, Color(0, 0, 0, 0.35))
+	# Treads.
+	ci.draw_rect(Rect2(at + Vector2(-w * 0.6, -h * 0.35), Vector2(w * 1.2, h * 0.35)), Color(0.12, 0.12, 0.14))
+	# Body and cab.
+	var top: Vector2 = at + Vector2(0, -h * 0.35 + bob)
+	ci.draw_rect(Rect2(top + Vector2(-w * 0.5, -h * 0.6), Vector2(w, h * 0.6)), body)
+	ci.draw_rect(Rect2(top + Vector2(-w * 0.3, -h * 0.95), Vector2(w * 0.6, h * 0.38)), body.darkened(0.25))
+	# The lamp.
+	ci.draw_circle(top + Vector2(w * 0.12, -h * 0.78), w * 0.1, Color(0.6, 0.95, 1.0))
+	# Its outline, for a small screen.
+	ci.draw_rect(Rect2(top + Vector2(-w * 0.5, -h * 0.6), Vector2(w, h * 0.6)), Color(0, 0, 0, 0.6), false, 1.5)
 
 
 ## --- screen-space overlay ------------------------------------------------------

@@ -18,6 +18,9 @@ signal machine_upgraded(id: String, level: int)
 ## `pays` ("credits" or "research").
 signal contract_filled(index: int, paid: float, pays: String)
 signal offline_earnings(report: Dictionary)
+## A sortie left (site slot, Rigs), and one came home (Sim._sortie_home).
+signal sortie_sent(slot: int, rigs: int)
+signal sortie_back(report: Dictionary)
 
 const AUTOSAVE_SECONDS := 20.0
 
@@ -161,7 +164,7 @@ func _process(delta: float) -> void:
 	while _tick_accum >= Simulation.TICK_DT and steps < 6:
 		_tick_accum -= Simulation.TICK_DT
 		var out: Dictionary = sim.tick()
-		_collect_stock()
+		after_tick(Simulation.TICK_DT)
 		var c: float = float(out["credits"])
 		var r: float = float(out["research"])
 		credits += c
@@ -327,6 +330,7 @@ func upgrade_core() -> bool:
 				_take_stock({int(r[1]): int(r[2])})
 	core_level += 1
 	_sync_core()
+	_deal_ops()
 	core_upgraded.emit(core_level)
 	stats_changed.emit()
 	Save.save_game(self)
@@ -369,7 +373,9 @@ func _collect_stock() -> void:
 	var cap: int = stock_cap()
 	var units: int = 0
 	for res: int in sim.core_took:
-		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), cap)
+		# Rigs are the crew, kept up to the crew's limit, not the store's.
+		var limit: int = crew_cap() - rigs_out() if res == MachineDB.Res.RIG else cap
+		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), limit)
 		units += int(sim.core_took[res])
 	sim.core_took.clear()
 	_sync_core()
@@ -394,7 +400,12 @@ func _sync_core() -> void:
 	for res: int in MachineDB.STOCKED:
 		if stock_of(int(res)) < cap:
 			room[int(res)] = cap - stock_of(int(res))
+	# The crew: Rigs, up to the limit the Core's level sets, less those out.
+	var crew: int = crew_cap() - rigs_home() - rigs_out()
+	if crew > 0:
+		room[MachineDB.Res.RIG] = crew
 	sim.core_wants = room
+	sim.core_export = CoreLevels.EXPORT_SHARE if core_level >= CoreLevels.EXPORT_CORE else 0.0
 
 
 ## --- machine modes ---------------------------------------------------------------
@@ -533,6 +544,215 @@ func drop_contract(i: int) -> bool:
 	return true
 
 
+## --- operations: the crew and the galleries (Operations) ---------------------------
+
+## The sites on the board, Operations.SLOTS of them ({} for a slot not dealt).
+var ops_board: Array = []
+var ops_serial: int = 0
+## Sites this shaft's crew has cleared (a Core row counts them), and in all.
+var ops_cleared: int = 0
+var ops_lifetime: int = 0
+## Sorties out: [{"slot", "n", "left" (seconds to home), "trip", "site" (as
+## it was when they left), "out" (Operations.resolve), "wear" (the crew's
+## wear when they left)}].
+var sorties: Array = []
+## How worn the Rigs at home are, 0..Operations.WEAR_MAX.
+var rig_wear: float = 0.0
+
+
+## The crew the Core keeps under its level.
+func crew_cap() -> int:
+	return Operations.crew_cap(core_level)
+
+
+func rigs_home() -> int:
+	return stock_of(MachineDB.Res.RIG)
+
+
+func rigs_out() -> int:
+	var n: int = 0
+	for s: Dictionary in sorties:
+		n += int(s["n"])
+	return n
+
+
+## What `n` Rigs at home bring to a sortie: whole, their Rig Plating, less
+## their wear.
+func crew_strength(n: int) -> float:
+	return float(n) * Operations.RIG_POWER * float(_mult.get("rig_power", 1.0)) * (1.0 - rig_wear)
+
+
+func site(i: int) -> Dictionary:
+	return ops_board[i] if i >= 0 and i < ops_board.size() else {}
+
+
+## What clearing site `i` pays, at the factory's measured income now.
+func site_reward(i: int) -> Dictionary:
+	return Operations.reward(site(i), offline_rate())
+
+
+func site_busy(i: int) -> bool:
+	for s: Dictionary in sorties:
+		if int(s["slot"]) == i:
+			return true
+	return false
+
+
+## Why `n` Rigs cannot go to site `i` now, or "" when they can: "core" (the
+## crew is not open), "site" (nothing dealt there), "busy" (a sortie is
+## already out to it), "rigs" (not that many at home), "fuel" (not the
+## Ingots).
+func sortie_blocker(i: int, n: int) -> String:
+	if core_level < MachineDB.RIG_CORE:
+		return "core"
+	if not site(i).has("kind"):
+		return "site"
+	if site_busy(i):
+		return "busy"
+	if n < 1 or n > rigs_home():
+		return "rigs"
+	if stock_of(MachineDB.Res.INGOT) < Operations.fuel(n, core_level):
+		return "fuel"
+	return ""
+
+
+func can_send(i: int, n: int) -> bool:
+	return sortie_blocker(i, n) == ""
+
+
+## How many Rigs a sortie to site `i` takes by default: the fewest at home
+## that clear what is left of it, or all at home when none do.
+func sortie_size(i: int) -> int:
+	var s: Dictionary = site(i)
+	var home: int = rigs_home()
+	if not s.has("kind"):
+		return home
+	for n in range(1, home + 1):
+		if crew_strength(n) >= float(s["left"]):
+			return n
+	return home
+
+
+## Send `n` Rigs to site `i`: they leave the Core with their fuel, and what
+## they will do there is decided now (Operations.resolve).
+func send_sortie(i: int, n: int) -> bool:
+	if not can_send(i, n):
+		return false
+	var s: Dictionary = site(i)
+	var out: Dictionary = Operations.resolve(s, crew_strength(n))
+	_take_stock({MachineDB.Res.INGOT: Operations.fuel(n, core_level), MachineDB.Res.RIG: n})
+	var trip: float = Operations.trip(s)
+	sorties.append({"slot": i, "n": n, "left": trip, "trip": trip, "site": s.duplicate(),
+		"out": out, "wear": rig_wear})
+	# Rigs out still count against the crew.
+	_sync_core()
+	sortie_sent.emit(i, n)
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## Sorties come home as the factory runs: `dt` seconds of it.
+func advance_ops(dt: float) -> void:
+	if sorties.is_empty():
+		return
+	var back: Array = []
+	for s: Dictionary in sorties:
+		s["left"] = float(s["left"]) - dt
+		if float(s["left"]) <= 0.0:
+			back.append(s)
+	for s: Dictionary in back:
+		sorties.erase(s)
+		_sortie_home(s)
+
+
+## A sortie home: its Rigs back with the site's wear on them, its reward
+## paid, and its site cleared and dealt again, or left the weaker.
+func _sortie_home(s: Dictionary) -> void:
+	var n: int = int(s["n"])
+	var out: Dictionary = s["out"]
+	var home: int = rigs_home()
+	var worn: float = minf(float(s["wear"]) + float(out["wear"]), Operations.WEAR_MAX)
+	rig_wear = clampf((rig_wear * float(home) + worn * float(n)) / float(maxi(home + n, 1)),
+		0.0, Operations.WEAR_MAX)
+	stock[MachineDB.Res.RIG] = home + n
+	var r: Dictionary = Operations.reward(s["site"], offline_rate())
+	var share: float = float(out["share"])
+	var paid: float = float(r["credits"]) * share
+	credits += paid
+	lifetime_credits += paid
+	research += float(r["research"]) * share
+	var res: int = int(r["res"])
+	var units: int = int(floor(float(r["n"]) * share))
+	if MachineDB.STOCKED.has(res):
+		stock[res] = mini(stock_of(res) + units, stock_cap())
+	var slot: int = int(s["slot"])
+	if bool(out["cleared"]):
+		ops_cleared += 1
+		ops_lifetime += 1
+		if slot < ops_board.size():
+			ops_board[slot] = {}
+		_deal_ops()
+	elif slot < ops_board.size() and site(slot).get("serial", -1) == (s["site"] as Dictionary).get("serial", -2):
+		ops_board[slot]["left"] = float(out["left"])
+	_sync_core()
+	sortie_back.emit({"kind": String((s["site"] as Dictionary)["kind"]), "cleared": bool(out["cleared"]),
+		"credits": paid, "research": float(r["research"]) * share, "res": res, "n": units,
+		"wear": float(out["wear"]), "rigs": n, "slot": slot})
+	stats_changed.emit()
+
+
+## Plates that repair the Rigs at home.
+func repair_cost() -> int:
+	return Operations.repair_cost(rigs_home(), rig_wear, core_level)
+
+
+func can_repair() -> bool:
+	var c: int = repair_cost()
+	return c > 0 and stock_of(MachineDB.Res.PLATE) >= c
+
+
+## Repair the Rigs at home with Plates from the store, at once.
+func repair_rigs() -> bool:
+	if not can_repair():
+		return false
+	_take_stock({MachineDB.Res.PLATE: repair_cost()})
+	rig_wear = 0.0
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## Deal a site into every empty slot, once the Core keeps a crew.
+func _deal_ops() -> void:
+	if core_level < MachineDB.RIG_CORE:
+		return
+	while ops_board.size() < Operations.SLOTS:
+		ops_board.append({})
+	for i in range(ops_board.size()):
+		if (ops_board[i] as Dictionary).has("kind"):
+			continue
+		ops_board[i] = Operations.deal(core_level, depth + 100 * collapses, ops_serial)
+		ops_serial += 1
+
+
+## The galleries' board, the crew's wear and its sorties, as a new shaft
+## has them; the lifetime count stays.
+func clear_ops() -> void:
+	ops_board = []
+	ops_serial = 0
+	ops_cleared = 0
+	sorties = []
+	rig_wear = 0.0
+
+
+## One tick's work after the factory's: the store takes what the Core was
+## handed, and sorties walk on.
+func after_tick(dt: float) -> void:
+	_collect_stock()
+	advance_ops(dt)
+
+
 ## --- machine levels ------------------------------------------------------------
 
 func machine_level(id: String) -> int:
@@ -602,9 +822,10 @@ func overdrive_cap() -> int:
 	return CoreLevels.overdrive_cap(core_level)
 
 
-## What machine type `id`'s next Overdrive step costs: {"materials", "research"}.
+## What machine type `id`'s next Overdrive step costs under this shaft's
+## Core: {"materials", "research"}.
 func overdrive_cost(id: String) -> Dictionary:
-	return MachineDB.overdrive_cost(overdrive_steps(id) + 1)
+	return MachineDB.overdrive_cost(overdrive_steps(id) + 1, core_level)
 
 
 ## Why machine type `id` cannot take an Overdrive step now, or "" when it
@@ -718,6 +939,9 @@ func collapse() -> int:
 	contracts = []
 	dispatch_serial = 0
 	contracts_filled = 0
+	# So is the galleries' board; the crew and its sorties go with the shaft,
+	# and Rig Plating, as the whole tree, stays.
+	clear_ops()
 	# The next shaft's Core starts dark again, and its reserve is what the
 	# empty board is rebuilt from.
 	core_online = false
@@ -871,6 +1095,7 @@ func _recompute() -> void:
 		if not unlocked.has(id):
 			unlocked.append(id)
 	_deal_board()
+	_deal_ops()
 	_reset_rate_window()
 
 
@@ -1271,6 +1496,12 @@ func to_dict() -> Dictionary:
 		"dispatch_serial": dispatch_serial,
 		"contracts_filled": contracts_filled,
 		"contracts_lifetime": contracts_lifetime,
+		"ops_board": ops_board,
+		"ops_serial": ops_serial,
+		"ops_cleared": ops_cleared,
+		"ops_lifetime": ops_lifetime,
+		"sorties": sorties,
+		"rig_wear": rig_wear,
 		"upgrades": upgrade_levels,
 		"blueprints": blueprints,
 		"blueprint_pending": blueprint_pending,
@@ -1316,6 +1547,8 @@ func from_dict(d: Dictionary) -> void:
 	for res in kept:
 		if MachineDB.STOCKED.has(int(res)):
 			stock[int(res)] = mini(int(kept[res]), cap)
+		elif int(res) == MachineDB.Res.RIG:
+			stock[int(res)] = maxi(int(kept[res]), 0)
 	# The Dispatch board; JSON brings every number back as a float.
 	contracts = []
 	for c in (d.get("contracts", []) as Array):
@@ -1330,6 +1563,17 @@ func from_dict(d: Dictionary) -> void:
 	dispatch_serial = int(d.get("dispatch_serial", 0))
 	contracts_filled = int(d.get("contracts_filled", 0))
 	contracts_lifetime = int(d.get("contracts_lifetime", 0))
+	# The galleries; a save from before them has none. JSON brings every
+	# number back as a float.
+	ops_board = []
+	for e in (d.get("ops_board", []) as Array):
+		ops_board.append(_site_from(e))
+	ops_serial = int(d.get("ops_serial", 0))
+	ops_cleared = int(d.get("ops_cleared", 0))
+	ops_lifetime = int(d.get("ops_lifetime", 0))
+	rig_wear = clampf(float(d.get("rig_wear", 0.0)), 0.0, Operations.WEAR_MAX)
+	var away: Array = d.get("sorties", [])
+	sorties = []
 	upgrade_levels = d.get("upgrades", {})
 	# Blueprints; JSON brings every number back as a float.
 	blueprints = []
@@ -1359,6 +1603,29 @@ func from_dict(d: Dictionary) -> void:
 	core_online = bool(d.get("core_online", not stuck))
 	sim.reset_progress()
 	_recompute()
+	# Sorties out when the game was closed came home while it was: each is
+	# walked the rest of its way now.
+	for e in away:
+		var sd: Dictionary = e if typeof(e) == TYPE_DICTIONARY else {}
+		if not sd.has("out") or not sd.has("site"):
+			continue
+		var o: Dictionary = sd["out"]
+		_sortie_home({"slot": int(sd.get("slot", 0)), "n": int(sd.get("n", 0)), "left": 0.0,
+			"trip": float(sd.get("trip", 0.0)), "site": _site_from(sd["site"]),
+			"out": {"cleared": bool(o.get("cleared", false)), "share": float(o.get("share", 0.0)),
+				"wear": float(o.get("wear", 0.0)), "left": float(o.get("left", 0.0))},
+			"wear": float(sd.get("wear", 0.0))})
+
+
+## A site as saved, its numbers made whole again ({} for none).
+func _site_from(raw: Variant) -> Dictionary:
+	var e: Dictionary = raw if typeof(raw) == TYPE_DICTIONARY else {}
+	if not Operations.KINDS.has(String(e.get("kind", ""))):
+		return {}
+	return {"kind": String(e["kind"]), "tier": clampi(int(e.get("tier", 0)), 0, Operations.TIERS.size() - 1),
+		"need": float(e.get("need", 1.0)), "left": float(e.get("left", e.get("need", 1.0))),
+		"hazard": float(e.get("hazard", 0.1)), "serial": int(e.get("serial", 0)),
+		"core": int(e.get("core", core_level)), "depth": int(e.get("depth", 0))}
 
 
 ## Blueprint entries as saved: [[cell, id, mode, job], ...], the numbers

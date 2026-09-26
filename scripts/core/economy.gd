@@ -161,6 +161,22 @@ const RESEARCH_TREE := {
 		"per_level": 1.0,
 		"core": 2,
 	},
+	# The crew's research (Operations): every Rig stronger on a sortie. Its
+	# own branch, the first of the robots' tree; opened with the crew, two
+	# levels a Core level, so it grows with the sites it is for.
+	"rig_plating": {
+		"name": "Rig Plating",
+		"short": "Every Rig is stronger.",
+		"desc": "Every Rig brings 20% more strength to a sortie, for each level.",
+		"cost_research": 400.0,
+		"cost_cores": 0,
+		"max": 12,
+		"cost_growth": 2.1,
+		"effect": "rig_power",
+		"branch": "robotics",
+		"per_level": 0.2,
+		"core": MachineDB.RIG_CORE,
+	},
 	# The doctrines' lines (DOCTRINES): research only, opened by the Core's
 	# level DOCTRINE_CORE, and bought -- and worth anything -- only in a
 	# shaft that follows their doctrine.
@@ -252,7 +268,7 @@ const RESEARCH_TREE := {
 
 const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resonance",
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
-	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1"]
+	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1", "rig_plating"]
 
 ## What each line of the tree is about: the research grid shows it branch by
 ## branch, in this order.
@@ -263,6 +279,7 @@ const BRANCHES := {
 	"deep": "Deep mining",
 	"logistics": "Logistics",
 	"core": "Core",
+	"robotics": "Robotics",
 }
 
 
@@ -411,6 +428,7 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		"cooling": 1.0,
 		"fine_value": 1.0,
 		"deep_learn": 1.0,
+		"rig_power": 1.0,
 	}
 	for id: String in RESEARCH_TREE:
 		var lvl: int = int(levels.get(id, 0))
@@ -422,7 +440,8 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		var per: float = float(u["per_level"])
 		var effect: String = String(u["effect"])
 		match effect:
-			"speed", "yield", "value", "research", "resonance", "vein", "cooling", "fine_value", "deep_learn":
+			"speed", "yield", "value", "research", "resonance", "vein", "cooling", "fine_value", "deep_learn", \
+					"rig_power":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"quota":
 				m[effect] = maxf(float(m[effect]) - per * float(lvl), 0.2)

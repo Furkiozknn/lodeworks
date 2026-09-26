@@ -114,6 +114,11 @@ var levels_stamp: int = 0
 var core_wants: Dictionary = {}
 var core_took: Dictionary = {}
 const CORE_TAKER := -1
+## From the Core's level CoreLevels.EXPORT_CORE, what the store has no room
+## for is not refused: the Core sells it, at this share of what a Vault would
+## pay (0 before then); and how many units it has sold so.
+var core_export: float = 0.0
+var core_exported: int = 0
 var _core_side: Dictionary = {}
 
 
@@ -271,8 +276,11 @@ func _transfer() -> void:
 			if avail <= 0:
 				continue
 			var takers: Array[int] = _takers(src_cell, res)
-			# The Core, last in the round, while its store has room.
-			if int(core_wants.get(res, 0)) > 0 and core_touching().has(src_cell):
+			# The Core, last in the round, while its store has room -- or,
+			# once it exports, a material its store keeps, always. A Rig is
+			# a robot: it walks to the Core from wherever it was made.
+			if (int(core_wants.get(res, 0)) > 0 or core_export > 0.0 and MachineDB.STOCKED.has(res)) \
+					and (core_touching().has(src_cell) or res == MachineDB.Res.RIG):
 				takers.append(CORE_TAKER)
 			if takers.is_empty():
 				continue
@@ -286,6 +294,13 @@ func _transfer() -> void:
 				k += 1
 				if t == CORE_TAKER:
 					if int(core_wants.get(res, 0)) <= 0:
+						if core_export <= 0.0:
+							continue
+						# The store is full: the Core sells it on.
+						last_credits += MachineDB.value_of(res) * value_mult \
+							* float(res_value_mult.get(res, 1.0)) * core_export
+						core_exported += 1
+						moved_total += 1
 						continue
 					core_wants[res] = int(core_wants[res]) - 1
 					core_took[res] = int(core_took.get(res, 0)) + 1
@@ -395,10 +410,12 @@ func links_if_placed(cell: int, id: String) -> Dictionary:
 					if (nm.get("inputs", {}) as Dictionary).has(res):
 						delivers = true
 						break
-	# Beside the Core, what its store has room for is delivered to it.
-	if not delivers and core_touching().has(cell):
+	# Beside the Core, what its store has room for is delivered to it -- and
+	# once it exports, any material its store keeps.
+	if not delivers:
 		for res: int in outs:
-			if int(core_wants.get(res, 0)) > 0:
+			var reaches: bool = core_touching().has(cell) or res == MachineDB.Res.RIG
+			if reaches and (int(core_wants.get(res, 0)) > 0 or core_export > 0.0 and MachineDB.STOCKED.has(res)):
 				delivers = true
 	return {"fed": fed, "delivers": delivers}
 
@@ -406,9 +423,6 @@ func links_if_placed(cell: int, id: String) -> Dictionary:
 ## --- phase 2 ---------------------------------------------------------------
 
 func _work(dt: float) -> void:
-	last_credits = 0.0
-	last_research = 0.0
-	last_cycles = 0
 	# A machine's rate moves only with the board, the heat field and the
 	# stratum's and research's multipliers: kept across ticks until one of
 	# them does. Half of this pass on a 300-machine board (docs/AUDIT.md,
@@ -734,6 +748,10 @@ const THERMAL_WARNING := 0.9
 ## --- public ----------------------------------------------------------------
 
 func tick(dt: float = TICK_DT) -> Dictionary:
+	# Reset before the hand-over: the Core's export sells during it.
+	last_credits = 0.0
+	last_research = 0.0
+	last_cycles = 0
 	_transfer()
 	_work(dt)
 	_window_ticks += 1

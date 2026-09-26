@@ -469,15 +469,16 @@ func _print_stages() -> void:
 
 func _row_text(r: Array) -> String:
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive", "doctrine"][int(r[0])]
+		"stable", "overdrive", "doctrine", "operations"][int(r[0])]
 	match int(r[0]):
 		CoreLevels.Req.CREDITS:
 			return "credits %s" % Economy.fmt(float(r[1]))
 		CoreLevels.Req.STOCK:
 			return "stock %s %d" % [String(MachineDB.RES_NAME[int(r[1])]), int(r[2])]
-		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE:
+		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE, CoreLevels.Req.OPERATIONS:
 			return "%s %d" % [name, int(r[1])]
-	return "%s %s %d" % [name, str(r[1]), int(r[2])]
+	var job: String = " (%s)" % CoreLevels.row_job(r) if CoreLevels.row_job(r) != "" else ""
+	return "%s %s %d%s" % [name, str(r[1]), int(r[2]), job]
 
 
 func _snapshot(s: Dictionary) -> void:

@@ -98,6 +98,10 @@ static func _tables() -> Array:
 		var n: Dictionary = ResourceNodes.KINDS[kind]
 		for k: String in ["name", "line", "use"]:
 			add.call(n.get(k, ""), "res://scripts/core/resource_nodes.gd")
+	for kind: String in Operations.KINDS:
+		var o: Dictionary = Operations.KINDS[kind]
+		for k: String in ["name", "line"]:
+			add.call(o.get(k, ""), "res://scripts/core/operations.gd")
 	var codex: Dictionary = (load("res://scripts/ui/codex.gd") as GDScript).get_script_constant_map()
 	for p: Dictionary in codex["PAGES"]:
 		for k: String in ["title", "short", "watch", "body"]:

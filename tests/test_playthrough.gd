@@ -88,6 +88,7 @@ func test_a_naive_player_can_actually_progress() -> void:
 	Sim.doctrine = ""
 	Sim.blueprints = []
 	Sim.blueprint_pending = []
+	Sim.clear_ops()
 	Sim._recompute()
 	Sim.start()
 

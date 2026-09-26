@@ -177,6 +177,10 @@ msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
 msgstr ""
 
@@ -186,6 +190,14 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Contract filled: +%s research"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Rigs home from the %s, cleared: +%s credits, +%s research"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Rigs home from the %s, not cleared: +%s credits, +%s research"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -601,7 +613,19 @@ msgid "And Overdrive: %d steps past its level for every machine type the Core be
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Plates, Components and research."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Components, Alloy and research."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "And a new job for the %s: %s -- %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "And the Core sells what its store has no room for, at half what a Vault pays: a full store no longer stops the machines beside it."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -653,6 +677,86 @@ msgid "pays %s credits"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Galleries"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots an Assembler builds on the Rig Frame job beside the Core -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Old galleries, boarded up. From the Core's level %d it keeps a crew of Rigs, and sends them in."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Rigs: %d at the Core, %d out, room for %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d%% worn"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "whole"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "strength %d each, %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Repair: %d Plates"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "needs %d · sending %d: strength %d, %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "pays %s credits, %s research, %d %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Rigs out"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Send %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Send"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Fuel: %d Ingots"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "too easy"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "easy"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "even"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "hard: a share of it"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "out of reach"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Credits, paid when the Core grows"
 msgstr ""
 
@@ -694,6 +798,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "%d levels of %s research"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d sites in the galleries cleared by Rigs"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -745,7 +853,7 @@ msgid "Level %d first"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid in Ingots and Plates from the Core's store and in research, never in credits; each Core level from %d allows %d more steps."
+msgid "Overdrive: past the level the Core before allowed, every step makes every %s work %d%% harder, with the heat that follows. It is paid from the Core's store, in the two materials the era before made most of (Ingots and Plates under Core 7, Plates and Components under Core 8, Components and Alloy after), and in research, never in credits; each Core level from %d allows %d more steps."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1349,6 +1457,10 @@ msgid "Frame"
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
+msgid "Rig"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
 msgid "Deep Bore"
 msgstr ""
 
@@ -1386,6 +1498,22 @@ msgstr ""
 
 #: res://scripts/core/machine_db.gd
 msgid "Joins alloy and parts into frames."
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Rig Frame"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Builds a Rig: a robot the Core sends out into the galleries."
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Assay Bench"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Learns from Frames alone -- far more than a Lab, on rock too hot for one."
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
@@ -1561,6 +1689,18 @@ msgid "One more blueprint slot for saved layouts."
 msgstr ""
 
 #: res://scripts/core/economy.gd
+msgid "Rig Plating"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Every Rig is stronger."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Every Rig brings 20% more strength to a sortie, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
 msgid "Crystal Lattice"
 msgstr ""
 
@@ -1676,6 +1816,10 @@ msgstr ""
 msgid "Core"
 msgstr ""
 
+#: res://scripts/core/economy.gd
+msgid "Robotics"
+msgstr ""
+
 #: res://scripts/core/core_levels.gd
 msgid "Extraction"
 msgstr ""
@@ -1706,6 +1850,10 @@ msgstr ""
 
 #: res://scripts/core/core_levels.gd
 msgid "The Forge"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "The Exchange"
 msgstr ""
 
 #: res://scripts/core/strata.gd
@@ -1886,6 +2034,38 @@ msgstr ""
 
 #: res://scripts/core/resource_nodes.gd
 msgid "Nothing uses its heat yet."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Flooded Gallery"
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Old workings under water. There is pipe and plate worth hauling out."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Collapsed Drift"
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "A caved-in drift with its seam still showing."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Old Pump House"
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "A dead pumping station, full of parts."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Rogue Drill Nest"
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Old drills gone feral down here. They fight back."
 msgstr ""
 
 #: res://scripts/ui/codex.gd

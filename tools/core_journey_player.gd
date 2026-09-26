@@ -37,7 +37,7 @@ const BEAT := 5.0
 ## the store is full.
 ## Each is started once its Core level is reached and its maker found
 ## (`from`, a stratum); past these the player works from the Core's rows
-## and "What now?" alone.
+## and "What now?" alone. A fourth element is the machine's job.
 const PLANS := [
 	{"core": 1, "from": 1, "cells": [
 		[26, 21, "drill"], [25, 20, "drill"], [25, 21, "crusher"], [24, 21, "smelter"],
@@ -102,6 +102,7 @@ func fresh() -> void:
 	S.doctrine = ""
 	S.blueprints = []
 	S.blueprint_pending = []
+	S.clear_ops()
 	S._recompute()
 	S.power_core()
 
@@ -110,7 +111,7 @@ func fresh() -> void:
 func advance(seconds: float) -> void:
 	for _i in range(int(seconds * Simulation.TICK_HZ)):
 		var out: Dictionary = S.sim.tick()
-		S._collect_stock()
+		S.after_tick(Simulation.TICK_DT)
 		var c: float = float(out["credits"])
 		S.credits += c
 		S.lifetime_credits += c
@@ -161,6 +162,13 @@ func act() -> void:
 	# rework: the player goes down only while nothing overheats, so the
 	# factory settles on each stratum before the next.
 	var settled: bool = S.core_level < MachineDB.OVERDRIVE_CORE or CoreLevels.stable(S) > 0
+	# From Core 9 the strata are read before they are entered: the player
+	# goes down while the Core's depth row asks for it -- straight through a
+	# stratum where heat spreads far, rather than settling there -- and no
+	# further (measured: settling on conductive strata 26 and 28 on the way
+	# to 29 overheated 68 machines at once and halved the income).
+	if S.core_level >= FORGE_FROM + 1:
+		settled = _depth_wanted()
 	if S.can_descend() and settled:
 		S.descend()
 		_event("depth%d" % S.depth, "stratum %d" % S.depth)
@@ -174,6 +182,8 @@ func act() -> void:
 	_research()
 	_contracts()
 	c0 = S.credits
+	_operations()
+	c0 = _spent("the galleries", c0)
 	var reserve: float = _follow_plans()
 	c0 = _spent("plans", c0)
 	var building: bool = reserve > 0.0
@@ -200,6 +210,11 @@ func act() -> void:
 				CoreLevels.Req.STOCK:
 					if int(st["cap"]) < int(st["need"]):
 						_keep_levels += float(S.machine_upgrade_cost("vault")["credits"])
+				CoreLevels.Req.OVERDRIVE:
+					# From Core 8: the level a type must reach before it is
+					# driven is a level the row asks for.
+					if S.core_level >= FORGE_FROM and S.overdrive_blocker(String(st["req"][1])) == "level":
+						_keep_levels += float(S.machine_upgrade_cost(String(st["req"][1]))["credits"])
 		# From Core 7 the Core's price, once saved, is kept: spent on growth
 		# it has to be earned again (measured: the credits row met and lost
 		# for hours while the player grew the factory on it).
@@ -241,7 +256,14 @@ func act() -> void:
 	# a player builds it ahead of the levels the Core asks for -- while a
 	# unit costs no more than DEEP_PAYBACK seconds of what the factory
 	# earns, a unit a beat -- but not while saving for the Core itself.
-	if S.job_open("smelter", "alloy") and _deep_units() < DEEP_UNITS and not saving \
+	# From Core 8 the unit itself has to pay: a player adds one while what it
+	# sells pays it back within DEEP_UNIT_PAYBACK -- each costs more than the
+	# last (measured: 74 units at 2-3M each, most of them idle behind a full
+	# store, and never the credits for a level the Core asked for).
+	var pays: bool = S.core_level < FORGE_FROM \
+		or _deep_cost() <= _unit_income() * DEEP_UNIT_PAYBACK and S.credits - _deep_cost() >= _keep
+	if S.job_open("smelter", "alloy") and (_deep_units() < DEEP_UNITS or S.core_level >= FORGE_FROM) \
+			and not saving and pays \
 			and S.credits >= _deep_cost() * 1.5 and _deep_cost() <= r * DEEP_PAYBACK:
 		_build_deep()
 	c0 = _spent("the deep chain", c0)
@@ -257,6 +279,101 @@ func act() -> void:
 	for cell: int in S.grid.cells:
 		var id: String = S.grid.machine_at(cell)
 		_event("m" + id, "first " + id)
+
+
+## The crew (Operations), from the Core's level 4: a Rig Frame, with the
+## lines that feed it, where there is room, while the crew is short (a Rig
+## walks to the Core by itself); Rigs repaired once they are a third worn,
+## from Plates the Core's rows do not need; and a sortie to every site the
+## Rigs at home clear -- or, while the Core asks for sites cleared and none
+## can be, the whole crew to the weakest, which leaves it weaker.
+func _operations() -> void:
+	if S.core_level < MachineDB.RIG_CORE or not operations_on:
+		return
+	var asked: bool = false
+	for st: Dictionary in S.core_status():
+		asked = asked or int(st["req"][0]) == CoreLevels.Req.OPERATIONS and not bool(st["met"])
+	if S.rigs_home() + S.rigs_out() < S.crew_cap() and _rig_makers() < 1 \
+			and t - _last_rig >= LAB_BEAT:
+		_last_rig = t
+		if not _place_rig_frame():
+			_build_job("assembler", "rig")
+	# The crew whole, the Rig Frame goes: it would only stand there, warm,
+	# until the Core's next level makes room for another Rig (measured: one
+	# laid on stratum 9 overheated the Press beside it on stratum 12, and the
+	# Core 5 stage was not over in two hours).
+	if S.rigs_home() + S.rigs_out() >= S.crew_cap():
+		for cell: int in S.grid.cells.keys():
+			if S.grid.job_at(cell) == "rig":
+				S.sell(cell)
+				_event("rigframe_sold", "first Rig Frame sold, the crew whole")
+	var keep: Dictionary = _keep_materials()
+	var plates: int = S.stock_of(MachineDB.Res.PLATE) - int(keep.get(MachineDB.Res.PLATE, 0))
+	if S.rig_wear >= 0.3 and S.can_repair() and plates >= S.repair_cost():
+		S.repair_rigs()
+		_event("repair", "first Rigs repaired")
+	var weakest: int = -1
+	for i in range(S.ops_board.size()):
+		var n: int = S.sortie_size(i)
+		if n <= 0 or not S.can_send(i, n):
+			continue
+		if S.crew_strength(n) >= float(S.site(i)["left"]):
+			S.send_sortie(i, n)
+			_event("sortie", "first sortie")
+			return
+		if weakest < 0 or float(S.site(i)["left"]) < float(S.site(weakest)["left"]):
+			weakest = i
+	if asked and weakest >= 0 and S.rigs_out() == 0:
+		S.send_sortie(weakest, S.sortie_size(weakest))
+
+
+var _last_rig: float = -1.0e9
+## Off, the player never touches the crew (for measuring what it changes).
+var operations_on: bool = true
+
+
+## A Rig Frame where a player puts one: beside a working Plate maker, which
+## then feeds it too, on free ground or in the place of a Drill or a Vault
+## built for income alone -- and only where its heat overheats nothing
+## beside it. Measured: laid on a fixed tile of the plans, it took a Drill's
+## place beside a Press, the Press overheated on stratum 12, and the Core 5
+## stage, reached at 46 minutes, was not over in three hours (without it,
+## from the same game, Core 6 came at 1 h 18 min).
+func _place_rig_frame() -> bool:
+	if not S.can_afford("assembler"):
+		return false
+	for cell: int in BuildArea.cells(S.max_depth):
+		var taken: bool = not S.grid.is_empty(cell)
+		if taken and not (_income_only(cell) and not S.sim.core_touching().has(cell)) 				or not taken and not _free(cell):
+			continue
+		var plates: bool = false
+		for n: int in S.grid.bridged_machines(cell):
+			if S.sim.status_of(n) != Simulation.Status.RUNNING and S.sim.status_of(n) != Simulation.Status.BLOCKED:
+				continue
+			plates = plates or (S.sim.machine_of(n).get("outputs", {}) as Dictionary).has(MachineDB.Res.PLATE)
+		if not plates or not _heat_safe(cell, "assembler"):
+			continue
+		if taken:
+			S.sell(cell)
+		if S.try_place(cell, "assembler"):
+			S.set_job(cell, "rig")
+			_line[cell] = true
+			_cool_if_needed(cell)
+			return true
+	return false
+
+
+## Rig Frames on the board; one that starves is the repairs' to feed.
+func _rig_makers() -> int:
+	return _count_job("rig")
+
+
+## Does the Core's next level ask for a stratum below this one?
+func _depth_wanted() -> bool:
+	for st: Dictionary in S.core_status():
+		if int(st["req"][0]) == CoreLevels.Req.DEPTH and not bool(st["met"]):
+			return true
+	return false
 
 
 ## What the store keeps for the Core's next level: {res: count}. Its store
@@ -312,9 +429,33 @@ func _research() -> void:
 		if not want.has(id):
 			want.append(id)
 	for id: String in want:
+		# Rig Plating only when the crew needs it: a site the Core asks for
+		# that the crew cannot clear (measured: bought whenever it was the
+		# cheapest line, it took the Core 4 and 5 eras' research, and Core 6
+		# came an hour late).
+		if id == "rig_plating" and not _plating_wanted():
+			continue
 		if S.can_buy_upgrade(id):
 			S.buy_upgrade(id)
 			return
+
+
+## Does the crew need to be stronger: the Core asks for sites cleared, and
+## no site on the board is one the Rigs at home and out could clear?
+func _plating_wanted() -> bool:
+	var asked: bool = false
+	for st: Dictionary in S.core_status():
+		asked = asked or int(st["req"][0]) == CoreLevels.Req.OPERATIONS and not bool(st["met"])
+	if not asked:
+		return false
+	# The crew as it would be repaired: wear is the Plates' to fix, not
+	# research's (measured: bought against worn Rigs, Rig Plating took the
+	# Core 4 era's research and Core 6 came late or not at all).
+	var crew: float = S.crew_strength(S.rigs_home() + S.rigs_out()) / maxf(1.0 - S.rig_wear, 0.2)
+	for i in range(S.ops_board.size()):
+		if S.site(i).has("kind") and crew >= float(S.site(i)["left"]):
+			return false
+	return true
 
 
 func _pursue(st: Dictionary) -> void:
@@ -324,12 +465,19 @@ func _pursue(st: Dictionary) -> void:
 			var res: int = int(r[1])
 			if int(st["cap"]) < int(st["need"]):
 				S.upgrade_machine("vault")
-			elif _core_feeders(res) < 2:
+			elif _core_feeders(res) < _feeders_wanted(st):
 				_feed_core(res)
 		CoreLevels.Req.WORKING:
 			# The ones there are first: warmed, cooled or given an outlet;
 			# then more of them.
 			var id: String = String(r[1])
+			var job: String = CoreLevels.row_job(r)
+			if job != "":
+				# On a job: more of them, one a beat's while, with their chain.
+				if _count_job(job) < int(st["need"]) + 1 and t - _last_lab >= LAB_BEAT:
+					_last_lab = t
+					_build_job(id, job)
+				return
 			if not _fix_heat_of(id) and not _unblock(id):
 				if id == "lab" or S.grid.count_of(id) < int(st["need"]):
 					_build_line(id) if id == "lab" else _build_somewhere(id)
@@ -438,6 +586,12 @@ const LABS_FROM := 6
 
 
 func _more_labs() -> void:
+	# From Core 9: an Assay Bench, fed by a Frame Jig and the chain behind it.
+	if S.job_open("lab", "assay"):
+		if _count_job("assay") < ASSAYS and t - _last_lab >= LAB_BEAT:
+			_last_lab = t
+			_build_job("lab", "assay")
+		return
 	# On hot rock, with the deep chain open: a Lab fed Alloy (twice what a
 	# Component teaches), cooled.
 	if S.core_level >= MachineDB.OVERDRIVE_CORE and S.job_open("smelter", "alloy"):
@@ -452,6 +606,54 @@ func _more_labs() -> void:
 		return
 	_last_lab = t
 	_build_lab()
+
+
+## Assay Benches the player lays at most.
+const ASSAYS := 8
+
+
+func _count_job(job: String) -> int:
+	var n: int = 0
+	for cell: int in S.grid.cells:
+		if S.grid.job_at(cell) == job:
+			n += 1
+	return n
+
+
+## A machine `id` on job `job` off the Core's sides, where the most ground is
+## free, with the chain that feeds it (an Assay Bench: the Frame Jig and all
+## behind it).
+func _build_job(id: String, job: String) -> bool:
+	# Work a row asks for goes before the levels being saved for.
+	if S.credits < _chain_cost(id, job) * 1.2:
+		return false
+	var best: int = -1
+	var room: int = 2
+	for cell: int in BuildArea.cells(S.max_depth):
+		if not _free(cell) or S.sim.core_touching().has(cell):
+			continue
+		var r: int = _free_near(cell, true).size()
+		if r > room:
+			room = r
+			best = cell
+	if best >= 0:
+		return _chain(id, best, 0, job)
+	# The yard is full: a patch built for income alone makes way, as for a
+	# line (`_build_line`).
+	for cell: int in BuildArea.cells(S.max_depth):
+		if not _income_only(cell) or S.sim.core_touching().has(cell):
+			continue
+		var patch: Array[int] = [cell]
+		for n: int in S.grid.neighbours(cell):
+			if (_income_only(n) or _free(n)) and not S.sim.core_touching().has(n):
+				patch.append(n)
+		if patch.size() < 4:
+			continue
+		for c: int in patch:
+			if not S.grid.is_empty(c):
+				S.sell(c)
+		return _chain(id, cell, 0, job)
+	return false
 
 
 ## A research unit: a Deep Bore, a White Heat Smelter, a Coolant Cell and a
@@ -513,17 +715,44 @@ func _spare_overdrive() -> void:
 	if S.core_level < MachineDB.OVERDRIVE_CORE:
 		return
 	var keep: Dictionary = _keep_materials()
+	var books: float = _keep_research() if S.core_level >= FORGE_FROM else 0.0
 	for id: String in ["assembler", "press", "smelter", "crusher", "drill", "lab", "coolant", "condenser"]:
 		if not S.can_overdrive(id):
 			continue
 		var cost: Dictionary = S.overdrive_cost(id)
-		var ok: bool = true
+		var ok: bool = S.research - float(cost["research"]) >= books
 		for res: int in (cost["materials"] as Dictionary):
 			var left: int = S.stock_of(res) - int(cost["materials"][res])
 			ok = ok and (left >= int(keep.get(res, 0)) or S.stock_of(res) >= S.stock_cap())
 		if ok:
 			S.overdrive_machine(id)
 			return
+
+
+## Research the Core's open research and doctrine rows still need for their
+## next level: from Core 8 a spare Overdrive step does not take it
+## (measured: five spare steps took 600K of research while the doctrine row,
+## the last one open, waited 1 h 44 min for it).
+func _keep_research() -> float:
+	var out: float = 0.0
+	for st: Dictionary in S.core_status():
+		if bool(st["met"]):
+			continue
+		var r: Array = st["req"]
+		var lines: Array = []
+		match int(r[0]):
+			CoreLevels.Req.RESEARCH:
+				lines = [String(r[1])]
+			CoreLevels.Req.DOCTRINE:
+				if S.doctrine != "":
+					lines = Economy.DOCTRINES[S.doctrine]["lines"]
+		var cheapest: float = INF
+		for id: String in lines:
+			if S.upgrade_level(id) < S.research_cap(id):
+				cheapest = minf(cheapest, float(Economy.upgrade_cost(id, S.upgrade_level(id))["research"]))
+		if cheapest < INF:
+			out += cheapest
+	return out
 
 
 ## Machine levels past what the Core asks for, from what the store can
@@ -570,12 +799,26 @@ func _follow_plans() -> float:
 	# not rebuild a plan's machine the hot rock has cost it.
 	if S.core_level >= KEEP_FROM:
 		return 0.0
+	# A later plan's machine for a tile replaces an earlier plan's (the Rig
+	# Frame in the Core 3 line's Vault's place): measured, the two plans
+	# sold each other's machine on that tile for hours.
+	var later: Dictionary = {}
 	for plan: Dictionary in PLANS:
 		if S.core_level < int(plan["core"]) or S.max_depth < int(plan["from"]):
 			break
 		for e: Array in plan["cells"]:
+			later[Grid.idx(int(e[0]), int(e[1]))] = e
+	for plan: Dictionary in PLANS:
+		if S.core_level < int(plan["core"]) or S.max_depth < int(plan["from"]):
+			break
+		for e: Array in plan["cells"]:
+			if later.get(Grid.idx(int(e[0]), int(e[1]))) != e:
+				continue
 			var cell: int = Grid.idx(int(e[0]), int(e[1]))
 			var id: String = String(e[2])
+			var job: String = String(e[3]) if e.size() > 3 else ""
+			if S.grid.machine_at(cell) == id and S.grid.job_at(cell) != job:
+				S.set_job(cell, job)
 			if S.grid.machine_at(cell) == id or _dropped.has(cell):
 				continue
 			if not S.is_unlocked(id) or not S.is_open(cell) or S.is_blocked(cell):
@@ -586,6 +829,8 @@ func _follow_plans() -> float:
 					return S.cost_of(id)
 				S.sell(cell)
 			if S.try_place(cell, id):
+				if job != "":
+					S.set_job(cell, job)
 				return 0.0
 			if S.credits < S.cost_of(id):
 				return S.cost_of(id)
@@ -710,6 +955,16 @@ func _maker(res: int) -> Array:
 	return open[0]
 
 
+## Machines beside the Core a store row wants making its material: two, and
+## from Core 8 one more for every 60,000 still to come, up to six (the Core
+## 8 era's Frame Jigs filled about 85,000 Frames an hour: a row of 300,000
+## would be three and a half hours of them).
+func _feeders_wanted(st: Dictionary) -> int:
+	if S.core_level < FORGE_FROM:
+		return 2
+	return clampi(ceili((float(st["need"]) - float(st["have"])) / 60000.0), 2, 6)
+
+
 ## A chain that ends in a maker of `res` touching the Core.
 func _feed_core(res: int) -> bool:
 	var mk: Array = _maker(res)
@@ -805,28 +1060,93 @@ func _retask(mk: Array) -> bool:
 			== MachineDB.job_machine(String(mk[0]), String(mk[1])).get("outputs", {})
 		if same and S.sim.uptime_of(cell) < 0.2 and S.sim.status_of(cell) == Simulation.Status.STARVED:
 			wanted = false
-		if wanted or not S.set_job(cell, String(mk[1])):
+		if wanted:
+			continue
+		if S.core_level < FORGE_FROM:
+			_retask_at(cell, mk)
+			return true
+		# From Core 8, only where every input of the new job can be fed: a
+		# feeder beside it already, or a tile for one (measured: Frame Jigs
+		# retasked between Presses and Smelters, with no tile for the
+		# Components they take, starved for hours).
+		var ins: Dictionary = MachineDB.job_machine(String(mk[0]), String(mk[1])).get("inputs", {})
+		var plan: Dictionary = _feeder_tiles(cell, ins)
+		if plan.size() < ins.size() or not S.set_job(cell, String(mk[1])):
 			continue
 		_line[cell] = true
-		for res: int in (MachineDB.job_machine(String(mk[0]), String(mk[1])).get("inputs", {}) as Dictionary):
-			var fm: Array = _maker(res)
-			if fm.is_empty():
+		for res: int in plan:
+			var at: int = int(plan[res])
+			if at < 0:
 				continue
-			var spots: Array[int] = _free_near(cell, true)
-			if spots.is_empty():
-				# What fed its old job gives way to what feeds the new one.
-				for n: int in S.grid.neighbours(cell):
-					if S.sim.core_touching().has(n) or S.grid.is_empty(n):
-						continue
-					var nid: String = S.grid.machine_at(n)
-					if nid in ["crusher", "drill", "vault"] and S.grid.job_at(n) == "":
-						S.sell(n)
-						spots.append(n)
-						break
-			if not spots.is_empty():
-				_chain(String(fm[0]), spots[0], 1, String(fm[1]))
+			if not S.grid.is_empty(at):
+				S.sell(at)
+			var fm: Array = _maker(res)
+			_chain(String(fm[0]), at, 1, String(fm[1]))
 		return true
 	return false
+
+
+## The Core 7 era's retask, as measured: the job set, and a feeder laid
+## beside it for each input where there is room.
+func _retask_at(cell: int, mk: Array) -> void:
+	if not S.set_job(cell, String(mk[1])):
+		return
+	_line[cell] = true
+	for res: int in (MachineDB.job_machine(String(mk[0]), String(mk[1])).get("inputs", {}) as Dictionary):
+		var fm: Array = _maker(res)
+		if fm.is_empty():
+			continue
+		var spots: Array[int] = _free_near(cell, true)
+		if spots.is_empty():
+			# What fed its old job gives way to what feeds the new one.
+			for n: int in S.grid.neighbours(cell):
+				if S.sim.core_touching().has(n) or S.grid.is_empty(n):
+					continue
+				var nid: String = S.grid.machine_at(n)
+				if nid in ["crusher", "drill", "vault"] and S.grid.job_at(n) == "":
+					S.sell(n)
+					spots.append(n)
+					break
+		if not spots.is_empty():
+			_chain(String(fm[0]), spots[0], 1, String(fm[1]))
+
+
+## For each of `ins` a machine on `cell` takes: -1 when a machine beside it
+## already makes it, else a tile beside it for a feeder -- free ground, or a
+## machine off the Core's side that feeds it nothing and is no heat support,
+## which gives way. {res: tile}; an input missing has no way to be fed.
+func _feeder_tiles(cell: int, ins: Dictionary) -> Dictionary:
+	var plan: Dictionary = {}
+	var used: Dictionary = {}
+	for res: int in ins:
+		if _maker(res).is_empty():
+			continue
+		for n: int in S.grid.bridged_machines(cell):
+			if (S.sim.machine_of(n).get("outputs", {}) as Dictionary).has(res):
+				plan[res] = -1
+		if plan.has(res):
+			continue
+		for n: int in _free_near(cell, true):
+			if not used.has(n):
+				plan[res] = n
+				break
+		if plan.has(res):
+			used[plan[res]] = true
+			continue
+		for n: int in S.grid.neighbours(cell):
+			if used.has(n) or S.grid.is_empty(n) or S.sim.core_touching().has(n) or _reserved(n):
+				continue
+			var nid: String = S.grid.machine_at(n)
+			if MachineDB.is_heat_support(nid) or nid == "vault" and not _income_only(n):
+				continue
+			var feeds: bool = false
+			for o: int in (S.sim.machine_of(n).get("outputs", {}) as Dictionary):
+				feeds = feeds or ins.has(o)
+			if not feeds and S.is_open(n) and not S.is_blocked(n):
+				plan[res] = n
+				used[n] = true
+				break
+	return plan
 
 
 ## What a maker and the chain behind it cost, roughly: a player looks at the
@@ -835,7 +1155,7 @@ func _chain_cost(id: String, job: String = "") -> float:
 	var m: Dictionary = MachineDB.job_machine(id, job)
 	var total: float = S.cost_of(id)
 	var ins: Dictionary = m.get("inputs", {})
-	if (m.get("tags", []) as Array).has("research"):
+	if (m.get("tags", []) as Array).has("research") and ins.size() > 1:
 		ins = {MachineDB.Res.INGOT: 1}
 	for res: int in ins:
 		var mk: Array = _maker(res)
@@ -851,6 +1171,10 @@ func _chain_cost(id: String, job: String = "") -> float:
 ## blocked, with nowhere for its output to go, a Vault.
 func _repair() -> void:
 	for cell: int in S.grid.cells:
+		# A Rig Frame stands still when the crew is full, and waits on the
+		# lines beside it: it is fed and emptied by the crew, not repaired.
+		if S.grid.job_at(cell) == "rig":
+			continue
 		if S.sim.status_of(cell) == Simulation.Status.BLOCKED:
 			if not _worth(S.cost_of("vault")) or S.grid.machine_at(cell) == "drill":
 				continue
@@ -867,12 +1191,24 @@ func _repair() -> void:
 		if (m.get("tags", []) as Array).has("sink"):
 			continue
 		var ins: Dictionary = m.get("inputs", {})
-		if (m.get("tags", []) as Array).has("research"):
+		if (m.get("tags", []) as Array).has("research") and ins.size() > 1:
 			ins = {MachineDB.Res.INGOT: 1}
 		for res: int in ins:
 			var mk: Array = _maker(res)
 			if mk.is_empty() or not _worth(_chain_cost(String(mk[0]), String(mk[1]))):
 				continue
+			if S.core_level >= FORGE_FROM:
+				# From Core 8: the input it lacks, not one already fed (measured:
+				# a Frame Jig fed Alloy was given more Alloy, never Components),
+				# on a tile beside it -- free, or a machine feeding it nothing.
+				var plan: Dictionary = _feeder_tiles(cell, {res: 1})
+				if not plan.has(res) or int(plan[res]) < 0:
+					continue
+				var at: int = int(plan[res])
+				if not S.grid.is_empty(at):
+					S.sell(at)
+				_chain(String(mk[0]), at, 1, String(mk[1]))
+				return
 			var spots: Array[int] = _free_near(cell, true)
 			if spots.is_empty():
 				# No room: an income-only neighbour makes way for the feeder.
@@ -897,7 +1233,7 @@ func _chain(id: String, cell: int, depth: int, job: String = "") -> bool:
 	var m: Dictionary = MachineDB.job_machine(id, job)
 	_cool_if_needed(cell)
 	var ins: Dictionary = m.get("inputs", {})
-	if (m.get("tags", []) as Array).has("research"):
+	if (m.get("tags", []) as Array).has("research") and ins.size() > 1:
 		ins = {MachineDB.Res.INGOT: 1}
 	for res: int in ins:
 		var fed: bool = false
@@ -930,6 +1266,8 @@ func _chain(id: String, cell: int, depth: int, job: String = "") -> bool:
 	if (MachineDB.heat_liking(id) > 0 or float(m.get("heat_optimum", 0.0)) >= 1.0) \
 			and S.is_unlocked("boiler") and cold:
 		var spots2: Array[int] = _free_near(cell, true)
+		if S.core_level >= FORGE_FROM:
+			spots2.assign(spots2.filter(func(c: int) -> bool: return _heat_safe(c, "boiler")))
 		if not spots2.is_empty():
 			S.try_place(spots2[0], "boiler")
 	return true
@@ -1155,6 +1493,12 @@ func _fix_heat(cell: int, may_remove: bool = true) -> bool:
 	var id: String = "boiler" if warm else "coolant"
 	if not S.is_unlocked(id) or not S.can_afford(id):
 		return false
+	if id == "boiler" and S.core_level >= FORGE_FROM:
+		# From Core 8: only where no neighbour goes past its safe range.
+		for n: int in _free_near(cell, false):
+			if _heat_safe(n, "boiler"):
+				return S.try_place(n, "boiler")
+		return false
 	var spot: int = _room_near(cell)
 	if spot < 0 and id == "coolant":
 		# A Coolant Cell passes material through, so it may take a tile a
@@ -1306,6 +1650,28 @@ func _cool_if_needed(cell: int) -> void:
 const COOL_MARGIN := 0.5
 
 
+## Would a machine of type `id` on `spot` leave every machine beside it
+## within its safe range? What the heat card shows before a Boiler goes
+## down; from Core 8 the player looks (measured: Boilers laid to warm White
+## Heat Smelters overheated the Vaults and Deep Bores beside them, and the
+## stability row stayed at 0 for hours).
+func _heat_safe(spot: int, id: String) -> bool:
+	var h: float = float(MachineDB.get_machine(id).get("heat_out", 0.0)) \
+		* float(S.grid.heat_scale.get(id, 1.0)) * S.grid.heat_spread
+	if h <= 0.0:
+		return true
+	for n: int in S.grid.neighbours(spot):
+		var nid: String = S.grid.machine_at(n)
+		if nid == "" or MachineDB.is_heat_support(nid):
+			continue
+		var m: Dictionary = S.sim.machine_of(n)
+		if m.has("heat_drive"):
+			continue
+		if S.grid.heat_at(n) + h > float(m["heat_tolerance"]) + S.sim.tolerance_bonus - COOL_MARGIN:
+			return false
+	return true
+
+
 ## When each machine now overheating was first seen to (`_pursue`,
 ## stability); cleared once nothing overheats.
 var _hot_since: Dictionary = {}
@@ -1370,6 +1736,23 @@ func _deep_units() -> int:
 
 func _deep_cost() -> float:
 	return S.cost_of("drill") + S.cost_of("smelter") + S.cost_of("vault")
+
+
+## From the Core's level FORGE_FROM the player judges a deep unit by what it
+## sells, not by the factory's income: at most DEEP_UNIT_PAYBACK seconds.
+const FORGE_FROM := 8
+const DEEP_UNIT_PAYBACK := 1800.0
+
+
+## Credits a second a new deep unit's Alloy sells for: the best White Heat
+## Smelter at work now, as a Vault sells what it makes.
+func _unit_income() -> float:
+	var best: float = 0.0
+	for cell: int in S.grid.cells:
+		if S.grid.job_at(cell) == "alloy" and S.sim.status_of(cell) == Simulation.Status.RUNNING:
+			best = maxf(best, S.sim.effective_rate(cell))
+	return best * S.sim.yield_mult * MachineDB.value_of(MachineDB.Res.ALLOY) * S.sim.value_mult \
+		* float(S.sim.res_value_mult.get(MachineDB.Res.ALLOY, 1.0))
 
 
 ## A Deep Bore, a White Heat Smelter and a Vault in a row on free ground,
@@ -1542,7 +1925,7 @@ func _working_all() -> Dictionary:
 		if n > 0:
 			out[id] = n
 	# The deep chain's makers among them, by job.
-	for job: String in ["crystal", "alloy", "sheet", "parts", "frame"]:
+	for job: String in ["crystal", "alloy", "sheet", "parts", "frame", "assay"]:
 		var k: int = 0
 		var placed: int = 0
 		for cell: int in S.grid.cells:
@@ -1560,7 +1943,7 @@ func _working_all() -> Dictionary:
 func _req_text(st: Dictionary) -> String:
 	var r: Array = st["req"]
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive", "doctrine"][int(r[0])]
+		"stable", "overdrive", "doctrine", "operations"][int(r[0])]
 	if r.size() > 2:
 		var what: String = String(MachineDB.RES_NAME[int(r[1])]) if int(r[0]) == CoreLevels.Req.STOCK else str(r[1])
 		name += " " + what

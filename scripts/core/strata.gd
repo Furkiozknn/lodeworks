@@ -101,9 +101,22 @@ const MODIFIER_IDS := ["thermal_vent", "coolant_seep", "brittle", "dense",
 ## each for strata 8 to 12. At 1.8x the first strata take two to three
 ## minutes, the middle three to four, and from stratum 9 five minutes and
 ## more (docs/AUDIT.md, "Descend: the pace").
+##
+## From DEEP_QUOTA_FROM it grows DEEP_QUOTA_GROWTH a stratum. Past stratum
+## 20 the Core's level caps the descent, five strata an era, and income
+## grows about 1.2-1.5 times an era, not 1.8 times a stratum: measured, the
+## way from stratum 24 to 29 that Core 10 asks for cost 1.8B credits at 1.8
+## times, eighteen hours of the Core 9 factory's income (docs/PROGRESSION.md,
+## "Core 10"). At 1.1 times it is 68M, about forty minutes of it.
+const DEEP_QUOTA_FROM := 20
+const DEEP_QUOTA_GROWTH := 1.1
+
+
 static func quota_for(depth: int) -> float:
 	if depth <= 0:
 		return 60.0
+	if depth > DEEP_QUOTA_FROM:
+		return quota_for(DEEP_QUOTA_FROM) * pow(DEEP_QUOTA_GROWTH, float(depth - DEEP_QUOTA_FROM))
 	return 60.0 * pow(1.8, float(depth)) + 40.0 * float(depth)
 
 
