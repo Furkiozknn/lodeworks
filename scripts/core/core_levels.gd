@@ -70,6 +70,9 @@ const LEVELS := [
 		[Req.RESEARCH, "yield_1", 2],
 		[Req.RESEARCH, "throughput_1", 3],
 		[Req.DEPTH, 4],
+		# The first gallery, open since Core 2 to the Foreman's Rig: one
+		# site cleared (docs/GAME-LOOP.md, section 1).
+		[Req.OPERATIONS, 1],
 	]},
 	{"level": 4, "era": "Assembly", "depth_cap": 9, "machine_cap": 5, "requires": [
 		[Req.CREDITS, 1200000.0],
@@ -378,7 +381,7 @@ static func opens(level: int) -> Dictionary:
 			lines.append(id)
 	return {"strata": [from, to], "machines": machines, "materials": materials, "jobs": jobs,
 		"doctrine": level == Economy.DOCTRINE_CORE, "export": level == EXPORT_CORE,
-		"operations": level == MachineDB.RIG_CORE,
+		"operations": level == MachineDB.RIG_CORE or level == Operations.FIRST_SITE_CORE,
 		"machine_cap": machine_cap(level), "research": lines,
 		"stock_cap": MachineDB.stock_cap(machine_cap(level)),
 		"overdrive": overdrive_cap(level) - overdrive_cap(level - 1)}
@@ -584,8 +587,9 @@ static func available_at(r: Array) -> int:
 		Req.DOCTRINE:
 			return doctrine_at(int(r[1]))
 		Req.OPERATIONS:
-			# Sites cleared by the crew, which the Rig Frame job opens.
-			return job_at("assembler", "rig")
+			# Sites cleared by the crew: the first gallery opens to the
+			# Foreman's Rig.
+			return Operations.FIRST_SITE_CORE
 	return -1
 
 

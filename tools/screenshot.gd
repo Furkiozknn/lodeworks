@@ -451,6 +451,18 @@ func _run_rigs() -> void:
 	await _settle(0.8)
 	await _capture("rigs_core_card")
 	_clear_transient()
+	# Before the crew is made: the Foreman's Rig in the one gallery Core 2
+	# opens, the other two mouths boarded up.
+	Sim.core_level = 2
+	Sim.clear_ops()
+	Sim.stock[MachineDB.Res.RIG] = Operations.FIRST_CREW
+	Sim.rig_wear = 0.0
+	Sim._recompute()
+	Sim.send_sortie(0, 1)
+	(Sim.sorties[0] as Dictionary)["left"] = float(Sim.sorties[0]["trip"]) * 0.5
+	await _settle(1.0)
+	await _capture("rigs_early_board")
+	_clear_transient()
 
 
 ## Alt text, up to 140 characters each, written next to the images so whoever

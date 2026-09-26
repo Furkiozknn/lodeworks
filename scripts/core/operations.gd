@@ -22,12 +22,38 @@ extends RefCounted
 ## leaves the site that much weaker for the next one (a failure that eases
 ## the next try, not a loss). No Rig is ever destroyed (FP-09).
 
-## The Core's level that opens the Rig Frame job, the crew and the board.
+## The Core's level that opens the Rig Frame job, a crew of several and the
+## whole board.
 const RIG_CORE := MachineDB.RIG_CORE
+## Before it, the crew is FIRST_CREW Rig the Core keeps from the moment it
+## comes online -- the Foreman's, which walks to the machines every level
+## bought -- and from FIRST_SITE_CORE one gallery is open to it: a site of
+## EARLY_NEED strength, which a whole Rig clears, paying EARLY_PAY of what a
+## site of its strength pays once the crew is made. The owner's brief asked
+## for the robots and the operations in the first minutes, not after half
+## an hour (docs/GAME-LOOP.md, section 1).
+const FIRST_CREW := 1
+const FIRST_SITE_CORE := 2
+const EARLY_NEED := 8.0
+const EARLY_PAY := 0.25
 ## The crew the Core keeps: CREW_BASE Rigs at RIG_CORE, CREW_PER_CORE more
 ## for every level after.
 const CREW_BASE := 3
 const CREW_PER_CORE := 1
+## What sorties bring home besides their pay: every SITES_PER_RIG sites
+## cleared, in any shaft, the Core finds room for one more Rig, up to
+## SITE_RIGS_MAX more -- the crew grows by what it has done, as a
+## reference game's army grows with its camps (docs/GAME-LOOP.md). The
+## count is the lifetime one, so a collapse keeps it.
+const SITES_PER_RIG := 10
+const SITE_RIGS_MAX := 6
+
+
+## The Rigs the crew has earned room for by `sites` cleared in all.
+static func earned_rigs(sites: int) -> int:
+	return mini(maxi(sites, 0) / SITES_PER_RIG, SITE_RIGS_MAX)
+
+
 ## What one Rig brings to a sortie, whole and with no Rig Plating.
 const RIG_POWER := 10.0
 ## Sites on the board at a time.
@@ -97,11 +123,19 @@ const TRIP_BASE := 40.0
 const TRIP_PER_TIER := 20.0
 
 
-## The crew the Core keeps under a Core of `level` (0 before RIG_CORE).
+## The crew the Core keeps under a Core of `level`.
 static func crew_cap(level: int) -> int:
 	if level < RIG_CORE:
-		return 0
+		return FIRST_CREW
 	return CREW_BASE + CREW_PER_CORE * (level - RIG_CORE)
+
+
+## Sites on the board under a Core of `level`: none before FIRST_SITE_CORE,
+## one before RIG_CORE.
+static func slots(level: int) -> int:
+	if level < FIRST_SITE_CORE:
+		return 0
+	return 1 if level < RIG_CORE else SLOTS
 
 
 ## How much the Core's level has grown the galleries' numbers.
@@ -119,6 +153,11 @@ static func deal(core_level: int, depth: int, serial: int) -> Dictionary:
 	var kinds: Array = KIND_ORDER.duplicate()
 	if core_level <= RIG_CORE:
 		kinds.erase("nest")
+	# Before the crew is made, only what a first factory has: Plates and
+	# Ingots, at one Rig's strength.
+	var early: bool = core_level < RIG_CORE
+	if early:
+		kinds = ["flooded", "drift"]
 	var kind: String = String(kinds[rng.randi_range(0, kinds.size() - 1)])
 	var pick: float = rng.randf()
 	var tier: int = 0
@@ -127,7 +166,9 @@ static func deal(core_level: int, depth: int, serial: int) -> Dictionary:
 		if pick <= 0.0:
 			tier = k
 			break
-	var need: float = snappedf(NEED_BASE * growth(core_level) * float(TIERS[tier]), 1.0)
+	if early:
+		tier = 0
+	var need: float = EARLY_NEED if early else snappedf(NEED_BASE * growth(core_level) * float(TIERS[tier]), 1.0)
 	# Deeper galleries are rougher on a Rig.
 	var hazard: float = minf(float(KINDS[kind]["hazard"]) * (1.0 + 0.02 * float(depth)), 0.6)
 	return {"kind": kind, "tier": tier, "need": need, "left": need, "hazard": hazard,
@@ -141,9 +182,10 @@ static func reward(s: Dictionary, credits_per_sec: float) -> Dictionary:
 		return {}
 	var need: float = float(s["need"])
 	var tier: float = float(TIERS[int(s["tier"])])
+	var pay: float = EARLY_PAY if int(s.get("core", RIG_CORE)) < RIG_CORE else 1.0
 	return {
-		"credits": maxf(need * CREDITS_PER_NEED, credits_per_sec * REWARD_SECONDS * tier),
-		"research": need * RESEARCH_PER_NEED,
+		"credits": maxf(need * CREDITS_PER_NEED * pay, credits_per_sec * REWARD_SECONDS * tier),
+		"research": need * RESEARCH_PER_NEED * pay,
 		"res": int(KINDS[String(s["kind"])]["res"]),
 		"n": int(ceil(need * UNITS_PER_NEED)),
 	}

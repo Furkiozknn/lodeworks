@@ -282,6 +282,10 @@ func power_core() -> bool:
 		return false
 	core_online = true
 	credits += core_reserve()
+	# The Foreman's Rig: the crew before the Rig Frame job is made
+	# (Operations.FIRST_CREW), there as the Core comes online.
+	if core_level < MachineDB.RIG_CORE:
+		stock[MachineDB.Res.RIG] = Operations.crew_cap(core_level)
 	stats_changed.emit()
 	Save.save_game(self)
 	return true
@@ -329,6 +333,8 @@ func upgrade_core() -> bool:
 			CoreLevels.Req.STOCK:
 				_take_stock({int(r[1]): int(r[2])})
 	core_level += 1
+	# The Core's rows count the sites cleared since it last grew.
+	ops_cleared = 0
 	_sync_core()
 	_deal_ops()
 	core_upgraded.emit(core_level)
@@ -402,7 +408,7 @@ func _sync_core() -> void:
 			room[int(res)] = cap - stock_of(int(res))
 	# The crew: Rigs, up to the limit the Core's level sets, less those out.
 	var crew: int = crew_cap() - rigs_home() - rigs_out()
-	if crew > 0:
+	if crew > 0 and core_level >= MachineDB.RIG_CORE:
 		room[MachineDB.Res.RIG] = crew
 	sim.core_wants = room
 	sim.core_export = CoreLevels.EXPORT_SHARE if core_level >= CoreLevels.EXPORT_CORE else 0.0
@@ -549,7 +555,8 @@ func drop_contract(i: int) -> bool:
 ## The sites on the board, Operations.SLOTS of them ({} for a slot not dealt).
 var ops_board: Array = []
 var ops_serial: int = 0
-## Sites this shaft's crew has cleared (a Core row counts them), and in all.
+## Sites the crew has cleared since the Core last grew (its rows count
+## them), and in all.
 var ops_cleared: int = 0
 var ops_lifetime: int = 0
 ## Sorties out: [{"slot", "n", "left" (seconds to home), "trip", "site" (as
@@ -562,7 +569,17 @@ var rig_wear: float = 0.0
 
 ## The crew the Core keeps under its level.
 func crew_cap() -> int:
-	return Operations.crew_cap(core_level)
+	if core_level < MachineDB.RIG_CORE:
+		return Operations.crew_cap(core_level)
+	return Operations.crew_cap(core_level) + Operations.earned_rigs(ops_lifetime)
+
+
+## Sites still to clear before the crew earns room for another Rig; 0 when
+## it has earned all it can.
+func sites_to_next_rig() -> int:
+	if core_level < MachineDB.RIG_CORE or Operations.earned_rigs(ops_lifetime) >= Operations.SITE_RIGS_MAX:
+		return 0
+	return Operations.SITES_PER_RIG - ops_lifetime % Operations.SITES_PER_RIG
 
 
 func rigs_home() -> int:
@@ -598,12 +615,12 @@ func site_busy(i: int) -> bool:
 	return false
 
 
-## Why `n` Rigs cannot go to site `i` now, or "" when they can: "core" (the
-## crew is not open), "site" (nothing dealt there), "busy" (a sortie is
+## Why `n` Rigs cannot go to site `i` now, or "" when they can: "core" (no
+## gallery is open yet), "site" (nothing dealt there), "busy" (a sortie is
 ## already out to it), "rigs" (not that many at home), "fuel" (not the
 ## Ingots).
 func sortie_blocker(i: int, n: int) -> String:
-	if core_level < MachineDB.RIG_CORE:
+	if Operations.slots(core_level) == 0:
 		return "core"
 	if not site(i).has("kind"):
 		return "site"
@@ -723,11 +740,9 @@ func repair_rigs() -> bool:
 	return true
 
 
-## Deal a site into every empty slot, once the Core keeps a crew.
+## Deal a site into every empty slot the Core's level opens.
 func _deal_ops() -> void:
-	if core_level < MachineDB.RIG_CORE:
-		return
-	while ops_board.size() < Operations.SLOTS:
+	while ops_board.size() < Operations.slots(core_level):
 		ops_board.append({})
 	for i in range(ops_board.size()):
 		if (ops_board[i] as Dictionary).has("kind"):

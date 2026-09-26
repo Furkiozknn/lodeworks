@@ -178,6 +178,11 @@ func _ready() -> void:
 	Sim.core_upgraded.connect(func(level: int):
 		Juice.upgrade()
 		iso_view.pulse_core()
+		if level == Operations.FIRST_SITE_CORE:
+			# The first gallery: the Foreman's Rig has somewhere to go.
+			_say(Loc.t("The first gallery past the yard is open. Send the Core's Rig in: it comes home with what the old workings held."),
+				Foreman.Pose.POINT, 7.0)
+			return
 		if level == MachineDB.RIG_CORE:
 			# The crew's first contact: what it is, and the one step to it.
 			_say(Loc.t("The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."),
@@ -195,6 +200,9 @@ func _ready() -> void:
 		_toast_msg((Loc.t("Rigs home from the %s, cleared: +%s credits, +%s research")
 			if bool(rep["cleared"]) else Loc.t("Rigs home from the %s, not cleared: +%s credits, +%s research"))
 			% [where, Economy.fmt(float(rep["credits"])), Economy.fmt(float(rep["research"]))]))
+	Sim.machine_upgraded.connect(func(id: String, _level: int):
+		# The crew goes out to the machines it levelled (IsoView.service).
+		iso_view.service(id))
 	Sim.machine_upgraded.connect(func(id: String, level: int):
 		Juice.upgrade()
 		if iso_view.selected_cell >= 0 and Sim.grid.machine_at(iso_view.selected_cell) == id:
@@ -1303,6 +1311,7 @@ func _build_sheet() -> void:
 	_sheet_drive.pressed.connect(func():
 		var cell: int = iso_view.selected_cell
 		if cell >= 0 and Sim.overdrive_machine(Sim.grid.machine_at(cell)):
+			iso_view.service(Sim.grid.machine_at(cell))
 			Juice.tap()
 			_show_cell_info(cell)
 			_refresh())
@@ -2732,7 +2741,7 @@ func _contract_pay_words(i: int) -> String:
 ## board: what it is, what it needs against the crew, what it pays, and a
 ## key that sends the Rigs. null before the Core keeps a crew.
 func _core_operations(titled: bool = true) -> Control:
-	if Sim.core_level < MachineDB.RIG_CORE:
+	if Operations.slots(Sim.core_level) == 0:
 		return null
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
@@ -2746,7 +2755,7 @@ func _core_operations(titled: bool = true) -> Control:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	head.add_child(_help_button(Loc.t("Galleries"), func() -> String:
-		return Loc.t("Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots an Assembler builds on the Rig Frame job beside the Core -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.")))
+		return Loc.t("Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots the Core keeps, the first from the start, the rest built by an Assembler on the Rig Frame job -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.")))
 	box.add_child(head)
 	_ops_rows(box)
 	return box
@@ -2759,9 +2768,9 @@ var _ops_reopen: Callable = _show_core
 
 ## The galleries on their own: what a tap on a gallery mouth opens.
 func _show_galleries() -> void:
-	if Sim.core_level < MachineDB.RIG_CORE:
-		_say(Loc.t("Old galleries, boarded up. From the Core's level %d it keeps a crew of Rigs, and sends them in.")
-			% MachineDB.RIG_CORE, Foreman.Pose.POINT, 6.0)
+	if Operations.slots(Sim.core_level) == 0:
+		_say(Loc.t("Old galleries, boarded up. At the Core's level %d the first opens, and its Rig can go in.")
+			% Operations.FIRST_SITE_CORE, Foreman.Pose.POINT, 6.0)
 		return
 	_ops_reopen = _show_galleries
 	_open_overlay(Loc.t("Galleries"), _core_operations(false), [], 760.0)
@@ -2778,6 +2787,9 @@ func _ops_rows(box: VBoxContainer) -> void:
 	cw.add_theme_constant_override("separation", 0)
 	cw.add_child(_label(Loc.t("Rigs: %d at the Core, %d out, room for %d") % [Sim.rigs_home(), Sim.rigs_out(),
 		Sim.crew_cap()], 22, Palette.TEXT))
+	if Sim.sites_to_next_rig() > 0:
+		cw.add_child(_label(Loc.t("%d more sites cleared, room for another Rig") % Sim.sites_to_next_rig(),
+			TEXT_MIN, Palette.TEXT_DIM))
 	var worn: String = Loc.t("%d%% worn") % int(round(Sim.rig_wear * 100.0)) if Sim.rig_wear > 0.0 \
 		else Loc.t("whole")
 	cw.add_child(_label(Loc.t("strength %d each, %s") % [int(round(Sim.crew_strength(1))), worn], TEXT_MIN,
@@ -2796,7 +2808,12 @@ func _ops_rows(box: VBoxContainer) -> void:
 				_ops_reopen.call())
 		crew.add_child(fix)
 	box.add_child(crew)
-	if Sim.crew_cap() > 0 and Sim.rigs_home() + Sim.rigs_out() == 0:
+	if Sim.core_level < MachineDB.RIG_CORE:
+		var more := _label(Loc.t("At the Core's level %d: more galleries, and Assemblers that build Rigs.")
+			% MachineDB.RIG_CORE, TEXT_MIN, Palette.TEXT_DIM)
+		more.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(more)
+	elif Sim.rigs_home() + Sim.rigs_out() == 0:
 		var how := _label(Loc.t("No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core."),
 			TEXT_MIN, Palette.TEXT_DIM)
 		how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2942,7 +2959,7 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 			go = _show_research
 		CoreLevels.Req.OPERATIONS:
 			pic = Chips.Gem.new(MachineDB.Res.RIG, 1, 40.0)
-			words = Loc.t("%d sites in the galleries cleared by Rigs") % int(st["need"])
+			words = Loc.t("%d sites in the galleries cleared since the Core last grew") % int(st["need"])
 			go = func() -> void: _show_core()
 		_:
 			pic = _icon_rect("heat", 44)
@@ -3210,6 +3227,14 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Overdrive the %s: step %d") % [MachineDB.name_of(oid), int(e["step"])]
 			sub = Loc.t("Paid in Ingots, Plates and research, not credits.")
 			go = func() -> void: _select_type(oid)
+		"sortie":
+			var si: int = int(e["i"])
+			var sk: Dictionary = Operations.KINDS[String(Sim.site(si)["kind"])]
+			pic = Chips.Gem.new(MachineDB.Res.RIG, 1, 44.0)
+			title = Loc.tn("Send %d Rig to the %s", "Send %d Rigs to the %s", int(e["n"])) % [int(e["n"]),
+				Loc.t(String(sk["name"]))]
+			sub = Loc.t("They clear it, and come home with what it holds.")
+			go = _show_galleries
 		"contract":
 			var ci: int = int(e["i"])
 			var cc: Dictionary = Sim.contract(ci)

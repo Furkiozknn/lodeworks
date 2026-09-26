@@ -172,6 +172,18 @@ func _run() -> void:
 	_row("video memory (renderer counter)", "%.1f MB" % (
 		Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0))
 
+	# The crew on the board: Rigs at the Core, two sorties out, a service call.
+	Sim.core_level = maxi(Sim.core_level, MachineDB.RIG_CORE + 2)
+	Sim._recompute()
+	Sim.stock[MachineDB.Res.RIG] = Sim.crew_cap()
+	Sim.stock[MachineDB.Res.INGOT] = 500
+	Sim._sync_core()
+	Sim.send_sortie(0, 2)
+	Sim.send_sortie(1, 1)
+	if view != null:
+		view.call("service", "drill")
+	_frame_row("frames, idle, the crew out (%d Rigs)" % Sim.crew_cap(), await _sample(4.0))
+
 	if view != null:
 		var cam: IsoCamera = view.get("cam")
 		var c0: Vector2 = cam.center

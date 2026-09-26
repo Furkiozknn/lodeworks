@@ -52,7 +52,8 @@ func _done() -> void:
 ## --- the crew -----------------------------------------------------------------------
 
 func test_the_crew_opens_at_core_4_with_the_rig_frame_job() -> void:
-	runner.eq(Operations.crew_cap(MachineDB.RIG_CORE - 1), 0, "no crew before Core 4")
+	runner.eq(Operations.crew_cap(MachineDB.RIG_CORE - 1), Operations.FIRST_CREW,
+		"before Core 4, one Rig: the Foreman's")
 	runner.eq(Operations.crew_cap(MachineDB.RIG_CORE), Operations.CREW_BASE, "three Rigs at Core 4")
 	runner.eq(Operations.crew_cap(MachineDB.RIG_CORE + 2), Operations.CREW_BASE + 2, "one more a level")
 	var m: Dictionary = MachineDB.job_machine("assembler", "rig")
@@ -70,8 +71,21 @@ func test_the_crew_opens_at_core_4_with_the_rig_frame_job() -> void:
 		if int(r[0]) == CoreLevels.Req.OPERATIONS:
 			ops = r
 	runner.check(not ops.is_empty(), "Core 5 asks for sites cleared")
-	runner.eq(CoreLevels.available_at(ops), MachineDB.RIG_CORE, "which Core 4 makes possible")
+	runner.eq(CoreLevels.available_at(ops), Operations.FIRST_SITE_CORE, "which the first gallery makes possible")
 	runner.check(not MachineDB.STOCKED.has(RIG), "a Rig is crew, not stock: no store row, contract or export")
+	# Sites cleared earn the crew room: one Rig every ten, up to six.
+	runner.eq(Operations.earned_rigs(9), 0, "")
+	runner.eq(Operations.earned_rigs(10), 1, "ten sites cleared, room for one more Rig")
+	runner.eq(Operations.earned_rigs(1000), Operations.SITE_RIGS_MAX, "never more than six")
+	_fresh()
+	Sim.ops_lifetime = 23
+	runner.eq(Sim.crew_cap(), Operations.CREW_BASE + 2, "a Core 4 crew after 23 sites in all")
+	runner.eq(Sim.sites_to_next_rig(), 7, "and seven more for the next")
+	_fresh(3, 6)
+	Sim.ops_lifetime = 50
+	runner.eq(Sim.crew_cap(), Operations.FIRST_CREW, "one Rig before Core 4, whatever it has done")
+	runner.eq(Sim.sites_to_next_rig(), 0, "and no room to earn before the Rig Frame")
+	_done()
 
 
 func test_rigs_come_from_beside_the_core_up_to_the_crew_limit() -> void:
@@ -82,8 +96,46 @@ func test_rigs_come_from_beside_the_core_up_to_the_crew_limit() -> void:
 	runner.eq(Sim.rigs_home(), Sim.crew_cap(), "no more than the limit is kept")
 	runner.eq(int(Sim.sim.core_wants.get(RIG, 0)), 0, "and the Core takes no more")
 	_fresh(3, 6)
-	runner.eq(int(Sim.sim.core_wants.get(RIG, 0)), 0, "a Core 3 keeps no crew")
-	runner.check(Sim.ops_board.is_empty(), "and deals no site")
+	runner.eq(int(Sim.sim.core_wants.get(RIG, 0)), 0, "a Core 3 takes in no Rigs: nothing makes them yet")
+	runner.eq(Sim.ops_board.size(), 1, "and has one gallery open")
+	_done()
+
+
+## --- before the crew: the Foreman's Rig and the first gallery ----------------------
+
+func test_the_foremans_rig_and_the_first_gallery() -> void:
+	_fresh(1, 0)
+	Sim.core_online = false
+	Sim.stock = {}
+	runner.check(Sim.power_core(), "")
+	runner.eq(Sim.rigs_home(), Operations.FIRST_CREW, "the Core comes online with the Foreman's Rig")
+	runner.check(Sim.ops_board.is_empty(), "no gallery open at level 1")
+	runner.eq(Sim.sortie_blocker(0, 1), "core", "")
+	_fresh(2, 3)
+	Sim.stock = {RIG: 1, INGOT: 50}
+	Sim._sync_core()
+	runner.eq(Sim.ops_board.size(), 1, "Core 2 opens one gallery")
+	var s: Dictionary = Sim.site(0).duplicate()
+	runner.check(["flooded", "drift"].has(String(s["kind"])), "of what a first factory knows")
+	runner.near(float(s["need"]), Operations.EARLY_NEED, 0.0001, "")
+	runner.check(Sim.crew_strength(1) >= float(s["left"]), "which one whole Rig clears")
+	var r: Dictionary = Operations.reward(s, 0.0)
+	runner.near(float(r["credits"]), Operations.EARLY_NEED * Operations.CREDITS_PER_NEED * Operations.EARLY_PAY,
+		0.01, "for a quarter of a later site's pay")
+	var kinds: Array = Worklist.of(Sim).map(func(e: Dictionary) -> String: return String(e["kind"]))
+	runner.check(kinds.has("sortie"), "What now? points at it")
+	runner.check(Sim.send_sortie(0, 1), "the Rig goes in")
+	kinds = Worklist.of(Sim).map(func(e: Dictionary) -> String: return String(e["kind"]))
+	runner.check(not kinds.has("sortie"), "and not while it is out")
+	Sim.advance_ops(Operations.trip(s) + 1.0)
+	runner.eq(Sim.ops_cleared, 1, "and clears it")
+	runner.eq(Sim.rigs_home(), 1, "home again")
+	runner.eq(Sim.ops_board.size(), 1, "and another is dealt")
+	var ops: Array = []
+	for row: Array in CoreLevels.requirements(3):
+		if int(row[0]) == CoreLevels.Req.OPERATIONS:
+			ops = row
+	runner.eq(ops, [CoreLevels.Req.OPERATIONS, 1], "Core 3 asks for that one site")
 	_done()
 
 
@@ -177,8 +229,8 @@ func test_a_sortie_too_weak_takes_its_share_and_leaves_the_site_weaker() -> void
 
 
 func test_blockers_repairs_and_rig_plating() -> void:
-	_fresh(3, 6)
-	runner.eq(Sim.sortie_blocker(0, 1), "core", "no crew before Core 4")
+	_fresh(1, 0)
+	runner.eq(Sim.sortie_blocker(0, 1), "core", "no gallery open at Core 1")
 	_fresh()
 	runner.eq(Sim.sortie_blocker(0, 1), "rigs", "no Rigs at home")
 	Sim.stock = {RIG: 2}

@@ -144,6 +144,12 @@ msgstr[0] "%d makine yardım bekliyor"
 msgstr[1] "%d makine yardım bekliyor"
 
 #: res://scripts/ui/main.gd
+msgid "Send %d Rig to the %s"
+msgid_plural "Send %d Rigs to the %s"
+msgstr[0] "%d Robot gönder: %s"
+msgstr[1] "%d Robot gönder: %s"
+
+#: res://scripts/ui/main.gd
 msgid "%d research line ready"
 msgid_plural "%d research lines ready"
 msgstr[0] "%d araştırma hazır"
@@ -176,6 +182,10 @@ msgstr[1] "Bu Çekirdekler bu araştırmaları açar."
 #: res://scripts/ui/main.gd
 msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr "Katman %d. Saha büyüdü: kuracak daha çok yer var."
+
+#: res://scripts/ui/main.gd
+msgid "The first gallery past the yard is open. Send the Core's Rig in: it comes home with what the old workings held."
+msgstr "Sahanın ötesindeki ilk galeri açıldı. Çekirdeğin Robotunu içeri gönder: eski işletmede ne varsa alıp döner."
 
 #: res://scripts/ui/main.gd
 msgid "The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."
@@ -682,16 +692,20 @@ msgid "Galleries"
 msgstr "Galeriler"
 
 #: res://scripts/ui/main.gd
-msgid "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots an Assembler builds on the Rig Frame job beside the Core -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger."
-msgstr "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin yanındaki bir Montajcının Robot Şasisi işinde yaptığı makineler -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir."
+msgid "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots the Core keeps, the first from the start, the rest built by an Assembler on the Rig Frame job -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger."
+msgstr "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin tuttuğu makineler; ilki baştan beri orada, gerisini bir Montajcı Robot Şasisi işinde yapar -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir."
 
 #: res://scripts/ui/main.gd
-msgid "Old galleries, boarded up. From the Core's level %d it keeps a crew of Rigs, and sends them in."
-msgstr "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyeden bir Robot ekibi tutar ve onları içeri gönderir."
+msgid "Old galleries, boarded up. At the Core's level %d the first opens, and its Rig can go in."
+msgstr "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyede ilkini açar, Robotu da içeri girebilir."
 
 #: res://scripts/ui/main.gd
 msgid "Rigs: %d at the Core, %d out, room for %d"
 msgstr "Robotlar: Çekirdekte %d, dışarıda %d, yer %d"
+
+#: res://scripts/ui/main.gd
+msgid "%d more sites cleared, room for another Rig"
+msgstr "%d alan daha temizlenince bir Robota daha yer açılır"
 
 #: res://scripts/ui/main.gd
 msgid "%d%% worn"
@@ -708,6 +722,10 @@ msgstr "her biri %d güç, %s"
 #: res://scripts/ui/main.gd
 msgid "Repair: %d Plates"
 msgstr "Onar: %d Levha"
+
+#: res://scripts/ui/main.gd
+msgid "At the Core's level %d: more galleries, and Assemblers that build Rigs."
+msgstr "Çekirdek %d. seviyede: daha çok galeri ve Robot yapan Montajcılar."
 
 #: res://scripts/ui/main.gd
 msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core."
@@ -802,8 +820,8 @@ msgid "%d levels of %s research"
 msgstr "%d seviye %s araştırması"
 
 #: res://scripts/ui/main.gd
-msgid "%d sites in the galleries cleared by Rigs"
-msgstr "Robotların temizlediği %d galeri alanı"
+msgid "%d sites in the galleries cleared since the Core last grew"
+msgstr "Çekirdek son büyüdüğünden beri temizlenen %d galeri alanı"
 
 #: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
@@ -892,6 +910,10 @@ msgstr "%s için Aşırı Sürüş: %d. adım"
 #: res://scripts/ui/main.gd
 msgid "Paid in Ingots, Plates and research, not credits."
 msgstr "Külçe, Levha ve araştırmayla ödenir, krediyle değil."
+
+#: res://scripts/ui/main.gd
+msgid "They clear it, and come home with what it holds."
+msgstr "Temizlerler ve içinde ne varsa alıp dönerler."
 
 #: res://scripts/ui/main.gd
 msgid "Fill a contract: %d %s"
@@ -2420,5 +2442,4 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
-
 

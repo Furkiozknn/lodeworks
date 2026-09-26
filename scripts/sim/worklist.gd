@@ -43,7 +43,8 @@ const HIDDEN := []
 ## kind "problems": n; "core_grow": level; "descend": stratum; "core_need": st
 ## (a CoreLevels.status row); "upgrade": id, level; "overdrive": id, step;
 ## "research": n; "contract": i
-## (a Dispatch slot that can be filled); "collapse": cores,
+## (a Dispatch slot that can be filled); "sortie": i, n (a site `n` Rigs at
+## home clear); "collapse": cores,
 ## lines; "first": id; "extend": id, feeder, cell, outlet; "place": id,
 ## cells; "quota": missing credits.
 static func of(state: Object) -> Array:
@@ -80,6 +81,16 @@ static func of(state: Object) -> Array:
 		for i in range(Dispatch.SLOTS):
 			if bool(state.call("can_fill_contract", i)):
 				out.append({"kind": "contract", "i": i})
+				break
+	# A site the Rigs at home clear, and can go to now.
+	if state.has_method("send_sortie"):
+		var board: Array = state.get("ops_board")
+		for i in range(board.size()):
+			var n: int = int(state.call("sortie_size", i))
+			var s: Dictionary = board[i]
+			if s.has("kind") and bool(state.call("can_send", i, n)) \
+					and float(state.call("crew_strength", n)) >= float(s["left"]):
+				out.append({"kind": "sortie", "i": i, "n": n})
 				break
 	if bool(state.call("can_collapse")):
 		var opens: Array[String] = cores_open(state, int(state.call("pending_cores")))

@@ -2045,11 +2045,34 @@ func _draw_life(ci: CanvasItem, g: Texture2D) -> void:
 ## Core, and a sortie walks out across the yard to its site's mouth beyond
 ## the yard's edge, works there, and walks home. The sites are gallery
 ## mouths, one past each of three of the yard's corners. All of it is drawn
-## on the things layer, a handful of shapes a Rig -- no node, no texture --
-## so a crew costs a few draw calls whatever its size.
+## on the things layer as one list of triangles -- no node, no texture --
+## so the whole crew costs one draw call whatever its size.
 
 ## The Rigs drawn standing at the Core, at most.
 const RIGS_SHOWN := 12
+## A service call: Rigs from the Core walk to the machines of a type that
+## was just levelled or driven, work on them, and walk back -- the
+## upgrade, done by the crew, on the board. Only for the eye: the level is
+## the player's the moment it is bought.
+const SERVICE_SECONDS := 5.0
+const SERVICE_RIGS := 3
+var _service: Array = []
+
+
+## Send up to SERVICE_RIGS Rigs at home to the machines of type `id`
+## nearest the Core.
+func service(id: String) -> void:
+	if Sim.rigs_home() <= 0 or calm_motion:
+		return
+	var cells: Array = []
+	for cell: int in Sim.grid.cells:
+		if Sim.grid.machine_at(cell) == id:
+			cells.append(cell)
+	var c0: Vector2 = core_center()
+	cells.sort_custom(func(a: int, b: int) -> bool:
+		return Iso.cell_center(a).distance_squared_to(c0) < Iso.cell_center(b).distance_squared_to(c0))
+	for k in range(mini(mini(SERVICE_RIGS, Sim.rigs_home()), cells.size())):
+		_service.append({"cell": int(cells[k]), "t0": _anim + float(k) * 0.35})
 ## The share of a sortie's trip spent walking out; as long walking home, and
 ## the rest at work in the site's mouth.
 const WALK_SHARE := 0.42
@@ -2076,12 +2099,11 @@ func rig_home(k: int, n: int) -> Vector2:
 	return foot + Vector2((float(k) - float(n - 1) * 0.5) * Iso.TW * 0.3, Iso.TH * 0.3)
 
 
-## A site's mouth under world point `w`, or -1. Before the crew, the
-## boarded-up mouths answer too.
+## A site's mouth under world point `w`, or -1. The boarded-up mouths
+## answer too.
 func site_at(w: Vector2) -> int:
-	var n: int = 3 if Sim.core_level < MachineDB.RIG_CORE else Sim.ops_board.size()
-	for i in range(n):
-		if Sim.core_level >= MachineDB.RIG_CORE and not Sim.site(i).has("kind"):
+	for i in range(Operations.SLOTS):
+		if i < Operations.slots(Sim.core_level) and not Sim.site(i).has("kind"):
 			continue
 		if site_pos(i).distance_to(w) < Iso.TW * 0.45:
 			return i
@@ -2089,21 +2111,15 @@ func site_at(w: Vector2) -> int:
 
 
 func _draw_galleries(ci: CanvasItem) -> void:
-	if Sim.core_level < MachineDB.RIG_CORE:
-		# Before the crew: the mouths are there from the first minute,
-		# boarded up -- the world past the yard, and a promise.
-		for i in range(3):
-			var at0: Vector2 = site_pos(i)
-			var sealed := PackedVector2Array()
-			for k in range(14):
-				var a0: float = TAU * float(k) / 14.0
-				sealed.append(at0 + Vector2(cos(a0) * Iso.TW * 0.3, sin(a0) * Iso.TH * 0.3))
-			ci.draw_colored_polygon(sealed, Color(0.08, 0.07, 0.07, 0.8))
-			for b in range(3):
-				var y: float = (float(b) - 1.0) * Iso.TH * 0.16
-				ci.draw_line(at0 + Vector2(-Iso.TW * 0.3, y - 4.0), at0 + Vector2(Iso.TW * 0.3, y + 4.0),
-					Color(0.55, 0.38, 0.2), 6.0)
-		return
+	# The mouths the Core's level has not opened are there from the first
+	# minute, boarded up -- the world past the yard, and a promise.
+	for i in range(Operations.slots(Sim.core_level), Operations.SLOTS):
+		var at0: Vector2 = site_pos(i)
+		_ellipse(at0, Iso.TW * 0.3, Iso.TH * 0.3, Color(0.08, 0.07, 0.07, 0.8), 14)
+		for b in range(3):
+			var y: float = (float(b) - 1.0) * Iso.TH * 0.16
+			_seg(at0 + Vector2(-Iso.TW * 0.3, y - 4.0), at0 + Vector2(Iso.TW * 0.3, y + 4.0), 6.0,
+				Color(0.55, 0.38, 0.2))
 	# The gallery mouths.
 	for i in range(Sim.ops_board.size()):
 		var s: Dictionary = Sim.site(i)
@@ -2111,27 +2127,50 @@ func _draw_galleries(ci: CanvasItem) -> void:
 			continue
 		var at: Vector2 = site_pos(i)
 		var nest: bool = String(s["kind"]) == "nest"
-		var mouth := PackedVector2Array()
-		for k in range(14):
-			var a: float = TAU * float(k) / 14.0
-			mouth.append(at + Vector2(cos(a) * Iso.TW * 0.3, sin(a) * Iso.TH * 0.3 - absf(sin(a)) * 0.0))
-		ci.draw_colored_polygon(mouth, Color(0.05, 0.04, 0.05, 0.92))
+		_ellipse(at, Iso.TW * 0.3, Iso.TH * 0.3, Color(0.05, 0.04, 0.05, 0.92), 14)
 		var rim: Color = Color(0.9, 0.3, 0.2) if nest else Color(1.0, 0.72, 0.35)
-		ci.draw_polyline(mouth + PackedVector2Array([mouth[0]]), Color(rim, 0.7), 3.0)
+		for k in range(14):
+			var a0: float = TAU * float(k) / 14.0
+			var a1: float = TAU * float(k + 1) / 14.0
+			_seg(at + Vector2(cos(a0) * Iso.TW * 0.3, sin(a0) * Iso.TH * 0.3),
+				at + Vector2(cos(a1) * Iso.TW * 0.3, sin(a1) * Iso.TH * 0.3), 3.0, Color(rim, 0.7))
 		# A lamp over it: red for the nest that fights back.
 		var lamp: Vector2 = at - Vector2(0, Iso.TH * 0.55)
 		var pulse: float = 0.6 + 0.4 * sin(_anim * (4.0 if nest else 1.6) + float(i))
-		ci.draw_circle(lamp, 6.0, Color(rim, 0.55 + 0.4 * pulse))
-		ci.draw_line(lamp, lamp + Vector2(0, Iso.TH * 0.35), Color(0.3, 0.3, 0.32), 2.0)
+		_seg(lamp, lamp + Vector2(0, Iso.TH * 0.35), 2.0, Color(0.3, 0.3, 0.32))
+		_ellipse(lamp, 6.0, 6.0, Color(rim, 0.55 + 0.4 * pulse))
 		# What is left of it, as a bar under the mouth.
 		var left: float = clampf(float(s["left"]) / maxf(float(s["need"]), 1.0), 0.0, 1.0)
 		var bar := Rect2(at + Vector2(-Iso.TW * 0.25, Iso.TH * 0.4), Vector2(Iso.TW * 0.5, 6.0))
-		ci.draw_rect(bar, Color(0, 0, 0, 0.55))
-		ci.draw_rect(Rect2(bar.position, Vector2(bar.size.x * left, bar.size.y)), Color(rim, 0.9))
-	# The crew at home.
+		_rect(bar, Color(0, 0, 0, 0.55))
+		_rect(Rect2(bar.position, Vector2(bar.size.x * left, bar.size.y)), Color(rim, 0.9))
+	# The crew at home; the ones out on a service call are drawn there.
 	var home: int = mini(Sim.rigs_home(), RIGS_SHOWN)
-	for k in range(home):
-		_draw_rig(ci, rig_home(k, home), float(k) * 1.3, false, Sim.rig_wear)
+	var calls: Array = _service.filter(func(c: Dictionary) -> bool: return _anim - float(c["t0"]) < SERVICE_SECONDS)
+	_service = calls
+	var busy: int = mini(calls.size(), home)
+	for k in range(home - busy):
+		_draw_rig(rig_home(k, home), float(k) * 1.3, false, Sim.rig_wear)
+	for j in range(busy):
+		var call: Dictionary = calls[j]
+		var k2: int = home - busy + j
+		var from: Vector2 = rig_home(k2, home)
+		var to: Vector2 = Iso.cell_center(int(call["cell"])) + Vector2(Iso.TW * 0.22, Iso.TH * 0.1)
+		var p: float = (_anim - float(call["t0"])) / SERVICE_SECONDS
+		var at: Vector2
+		var working: bool = false
+		if p < 0.3:
+			at = from.lerp(to, p / 0.3)
+		elif p < 0.7:
+			working = true
+			at = to
+		else:
+			at = to.lerp(from, (p - 0.7) / 0.3)
+		_draw_rig(at, _anim * 9.0 + float(j), working, Sim.rig_wear)
+		if working and not calm_motion and fposmod(_anim * 3.0 + float(j) * 0.41, 1.0) < 0.3:
+			for sp in range(3):
+				var d := Vector2(cos(float(sp) * 2.3 + _anim * 8.0), -absf(sin(float(sp) * 1.9 + _anim * 6.0)))
+				_seg(at + Vector2(0, -12), at + Vector2(0, -12) + d * 12.0, 2.0, Color(0.6, 0.95, 1.0, 0.9))
 	# Sorties out: walking out, at work in the mouth, walking home.
 	for so: Dictionary in Sim.sorties:
 		var trip: float = maxf(float(so["trip"]), 1.0)
@@ -2151,38 +2190,112 @@ func _draw_galleries(ci: CanvasItem) -> void:
 					Iso.TH * 0.1 * float(k % 2))
 			else:
 				at = target.lerp(start, (q - (1.0 - WALK_SHARE)) / WALK_SHARE)
-			_draw_rig(ci, at, _anim * 9.0 + float(k), working, float(so["wear"]))
+			_draw_rig(at, _anim * 9.0 + float(k), working, float(so["wear"]))
 			if working and not calm_motion and fposmod(_anim * 2.0 + float(k) * 0.37, 1.0) < 0.25:
 				# Sparks: the work.
 				for sp in range(3):
 					var d := Vector2(cos(float(sp) * 2.1 + _anim * 7.0), -absf(sin(float(sp) * 1.7 + _anim * 5.0)))
-					ci.draw_line(at + Vector2(0, -10), at + Vector2(0, -10) + d * 12.0,
-						Color(1.0, 0.85, 0.4, 0.9), 2.0)
+					_seg(at + Vector2(0, -10), at + Vector2(0, -10) + d * 12.0, 2.0, Color(1.0, 0.85, 0.4, 0.9))
+	_flush_tris(ci)
 
 
 ## One Rig standing on `at`: treads, a body in the crew's safety orange and
 ## a lamp, bobbing as it walks; greyer the more worn.
-func _draw_rig(ci: CanvasItem, at: Vector2, phase: float, working: bool, wear: float) -> void:
-	var bob: float = 0.0 if calm_motion else sin(phase) * (1.0 if working else 1.8)
-	var body: Color = Palette.res_color(MachineDB.Res.RIG).lerp(Color(0.45, 0.45, 0.45), clampf(wear, 0.0, 0.8) * 0.6)
-	var w: float = Iso.TW * 0.26
-	var h: float = Iso.TH * 0.5
+func _draw_rig(at: Vector2, phase: float, working: bool, wear: float) -> void:
+	var bob: float = 0.0 if calm_motion else sin(phase) * (0.8 if working else 1.6)
+	var paint: Color = Palette.res_color(MachineDB.Res.RIG).lerp(Color(0.5, 0.48, 0.45),
+		clampf(wear, 0.0, 0.8) * 0.7)
+	# An isometric box on treads, drawn in the board's own projection: half
+	# a width `w`, half a depth `d`, a height `z`.
+	var w: float = Iso.TW * 0.15
+	var d: float = Iso.TH * 0.15
+	var z: float = Iso.TH * 0.42
 	# Its shadow, so it stands on the slab.
-	var shadow := PackedVector2Array()
-	for k in range(10):
-		var a: float = TAU * float(k) / 10.0
-		shadow.append(at + Vector2(cos(a) * w * 0.7, sin(a) * h * 0.18))
-	ci.draw_colored_polygon(shadow, Color(0, 0, 0, 0.35))
-	# Treads.
-	ci.draw_rect(Rect2(at + Vector2(-w * 0.6, -h * 0.35), Vector2(w * 1.2, h * 0.35)), Color(0.12, 0.12, 0.14))
-	# Body and cab.
-	var top: Vector2 = at + Vector2(0, -h * 0.35 + bob)
-	ci.draw_rect(Rect2(top + Vector2(-w * 0.5, -h * 0.6), Vector2(w, h * 0.6)), body)
-	ci.draw_rect(Rect2(top + Vector2(-w * 0.3, -h * 0.95), Vector2(w * 0.6, h * 0.38)), body.darkened(0.25))
-	# The lamp.
-	ci.draw_circle(top + Vector2(w * 0.12, -h * 0.78), w * 0.1, Color(0.6, 0.95, 1.0))
-	# Its outline, for a small screen.
-	ci.draw_rect(Rect2(top + Vector2(-w * 0.5, -h * 0.6), Vector2(w, h * 0.6)), Color(0, 0, 0, 0.6), false, 1.5)
+	_ellipse(at, w * 1.25, d * 1.25, Color(0, 0, 0, 0.35))
+	# The treads: a dark low box under the body.
+	_iso_box(at, w * 1.08, d * 1.08, z * 0.28, Color(0.14, 0.14, 0.16))
+	# The body, the crew's orange, bobbing as it drives.
+	var base: Vector2 = at + Vector2(0, -z * 0.28 + bob)
+	_iso_box(base, w, d, z * 0.55, paint)
+	# The cab, set back, and the lamp at its front.
+	var cab: Vector2 = base + Vector2(0, -z * 0.55) + Vector2(w * 0.18, -d * 0.18)
+	_iso_box(cab, w * 0.55, d * 0.55, z * 0.36, paint.darkened(0.12))
+	var lamp: Vector2 = cab + Vector2(-w * 0.2, d * 0.25 - z * 0.2)
+	_ellipse(lamp, w * 0.16, w * 0.16, Color(0.6, 0.95, 1.0, 0.95), 8)
+	# An antenna with a light that blinks faster at work.
+	var tip: Vector2 = cab + Vector2(w * 0.25, -z * 0.36 - z * 0.45)
+	_seg(cab + Vector2(w * 0.25, -z * 0.36), tip, 2.0, Color(0.2, 0.2, 0.22))
+	var blink: bool = fposmod(_anim * (4.0 if working else 1.2) + phase, 1.0) < 0.5
+	_ellipse(tip, 2.5, 2.5, Color(1.0, 0.45, 0.2) if blink else Color(0.4, 0.2, 0.1), 6)
+
+
+## A box standing on `at` in the board's projection: its top lit, its two
+## front faces shaded, and an outline so it reads on a small screen.
+func _iso_box(at: Vector2, w: float, d: float, z: float, col: Color) -> void:
+	var l := at + Vector2(-w, 0)
+	var f := at + Vector2(0, d)
+	var r := at + Vector2(w, 0)
+	var b := at + Vector2(0, -d)
+	var up := Vector2(0, -z)
+	_quad(l, f, f + up, l + up, col.darkened(0.18))
+	_quad(f, r, r + up, f + up, col.darkened(0.36))
+	_quad(l + up, f + up, r + up, b + up, col.lightened(0.12))
+	var edge := Color(0, 0, 0, 0.55)
+	var ring: Array[Vector2] = [l, f, r, r + up, b + up, l + up, l]
+	for k in range(ring.size() - 1):
+		_seg(ring[k], ring[k + 1], 1.2, edge)
+	_seg(f, f + up, 1.0, Color(0, 0, 0, 0.4))
+
+
+## The galleries and the crew go to the renderer as one list of triangles a
+## frame, not a draw command a face (measured: drawn face by face, five Rigs
+## and two sorties took the idle board from 191 draw calls to 295).
+var _tri_pts := PackedVector2Array()
+var _tri_cols := PackedColorArray()
+var _tri_idx := PackedInt32Array()
+
+
+func _tri(a: Vector2, b: Vector2, c: Vector2, col: Color) -> void:
+	_tri_pts.append(a)
+	_tri_pts.append(b)
+	_tri_pts.append(c)
+	_tri_cols.append(col)
+	_tri_cols.append(col)
+	_tri_cols.append(col)
+
+
+func _quad(a: Vector2, b: Vector2, c: Vector2, d: Vector2, col: Color) -> void:
+	_tri(a, b, c, col)
+	_tri(a, c, d, col)
+
+
+func _rect(r: Rect2, col: Color) -> void:
+	_quad(r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y), col)
+
+
+## A line `w` wide from `a` to `b`.
+func _seg(a: Vector2, b: Vector2, w: float, col: Color) -> void:
+	var n: Vector2 = (b - a).orthogonal().normalized() * w * 0.5
+	_quad(a + n, b + n, b - n, a - n, col)
+
+
+func _ellipse(at: Vector2, rx: float, ry: float, col: Color, sides: int = 12) -> void:
+	for k in range(sides):
+		var a0: float = TAU * float(k) / float(sides)
+		var a1: float = TAU * float(k + 1) / float(sides)
+		_tri(at, at + Vector2(cos(a0) * rx, sin(a0) * ry), at + Vector2(cos(a1) * rx, sin(a1) * ry), col)
+
+
+func _flush_tris(ci: CanvasItem) -> void:
+	var n: int = _tri_pts.size()
+	if n == 0:
+		return
+	while _tri_idx.size() < n:
+		_tri_idx.append(_tri_idx.size())
+	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(),
+		_tri_idx if _tri_idx.size() == n else _tri_idx.slice(0, n), _tri_pts, _tri_cols)
+	_tri_pts = PackedVector2Array()
+	_tri_cols = PackedColorArray()
 
 
 ## --- screen-space overlay ------------------------------------------------------

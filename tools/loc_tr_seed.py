@@ -605,8 +605,15 @@ TR = {
     "Joins alloy and parts into frames.": "Alaşımı ve parçaları çerçeveye birleştirir.",
     "The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries.":
         "Çekirdek artık bir ekip tutabilir. Bir Montajcıyı Robot Şasisi işine ayarla: Robotları Çekirdeğe yürür, oradan da galerilere.",
-    "Old galleries, boarded up. From the Core's level %d it keeps a crew of Rigs, and sends them in.":
-        "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyeden bir Robot ekibi tutar ve onları içeri gönderir.",
+    "Old galleries, boarded up. At the Core's level %d the first opens, and its Rig can go in.":
+        "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyede ilkini açar, Robotu da içeri girebilir.",
+    "The first gallery past the yard is open. Send the Core's Rig in: it comes home with what the old workings held.":
+        "Sahanın ötesindeki ilk galeri açıldı. Çekirdeğin Robotunu içeri gönder: eski işletmede ne varsa alıp döner.",
+    "At the Core's level %d: more galleries, and Assemblers that build Rigs.":
+        "Çekirdek %d. seviyede: daha çok galeri ve Robot yapan Montajcılar.",
+    "Send %d Rig to the %s": ("%d Robot gönder: %s", "%d Robot gönder: %s"),
+    "They clear it, and come home with what it holds.": "Temizlerler ve içinde ne varsa alıp dönerler.",
+    "%d more sites cleared, room for another Rig": "%d alan daha temizlenince bir Robota daha yer açılır",
     "Rig": "Robot",
     "Rig Frame": "Robot Şasisi",
     "Builds a Rig: a robot the Core sends out into the galleries.":
@@ -617,8 +624,8 @@ TR = {
         "Her seviye, her Robotun sefere %20 daha fazla güç getirmesini sağlar.",
     "Robotics": "Robotik",
     "Galleries": "Galeriler",
-    "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots an Assembler builds on the Rig Frame job beside the Core -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.":
-        "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin yanındaki bir Montajcının Robot Şasisi işinde yaptığı makineler -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir.",
+    "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots the Core keeps, the first from the start, the rest built by an Assembler on the Rig Frame job -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.":
+        "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin tuttuğu makineler; ilki baştan beri orada, gerisini bir Montajcı Robot Şasisi işinde yapar -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir.",
     "Rigs: %d at the Core, %d out, room for %d": "Robotlar: Çekirdekte %d, dışarıda %d, yer %d",
     "%d%% worn": "%%%d aşınmış",
     "whole": "sağlam",
@@ -641,7 +648,7 @@ TR = {
         "Robotlar döndü (%s, temizlendi): +%s kredi, +%s araştırma",
     "Rigs home from the %s, not cleared: +%s credits, +%s research":
         "Robotlar döndü (%s, temizlenmedi): +%s kredi, +%s araştırma",
-    "%d sites in the galleries cleared by Rigs": "Robotların temizlediği %d galeri alanı",
+    "%d sites in the galleries cleared since the Core last grew": "Çekirdek son büyüdüğünden beri temizlenen %d galeri alanı",
     "Flooded Gallery": "Su Basmış Galeri",
     "Old workings under water. There is pipe and plate worth hauling out.":
         "Su altında eski işletmeler. Çıkarmaya değer boru ve levha var.",

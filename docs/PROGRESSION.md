@@ -21,8 +21,12 @@ and tested. Core levels 1-8 are measured with the scripted player; Core 7
 was redesigned from a price into a stage (section "Core 7"), Cores 5 and 6
 after it (section "Cores 5 and 6"), and the Core 7 era with the deep
 chain, doctrines, the collapse's foundation and blueprints (section "After
-Core 7"). Level 9 is designed and graph-checked, not yet played. The features that come next
-are in [`research/feature-pool.md`](research/feature-pool.md).
+Core 7"). Cores 9 and 10 are played from kept saves (sections "Core 9"
+and "Core 10"). With the crew and the galleries (`GAME-LOOP.md`), one new
+game was played straight through: Core 7 at 4 h 49 min, Core 8 at 6 h 52
+min, and Core 9 not reached, the scripted player's Frame line starving
+(`GAME-LOOP.md`, section 8). The features that come next are in
+[`research/feature-pool.md`](research/feature-pool.md).
 
 ---
 
@@ -101,11 +105,11 @@ requirement needs is shown in brackets.
 
 | Core level | Opens | Requires |
 |---|---|---|
-| **1 Extraction** | Strata 0-2. Drill, Crusher and Vault (stratum 0); Smelter and Boiler (1); Coolant Cell and Lab (2). Machine levels up to 2, a store of up to 80 of each material. Research: Tighter Tolerances, Night Shift. | (start) |
-| **2 Processing** | Strata 3-4: Press (Plates, stratum 3) and Amplifier (4). Machine levels up to 3, store up to 256. Research: Deeper Bore, Standing Orders, Drafting Table. | 1,000 credits; 40 Ingots in the store (Vault 2); 2 Smelters at working heat; Crusher at level 2; Tighter Tolerances 1; stratum 2 |
-| **3 Fabrication** | Strata 5-6: Assembler (Components, stratum 5). Machine levels up to 4, store up to 819. Research: Refinery Contracts, Ceramic Lining, Seismic Survey. | 60,000 credits; 250 Plates and 250 Ingots (Vault 3); 2 Presses at working heat; Smelter at level 3; Deeper Bore 2; Tighter Tolerances 3; stratum 4 |
-| **4 Assembly** | Strata 7-9: Duplicator (stratum 8). Machine levels up to 5, store up to 2,621. Research: Field Notes. | 1.2M credits; 800 Components and 800 Plates (Vault 4); 3 Assemblers at working heat; Press 4 and Drill 4; an Amplifier serving 3; Refinery Contracts 2; Deeper Bore 4; stratum 6 |
-| **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 2M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Refinery Contracts 4; 40 machines at working heat with none overheating; stratum 9 (see "Cores 5 and 6") |
+| **1 Extraction** | Strata 0-2. Drill, Crusher and Vault (stratum 0); Smelter and Boiler (1); Coolant Cell and Lab (2). Machine levels up to 2, a store of up to 80 of each material. Research: Tighter Tolerances, Night Shift. The Foreman's Rig at the Core (docs/GAME-LOOP.md). | (start) |
+| **2 Processing** | Strata 3-4: Press (Plates, stratum 3) and Amplifier (4). Machine levels up to 3, store up to 256. Research: Deeper Bore, Standing Orders, Drafting Table. The first gallery: one site the Rig clears alone. | 1,000 credits; 40 Ingots in the store (Vault 2); 2 Smelters at working heat; Crusher at level 2; Tighter Tolerances 1; stratum 2 |
+| **3 Fabrication** | Strata 5-6: Assembler (Components, stratum 5). Machine levels up to 4, store up to 819. Research: Refinery Contracts, Ceramic Lining, Seismic Survey. | 60,000 credits; 250 Plates and 250 Ingots (Vault 3); 2 Presses at working heat; Smelter at level 3; Deeper Bore 2; Tighter Tolerances 3; stratum 4; a site in the galleries cleared |
+| **4 Assembly** | Strata 7-9: Duplicator (stratum 8). Machine levels up to 5, store up to 2,621. Research: Field Notes. The Rig Frame job, a crew of 3, all three galleries. | 1.2M credits; 800 Components and 800 Plates (Vault 4); 3 Assemblers at working heat; Press 4 and Drill 4; an Amplifier serving 3; Refinery Contracts 2; Deeper Bore 4; stratum 6 |
+| **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 2M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Refinery Contracts 4; 40 machines at working heat with none overheating; stratum 9; 5 sites cleared (see "Cores 5 and 6") |
 | **6 Amplification** | Strata 13-15. Machine levels up to 7. Research: Resonant Frames. | 3M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; a Condenser serving 2; Field Notes 4; Drill 6; stable 60; stratum 12 |
 | **7 Deep works** | Strata 16-19. Machine levels up to 8. **Overdrive** (3 steps). | 15M credits; 25,000 Components and 25,000 Plates (Vault 7); Assembler 7; Coolant Cell 7; Resonant Frames 2; a Condenser serving 3; stable 80; stratum 15 (see "Core 7") |
 | **8 The Abyss** | Strata 20-24. Machine levels up to 9 (paid in Alloy and Components). 3 more Overdrive steps. The **Frame Jig** job. | 40M credits; 25,000 Alloy and 50,000 Components (Vault 8); a Smelter driven 3 Overdrive steps; Smelter 8; 4 levels of the shaft's doctrine; stable 100; stratum 19 (see "After Core 7") |

@@ -288,13 +288,21 @@ func act() -> void:
 ## Rigs at home clear -- or, while the Core asks for sites cleared and none
 ## can be, the whole crew to the weakest, which leaves it weaker.
 func _operations() -> void:
-	if S.core_level < MachineDB.RIG_CORE or not operations_on:
+	if S.crew_cap() <= 0 or not operations_on:
 		return
 	var asked: bool = false
 	for st: Dictionary in S.core_status():
 		asked = asked or int(st["req"][0]) == CoreLevels.Req.OPERATIONS and not bool(st["met"])
-	if S.rigs_home() + S.rigs_out() < S.crew_cap() and _rig_makers() < 1 \
-			and t - _last_rig >= LAB_BEAT:
+	# A Rig Frame the rock overheats goes, and no other is laid under this
+	# Core (measured: with room earned for one more Rig on stratum 15, one
+	# was laid, overheated, sold for stability and laid again, and Core 7's
+	# stability row stood at 0 for 24 hours).
+	for cell: int in S.grid.cells.keys():
+		if S.grid.job_at(cell) == "rig" and S.sim.overheated_at(cell):
+			S.sell(cell)
+			_rig_hot_core = S.core_level
+	if S.core_level >= MachineDB.RIG_CORE and S.rigs_home() + S.rigs_out() < S.crew_cap() \
+			and _rig_makers() < 1 and _rig_hot_core < S.core_level and t - _last_rig >= LAB_BEAT:
 		_last_rig = t
 		if not _place_rig_frame():
 			_build_job("assembler", "rig")
@@ -309,7 +317,12 @@ func _operations() -> void:
 				_event("rigframe_sold", "first Rig Frame sold, the crew whole")
 	var keep: Dictionary = _keep_materials()
 	var plates: int = S.stock_of(MachineDB.Res.PLATE) - int(keep.get(MachineDB.Res.PLATE, 0))
-	if S.rig_wear >= 0.3 and S.can_repair() and plates >= S.repair_cost():
+	# Repaired at a third worn, or sooner when wear is all that keeps the
+	# crew from every site on the board.
+	var stuck: bool = S.rig_wear > 0.0
+	for i in range(S.ops_board.size()):
+		stuck = stuck and not (S.site(i).has("kind") and S.crew_strength(S.rigs_home()) >= float(S.site(i)["left"]))
+	if (S.rig_wear >= 0.3 or stuck) and S.can_repair() and plates >= S.repair_cost():
 		S.repair_rigs()
 		_event("repair", "first Rigs repaired")
 	var weakest: int = -1
@@ -328,6 +341,8 @@ func _operations() -> void:
 
 
 var _last_rig: float = -1.0e9
+## The Core's level under which a Rig Frame last overheated.
+var _rig_hot_core: int = 0
 ## Off, the player never touches the crew (for measuring what it changes).
 var operations_on: bool = true
 
@@ -464,7 +479,17 @@ func _pursue(st: Dictionary) -> void:
 		CoreLevels.Req.STOCK:
 			var res: int = int(r[1])
 			if int(st["cap"]) < int(st["need"]):
-				S.upgrade_machine("vault")
+				# The Vault's level first. Vault 9 is paid in Alloy and
+				# Components: from Core 8 a store short of them is fed, as for
+				# a machine row (measured: a new game's Core 8 factory had 11
+				# Components for eight hours; with this, the store was full of
+				# them within two).
+				if S.core_level >= FORGE_FROM and S.machine_upgrade_blocker("vault") == "stock":
+					for m: int in (S.machine_upgrade_cost("vault")["materials"] as Dictionary):
+						if _core_feeders(m) < 1:
+							_feed_core(m)
+				else:
+					S.upgrade_machine("vault")
 			elif _core_feeders(res) < _feeders_wanted(st):
 				_feed_core(res)
 		CoreLevels.Req.WORKING:
@@ -1030,6 +1055,9 @@ func _wanted() -> Dictionary:
 		match int(r[0]):
 			CoreLevels.Req.STOCK:
 				out[int(r[1])] = true
+				if int(st["cap"]) < int(st["need"]) and S.core_level >= FORGE_FROM:
+					for m: int in (S.machine_upgrade_cost("vault")["materials"] as Dictionary):
+						out[m] = true
 			CoreLevels.Req.MACHINE:
 				for m: int in (S.machine_upgrade_cost(String(r[1]))["materials"] as Dictionary):
 					out[m] = true
@@ -1048,6 +1076,16 @@ func _retask(mk: Array) -> bool:
 	for st: Dictionary in S.core_status():
 		if int(st["req"][0]) == CoreLevels.Req.STOCK and not bool(st["met"]):
 			need[int(st["req"][1])] = true
+	# From Core 8 also what the Core's levels are paid in, and what the jobs
+	# making those take: Alloy Parts feeding a Frame Jig are not idle.
+	if S.core_level >= FORGE_FROM:
+		var w: Dictionary = _wanted()
+		for res: int in w.keys():
+			var fm: Array = _maker(res)
+			if not fm.is_empty():
+				for i: int in (MachineDB.job_machine(String(fm[0]), String(fm[1])).get("inputs", {}) as Dictionary):
+					w[i] = true
+		need.merge(w)
 	for cell: int in S.sim.core_touching():
 		if S.grid.machine_at(cell) != String(mk[0]) or S.grid.job_at(cell) == String(mk[1]):
 			continue

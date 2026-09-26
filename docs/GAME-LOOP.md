@@ -19,7 +19,13 @@ and cited by their feature numbers; the code; the measurements in
 
 ## 1. Can a new player see the fantasy in the first minutes?
 
-**No -- and after this round, from minute 33.**
+**Yes, since the second slice (section 7): from the first minute.**
+
+- **Minute 0:** the Core comes online with the Foreman's Rig standing in front of it. Every machine level bought, it walks out to the machines of that type, works on them with sparks, and walks back.
+- **Minute 7 (Core 2):** the first gallery past the yard opens. The Foreman says so, and What now? points at it. The Rig clears its site alone and comes home with credits, research and Plates or Ingots. Core 3 asks for one site cleared, so every player sends it at least once.
+- **Minute 31 (Core 4):** Assemblers learn to build Rigs, the other two galleries open, and the crew grows to three.
+
+**Before it, the answer was no.** The first measurement found:
 
 - **The first session is a factory in a shaft.** The tutorial's eight steps (`scripts/sim/tutorial.gd`) teach Drill, Crusher, Smelter and Vault, moving a machine, and the first Descend. The scripted player reaches Core 2 at 8 minutes, Core 3 at 16 and Core 4 at 33.
 - **Nothing on the board is a robot or a character.** The only person is the Foreman, and he stands in the screen's margin by design (`scripts/ui/foreman.gd`: "He is never on the board").
@@ -29,10 +35,8 @@ and cited by their feature numbers; the code; the measurements in
 So the loop the reference games hang everything on -- the base makes an
 army, the army goes out, what it brings back makes the base stronger -- was
 not visible at any point, early or late. The first slice (sections 6 and 7)
-puts it at the Core's level 4, 33 minutes into the scripted player's game.
-The first minutes still show only the factory; showing the crew sooner (a
-Rig the Foreman brings, or the first gallery mouth on the board from the
-start) is the next step of the same work.
+put it at the Core's level 4, 33 minutes into the scripted player's game;
+the second brought a small version of it into the first minutes.
 
 ## 2. Every system, classified
 
@@ -55,9 +59,9 @@ start) is the next step of the same work.
 | Heat | DONE | the game's own constraint, measured every era | no mode mark on the board |
 | Strata | PARTIAL | 12 modifiers, crystal from 16, the Core caps depth | no sites of their own; conductive strata 26, 28, 29 broke the played factory (`PROGRESSION.md`, "Core 10") |
 | Factory expansion | PARTIAL | the yard grows a ring every three strata | area only; no new kind of ground |
-| Workers / robots / characters | **MISSING** → PARTIAL (this round) | the Foreman, in the margin; now Rigs, made on the board and standing at the Core (section 7) | one kind; no picture beyond shapes |
+| Workers / robots / characters | **MISSING** → PARTIAL (this round) | the Foreman, in the margin; now Rigs: one at the Core from the first minute, more made on the board from Core 4, walking to the machines levelled (section 7) | one kind; drawn in code, not a sprite |
 | Upgrades | DONE | machine levels, Overdrive, research | -- |
-| Missions / operations | **MISSING** → PARTIAL (this round) | the galleries: sites, sorties, rewards (section 7) | three kinds of site; no chain of sites, no region |
+| Missions / operations | **MISSING** → PARTIAL (this round) | the galleries: one site from Core 2, three from Core 4; sorties, rewards (section 7) | four kinds of site; no chain of sites, no region |
 | Combat potential | **WRONG-DIRECTION** → PARTIAL | V4 said "no combat"; amended by the owner this round (section 5). The rogue drill nest is the first site that fights back: strength against strength, wear as the cost | no roles, no counters, no defence |
 | Rewards | PARTIAL | a Core level's opens, contracts' pay, Overdrive; now what sorties bring home: credits, research and materials | no reward only a sortie gives (a schematic, a blueprint) |
 | Collapse / prestige | PARTIAL | the tree, Cores, blueprints and half the best Core kept | the second shaft saves for machine levels again (84% of Core 5 → 6) |
@@ -270,18 +274,37 @@ Each of those is a later layer on the same rule.
 | **The scripted player** lays a Rig Frame beside a Press where its heat overheats nothing, sells it once the crew is whole, repairs at a third worn, buys Rig Plating only when a repaired crew could not clear any site, and sends a sortie to every site the crew clears -- or, while the Core asks for sites, its whole crew to the weakest. | `core_journey_player.gd` | `core_journey` |
 | **English and Turkish** for every new line | `locale/` | `loc_check` |
 
-**Cost on the board:** the crew draws a few rectangles and a circle a
-Rig, and three polygons a site, on the layer the machines are drawn on: no
-node and no texture. The 300-machine performance probe
-(`tools/perf_probe.tscn`) has no Rigs, so it is unchanged.
+**Cost on the board:** the galleries and the whole crew go to the
+renderer as one list of triangles a frame, on the layer the machines are
+drawn on: no node and no texture. `tools/perf_probe.tscn` now measures the
+board with five Rigs home and two sorties out. On this machine (Intel UHD,
+gl_compatibility, 1440x720), drawn a shape at a time they took the idle
+board from 191 draw calls to 295 and its median frame from 6.2 to 8.3 ms;
+as one list, 186 draw calls and 7.0 ms, the same as the board without them
+(7.1 ms, 187). The late board (308 machines, stratum 16), with the
+same crew on it, went from 336 draw calls to 227. A phone: not measured.
+
+**Added after the first commit of the slice:**
+
+- **The crew grows by what it has done.** Every ten sites cleared, in any shaft, the Core finds room for one more Rig, up to six more (`Operations.earned_rigs`). The Core card says how many sites are still to go.
+- **Service calls.** When a machine type is levelled or driven, up to three Rigs from the Core walk to the machines of that type nearest it, work on them with sparks, and walk back. The upgrade is the player's the moment it is bought: this is only for the eye, so the decision has a body on the board.
+- **A Rig is drawn in the board's own projection:** an orange box on dark treads, a cab set back, a lamp, and an antenna whose light blinks faster at work. It is still drawn in code, a few polygons, not a sprite.
+- **The Foreman's first-contact line** at Core 4, and **the gallery mouths from the first minute**, boarded up until the crew opens (a tap says when).
+
+**The second slice: the crew in the first minutes.**
+
+- **The Foreman's Rig.** The Core comes online with one Rig (`Operations.FIRST_CREW`). Until Core 4 it is the whole crew: nothing makes Rigs yet, and sites cleared earn no room.
+- **The first gallery, at Core 2.** One site (`Operations.slots`), a Flooded Gallery or a Collapsed Drift, of strength 8, which one whole Rig clears. It pays a quarter of what a site of its strength pays later (`EARLY_PAY`), and never less than ten seconds of the factory's income.
+- **Core 3 asks for one site cleared.** A Core row now counts the sites cleared since the Core last grew, so Core 5's five are still the Core 4 crew's.
+- **What now? has a line for a sortie:** "Send 1 Rig to the Flooded Gallery", when the Rigs at home clear a site and can go.
+- **The Foreman's line at Core 2** says the first gallery is open.
+- **The scripted player** repairs as soon as wear alone keeps its crew from every site, and lays no Rig Frame again under a Core whose rock overheated one (measured: see section 8).
 
 **Not yet:**
 
-- a picture for a Rig better than shapes;
-- service Rigs at a machine being levelled;
-- the "What now?" line for a sortie;
-- the Foreman's first-contact line at Core 4;
-- a second kind of Rig.
+- a sprite for the Rig and the gallery mouths as rich as the machines';
+- a second kind of Rig;
+- a reward only the galleries give.
 
 ## 8. Played
 
@@ -300,5 +323,26 @@ A new game by the scripted player, against the same game before the crew:
   - a Rig Frame laid on a fixed tile, whose heat overheated the Press beside it (measured from the same Core 5 game, with and without it);
   - Rig Plating bought against a worn crew, which took the Core 4 era's research (with it, Core 6 was not reached in 2 h 30 min; without any, at 1 h 29 min).
   The player now lays its Rig Frame where its heat is safe and sells it once the crew is whole, and weighs Rig Plating against a repaired crew. Sorties themselves did not tip it: with the crew sent out whenever a site can be cleared, Core 6 came at 1 h 21 min.
-- **Not yet played past Core 6 with the crew.** The measurements of Cores 7-10 in `PROGRESSION.md` were made before it; the next run plays the whole game again.
+- **Played past Core 6 with the crew, it stalled.** A whole new game, 26 hours of play: Core 7 was never reached. The Core 7 row's stability stood at 0 from 2 h to 26 h. One Assembler overheated there: a Rig Frame, laid again each time the crew earned room for one more Rig, sold for stability, and laid again (689 decisions in the stage: 322 machines placed, 329 sold). The player now sells a Rig Frame the rock overheats and lays none again under that Core.
 
+**The second slice, played** (a new game, the same scripted player, credit-only waits fast-forwarded):
+
+| | the first slice (crew from Core 4) | the second slice (the Foreman's Rig) |
+|---|---|---|
+| the first sortie | 34 min 59 s | **7 min 30 s** (Core 2) |
+| the first repair | 39 min 49 s | 12 min 55 s |
+| Core 3 (now asks for one site) | 16 min 20 s | 15 min 20 s |
+| Core 4 | 33 min 09 s | 30 min 59 s |
+| Core 5 | 45 min 44 s | 45 min 54 s |
+| Core 6 | 1 h 21 min 10 s | 1 h 18 min 04 s |
+| Core 7 | not in 26 h | **4 h 49 min** (6 h 55 min before the crew) |
+| Core 8 | -- | **6 h 52 min** (8 h 50 min before the crew, and only from kept saves) |
+| Core 9 | -- | not in 8 h of play from Core 8 (below) |
+
+- **The first sortie comes at minute 7, and the early game is a minute or two faster.** The one site costs the Core 2 stage nothing; its pay (a quarter of a later site's) brings Core 3 a minute sooner and Core 4 two.
+- **This is the first new game played straight to Core 8.** The measurements of Cores 8 and 9 in `PROGRESSION.md` were made from saves kept at Cores 7 and 8 of earlier games.
+- **Core 8 → 9 did not finish.** Its Frame row stood at 0 of 30,000. The scripted player's Core 8 factory:
+  - made no Components at all (11 in the store for eight hours). With Vault 9's Alloy and Components fed to the store, as it feeds a machine row, the store was full of Components within two hours;
+  - still made no Frames. Every Frame Jig on the Core's side starved of Components: two of the three Alloy Parts machines it laid stood beside the Core, not beside a Jig, and filled the store; the one beside a Jig had no Alloy; and in two and a half hours no feeder was laid beside a starved Jig.
+  This is the scripted player's limit, not yet the game's: a person lays an Alloy Parts machine between a White Heat Smelter and a Frame Jig. The Core 9 era is measured in `PROGRESSION.md` from a kept Core 8 save (3 h 24 min).
+- **A finding for the design, not the player:** at Core 8 the Core's store held 85,899 Components and 85,899 Alloy while its Frame Jigs starved. The store only takes: nothing on the board draws from it. Whether a machine beside the Core should is a design question for a later round.
