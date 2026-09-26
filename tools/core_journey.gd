@@ -13,6 +13,8 @@ extends SceneTree
 ##   LODEWORKS_CORE_CARRY=<file> ... a new game that starts with what a
 ##     collapse keeps: {"upgrades": {line: level}, "cores": n} -- the second
 ##     shaft, measured against the first.
+##   LODEWORKS_CORE_SALVAGE=gearing|crew|none ... what the scripted player
+##     spends the galleries' salvage on (its salvage_mode).
 ##   LODEWORKS_CORE_DOCTRINE=deep|thermal|precision ... the doctrine the
 ##     player follows from the Core's level 7 (Economy.DOCTRINES); deep when
 ##     not given.
@@ -76,6 +78,9 @@ func _initialize() -> void:
 	P.fresh()
 	if OS.get_environment("LODEWORKS_CORE_DOCTRINE") != "":
 		P.doctrine = OS.get_environment("LODEWORKS_CORE_DOCTRINE")
+	if OS.get_environment("LODEWORKS_CORE_SALVAGE") != "":
+		P.salvage_mode = OS.get_environment("LODEWORKS_CORE_SALVAGE")
+		print("  (salvage goes to: %s)" % P.salvage_mode)
 	var collapse_at: int = int(OS.get_environment("LODEWORKS_CORE_COLLAPSE"))
 	var carry: String = OS.get_environment("LODEWORKS_CORE_CARRY")
 	if carry != "":

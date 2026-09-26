@@ -880,6 +880,18 @@ msgid "Overdrive: past the level the Core before allowed, every step makes every
 msgstr "Aşırı Sürüş: bir önceki Çekirdeğin izin verdiği seviyenin ötesinde her adım, her %s makinesini %%%d daha sıkı çalıştırır; ısısı da onunla artar. Bedeli Çekirdeğin deposundan, bir önceki çağın en çok yaptığı iki malzemeyle (Çekirdek 7'de Külçe ve Levha, Çekirdek 8'de Levha ve Parça, sonrasında Parça ve Alaşım) ve araştırmayla ödenir, asla krediyle değil; %d. seviyeden başlayarak her Çekirdek seviyesi %d adım daha açar."
 
 #: res://scripts/ui/main.gd
+msgid "Starved: it is not being fed. Look UPSTREAM."
+msgstr "Aç: ona bir şey gelmiyor. ÖNCESİNE bak."
+
+#: res://scripts/ui/main.gd
+msgid "Starved: nothing beside it makes %s."
+msgstr "Aç: yanında %s yapan makine yok."
+
+#: res://scripts/ui/main.gd
+msgid "The Core's store pays for levels; it feeds no machine."
+msgstr "Çekirdeğin deposu seviyeleri öder; makine beslemez."
+
+#: res://scripts/ui/main.gd
 msgid "A tap takes you to the first one."
 msgstr "Bir dokunuş seni ilkine götürür."
 
@@ -914,6 +926,10 @@ msgstr "%s için Aşırı Sürüş: %d. adım"
 #: res://scripts/ui/main.gd
 msgid "Paid in Ingots, Plates and research, not credits."
 msgstr "Külçe, Levha ve araştırmayla ödenir, krediyle değil."
+
+#: res://scripts/ui/main.gd
+msgid "Too strong to clear at once: they bring home %d%% of it and leave it weaker."
+msgstr "Bir seferde temizlenemeyecek kadar güçlü: %%%d kadarını getirir, alanı zayıflatırlar."
 
 #: res://scripts/ui/main.gd
 msgid "They clear it, and come home with what it holds."
@@ -974,10 +990,6 @@ msgstr "Katman %d: %s. Sol üstteki kart neyin değiştiğini söyler."
 #: res://scripts/ui/main.gd
 msgid "Your yard reaches it at stratum %d."
 msgstr "Sahan buraya %d. katmanda ulaşır."
-
-#: res://scripts/ui/main.gd
-msgid "Starved: it is not being fed. Look UPSTREAM."
-msgstr "Aç: ona bir şey gelmiyor. ÖNCESİNE bak."
 
 #: res://scripts/ui/main.gd
 msgid "Backed up: nothing takes its output. Look DOWNSTREAM."

@@ -335,3 +335,46 @@ func test_a_cleared_site_pays_salvage_which_buys_what_research_alone_cannot() ->
 	Sim.from_dict(d)
 	runner.eq(Sim.salvage, 6, "a save keeps it")
 	_done()
+
+
+func test_a_save_keeps_the_crew_its_wear_the_board_and_the_counts() -> void:
+	_fresh()
+	Sim.stock = {RIG: 3, INGOT: 100}
+	Sim.rig_wear = 0.3
+	Sim.ops_cleared = 2
+	Sim.ops_lifetime = 17
+	Sim.salvage = 9
+	Sim._sync_core()
+	var board: Array = Sim.ops_board.duplicate(true)
+	var d: Dictionary = JSON.parse_string(JSON.stringify(Sim.to_dict()))
+	_fresh()
+	Sim.from_dict(d)
+	runner.eq(Sim.rigs_home(), 3, "the Rigs at the Core")
+	runner.near(Sim.rig_wear, 0.3, 0.0001, "their wear")
+	runner.eq(Sim.ops_cleared, 2, "the sites cleared since the Core last grew")
+	runner.eq(Sim.ops_lifetime, 17, "and in all, which sets the crew's room")
+	runner.eq(Sim.crew_cap(), Operations.CREW_BASE + 1, "")
+	runner.eq(Sim.salvage, 9, "the salvage")
+	runner.eq(Sim.ops_board.size(), board.size(), "and the board, site by site")
+	for i in range(board.size()):
+		runner.eq(String(Sim.site(i).get("kind", "")), String((board[i] as Dictionary).get("kind", "")), "")
+		runner.near(float(Sim.site(i).get("left", 0.0)), float((board[i] as Dictionary).get("left", 0.0)), 0.01, "")
+	_done()
+
+
+func test_what_now_points_at_a_site_the_crew_can_take_a_share_of() -> void:
+	_fresh()
+	Sim.stock = {RIG: 3, INGOT: 100}
+	Sim._sync_core()
+	for i in range(Sim.ops_board.size()):
+		Sim.ops_board[i]["left"] = 1000.0
+	Sim.ops_board[1]["left"] = 60.0
+	var lines: Array = Worklist.of(Sim).filter(func(e: Dictionary) -> bool: return String(e["kind"]) == "sortie")
+	runner.eq(lines.size(), 1, "no site is cleared at once, and What now? still points at one")
+	runner.eq(int(lines[0]["i"]), 1, "the one the crew takes the most of")
+	runner.check(bool(lines[0]["share"]), "for a share")
+	runner.near(float(lines[0]["part"]), 0.5, 0.001, "half of it")
+	Sim.ops_board[1]["left"] = 1000.0
+	lines = Worklist.of(Sim).filter(func(e: Dictionary) -> bool: return String(e["kind"]) == "sortie")
+	runner.eq(lines.size(), 0, "nothing it takes a third of: no line")
+	_done()

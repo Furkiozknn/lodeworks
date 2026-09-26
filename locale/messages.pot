@@ -879,6 +879,18 @@ msgid "Overdrive: past the level the Core before allowed, every step makes every
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Starved: it is not being fed. Look UPSTREAM."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Starved: nothing beside it makes %s."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Core's store pays for levels; it feeds no machine."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "A tap takes you to the first one."
 msgstr ""
 
@@ -912,6 +924,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Paid in Ingots, Plates and research, not credits."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Too strong to clear at once: they bring home %d%% of it and leave it weaker."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -972,10 +988,6 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Your yard reaches it at stratum %d."
-msgstr ""
-
-#: res://scripts/ui/main.gd
-msgid "Starved: it is not being fed. Look UPSTREAM."
 msgstr ""
 
 #: res://scripts/ui/main.gd

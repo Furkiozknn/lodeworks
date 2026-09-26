@@ -236,7 +236,7 @@ func try_place(cell: int, id: String) -> bool:
 	if not grid.place(cell, id):
 		return false
 	credits -= price
-	sim.reset_progress()
+	sim.forget([cell])
 	_recompute()
 	stats_changed.emit()
 	return true
@@ -252,7 +252,7 @@ func sell(cell: int) -> bool:
 	var refund: float = MachineDB.cost_for(id, maxi(grid.count_of(id) - 1, 0)) * 0.75
 	grid.remove(cell)
 	credits += refund
-	sim.reset_progress()
+	sim.forget([cell])
 	_recompute()
 	stats_changed.emit()
 	return true
@@ -263,7 +263,7 @@ func move_machine(from_cell: int, to_cell: int) -> bool:
 		return false
 	if not grid.move(from_cell, to_cell):
 		return false
-	sim.reset_progress()
+	sim.forget([from_cell, to_cell])
 	_recompute()
 	stats_changed.emit()
 	tutorial_moves += 1
@@ -431,7 +431,7 @@ func set_mode(cell: int, mode: int) -> bool:
 	if not can_set_mode(cell, mode) or grid.mode_at(cell) == mode:
 		return false
 	grid.set_mode(cell, mode)
-	sim.reset_progress()
+	sim.forget([cell])
 	_recompute()
 	stats_changed.emit()
 	Save.save_game(self)
@@ -469,7 +469,7 @@ func set_job(cell: int, job: String) -> bool:
 	if not can_set_job(cell, job) or grid.job_at(cell) == job:
 		return false
 	grid.set_job(cell, job)
-	sim.reset_progress()
+	sim.forget([cell])
 	_recompute()
 	stats_changed.emit()
 	Save.save_game(self)
@@ -1451,7 +1451,7 @@ func undo_place(cell: int, price: float) -> bool:
 		return false
 	grid.remove(cell)
 	credits += price
-	sim.reset_progress()
+	sim.forget([cell])
 	_recompute()
 	stats_changed.emit()
 	return true
@@ -1463,7 +1463,7 @@ func undo_sell(cell: int, id: String, refunded: float) -> bool:
 	if not grid.place(cell, id):
 		return false
 	credits -= refunded
-	sim.reset_progress()
+	sim.forget([cell])
 	_recompute()
 	stats_changed.emit()
 	return true

@@ -521,3 +521,31 @@ func test_a_new_game_starts_at_the_first_level() -> void:
 	runner.eq(Sim.depth_cap(), CoreLevels.depth_cap(1), "")
 	runner.check(not Sim.can_upgrade_core(), "and it cannot grow on nothing")
 	_done()
+
+
+## An edit forgets the edited tile's machine, not the board's: every other
+## machine keeps its half-done cycle (Simulation.forget).
+func test_a_machine_placed_elsewhere_keeps_every_other_machines_cycle() -> void:
+	_fresh()
+	Sim.depth = 2
+	Sim.max_depth = 2
+	Sim._recompute()
+	_build(LINE)
+	for _i in range(3):
+		Sim.sim.tick()
+	var drill: int = Grid.idx(26, 21)
+	var before: float = Sim.sim.progress_of(drill)
+	runner.gt(before, 0.0, "a Drill a few ticks into its cycle")
+	Sim.credits = 1.0e6
+	var far: int = -1
+	for c: int in BuildArea.cells(Sim.max_depth):
+		if Sim.grid.is_empty(c) and Sim.is_open(c) and not Sim.is_blocked(c) \
+				and Vector2(Grid.xy(c)).distance_to(Vector2(Grid.xy(drill))) > 4.0:
+			far = c
+			break
+	runner.check(Sim.try_place(far, "drill"), "a Drill placed across the yard")
+	runner.near(Sim.sim.progress_of(drill), before, 0.0001, "a Drill placed across the yard does not reset it")
+	runner.eq(Sim.sim.progress_of(far), 0.0, "the new one starts from nothing")
+	runner.check(Sim.sell(far), "")
+	runner.near(Sim.sim.progress_of(drill), before, 0.0001, "nor does a sale")
+	_done()

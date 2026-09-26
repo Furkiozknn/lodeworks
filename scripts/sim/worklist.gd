@@ -43,8 +43,8 @@ const HIDDEN := []
 ## kind "problems": n; "core_grow": level; "descend": stratum; "core_need": st
 ## (a CoreLevels.status row); "upgrade": id, level; "overdrive": id, step;
 ## "research": n; "contract": i
-## (a Dispatch slot that can be filled); "sortie": i, n (a site `n` Rigs at
-## home clear); "collapse": cores,
+## (a Dispatch slot that can be filled); "sortie": i, n, share, part (a
+## site `n` Rigs at home clear, or with share true take `part` of); "collapse": cores,
 ## lines; "first": id; "extend": id, feeder, cell, outlet; "place": id,
 ## cells; "quota": missing credits.
 static func of(state: Object) -> Array:
@@ -82,16 +82,25 @@ static func of(state: Object) -> Array:
 			if bool(state.call("can_fill_contract", i)):
 				out.append({"kind": "contract", "i": i})
 				break
-	# A site the Rigs at home clear, and can go to now.
+	# A site the Rigs at home clear, and can go to now; or, when none can be
+	# cleared, the one they take the most of -- a third or more -- which
+	# pays that share and is weaker for the next sortie ("share").
 	if state.has_method("send_sortie"):
 		var board: Array = state.get("ops_board")
+		var best: Dictionary = {}
 		for i in range(board.size()):
 			var n: int = int(state.call("sortie_size", i))
 			var s: Dictionary = board[i]
-			if s.has("kind") and bool(state.call("can_send", i, n)) \
-					and float(state.call("crew_strength", n)) >= float(s["left"]):
-				out.append({"kind": "sortie", "i": i, "n": n})
+			if not s.has("kind") or not bool(state.call("can_send", i, n)):
+				continue
+			var part: float = float(state.call("crew_strength", n)) / maxf(float(s["left"]), 1.0)
+			if part >= 1.0:
+				best = {"kind": "sortie", "i": i, "n": n, "share": false, "part": 1.0}
 				break
+			if part >= 1.0 / 3.0 and (best.is_empty() or part > float(best["part"])):
+				best = {"kind": "sortie", "i": i, "n": n, "share": true, "part": part}
+		if not best.is_empty():
+			out.append(best)
 	if bool(state.call("can_collapse")):
 		var opens: Array[String] = cores_open(state, int(state.call("pending_cores")))
 		if not opens.is_empty():

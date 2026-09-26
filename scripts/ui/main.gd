@@ -3180,6 +3180,28 @@ func _fill_drive_key(id: String) -> void:
 	_sheet_drive.set_meta("blocker", why)
 
 
+## Why a machine starves, in words: the inputs no machine beside it makes;
+## and, beside the Core, that the store is not one of them -- it pays for
+## levels and hands nothing out (measured: a Core 8 store held 85,000
+## Components and 85,000 Alloy while the Frame Jigs touching it starved).
+func _starved_words(cell: int, m: Dictionary) -> String:
+	var lack: Array[String] = []
+	var stored: bool = false
+	for res: int in (m.get("inputs", {}) as Dictionary):
+		var fed: bool = false
+		for n: int in Sim.grid.bridged_machines(cell):
+			fed = fed or (Sim.sim.machine_of(n).get("outputs", {}) as Dictionary).has(res)
+		if not fed:
+			lack.append(Loc.t(String(MachineDB.RES_NAME[res])))
+			stored = stored or Sim.stock_of(res) > 0
+	if lack.is_empty():
+		return Loc.t("Starved: it is not being fed. Look UPSTREAM.")
+	var words: String = Loc.t("Starved: nothing beside it makes %s.") % ", ".join(lack)
+	if stored and Sim.sim.core_touching().has(cell):
+		words += " " + Loc.t("The Core's store pays for levels; it feeds no machine.")
+	return words
+
+
 ## --- what now? --------------------------------------------------------------
 ##
 ## The Worklist as a card: one row per thing worth doing, in Worklist's
@@ -3244,7 +3266,11 @@ func _work_row(e: Dictionary) -> Button:
 			pic = Chips.Gem.new(MachineDB.Res.RIG, 1, 44.0)
 			title = Loc.tn("Send %d Rig to the %s", "Send %d Rigs to the %s", int(e["n"])) % [int(e["n"]),
 				Loc.t(String(sk["name"]))]
-			sub = Loc.t("They clear it, and come home with what it holds.")
+			if bool(e.get("share", false)):
+				sub = Loc.t("Too strong to clear at once: they bring home %d%% of it and leave it weaker.") \
+					% int(round(float(e["part"]) * 100.0))
+			else:
+				sub = Loc.t("They clear it, and come home with what it holds.")
 			go = _show_galleries
 		"contract":
 			var ci: int = int(e["i"])
@@ -3650,7 +3676,7 @@ func _show_cell_info(cell: int) -> void:
 	var icon: String
 	match st:
 		Simulation.Status.STARVED:
-			verdict = Loc.t("Starved: it is not being fed. Look UPSTREAM.")
+			verdict = _starved_words(cell, m)
 			icon = "warning"
 		Simulation.Status.BLOCKED:
 			verdict = Loc.t("Backed up: nothing takes its output. Look DOWNSTREAM.")

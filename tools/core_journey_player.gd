@@ -68,6 +68,11 @@ var S: Node
 var t: float = 0.0
 ## The doctrine this player follows from the Core's level 7.
 var doctrine: String = "deep"
+## What the galleries' salvage goes to (LODEWORKS_CORE_SALVAGE): "gearing",
+## Salvaged Gearing whenever it can be bought and Rig Plating when the crew
+## needs it; "crew", Rig Plating whenever it can be bought and never
+## Gearing; "none", Rig Plating when the crew needs it and never Gearing.
+var salvage_mode: String = "gearing"
 ## [seconds, what] for every first: a Core level, a stratum, a machine type
 ## built, a machine level, a research level.
 var events: Array = []
@@ -305,7 +310,12 @@ func _operations() -> void:
 	if S.core_level >= MachineDB.RIG_CORE and S.rigs_home() + S.rigs_out() < S.crew_cap() \
 			and _rig_makers() < 1 and _rig_hot_core < S.core_level and t - _last_rig >= LAB_BEAT:
 		_last_rig = t
-		if not _place_rig_frame():
+		# Only the first Rig Frame may clear a patch of the yard for itself;
+		# later ones go beside a Plate maker or wait (measured: with sites
+		# earning the crew room every few minutes, each new Rig Frame sold a
+		# patch of four machines, and the Core 5 factory shrank from 149
+		# machines to 109 and lost its Duplicators' row for twelve hours).
+		if not _place_rig_frame() and S.rigs_home() + S.rigs_out() <= Operations.FIRST_CREW:
 			_build_job("assembler", "rig")
 	# The crew whole, the Rig Frame goes: it would only stand there, warm,
 	# until the Core's next level makes room for another Rig (measured: one
@@ -323,13 +333,28 @@ func _operations() -> void:
 	var stuck: bool = S.rig_wear > 0.0
 	for i in range(S.ops_board.size()):
 		stuck = stuck and not (S.site(i).has("kind") and S.crew_strength(S.rigs_home()) >= float(S.site(i)["left"]))
-	if (S.rig_wear >= 0.3 or stuck) and S.can_repair() and plates >= S.repair_cost():
+	# Plates kept for a row the store cannot yet hold (the Vault's level
+	# comes first) are not kept from a repair that is a sliver of them
+	# (measured: 20 Plates of 8,389 were kept for a row of 25,000, and a worn
+	# crew cleared no site for 75 minutes). Plates kept for a row the store
+	# can pay are (measured: repairs of 50 Plates a sortie held Smelter 8's
+	# 7,290 Plates at 6,900 for hours).
+	var cheap: bool = S.repair_cost() * 50 <= S.stock_of(MachineDB.Res.PLATE) \
+		and int(keep.get(MachineDB.Res.PLATE, 0)) > S.stock_cap()
+	if (S.rig_wear >= 0.3 or stuck) and S.can_repair() and (plates >= S.repair_cost() or cheap):
 		S.repair_rigs()
 		_event("repair", "first Rigs repaired")
+	# From Core 7, fuel from Ingots the Core's rows do not keep, as for
+	# repairs: a sortie there burns a hundred or more.
+	var ingots: int = S.stock_of(MachineDB.Res.INGOT) - int(keep.get(MachineDB.Res.INGOT, 0))
+	var kept_past_store: bool = int(keep.get(MachineDB.Res.INGOT, 0)) > S.stock_cap()
 	var weakest: int = -1
 	for i in range(S.ops_board.size()):
 		var n: int = S.sortie_size(i)
 		if n <= 0 or not S.can_send(i, n):
+			continue
+		if S.core_level >= MachineDB.OVERDRIVE_CORE and ingots < Operations.fuel(n, S.core_level) \
+				and not kept_past_store:
 			continue
 		if S.crew_strength(n) >= float(S.site(i)["left"]):
 			S.send_sortie(i, n)
@@ -337,7 +362,13 @@ func _operations() -> void:
 			return
 		if weakest < 0 or float(S.site(i)["left"]) < float(S.site(weakest)["left"]):
 			weakest = i
-	if asked and weakest >= 0 and S.rigs_out() == 0:
+	# No site the crew clears: the whole crew to the weakest while it takes
+	# a third of it or more -- it earns that share and leaves the site weaker
+	# for the next sortie -- or, while the Core asks for sites, whatever it
+	# takes (measured: three sites of 114 against a crew of 80 froze the
+	# galleries for seven hours; a sortie of 80 takes 70% of one).
+	if weakest >= 0 and S.rigs_out() == 0 and (asked
+			or S.crew_strength(S.sortie_size(weakest)) * 3.0 >= float(S.site(weakest)["left"])):
 		S.send_sortie(weakest, S.sortie_size(weakest))
 
 
@@ -444,12 +475,18 @@ func _research() -> void:
 	for id: String in Economy.TREE_ORDER:
 		if not want.has(id):
 			want.append(id)
-	# Salvaged Gearing whenever the galleries have paid for it: its research
-	# is small, and nothing else takes salvage but Rig Plating.
-	if S.can_buy_upgrade("salvage_gearing") and not _plating_wanted():
+	# Salvage: to Salvaged Gearing whenever it can (its research is small),
+	# unless the crew needs Rig Plating first; or, in the mode "crew", to
+	# Rig Plating whenever it can (salvage_mode).
+	if salvage_mode == "crew" and not _researching() and S.can_buy_upgrade("rig_plating"):
+		S.buy_upgrade("rig_plating")
+		return
+	if salvage_mode == "gearing" and S.can_buy_upgrade("salvage_gearing") and not _plating_wanted():
 		S.buy_upgrade("salvage_gearing")
 		return
 	for id: String in want:
+		if id == "salvage_gearing" and salvage_mode != "gearing":
+			continue
 		# Rig Plating only when the crew needs it: a site the Core asks for
 		# that the crew cannot clear (measured: bought whenever it was the
 		# cheapest line, it took the Core 4 and 5 eras' research, and Core 6
@@ -461,13 +498,26 @@ func _research() -> void:
 			return
 
 
-## Does the crew need to be stronger: the Core asks for sites cleared, and
-## no site on the board is one the Rigs at home and out could clear?
+## Does a research row of the Core's next level still wait?
+func _researching() -> bool:
+	for st: Dictionary in S.core_status():
+		var k: int = int(st["req"][0])
+		if (k == CoreLevels.Req.RESEARCH or k == CoreLevels.Req.DOCTRINE) and not bool(st["met"]):
+			return true
+	return false
+
+
+## Does the crew need to be stronger: no site on the board is one the Rigs
+## at home and out, repaired, could clear -- while the Core asks for sites,
+## or while no research row waits?
 func _plating_wanted() -> bool:
 	var asked: bool = false
 	for st: Dictionary in S.core_status():
 		asked = asked or int(st["req"][0]) == CoreLevels.Req.OPERATIONS and not bool(st["met"])
-	if not asked:
+	# Unasked, only on research no row of the Core is waiting for (measured:
+	# bought whenever the crew fell short, it took the Core 4 and 5 eras'
+	# research); and not before the Rig Frame makes a crew worth plating.
+	if not asked and (_researching() or S.core_level < MachineDB.RIG_CORE):
 		return false
 	# The crew as it would be repaired: wear is the Plates' to fix, not
 	# research's (measured: bought against worn Rigs, Rig Plating took the
@@ -560,7 +610,11 @@ func _pursue(st: Dictionary) -> void:
 					# From the Core's level KEEP_FROM a plan's machine goes too
 					# (on this stratum): the rock under Core 6 is hotter than
 					# anything the plans were laid for.
-					if not _reserved(cell) or S.core_level >= KEEP_FROM:
+					# A plan's machine too, once fixes have failed it for HOT_FOR
+					# (measured: a plan's Crusher on stratum 12 overheated for
+					# hours, and the Core 6 row's stability stood at 0).
+					if not _reserved(cell) or S.core_level >= KEEP_FROM \
+							or t - float(_hot_since[cell]) > HOT_FOR:
 						if _reserved(cell):
 							_dropped[cell] = true
 						S.sell(cell)
@@ -1399,6 +1453,14 @@ func _tidy() -> void:
 		laid[int(e[0])] = true
 	for cell: int in S.grid.cells:
 		if laid.has(cell):
+			continue
+		# Not yet measured since the board last changed: every placement,
+		# sale, move, mode and job clears every machine's status and uptime
+		# until the next tick (Simulation.reset_progress), and read then a
+		# Duplicator looks idle (measured: a player building every beat
+		# scrapped six Duplicators, the Core 6 row's, and forty machines in an
+		# hour; the Core 5 stage then lasted twelve).
+		if not S.sim.status.has(cell):
 			continue
 		# Barely working: stalled most of the time, whatever it shows now.
 		if S.sim.uptime_of(cell) >= 0.2 or S.sim.status_of(cell) == Simulation.Status.PASSIVE:

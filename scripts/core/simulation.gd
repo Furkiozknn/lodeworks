@@ -186,6 +186,28 @@ func _init(g: Grid, seed_value: int = 12345) -> void:
 	rng.seed = seed_value
 
 
+## Forget what was measured of the machines on `cells` -- a machine placed,
+## sold or moved there, or set to another mode or job -- and nothing else:
+## every other machine keeps its half-done cycle, its status and its
+## record. It used to be the whole board (reset_progress): an edit anywhere
+## set every machine's cycle back to nothing, so every progress ring on the
+## board emptied at each placement, and a machine a cycle of eleven seconds
+## long, the Rig Frame, finished none while a player built every few
+## seconds (tests/test_gameplay.gd).
+func forget(cells: Array) -> void:
+	for i in cells:
+		_progress.erase(i)
+		status.erase(i)
+		uptime.erase(i)
+		_cycles_window.erase(i)
+		_expected_window.erase(i)
+		_rotor.erase(i)
+		_stall_run.erase(i)
+	last_transfers.clear()
+
+
+## Forget every machine's cycle and record: for a board that is new as a
+## whole (a load, a collapse, a blueprint laid).
 func reset_progress() -> void:
 	_progress.clear()
 	status.clear()

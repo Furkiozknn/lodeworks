@@ -157,12 +157,16 @@ func test_a_naive_player_can_actually_progress() -> void:
 	# --- research -----------------------------------------------------------
 	waited = _wait_for(func() -> bool: return Sim.can_buy_upgrade("throughput_1"), 3600.0)
 	_ok(Sim.can_buy_upgrade("throughput_1"), "the Lab earns the next level (%.0f s)" % waited)
-	var before_rate: float = Sim.credits_per_sec
+	# Measured over two minutes either side: a Vault sells in lumps, and ten
+	# seconds of it moved more than the research does. (It used to pass on
+	# ten: every placement had set the whole board's cycles back, and the
+	# rate before was measured still recovering.)
+	var before_rate: float = float(Sim.sim.measure(20.0, 120.0)["credits_per_sec"])
 	_ok(Sim.buy_upgrade("throughput_1"), "and it can be bought")
 	_advance(30.0)
-	_ok(Sim.credits_per_sec > before_rate * 1.02,
-		"buying it visibly raises the rate (%.2f -> %.2f)"
-		% [before_rate, Sim.credits_per_sec])
+	var after_rate: float = float(Sim.sim.measure(20.0, 120.0)["credits_per_sec"])
+	_ok(after_rate > before_rate * 1.02,
+		"buying it visibly raises the rate (%.2f -> %.2f)" % [before_rate, after_rate])
 	print("        after upgrade: %.2f/s" % Sim.credits_per_sec)
 
 	# --- save round trip ----------------------------------------------------

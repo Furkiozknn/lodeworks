@@ -613,6 +613,8 @@ TR = {
         "Çekirdek %d. seviyede: daha çok galeri ve Robot yapan Montajcılar.",
     "Send %d Rig to the %s": ("%d Robot gönder: %s", "%d Robot gönder: %s"),
     "They clear it, and come home with what it holds.": "Temizlerler ve içinde ne varsa alıp dönerler.",
+    "Too strong to clear at once: they bring home %d%% of it and leave it weaker.":
+        "Bir seferde temizlenemeyecek kadar güçlü: %%%d kadarını getirir, alanı zayıflatırlar.",
     "%d more sites cleared, room for another Rig": "%d alan daha temizlenince bir Robota daha yer açılır",
     "Rig": "Robot",
     "Rig Frame": "Robot Şasisi",
@@ -638,6 +640,8 @@ TR = {
     "Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research":
         "Hurda: %d -- Araştırma'da Hurda Dişliler ve Robot Zırhı alır",
     "Salvaged Gearing": "Hurda Dişliler",
+    "Starved: nothing beside it makes %s.": "Aç: yanında %s yapan makine yok.",
+    "The Core's store pays for levels; it feeds no machine.": "Çekirdeğin deposu seviyeleri öder; makine beslemez.",
     "Gearing the Rigs haul out of the galleries, fitted to the factory: every machine works 5% faster, for each level. Paid in salvage, which only a cleared site brings home.":
         "Robotların galerilerden çıkardığı dişliler fabrikaya takılır: her seviye her makineyi %5 hızlandırır. Hurdayla ödenir; hurdayı yalnızca temizlenmiş bir alan getirir.",
     "Rigs out": "Robotlar dışarıda",

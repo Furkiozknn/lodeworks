@@ -560,3 +560,41 @@ func test_a_blueprint_flags_what_would_overheat_or_is_in_the_way() -> void:
 	Sim.cancel_blueprint()
 	runner.check(Sim.blueprint_pending.is_empty(), "until the player stops it")
 	_done()
+
+
+## --- the store and the Frame line ---------------------------------------------------------
+
+## The Core's store pays for levels and hands nothing out: a Frame Jig
+## touching it starves beside a store full of Alloy and Components, and runs
+## on what the machines beside it hand it -- Alloy Parts making Components
+## from Alloy -- into the store (the Core 8 finding, docs/GAME-LOOP.md).
+func test_the_store_feeds_no_machine_and_a_frame_jig_runs_on_its_neighbours() -> void:
+	_shaft(8, 20)
+	var al: int = MachineDB.Res.ALLOY
+	var co: int = MachineDB.Res.COMPONENT
+	var jig: int = Grid.idx(19, 22)
+	var parts: int = Grid.idx(18, 22)
+	runner.check(Sim.sim.core_touching().has(jig) and not Sim.sim.core_touching().has(parts), "")
+	Sim.grid.place(jig, "assembler")
+	runner.check(Sim.set_job(jig, "frame"), "")
+	Sim.stock = {al: 2000, co: 2000}
+	Sim._recompute()
+	for _i in range(int(20.0 * Simulation.TICK_HZ)):
+		Sim.sim.tick()
+		Sim._collect_stock()
+	runner.eq(Sim.sim.status_of(jig), Simulation.Status.STARVED, "a Frame Jig beside a store full of both starves")
+	runner.eq(Sim.stock_of(al), 2000, "the store gives none of its Alloy")
+	runner.eq(Sim.stock_of(co), 2000, "nor its Components")
+	Sim.grid.place(parts, "assembler")
+	runner.check(Sim.set_job(parts, "parts"), "")
+	Sim._recompute()
+	# The Alloy a White Heat line would hand them, given straight.
+	(Sim.grid.cells[parts]["buf_in"] as Dictionary)[al] = 5
+	(Sim.grid.cells[jig]["buf_in"] as Dictionary)[al] = 5
+	for _i in range(int(20.0 * Simulation.TICK_HZ)):
+		Sim.sim.tick()
+		Sim._collect_stock()
+	runner.gt(float(Sim.stock_of(MachineDB.Res.FRAME)), 0.0,
+		"fed Components by the Alloy Parts beside it, it makes Frames into the store")
+	runner.eq(Sim.stock_of(co), 2000, "and the store's Components are still not touched")
+	_done()
