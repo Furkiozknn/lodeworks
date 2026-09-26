@@ -692,16 +692,56 @@ msgid "Galleries"
 msgstr "Galeriler"
 
 #: res://scripts/ui/main.gd
+msgid "Rig Bay"
+msgstr "Robot Garajı"
+
+#: res://scripts/ui/main.gd
 msgid "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots the Core keeps, the first from the start, the rest built by an Assembler on the Rig Frame job -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger."
 msgstr "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin tuttuğu makineler; ilki baştan beri orada, gerisini bir Montajcı Robot Şasisi işinde yapar -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir."
+
+#: res://scripts/ui/main.gd
+msgid "Level %d · %d of %d docks in use · each posted Rig hauls %s a second from the store"
+msgstr "Seviye %d · %d/%d yuva dolu · görevdeki her Robot depodan saniyede %s taşır"
+
+#: res://scripts/ui/main.gd
+msgid "Level %d"
+msgstr "Seviye %d"
+
+#: res://scripts/ui/main.gd
+msgid "at the Core's level %d"
+msgstr "Çekirdek %d. seviyede"
+
+#: res://scripts/ui/main.gd
+msgid "No machine beside the Core takes anything the store keeps. A Press, an Assembler, a Lab or a Frame Jig touching the Core can have a Rig."
+msgstr "Çekirdeğin yanında depodaki bir şeyi alan makine yok. Çekirdeğe değen bir Pres, Montajcı, Laboratuvar ya da Çerçeve Kalıbı bir Robot alabilir."
+
+#: res://scripts/ui/main.gd
+msgid "a Rig hauls it: %s"
+msgstr "bir Robot taşıyor: %s"
+
+#: res://scripts/ui/main.gd
+msgid "starved; the store holds: %s"
+msgstr "aç; depoda: %s"
+
+#: res://scripts/ui/main.gd
+msgid "the store holds: %s"
+msgstr "depoda: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Call home"
+msgstr "Geri çağır"
+
+#: res://scripts/ui/main.gd
+msgid "Post a Rig"
+msgstr "Robot görevlendir"
 
 #: res://scripts/ui/main.gd
 msgid "Old galleries, boarded up. At the Core's level %d the first opens, and its Rig can go in."
 msgstr "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyede ilkini açar, Robotu da içeri girebilir."
 
 #: res://scripts/ui/main.gd
-msgid "Rigs: %d at the Core, %d out, room for %d"
-msgstr "Robotlar: Çekirdekte %d, dışarıda %d, yer %d"
+msgid "Rigs: %d at the Bay, %d out, %d posted, room for %d"
+msgstr "Robotlar: Garajda %d, dışarıda %d, görevde %d, yer %d"
 
 #: res://scripts/ui/main.gd
 msgid "%d more sites cleared, room for another Rig"
@@ -720,8 +760,8 @@ msgid "strength %d each, %s"
 msgstr "her biri %d güç, %s"
 
 #: res://scripts/ui/main.gd
-msgid "Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research"
-msgstr "Hurda: %d -- Araştırma'da Hurda Dişliler ve Robot Zırhı alır"
+msgid "Salvage: %d -- it buys the Rig Bay's levels, and Salvaged Gearing and Rig Plating in Research"
+msgstr "Hurda: %d -- Robot Garajı'nın seviyelerini, Araştırma'da Hurda Dişliler ve Robot Zırhı'nı alır"
 
 #: res://scripts/ui/main.gd
 msgid "Repair: %d Plates"
@@ -926,6 +966,14 @@ msgstr "%s için Aşırı Sürüş: %d. adım"
 #: res://scripts/ui/main.gd
 msgid "Paid in Ingots, Plates and research, not credits."
 msgstr "Külçe, Levha ve araştırmayla ödenir, krediyle değil."
+
+#: res://scripts/ui/main.gd
+msgid "Post a Rig to the %s"
+msgstr "%s için bir Robot görevlendir"
+
+#: res://scripts/ui/main.gd
+msgid "It is starved, and the store holds what it takes."
+msgstr "Aç kalmış; aldığı malzeme depoda var."
 
 #: res://scripts/ui/main.gd
 msgid "Too strong to clear at once: they bring home %d%% of it and leave it weaker."
@@ -2466,7 +2514,3 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
-
-#~ msgid "Fuel: %d Ingots"
-#~ msgstr "Yakıt: %d Külçe"
-

@@ -691,7 +691,47 @@ msgid "Galleries"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Rig Bay"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots the Core keeps, the first from the start, the rest built by an Assembler on the Rig Frame job -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Level %d · %d of %d docks in use · each posted Rig hauls %s a second from the store"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "at the Core's level %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "No machine beside the Core takes anything the store keeps. A Press, an Assembler, a Lab or a Frame Jig touching the Core can have a Rig."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "a Rig hauls it: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "starved; the store holds: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "the store holds: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Call home"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Post a Rig"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -699,7 +739,7 @@ msgid "Old galleries, boarded up. At the Core's level %d the first opens, and it
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "Rigs: %d at the Core, %d out, room for %d"
+msgid "Rigs: %d at the Bay, %d out, %d posted, room for %d"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -719,7 +759,7 @@ msgid "strength %d each, %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research"
+msgid "Salvage: %d -- it buys the Rig Bay's levels, and Salvaged Gearing and Rig Plating in Research"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -924,6 +964,14 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Paid in Ingots, Plates and research, not credits."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Post a Rig to the %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "It is starved, and the store holds what it takes."
 msgstr ""
 
 #: res://scripts/ui/main.gd

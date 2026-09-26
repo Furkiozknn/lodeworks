@@ -505,8 +505,9 @@ func _snapshot(s: Dictionary) -> void:
 	if not (s["hot"] as Array).is_empty():
 		print("  overheating: %s" % "; ".join(s["hot"]))
 	print("  contracts filled: %d" % int(s["contracts"]))
-	print("  the galleries: %d Rigs, %d sites cleared in all, %d salvage unspent" % [int(s.get("crew", 0)),
-		int(s.get("sites", 0)), int(s.get("salvage", 0))])
+	print("  the galleries: %d Rigs (%d posted, Bay %d), %d sites cleared in all, salvage %d earned / %d unspent, %d units hauled"
+		% [int(s.get("crew", 0)), int(s.get("posted", 0)), int(s.get("bay", 1)), int(s.get("sites", 0)),
+		int(s.get("salvage_earned", 0)), int(s.get("salvage", 0)), int(s.get("hauled", 0))])
 	var sp: Array[String] = []
 	for k: String in (s.get("spend", {}) as Dictionary):
 		sp.append("%s %s" % [k, Economy.fmt(float(s["spend"][k]))])

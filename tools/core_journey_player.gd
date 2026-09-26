@@ -93,6 +93,8 @@ func fresh() -> void:
 	S.research = 0.0
 	S.cores = 0
 	S.salvage = 0
+	S.salvage_earned = 0
+	S.hauled = 0
 	S.depth = 0
 	S.max_depth = 0
 	S.lifetime_credits = 0.0
@@ -190,6 +192,8 @@ func act() -> void:
 	c0 = S.credits
 	_operations()
 	c0 = _spent("the galleries", c0)
+	_posting()
+	c0 = _spent("the Bay", c0)
 	var reserve: float = _follow_plans()
 	c0 = _spent("plans", c0)
 	var building: bool = reserve > 0.0
@@ -374,6 +378,91 @@ func _operations() -> void:
 
 
 var _last_rig: float = -1.0e9
+
+
+## Rigs posted like a player posts them (Operations, "Posts"): to a machine
+## beside the Core that starves for something the store holds, keeping two
+## Rigs at the Bay for the galleries unless a Core row is waiting on the
+## machine; the Bay a level up when every dock is in use and another is
+## wanted. From the Core's level RIG_CORE, when the crew is made.
+func _posting() -> void:
+	if S.core_level < MachineDB.RIG_CORE or not operations_on:
+		return
+	var wanted: Array[int] = _post_candidates()
+	if wanted.is_empty():
+		return
+	if S.rigs_posted() >= S.bay_posts():
+		if S.bay_blocker() == "":
+			S.upgrade_bay()
+			_event("bay%d" % S.bay_level, "Rig Bay level %d" % S.bay_level)
+		return
+	var keep: int = 0 if _rows_wait_on_posts() else 2
+	if S.rigs_home() > keep and S.post_rig(wanted[0]):
+		_event("post", "first Rig posted")
+
+
+## Machines beside the Core, starved, that the store could feed.
+func _post_candidates() -> Array[int]:
+	var out: Array[int] = []
+	for cell: int in S.sim.core_touching():
+		if S.grid.is_empty(cell) or S.posts.has(cell):
+			continue
+		if S.sim.status_of(cell) != Simulation.Status.STARVED:
+			continue
+		var b: String = S.post_blocker(cell)
+		if b != "" and b != "rigs" and b != "bay":
+			continue
+		for res: int in S.haul_inputs(cell):
+			if S.stock_of(res) > 0:
+				out.append(cell)
+				break
+	return out
+
+
+## Does an open row of the Core ask for machines on a job the store feeds?
+func _rows_wait_on_posts() -> bool:
+	for st: Dictionary in S.core_status():
+		var r: Array = st["req"]
+		if int(r[0]) == CoreLevels.Req.WORKING and not bool(st["met"]) and CoreLevels.row_job(r) != "" \
+				and _store_feeds(String(r[1]), CoreLevels.row_job(r)):
+			return true
+	return false
+
+
+## Can the store feed machine `id` on `job`: does it keep, and hold, every
+## input the job takes?
+func _store_feeds(id: String, job: String) -> bool:
+	var ins: Dictionary = MachineDB.job_machine(id, job).get("inputs", {})
+	if ins.is_empty():
+		return false
+	for res: int in ins:
+		if not MachineDB.STOCKED.has(res) or S.stock_of(res) < 100:
+			return false
+	return true
+
+
+## Machine `id` on `job` on a tile touching the Core -- a free one, or one a
+## machine built for income alone gives up -- where a Rig will feed it.
+func _build_core_side(id: String, job: String) -> bool:
+	if not S.can_afford(id):
+		return false
+	var spot: int = -1
+	for cell: int in S.sim.core_touching():
+		if _free(cell) and _heat_safe(cell, id):
+			spot = cell
+			break
+	if spot < 0:
+		for cell: int in S.sim.core_touching():
+			if _income_only(cell):
+				S.sell(cell)
+				spot = cell
+				break
+	if spot < 0 or not S.try_place(spot, id):
+		return false
+	S.set_job(spot, job)
+	_line[spot] = true
+	_cool_if_needed(spot)
+	return true
 ## The Core's level under which a Rig Frame last overheated.
 var _rig_hot_core: int = 0
 ## Off, the player never touches the crew (for measuring what it changes).
@@ -482,7 +571,9 @@ func _research() -> void:
 	if salvage_mode == "crew" and not _researching() and S.can_buy_upgrade("rig_plating"):
 		S.buy_upgrade("rig_plating")
 		return
-	if salvage_mode == "gearing" and S.can_buy_upgrade("salvage_gearing") and not _plating_wanted():
+	var bay_first: bool = S.rigs_posted() >= S.bay_posts() and not _post_candidates().is_empty() \
+		and S.bay_blocker() != "max" and S.bay_blocker() != "core"
+	if salvage_mode == "gearing" and not bay_first and S.can_buy_upgrade("salvage_gearing") and not _plating_wanted():
 		S.buy_upgrade("salvage_gearing")
 		return
 	for id: String in want:
@@ -555,10 +646,13 @@ func _pursue(st: Dictionary) -> void:
 			var id: String = String(r[1])
 			var job: String = CoreLevels.row_job(r)
 			if job != "":
-				# On a job: more of them, one a beat's while, with their chain.
+				# On a job: more of them, one a beat's while -- beside the Core
+				# with a Rig to feed them when the store holds what they take
+				# (Operations, "Posts"), else with their chain.
 				if _count_job(job) < int(st["need"]) + 1 and t - _last_lab >= LAB_BEAT:
 					_last_lab = t
-					_build_job(id, job)
+					if not (_store_feeds(id, job) and _build_core_side(id, job)):
+						_build_job(id, job)
 				return
 			if not _fix_heat_of(id) and not _unblock(id):
 				if id == "lab" or S.grid.count_of(id) < int(st["need"]):
@@ -1999,7 +2093,8 @@ func snapshot() -> Dictionary:
 		"open": open, "research_left": research_left, "upgrades_left": upgrades_left,
 		"locked": locked, "strata_left": S.depth_cap() - S.depth,
 		"contracts": S.contracts_lifetime, "research_banked": S.research, "working": _working_all(),
-		"sites": S.ops_lifetime, "salvage": S.salvage, "crew": S.rigs_home() + S.rigs_out(),
+		"sites": S.ops_lifetime, "salvage": S.salvage, "crew": S.rigs_home() + S.rigs_out() + S.rigs_posted(),
+		"posted": S.rigs_posted(), "bay": S.bay_level, "hauled": S.hauled, "salvage_earned": S.salvage_earned,
 		"hot": _hot(), "held": CoreLevels.holding_back(S)["why"], "doctrine": S.doctrine,
 		"deep": _deep_units(), "research_per_s": S.sim.last_research, "spend": _take_spend()}
 

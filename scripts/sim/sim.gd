@@ -383,7 +383,7 @@ func _collect_stock() -> void:
 	var units: int = 0
 	for res: int in sim.core_took:
 		# Rigs are the crew, kept up to the crew's limit, not the store's.
-		var limit: int = crew_cap() - rigs_out() if res == MachineDB.Res.RIG else cap
+		var limit: int = crew_cap() - rigs_out() - rigs_posted() if res == MachineDB.Res.RIG else cap
 		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), limit)
 		units += int(sim.core_took[res])
 	sim.core_took.clear()
@@ -410,7 +410,7 @@ func _sync_core() -> void:
 		if stock_of(int(res)) < cap:
 			room[int(res)] = cap - stock_of(int(res))
 	# The crew: Rigs, up to the limit the Core's level sets, less those out.
-	var crew: int = crew_cap() - rigs_home() - rigs_out()
+	var crew: int = crew_cap() - rigs_home() - rigs_out() - rigs_posted()
 	if crew > 0 and core_level >= MachineDB.RIG_CORE:
 		room[MachineDB.Res.RIG] = crew
 	sim.core_wants = room
@@ -596,6 +596,139 @@ func rigs_out() -> int:
 	return n
 
 
+## --- posts: Rigs at work in the factory (Operations, "Posts") -------------------
+
+## The machines Rigs are posted to: cell -> the part of a unit hauled so far.
+var posts: Dictionary = {}
+## The Rig Bay's level, and every unit posted Rigs have hauled in all.
+var bay_level: int = 1
+var hauled: int = 0
+## Salvage the galleries have paid in all (the unspent is `salvage`).
+var salvage_earned: int = 0
+
+
+func rigs_posted() -> int:
+	return posts.size()
+
+
+func bay_posts() -> int:
+	return Operations.bay_posts(bay_level)
+
+
+func haul_rate() -> float:
+	return Operations.haul_rate(bay_level)
+
+
+## What machine `cell` would be hauled, from the store: the inputs it takes
+## that the store keeps -- for a Lab, which learns from any one of them, the
+## one it learns most from that the store holds.
+func haul_inputs(cell: int) -> Array[int]:
+	var out: Array[int] = []
+	if grid.is_empty(cell):
+		return out
+	var m: Dictionary = sim.machine_of(cell)
+	var ins: Dictionary = m.get("inputs", {})
+	if (m.get("tags", []) as Array).has("research") and ins.size() > 1:
+		var best: int = -1
+		var learns: Dictionary = m.get("learns", {})
+		for res: int in ins:
+			if MachineDB.STOCKED.has(res) and stock_of(res) > 0 \
+					and (best < 0 or float(learns.get(res, 0.0)) > float(learns.get(best, 0.0))):
+				best = res
+		if best >= 0:
+			out.append(best)
+		return out
+	for res: int in ins:
+		if MachineDB.STOCKED.has(res):
+			out.append(res)
+	return out
+
+
+## Why a Rig cannot be posted to `cell` now, or "": "machine" (nothing
+## there), "side" (it does not touch the Core), "inputs" (it takes nothing
+## the store keeps), "posted" (one is already there), "rigs" (none at the
+## Bay), "bay" (every dock of the Bay in use).
+func post_blocker(cell: int) -> String:
+	if grid.is_empty(cell):
+		return "machine"
+	if not sim.core_touching().has(cell):
+		return "side"
+	var ins: Dictionary = sim.machine_of(cell).get("inputs", {})
+	var takes: bool = false
+	for res: int in ins:
+		takes = takes or MachineDB.STOCKED.has(res)
+	if not takes:
+		return "inputs"
+	if posts.has(cell):
+		return "posted"
+	if rigs_home() <= 0:
+		return "rigs"
+	if posts.size() >= bay_posts():
+		return "bay"
+	return ""
+
+
+func can_post(cell: int) -> bool:
+	return post_blocker(cell) == ""
+
+
+## Post a Rig from the Bay to machine `cell`.
+func post_rig(cell: int) -> bool:
+	if not can_post(cell):
+		return false
+	stock[MachineDB.Res.RIG] = rigs_home() - 1
+	posts[cell] = 0.0
+	_sync_core()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## Bring the Rig posted to `cell` back to the Bay.
+func recall_rig(cell: int) -> bool:
+	if not posts.has(cell):
+		return false
+	posts.erase(cell)
+	stock[MachineDB.Res.RIG] = rigs_home() + 1
+	_sync_core()
+	stats_changed.emit()
+	return true
+
+
+## One tick of the posted Rigs' hauling: each moves up to haul_rate() units
+## a second from the store into its machine's input buffer, taking turns
+## between what the machine takes. A machine sold, moved or no longer
+## beside the Core sends its Rig home.
+func _haul(dt: float) -> void:
+	if posts.is_empty():
+		return
+	var limit: int = sim.cap()
+	var rate: float = haul_rate()
+	for cell: int in posts.keys():
+		if grid.is_empty(cell) or not sim.core_touching().has(cell):
+			recall_rig(cell)
+			continue
+		var budget: float = float(posts[cell]) + rate * dt
+		var ins: Array[int] = haul_inputs(cell)
+		var buf: Dictionary = grid.cells[cell]["buf_in"]
+		var moved: bool = true
+		while budget >= 1.0 and moved:
+			moved = false
+			for res: int in ins:
+				if budget < 1.0:
+					break
+				if stock_of(res) <= 0 or int(buf.get(res, 0)) >= limit:
+					continue
+				buf[res] = int(buf.get(res, 0)) + 1
+				stock[res] = stock_of(res) - 1
+				budget -= 1.0
+				hauled += 1
+				moved = true
+		# Nothing to haul now: the Rig waits, and does not bank the time.
+		posts[cell] = minf(budget, 1.0)
+	_sync_core()
+
+
 ## What `n` Rigs at home bring to a sortie: whole, their Rig Plating, less
 ## their wear.
 func crew_strength(n: int) -> float:
@@ -709,6 +842,7 @@ func _sortie_home(s: Dictionary) -> void:
 	var slot: int = int(s["slot"])
 	if bool(out["cleared"]):
 		salvage += int(r["salvage"])
+		salvage_earned += int(r["salvage"])
 		ops_cleared += 1
 		ops_lifetime += 1
 		if slot < ops_board.size():
@@ -764,6 +898,35 @@ func clear_ops() -> void:
 	ops_cleared = 0
 	sorties = []
 	rig_wear = 0.0
+	posts = {}
+	bay_level = 1
+
+
+## The Bay's next level: why it cannot be bought now, or "": "max" (the
+## last), "core" (the Core's level caps it), "salvage", "credits".
+func bay_blocker() -> String:
+	if bay_level >= Operations.BAY_MAX:
+		return "max"
+	if bay_level >= Operations.bay_cap(core_level):
+		return "core"
+	var c: Dictionary = Operations.bay_cost(bay_level)
+	if salvage < int(c["salvage"]):
+		return "salvage"
+	if credits < float(c["credits"]):
+		return "credits"
+	return ""
+
+
+func upgrade_bay() -> bool:
+	if bay_blocker() != "":
+		return false
+	var c: Dictionary = Operations.bay_cost(bay_level)
+	credits -= float(c["credits"])
+	salvage -= int(c["salvage"])
+	bay_level += 1
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
 
 
 ## One tick's work after the factory's: the store takes what the Core was
@@ -771,6 +934,7 @@ func clear_ops() -> void:
 func after_tick(dt: float) -> void:
 	_collect_stock()
 	advance_ops(dt)
+	_haul(dt)
 
 
 ## --- machine levels ------------------------------------------------------------
@@ -1524,6 +1688,10 @@ func to_dict() -> Dictionary:
 		"ops_lifetime": ops_lifetime,
 		"sorties": sorties,
 		"rig_wear": rig_wear,
+		"posts": posts.keys(),
+		"bay_level": bay_level,
+		"hauled": hauled,
+		"salvage_earned": salvage_earned,
 		"upgrades": upgrade_levels,
 		"blueprints": blueprints,
 		"blueprint_pending": blueprint_pending,
@@ -1595,6 +1763,12 @@ func from_dict(d: Dictionary) -> void:
 	ops_cleared = int(d.get("ops_cleared", 0))
 	ops_lifetime = int(d.get("ops_lifetime", 0))
 	rig_wear = clampf(float(d.get("rig_wear", 0.0)), 0.0, Operations.WEAR_MAX)
+	bay_level = clampi(int(d.get("bay_level", 1)), 1, Operations.BAY_MAX)
+	hauled = int(d.get("hauled", 0))
+	salvage_earned = int(d.get("salvage_earned", 0))
+	posts = {}
+	for c in (d.get("posts", []) as Array):
+		posts[int(c)] = 0.0
 	var away: Array = d.get("sorties", [])
 	sorties = []
 	upgrade_levels = d.get("upgrades", {})

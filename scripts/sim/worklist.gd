@@ -43,7 +43,8 @@ const HIDDEN := []
 ## kind "problems": n; "core_grow": level; "descend": stratum; "core_need": st
 ## (a CoreLevels.status row); "upgrade": id, level; "overdrive": id, step;
 ## "research": n; "contract": i
-## (a Dispatch slot that can be filled); "sortie": i, n, share, part (a
+## (a Dispatch slot that can be filled); "post": cell (a starved machine
+## beside the Core a Rig could feed from the store); "sortie": i, n, share, part (a
 ## site `n` Rigs at home clear, or with share true take `part` of); "collapse": cores,
 ## lines; "first": id; "extend": id, feeder, cell, outlet; "place": id,
 ## cells; "quota": missing credits.
@@ -82,6 +83,18 @@ static func of(state: Object) -> Array:
 			if bool(state.call("can_fill_contract", i)):
 				out.append({"kind": "contract", "i": i})
 				break
+	# A machine beside the Core, starved, that a Rig from the Bay could feed
+	# from the store.
+	if state.has_method("post_rig"):
+		var sim2: Simulation = state.get("sim")
+		for cell: int in sim2.core_touching():
+			if bool(state.call("can_post", cell)) and sim2.status_of(cell) == Simulation.Status.STARVED:
+				var held: bool = false
+				for res: int in (state.call("haul_inputs", cell) as Array):
+					held = held or int(state.call("stock_of", res)) > 0
+				if held:
+					out.append({"kind": "post", "cell": cell})
+					break
 	# A site the Rigs at home clear, and can go to now; or, when none can be
 	# cleared, the one they take the most of -- a third or more -- which
 	# pays that share and is weaker for the next sortie ("share").

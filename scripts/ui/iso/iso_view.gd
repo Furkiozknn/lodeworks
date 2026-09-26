@@ -44,6 +44,7 @@ signal core_tapped()
 signal node_tapped(index: int)
 ## A gallery mouth past the yard's edge (Operations).
 signal site_tapped(index: int)
+signal bay_tapped()
 
 ## What pick_at_screen returns for the Factory Core, which is on no cell.
 const CORE := -2
@@ -916,7 +917,13 @@ func _release(pos: Vector2) -> void:
 		return
 	var cell: int = pick_at_screen(pos)
 	# A gallery mouth, past the yard's edge.
-	var mouth: int = site_at(cam.screen_to_world(pos))
+	var tap_w: Vector2 = cam.screen_to_world(pos)
+	# The Rig Bay, past the yard's edge: its screen.
+	if (cell < 0 or Sim.grid.is_empty(cell)) and cell != CORE \
+			and (bay_pos() - Vector2(0, Iso.TH * 0.5)).distance_to(tap_w) < Iso.TW * 0.8:
+		bay_tapped.emit()
+		return
+	var mouth: int = site_at(tap_w)
 	if mouth >= 0 and (cell < 0 or Sim.grid.is_empty(cell)) and cell != CORE:
 		site_tapped.emit(mouth)
 		return
@@ -2244,6 +2251,16 @@ func _draw_galleries(ci: CanvasItem) -> void:
 		var bar := Rect2(site_pos(i) + Vector2(-Iso.TW * 0.25, Iso.TH * 0.55), Vector2(Iso.TW * 0.5, 7.0))
 		_rect(bar, Color(0, 0, 0, 0.6))
 		_rect(Rect2(bar.position, Vector2(bar.size.x * left, bar.size.y)), Color(rim, 0.95))
+	# Posted Rigs: from the Core's side to their machine with a load from
+	# the store, and back for the next.
+	for pc: int in Sim.posts:
+		var mach: Vector2 = Iso.cell_center(pc) + Vector2(Iso.TW * 0.2, Iso.TH * 0.15)
+		var dock: Vector2 = mach.lerp(core_center(), 0.35)
+		var ph: float = fposmod(_anim * 0.45 + float(pc) * 0.137, 1.0)
+		if ph < 0.5:
+			_draw_rig(dock.lerp(mach, ph * 2.0), _anim * 9.0, false, 0.0, true, mach - dock)
+		else:
+			_draw_rig(mach.lerp(dock, (ph - 0.5) * 2.0), _anim * 9.0, false, 0.0, false, dock - mach)
 	# Rigs just made, on their way from the Rig Frame to the Bay.
 	_newborn = _newborn.filter(func(nb: Dictionary) -> bool: return _anim - float(nb["t0"]) < NEWBORN_SECONDS)
 	for m: int in range(_newborn.size()):
@@ -2354,23 +2371,23 @@ const RIG_SCALE := 0.34
 const MOUTH_SCALE := 0.62
 
 
-## Picture `name` of sheet `info`, standing on `at`, `scale` of its size.
-func _sprite(ci: CanvasItem, info: Dictionary, name: String, at: Vector2, scale: float, mirror: bool,
+## Picture `pic` of sheet `info`, standing on `at`, `k_scale` of its size.
+func _sprite(ci: CanvasItem, info: Dictionary, pic: String, at: Vector2, k_scale: float, mirror: bool,
 		tint: Color = Color.WHITE) -> void:
 	var tex: Texture2D = IsoArt.texture(String(info.get("file", "")))
-	var k: int = (info.get("order", []) as Array).find(name)
+	var k: int = (info.get("order", []) as Array).find(pic)
 	if tex == null or k < 0:
 		return
 	var cell: Array = info["cell"]
 	var anchor: Array = info["anchor"]
 	var src := Rect2(float(k) * float(cell[0]), 0.0, float(cell[0]), float(cell[1]))
-	var size := Vector2(float(cell[0]), float(cell[1])) * scale
-	var pos: Vector2 = at - Vector2(float(anchor[0]), float(anchor[1])) * scale
+	var sz := Vector2(float(cell[0]), float(cell[1])) * k_scale
+	var pos: Vector2 = at - Vector2(float(anchor[0]), float(anchor[1])) * k_scale
 	if mirror:
 		# A negative width draws the picture mirrored.
-		ci.draw_texture_rect_region(tex, Rect2(pos.x + size.x, pos.y, -size.x, size.y), src, tint)
+		ci.draw_texture_rect_region(tex, Rect2(pos.x + sz.x, pos.y, -sz.x, sz.y), src, tint)
 	else:
-		ci.draw_texture_rect_region(tex, Rect2(pos, size), src, tint)
+		ci.draw_texture_rect_region(tex, Rect2(pos, sz), src, tint)
 
 
 ## What is drawn as shapes -- the sites' bars, sparks, what flies home --

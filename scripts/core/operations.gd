@@ -56,17 +56,61 @@ static func earned_rigs(sites: int) -> int:
 
 ## What a cleared site holds that the factory cannot make: salvage -- old
 ## gearing and parts, hauled out -- which pays for the research lines marked
-## "cost_salvage" (Salvaged Gearing, Rig Plating). One from a first-tier
-## site, one more a tier, SALVAGE_NEST more from the nest; only a site
-## cleared pays it. The reference games' loot that only a battle brings
-## (docs/GAME-LOOP.md, section 4).
-const SALVAGE_NEST := 2
+## "cost_salvage" (Salvaged Gearing, Rig Plating) and the Rig Bay's levels.
+## One from a cleared site, SALVAGE_NEST more from the nest; a site not
+## cleared pays none. The reference games' loot that only a battle brings
+## (docs/GAME-LOOP.md, section 4). Scarce on purpose: at one to three a site
+## and a tier, every way of spending it ended the Core 8 era with more than
+## a thousand unspent, and it chose nothing (section 9).
+const SALVAGE_NEST := 1
 
 
 static func salvage(s: Dictionary) -> int:
 	if s.is_empty():
 		return 0
-	return 1 + int(s["tier"]) + (SALVAGE_NEST if String(s["kind"]) == "nest" else 0)
+	return 1 + (SALVAGE_NEST if String(s["kind"]) == "nest" else 0)
+
+
+## Posts: a Rig at the Bay can be posted to a machine touching the Core,
+## and hauls into it, from the Core's store, what that machine takes -- the
+## store, which only ever took, feeds the machines beside it through the
+## crew (docs/GAME-LOOP.md, section 11). The Rig Bay's level sets how many
+## Rigs may be posted at once and how fast each hauls; a Rig posted is a
+## Rig not in the galleries. Measured: a Core 9 factory held 67,000 Frames
+## in its store while all eight of its Assay Benches starved.
+const HAUL_BASE := 1.0
+const HAUL_PER_BAY := 0.35
+const BAY_MAX := 8
+## What a level of the Bay costs, from level L to L + 1: credits
+## BAY_CREDITS x BAY_CREDIT_GROWTH^(L-1), salvage BAY_SALVAGE x
+## BAY_SALVAGE_GROWTH^(L-1). Salvage is the galleries' own pay: the Bay
+## grows on what the crew brings home.
+const BAY_CREDITS := 20000.0
+const BAY_CREDIT_GROWTH := 4.0
+const BAY_SALVAGE := 6.0
+const BAY_SALVAGE_GROWTH := 1.8
+
+
+## Rigs the Bay at `level` may have posted at once.
+static func bay_posts(level: int) -> int:
+	return clampi(level, 1, BAY_MAX)
+
+
+## The Bay's highest level under a Core of `core_level`.
+static func bay_cap(core_level: int) -> int:
+	return clampi(core_level - 2, 1, BAY_MAX)
+
+
+## Units a second one posted Rig hauls, with the Bay at `level`.
+static func haul_rate(level: int) -> float:
+	return HAUL_BASE * (1.0 + HAUL_PER_BAY * float(maxi(level, 1) - 1))
+
+
+## What the Bay's next level costs, from `level`: {"credits", "salvage"}.
+static func bay_cost(level: int) -> Dictionary:
+	var k: float = float(maxi(level, 1) - 1)
+	return {"credits": BAY_CREDITS * pow(BAY_CREDIT_GROWTH, k),
+		"salvage": int(ceil(BAY_SALVAGE * pow(BAY_SALVAGE_GROWTH, k)))}
 
 
 ## What one Rig brings to a sortie, whole and with no Rig Plating.

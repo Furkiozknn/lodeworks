@@ -598,3 +598,26 @@ func test_the_store_feeds_no_machine_and_a_frame_jig_runs_on_its_neighbours() ->
 		"fed Components by the Alloy Parts beside it, it makes Frames into the store")
 	runner.eq(Sim.stock_of(co), 2000, "and the store's Components are still not touched")
 	_done()
+
+
+## The Core 10 row: Assay Benches at work. Beside the Core, a Rig posted from
+## the Bay hauls them Frames from the store (Operations, "Posts").
+func test_a_posted_rig_feeds_an_assay_bench_frames_from_the_store() -> void:
+	_shaft(9, 24)
+	var bench: int = Grid.idx(19, 22)
+	Sim.grid.place(bench, "lab")
+	runner.check(Sim.set_job(bench, "assay"), "")
+	Sim.stock = {MachineDB.Res.FRAME: 200, MachineDB.Res.RIG: 1}
+	Sim._recompute()
+	var r0: float = Sim.research
+	for _i in range(int(20.0 * Simulation.TICK_HZ)):
+		Sim.research += float(Sim.sim.tick()["research"])
+		Sim.after_tick(Simulation.TICK_DT)
+	runner.eq(Sim.research, r0, "without a Rig posted, the store's Frames teach nothing")
+	runner.check(Sim.post_rig(bench), "a Rig posted to the Bench")
+	for _i in range(int(20.0 * Simulation.TICK_HZ)):
+		Sim.research += float(Sim.sim.tick()["research"])
+		Sim.after_tick(Simulation.TICK_DT)
+	runner.gt(Sim.research, r0, "hauls it Frames, and it learns")
+	runner.lt(float(Sim.stock_of(MachineDB.Res.FRAME)), 200.0, "the Frames came out of the store")
+	_done()

@@ -628,7 +628,21 @@ TR = {
     "Galleries": "Galeriler",
     "Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots the Core keeps, the first from the start, the rest built by an Assembler on the Rig Frame job -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.":
         "Sahanın ötesindeki galerilerde eski işletmeler, ölü istasyonlar ve azgın matkap yuvaları var. Robotlar -- Çekirdeğin tuttuğu makineler; ilki baştan beri orada, gerisini bir Montajcı Robot Şasisi işinde yapar -- oralara gider ve içlerinde ne varsa alıp döner.\n\nHer alan, ekibinin gücüne karşı ne kadar güç istediğini ve ne ödediğini söyler. Bir sefer yola çıktığında belli olur: yeterince güçlüyse alanı temizler; zayıfsa payını alır ve alanı bir sonraki sefer için zayıflatır. Robotlar aşınmış döner; Levhalar onları onarır. Robot Zırhı her Robotu güçlendirir.",
-    "Rigs: %d at the Core, %d out, room for %d": "Robotlar: Çekirdekte %d, dışarıda %d, yer %d",
+    "Rigs: %d at the Bay, %d out, %d posted, room for %d": "Robotlar: Garajda %d, dışarıda %d, görevde %d, yer %d",
+    "Rig Bay": "Robot Garajı",
+    "Level %d · %d of %d docks in use · each posted Rig hauls %s a second from the store":
+        "Seviye %d · %d/%d yuva dolu · görevdeki her Robot depodan saniyede %s taşır",
+    "Level %d": "Seviye %d",
+    "at the Core's level %d": "Çekirdek %d. seviyede",
+    "No machine beside the Core takes anything the store keeps. A Press, an Assembler, a Lab or a Frame Jig touching the Core can have a Rig.":
+        "Çekirdeğin yanında depodaki bir şeyi alan makine yok. Çekirdeğe değen bir Pres, Montajcı, Laboratuvar ya da Çerçeve Kalıbı bir Robot alabilir.",
+    "a Rig hauls it: %s": "bir Robot taşıyor: %s",
+    "starved; the store holds: %s": "aç; depoda: %s",
+    "the store holds: %s": "depoda: %s",
+    "Call home": "Geri çağır",
+    "Post a Rig": "Robot görevlendir",
+    "Post a Rig to the %s": "%s için bir Robot görevlendir",
+    "It is starved, and the store holds what it takes.": "Aç kalmış; aldığı malzeme depoda var.",
     "%d%% worn": "%%%d aşınmış",
     "whole": "sağlam",
     "strength %d each, %s": "her biri %d güç, %s",
@@ -637,8 +651,8 @@ TR = {
         "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür.",
     "needs %d · sending %d: strength %d, %s": "%d güç gerekir · %d gönderilirse: güç %d, %s",
     "pays %s credits, %s research, %d %s, %d salvage": "%s kredi, %s araştırma, %d %s, %d hurda öder",
-    "Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research":
-        "Hurda: %d -- Araştırma'da Hurda Dişliler ve Robot Zırhı alır",
+    "Salvage: %d -- it buys the Rig Bay's levels, and Salvaged Gearing and Rig Plating in Research":
+        "Hurda: %d -- Robot Garajı'nın seviyelerini, Araştırma'da Hurda Dişliler ve Robot Zırhı'nı alır",
     "Salvaged Gearing": "Hurda Dişliler",
     "Starved: nothing beside it makes %s.": "Aç: yanında %s yapan makine yok.",
     "The Core's store pays for levels; it feeds no machine.": "Çekirdeğin deposu seviyeleri öder; makine beslemez.",

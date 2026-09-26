@@ -142,9 +142,9 @@ func test_the_foremans_rig_and_the_first_gallery() -> void:
 	# What the first sorties bring makes the factory faster from Core 2: four
 	# early sites' salvage and a little research buy Salvaged Gearing.
 	runner.eq(int(Sim.site_reward(0)["salvage"]), 1, "an early site pays one salvage")
-	Sim.salvage = 4
+	Sim.salvage = 6
 	Sim.research = 100.0
-	runner.check(Sim.can_buy_upgrade("salvage_gearing"), "four of them buy Salvaged Gearing at Core 2")
+	runner.check(Sim.can_buy_upgrade("salvage_gearing"), "six of them buy Salvaged Gearing at Core 2")
 	_done()
 
 
@@ -311,6 +311,7 @@ func test_a_collapse_takes_the_crew_and_the_board_and_keeps_rig_plating() -> voi
 		runner.eq(Sim.ops_lifetime, 4, "not the lifetime count")
 		runner.eq(Sim.upgrade_level("rig_plating"), 1, "Rig Plating stays, as the tree does")
 		runner.eq(Sim.salvage, 7, "and so does salvage, as Cores do")
+		runner.eq(Sim.bay_level, 1, "the Bay is the shaft's: a new one starts at level 1")
 	else:
 		runner.check(false, "a Core 6 shaft on stratum 12 can collapse")
 	_done()
@@ -324,18 +325,18 @@ func test_a_cleared_site_pays_salvage_which_buys_what_research_alone_cannot() ->
 	Sim._sync_core()
 	Sim.ops_board[0]["left"] = 1.0
 	var s: Dictionary = Sim.site(0).duplicate()
-	var due: int = 1 + int(s["tier"]) + (Operations.SALVAGE_NEST if String(s["kind"]) == "nest" else 0)
+	var due: int = 1 + (Operations.SALVAGE_NEST if String(s["kind"]) == "nest" else 0)
 	runner.eq(int(Sim.site_reward(0)["salvage"]), due, "a site prints its salvage with its pay")
 	runner.check(Sim.send_sortie(0, 1), "")
 	Sim.advance_ops(Operations.trip(s) + 1.0)
 	runner.eq(Sim.salvage, due, "and pays it, cleared")
 	# Only salvage buys Salvaged Gearing, however much research there is.
 	Sim.research = 1.0e6
-	Sim.salvage = 3
-	runner.check(not Sim.can_buy_upgrade("salvage_gearing"), "four salvage for the first level: three is short")
-	Sim.salvage = 10
-	runner.check(Sim.buy_upgrade("salvage_gearing"), "ten is enough")
-	runner.eq(Sim.salvage, 6, "and four are spent")
+	Sim.salvage = 5
+	runner.check(not Sim.can_buy_upgrade("salvage_gearing"), "six salvage for the first level: five is short")
+	Sim.salvage = 12
+	runner.check(Sim.buy_upgrade("salvage_gearing"), "twelve is enough")
+	runner.eq(Sim.salvage, 6, "and six are spent")
 	runner.near(float(Economy.multipliers({"salvage_gearing": 1})["speed"]), 1.05, 0.0001,
 		"every machine works 5% faster")
 	var d: Dictionary = JSON.parse_string(JSON.stringify(Sim.to_dict()))
@@ -385,4 +386,65 @@ func test_what_now_points_at_a_site_the_crew_can_take_a_share_of() -> void:
 	Sim.ops_board[1]["left"] = 1000.0
 	lines = Worklist.of(Sim).filter(func(e: Dictionary) -> bool: return String(e["kind"]) == "sortie")
 	runner.eq(lines.size(), 0, "nothing it takes a third of: no line")
+	_done()
+
+
+## --- posts: Rigs at work in the factory ---------------------------------------------
+
+func test_a_posted_rig_hauls_from_the_store_into_a_machine_beside_the_core() -> void:
+	_fresh()
+	var press: int = Grid.idx(19, 22)
+	var far: int = Grid.idx(16, 22)
+	runner.check(Sim.sim.core_touching().has(press) and not Sim.sim.core_touching().has(far), "")
+	Sim.grid.place(press, "press")
+	Sim.grid.place(far, "press")
+	Sim.grid.place(Grid.idx(19, 23), "vault")
+	Sim.stock = {RIG: 2, INGOT: 100}
+	Sim._recompute()
+	runner.eq(Sim.post_blocker(far), "side", "only a machine beside the Core")
+	runner.eq(Sim.post_blocker(Grid.idx(19, 23)), "inputs", "that takes something the store keeps")
+	runner.check(Sim.post_rig(press), "a Rig from the Bay posted to a Press beside the Core")
+	runner.eq(Sim.rigs_home(), 1, "it leaves the Bay")
+	runner.eq(Sim.rigs_posted(), 1, "")
+	runner.eq(int(Sim.sim.core_wants.get(RIG, 0)), Sim.crew_cap() - 2, "and still counts against the crew")
+	runner.eq(Sim.post_blocker(Grid.idx(20, 20)), "machine", "")
+	var h0: int = Sim.hauled
+	for _i in range(int(5.0 * Simulation.TICK_HZ)):
+		Sim.sim.tick()
+		Sim.after_tick(Simulation.TICK_DT)
+	runner.gte(float(Sim.hauled - h0), 4.0, "it hauls about a unit a second from the store")
+	runner.eq(Sim.stock_of(INGOT), 100 - (Sim.hauled - h0), "every unit out of the store")
+	runner.gt(float(Sim.stock_of(PLATE)), 0.0, "and the Press, fed, makes Plates into it")
+	Sim.stock[RIG] = 1
+	var other: int = -1
+	for c: int in Sim.sim.core_touching():
+		if Sim.grid.is_empty(c) and not Sim.is_blocked(c) and Sim.is_open(c):
+			other = c
+			break
+	Sim.grid.place(other, "press")
+	Sim._recompute()
+	runner.eq(Sim.post_blocker(other), "bay", "a Bay at level 1 has one dock")
+	runner.check(Sim.sell(press), "")
+	Sim.after_tick(Simulation.TICK_DT)
+	runner.eq(Sim.rigs_posted(), 0, "the machine sold, its Rig comes home")
+	runner.eq(Sim.rigs_home(), 2, "")
+	_done()
+
+
+func test_the_bay_grows_on_salvage_and_credits_under_the_core() -> void:
+	_fresh()
+	runner.eq(Sim.bay_level, 1, "")
+	runner.eq(Operations.bay_cap(MachineDB.RIG_CORE), 2, "a Core 4 Bay goes to level 2")
+	runner.eq(Sim.bay_blocker(), "salvage", "paid in salvage")
+	Sim.salvage = 6
+	runner.eq(Sim.bay_blocker(), "credits", "and credits")
+	Sim.credits = 20000.0
+	runner.check(Sim.upgrade_bay(), "")
+	runner.eq(Sim.bay_posts(), 2, "two docks")
+	runner.gt(Sim.haul_rate(), Operations.HAUL_BASE, "and each Rig hauls faster")
+	runner.eq(Sim.bay_blocker(), "core", "the Core's level caps it")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(Sim.to_dict()))
+	Sim.bay_level = 1
+	Sim.from_dict(d)
+	runner.eq(Sim.bay_level, 2, "a save keeps it")
 	_done()

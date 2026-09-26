@@ -463,6 +463,7 @@ func _build() -> void:
 	iso_view.node_tapped.connect(_on_node_tapped)
 	# A gallery mouth: the galleries, where the sites are.
 	iso_view.site_tapped.connect(func(_i: int): _show_galleries())
+	iso_view.bay_tapped.connect(func(): _show_bay())
 	iso_view.machine_moved.connect(func(from_cell: int, to_cell: int):
 		_push_undo({"kind": "move", "cell": to_cell, "from": from_cell})
 		_maybe_advance_tutorial()
@@ -2758,12 +2759,111 @@ func _core_operations(titled: bool = true) -> Control:
 	head.add_theme_constant_override("separation", 10)
 	var title := _label(Loc.t("Galleries"), 24, Palette.TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bay_key := _button(Loc.t("Rig Bay"), Palette.PANEL)
+	bay_key.custom_minimum_size = Vector2(150, MIN_TOUCH)
+	bay_key.set_meta("bay", true)
+	bay_key.pressed.connect(func(): _show_bay())
 	head.add_child(title)
+	head.add_child(bay_key)
 	head.add_child(_help_button(Loc.t("Galleries"), func() -> String:
 		return Loc.t("Old workings, dead stations and nests of rogue drills lie in the galleries beyond the yard. Rigs -- robots the Core keeps, the first from the start, the rest built by an Assembler on the Rig Frame job -- go out to them and come home with what they held.\n\nEach site says what strength it needs against your crew's, and what it pays. A sortie is decided when it leaves: strong enough, it clears the site; too weak, it earns its share and leaves the site weaker for the next one. The Rigs come home worn, and Plates repair them. Rig Plating makes every Rig stronger.")))
 	box.add_child(head)
 	_ops_rows(box)
 	return box
+
+
+## The Rig Bay: its level and the key that raises it; the Rigs posted to
+## machines beside the Core, each with a key that calls it home; and the
+## machines beside the Core a Rig could be posted to, with a key that posts
+## one. A posted Rig hauls what its machine takes from the Core's store.
+func _show_bay() -> void:
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	var info := _label(Loc.t("Level %d · %d of %d docks in use · each posted Rig hauls %s a second from the store")
+		% [Sim.bay_level, Sim.rigs_posted(), Sim.bay_posts(), String.num(Sim.haul_rate(), 2)], 22, Palette.TEXT)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_child(info)
+	var why: String = Sim.bay_blocker()
+	if why != "max":
+		var c: Dictionary = Operations.bay_cost(Sim.bay_level)
+		var up := _button("", Palette.CORE if why == "" else Palette.PANEL)
+		up.custom_minimum_size = Vector2(0, MIN_TOUCH)
+		up.disabled = why != ""
+		up.set_meta("bay_up", true)
+		var price := HBoxContainer.new()
+		price.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		price.alignment = BoxContainer.ALIGNMENT_CENTER
+		price.add_theme_constant_override("separation", 6)
+		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		price.add_child(_label(Loc.t("Level %d") % (Sim.bay_level + 1), 22, Palette.TEXT))
+		if why == "core":
+			price.add_child(_label(Loc.t("at the Core's level %d") % (Sim.bay_level + 3), 22, Palette.TEXT_DIM))
+		else:
+			price.add_child(_icon_rect("settings", 34))
+			price.add_child(_label(str(int(c["salvage"])), 22, Palette.TEXT if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
+			price.add_child(_icon_rect("credits", 34))
+			price.add_child(_label(Economy.fmt(float(c["credits"])), 22,
+				Palette.TEXT if Sim.credits >= float(c["credits"]) else Palette.BAD))
+		up.add_child(price)
+		up.pressed.connect(func():
+			if Sim.upgrade_bay():
+				Juice.upgrade()
+				iso_view.repair_call()
+				_show_bay())
+		body.add_child(up)
+	# The machines beside the Core: those with a Rig, then those that could
+	# have one -- starved ones first.
+	var rows: Array = []
+	for cell: int in Sim.sim.core_touching():
+		if Sim.grid.is_empty(cell):
+			continue
+		var b: String = Sim.post_blocker(cell)
+		if b == "posted" or b == "" or b == "rigs" or b == "bay":
+			var starved: bool = Sim.sim.status_of(cell) == Simulation.Status.STARVED
+			rows.append([0 if b == "posted" else (1 if starved else 2), cell, b])
+	rows.sort_custom(func(a: Array, b2: Array) -> bool: return int(a[0]) < int(b2[0]))
+	if rows.is_empty():
+		var none := _label(Loc.t("No machine beside the Core takes anything the store keeps. A Press, an Assembler, a Lab or a Frame Jig touching the Core can have a Rig."),
+			TEXT_MIN, Palette.TEXT_DIM)
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.add_child(none)
+	for r: Array in rows.slice(0, 8):
+		body.add_child(_post_row(int(r[1]), String(r[2])))
+	_open_overlay(Loc.t("Rig Bay"), body, [], 820.0)
+
+
+## One machine beside the Core, on the Bay's screen.
+func _post_row(cell: int, why: String) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.set_meta("post", cell)
+	var id: String = Sim.grid.machine_at(cell)
+	row.add_child(Chips.MachineSprite.new(id, 52.0))
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.add_theme_constant_override("separation", 0)
+	var job: String = Sim.grid.job_at(cell)
+	words.add_child(_label(MachineDB.job_name(id, job) if job != "" else MachineDB.name_of(id), 22, Palette.TEXT))
+	var hauls: Array[String] = []
+	for res: int in Sim.haul_inputs(cell):
+		hauls.append("%s %s" % [Loc.t(String(MachineDB.RES_NAME[res])), Economy.fmt(float(Sim.stock_of(res)))])
+	var state: String = Loc.t("a Rig hauls it: %s") if why == "posted" else (Loc.t("starved; the store holds: %s")
+		if Sim.sim.status_of(cell) == Simulation.Status.STARVED else Loc.t("the store holds: %s"))
+	var line := _label(state % (", ".join(hauls) if not hauls.is_empty() else "-"), TEXT_MIN, Palette.TEXT_DIM)
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(line)
+	row.add_child(words)
+	var key := _button(Loc.t("Call home") if why == "posted" else Loc.t("Post a Rig"),
+		Palette.PANEL if why == "posted" else (Palette.CORE if why == "" else Palette.PANEL))
+	key.custom_minimum_size = Vector2(170, MIN_TOUCH)
+	key.disabled = why == "rigs" or why == "bay"
+	key.pressed.connect(func():
+		var ok: bool = Sim.recall_rig(cell) if why == "posted" else Sim.post_rig(cell)
+		if ok:
+			Juice.tap()
+			_show_bay())
+	row.add_child(key)
+	return row
 
 
 ## The page that opens from the Galleries section and from a gallery mouth
@@ -2793,8 +2893,8 @@ func _ops_rows(box: VBoxContainer) -> void:
 	var cw := VBoxContainer.new()
 	cw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cw.add_theme_constant_override("separation", 0)
-	cw.add_child(_label(Loc.t("Rigs: %d at the Core, %d out, room for %d") % [Sim.rigs_home(), Sim.rigs_out(),
-		Sim.crew_cap()], 22, Palette.TEXT))
+	cw.add_child(_label(Loc.t("Rigs: %d at the Bay, %d out, %d posted, room for %d") % [Sim.rigs_home(),
+		Sim.rigs_out(), Sim.rigs_posted(), Sim.crew_cap()], 22, Palette.TEXT))
 	if Sim.sites_to_next_rig() > 0:
 		cw.add_child(_label(Loc.t("%d more sites cleared, room for another Rig") % Sim.sites_to_next_rig(),
 			TEXT_MIN, Palette.TEXT_DIM))
@@ -2802,8 +2902,8 @@ func _ops_rows(box: VBoxContainer) -> void:
 		else Loc.t("whole")
 	cw.add_child(_label(Loc.t("strength %d each, %s") % [int(round(Sim.crew_strength(1))), worn], TEXT_MIN,
 		Palette.TEXT_DIM))
-	var salv := _label(Loc.t("Salvage: %d -- it buys Salvaged Gearing and Rig Plating in Research") % Sim.salvage,
-		TEXT_MIN, Palette.TEXT_DIM)
+	var salv := _label(Loc.t("Salvage: %d -- it buys the Rig Bay's levels, and Salvaged Gearing and Rig Plating in Research")
+		% Sim.salvage, TEXT_MIN, Palette.TEXT_DIM)
 	salv.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cw.add_child(salv)
 	crew.add_child(cw)
@@ -3263,6 +3363,12 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Overdrive the %s: step %d") % [MachineDB.name_of(oid), int(e["step"])]
 			sub = Loc.t("Paid in Ingots, Plates and research, not credits.")
 			go = func() -> void: _select_type(oid)
+		"post":
+			var pc: int = int(e["cell"])
+			pic = Chips.MachineSprite.new(Sim.grid.machine_at(pc), 52.0)
+			title = Loc.t("Post a Rig to the %s") % MachineDB.name_of(Sim.grid.machine_at(pc))
+			sub = Loc.t("It is starved, and the store holds what it takes.")
+			go = _show_bay
 		"sortie":
 			var si: int = int(e["i"])
 			var sk: Dictionary = Operations.KINDS[String(Sim.site(si)["kind"])]
