@@ -9,17 +9,19 @@ be connected to the graph below waits.
 - Code: `scripts/core/core_levels.gd` (the levels and the graph checker),
   `scripts/core/machine_db.gd` (machine levels, the store's capacity, the
   Lab), `scripts/core/economy.gd` (research opened and capped by the Core),
-  `scripts/sim/sim.gd` (the store, paid upgrades), `scripts/sim/worklist.gd`
-  ("What now?").
+  `scripts/sim/sim.gd` (the store, paid upgrades, doctrines, the
+  collapse's foundation, blueprints), `scripts/sim/worklist.gd` ("What
+  now?"). Jobs -- a machine's second recipe -- are `MachineDB.JOBS`.
 - Where the loop stands against the benchmark games: [`BENCHMARK.md`](BENCHMARK.md).
 - Measured with `tools/core_journey.gd` (a scripted player on the real game);
   the numbers in this file come from the run named beside them.
 
 Status, 26 September 2026: the vertical slice (sections 10 and 11) is built
-and tested. Core levels 1-7 are measured with the scripted player; Core 7
-was redesigned from a price into a stage (section "Core 7"), and Cores 5
-and 6 after it (section "Cores 5 and 6"). Level 8 is
-designed and graph-checked, not yet played. The features that come next
+and tested. Core levels 1-8 are measured with the scripted player; Core 7
+was redesigned from a price into a stage (section "Core 7"), Cores 5 and 6
+after it (section "Cores 5 and 6"), and the Core 7 era with the deep
+chain, doctrines, the collapse's foundation and blueprints (section "After
+Core 7"). Level 9 is designed and graph-checked, not yet played. The features that come next
 are in [`research/feature-pool.md`](research/feature-pool.md).
 
 ---
@@ -106,8 +108,9 @@ requirement needs is shown in brackets.
 | **5 Research** | Strata 10-12: Condenser (stratum 10). Machine levels up to 6, store up to 8,389. | 2M credits; 2,500 Components and 2,500 Plates (Vault 5); 4 Labs at working heat; Assembler 5; Field Notes 2; Refinery Contracts 4; 40 machines at working heat with none overheating; stratum 9 (see "Cores 5 and 6") |
 | **6 Amplification** | Strata 13-15. Machine levels up to 7. Research: Resonant Frames. | 3M credits; 8,000 Components and 8,000 Ingots (Vault 6); a Duplicator serving 3; a Condenser serving 2; Field Notes 4; Drill 6; stable 60; stratum 12 |
 | **7 Deep works** | Strata 16-19. Machine levels up to 8. **Overdrive** (3 steps). | 15M credits; 25,000 Components and 25,000 Plates (Vault 7); Assembler 7; Coolant Cell 7; Resonant Frames 2; a Condenser serving 3; stable 80; stratum 15 (see "Core 7") |
-| **8 The Abyss** | Strata 20-24. Machine levels up to 9. 3 more Overdrive steps. | 60M credits; 80,000 Components and 80,000 Plates (Vault 8); an Assembler driven 3 steps; an Amplifier serving 4; Resonant Frames 4; Assembler 8; stable 100; stratum 19 (designed, not played) |
-| **9 and up** | 5 more strata each; machine limit +1 and 3 Overdrive steps each. | Level 8's pattern, with rising numbers: credits ×4 a level; store ×2.2 (capped at what the Vault can then hold); stable +20; one production machine at the limit and driven to the Overdrive limit, rotating; one research line, rotating |
+| **8 The Abyss** | Strata 20-24. Machine levels up to 9 (paid in Alloy and Components). 3 more Overdrive steps. The **Frame Jig** job. | 40M credits; 25,000 Alloy and 50,000 Components (Vault 8); a Smelter driven 3 Overdrive steps; Smelter 8; 4 levels of the shaft's doctrine; stable 100; stratum 19 (see "After Core 7") |
+| **9 The Forge** | Strata 25-29. Machine levels up to 10. 3 more Overdrive steps. | 160M credits; 30,000 Frames and 100,000 Alloy (Vault 9); an Assembler driven 6 steps; 8 doctrine levels; Drill 9; stable 120; stratum 24 (designed and graph-checked, not played) |
+| **10 and up** | 5 more strata each; machine limit +1 and 3 Overdrive steps each. | Level 9's pattern, with rising numbers: credits ×4 a level; store ×2.2 (capped at what the Vault can then hold); stable +20; doctrine +2; one production machine at the limit and driven to the Overdrive limit, rotating; one research line, rotating |
 
 **Why these rows.**
 
@@ -136,8 +139,11 @@ requirement needs is shown in brackets.
 | Ore | Drill (stratum 0) | Crusher: 2 Ore → 1 Gravel | Sold (1); Crusher input | — |
 | Gravel | Crusher | Smelter: 1 → 1 Ingot | Sold (2.4); Smelter input | Smelter (stratum 1) |
 | Ingot | Smelter | Press: 1 → 1 Plate | Sold (5.4). **Store**: machine level 2 and 3, Vault levels, Core levels 2, 3, 6. **Lab**: 0.25 research each | Core 2 (with the Crushers' level and the first research) |
-| Plate | Press (stratum 3, Core 2) | Assembler: 1 → 1 Component | Sold (11.5). **Store**: machine levels 3-9, Core levels 3, 4, 5, 7, 8. **Lab**: 0.5 research each | Core 3 |
-| Component | Assembler (stratum 5, Core 3) | — | Sold (24). **Store**: machine levels 4-9, Core levels 4-8. **Lab**: 1.0 research each | Core 4 and later |
+| Plate | Press (stratum 3, Core 2); from stratum 16 also a Press on **Alloy Sheet** (1 Alloy) | Assembler: 1 → 1 Component | Sold (11.5). **Store**: machine levels 3-8, Core levels 3, 4, 5, 7. **Lab**: 0.5 research each. Overdrive (with Ingots) | Core 3 |
+| Component | Assembler (stratum 5, Core 3); from stratum 16 also an Assembler on **Alloy Parts** (1 Alloy) | Frame Jig: with an Alloy → 1 Frame | Sold (24). **Store**: machine levels 4 and up, Core levels 4-8. **Lab**: 1.0 research each | Core 4 and later |
+| Crystal | a Drill on **Deep Bore** (stratum 16; +10% a stratum) | White Heat Smelter: 1 → 1 Alloy | Sold (3) | Core 7's strata |
+| Alloy | a Smelter on **White Heat** (runs faster the hotter it is) | Alloy Parts: 1 → 1 Component; Frame Jig | Sold (12). **Store**: Core 8 (25,000), Core 9 (100,000); machine levels 9 and up (with Components). **Lab**: 2.0 research each. Dispatch | Core 8 |
+| Frame | an Assembler on **Frame Jig** (Core 8): Alloy + Component | — | Sold (50). **Store**: Core 9 (30,000). **Lab**: 4.0 research each. Dispatch | Core 9 |
 | Credits | Vaults selling materials | — | Machines, machine levels, Core levels, the quota to descend | every level |
 | Research | Labs learning from materials | — | The research tree (permanent) | Core rows from level 2 |
 | Heat | Machines, Boilers, strata (ambient and modifiers) | Coolant Cells and Condensers take it away | Working-heat and stability rows | Core 2 (the Smelters), 3 (the Presses), 4 (the Assemblers), 5 and up (stability) |
@@ -154,16 +160,16 @@ never idle.
 
 | Machine | Found | Needs | Makes / does | Level (speed +10% a level) | The Core asks for it |
 |---|---|---|---|---|---|
-| Drill | stratum 0 | — | Ore | yes | level 4 (for Core 4), 6 (Core 6) |
+| Drill | stratum 0 | — | Ore; **Deep Bore** job (stratum 16): Crystal, safe to 6.5 | yes | level 4 (for Core 4), 6 (Core 6), 9 (Core 9) |
 | Crusher | 0 | 2 Ore | Gravel | yes | level 2 (Core 2) |
 | Vault | 0 | anything | sells it | **its level is the store**: 25, 80, 256, 819, 2,621, 8,389… of each material | a level whenever a store row exceeds it |
-| Smelter | 1 | Gravel, warmth | Ingot | yes | 2 at working heat (Core 2); level 3 (Core 3) |
+| Smelter | 1 | Gravel, warmth | Ingot; **White Heat** job (stratum 16): Crystal → Alloy, faster the hotter, safe to 9.0 | yes | 2 at working heat (Core 2); level 3 (Core 3); level 8 and 3 Overdrive steps (Core 8) |
 | Boiler | 1 | — | heats its neighbours; material passes through | strength | (makes the Smelter rows possible) |
 | Coolant Cell | 2 | — | cools its neighbours; material passes through | strength | level 7 (Core 7); makes the Press and Assembler rows possible |
-| Lab | 2 | Ingot, Plate or Component | research: 0.25, 0.5 or 1.0 per cycle | yes | 4 at working heat (Core 5) |
-| Press | 3 | Ingot, kept cool | Plate | yes | 2 at working heat (Core 3); level 4 (Core 4) |
-| Amplifier | 4 | — | speeds its neighbours | — | serving 3 (Core 4), serving 4 (Core 8) |
-| Assembler | 5 | Plate | Component | yes | 3 at working heat (Core 4); level 5 (Core 5); level 7 (Core 7); level 8 and 3 Overdrive steps (Core 8) |
+| Lab | 2 | Ingot, Plate, Component, Alloy or Frame | research: 0.25, 0.5, 1.0, 2.0 or 4.0 per cycle | yes | 4 at working heat (Core 5) |
+| Press | 3 | Ingot, kept cool | Plate; **Alloy Sheet** (stratum 16): Alloy → Plate, safe to 6.5 | yes | 2 at working heat (Core 3); level 4 (Core 4) |
+| Amplifier | 4 | — | speeds its neighbours | — | serving 3 (Core 4) |
+| Assembler | 5 | Plate | Component; **Alloy Parts** (stratum 16): Alloy → Component, safe to 6.5; **Frame Jig** (Core 8): Alloy + Component → Frame | yes | 3 at working heat (Core 4); level 5 (Core 5); level 7 (Core 7); 6 Overdrive steps (Core 9) |
 | Duplicator | 8 | — | sometimes doubles a neighbour's output | — | serving 3 (Core 6) |
 | Condenser | 10 | — | cools hard, speeds a little | strength | serving 2 (Core 6), serving 3 (Core 7) |
 
@@ -179,7 +185,8 @@ never idle.
 - **Materials from the store:**
   - level 2: 10 Ingots;
   - level 3: 30 Plates and 30 Ingots;
-  - level 4 and up: Components and Plates (90, 270, 810…).
+  - level 4 to 8: Components and Plates (90, 270, 810…);
+  - level 9 and up: Alloy and Components (`MachineDB.DEEP_LEVEL_FROM`).
   - The Vault pays 30% of the materials, so its current store always pays for
     its next level.
 - **Limit:** the Core's machine limit.
@@ -198,12 +205,13 @@ line that fills the store and a Vault big enough to hold the materials.
 | Night Shift (offline hours) | 1 | Research + Cores | — |
 | Deeper Bore (yield) | 2 | Research | level 2 (Core 3), 4 (Core 4), 6 (Core 7) |
 | Standing Orders (offline rate) | 2 | Research + Cores | — |
-| Drafting Table (blueprints; hidden) | 2 | Research + Cores | — |
+| Drafting Table (blueprint slots) | 2 | Research + Cores | — |
 | Refinery Contracts (value) | 3 | Research | level 2 (Core 4), 4 (Core 5) |
 | Ceramic Lining (heat tolerance) | 3 | Research + Cores | — |
 | Seismic Survey (collapse yield) | 3 | Research + Cores | — |
 | Field Notes (Lab output) | 4 | Research | level 2 (Core 5), 4 (Core 6) |
-| Resonant Frames (Boosters push harder) | 6 | Research | level 2 (Core 7), 4 (Core 8) |
+| Resonant Frames (Boosters push harder) | 6 | Research | level 2 (Core 7) |
+| **Doctrine lines** (one doctrine a shaft: Deep Survey -- Crystal Lattice, Survey Charges; Heat Engineering -- Cryo Lines, Thermal Mass; Precision Works -- Frame Jigs, Lab Benches) | 7 | Research | 4 levels of the shaft's doctrine (Core 8), 8 (Core 9) |
 
 **How the Core limits research.** Each line may go up 2 levels for every Core
 level since it opened. For example, Tighter Tolerances can reach 2 under
@@ -241,7 +249,9 @@ its limit, Descend says so and opens the Core card.
 | 5-6 | 3 | Assembler | 0.9-1.08; two modifiers possible from stratum 4 (for example, Coolant Seep can make Assemblers too cold) | 4 rings |
 | 7-9 | 4 | Duplicator (8) | 1.26-1.62 | 5 rings |
 | 10-12 | 5 | Condenser (10) | 1.8-2.16 | 6 rings |
-| 13+ | 6 and up | (new layers here are future work: P5) | 2.3+ | +1 ring every 3 strata |
+| 13-15 | 6 | (no new machine) | 2.3-2.7 | +1 ring every 3 strata |
+| 16-19 | 7 | **Crystal** (the Deep Bore job) and White Heat and Alloy Parts; the doctrines | 2.9-3.4: a Drill, a Lab and a Press overheat from the rock alone | +1 ring every 3 strata |
+| 20-24 | 8 | the Frame Jig (Core 8); more crystal a stratum | 3.6-4.3 | +1 ring every 3 strata |
 
 Every stratum is still rock that is richer and stranger than the one above
 (`Strata`: richness, ambient heat, 12 modifiers). What changes is that a
@@ -936,7 +946,9 @@ the stage's longest part, and the one a human will vary on most.
 cost 1.2 times more with every one owned, so on hot rock cooling is also a
 credit sink (FP-21 made their levels the cheaper answer).
 
-### After Core 7
+### After Core 7, as first measured
+
+(Superseded by the section "After Core 7: deeper is stronger".)
 
 **Played, the first three hours of the Core 7 era:**
 
@@ -1009,6 +1021,239 @@ Overdrive is the first growth that is not paid in credits. The next round
 should measure it and the Core 7 era, and re-derive Core 5 → 6 and Core 8
 from what that factory earns.
 
+## After Core 7: deeper is stronger
+
+The round of 26 September 2026. The brief: the long-term progression after
+Core 7 -- the deep strata, the research tree, collapse, Blueprint, a new
+production layer, Core 8 -- measured before and after, built on the systems
+that exist.
+
+### Measured first: what the rock of strata 16-19 does
+
+**The Core 7 era as played before this round** (run a1: the scripted
+player on the table of 26 September, `BENCHMARK.md`, section 3):
+
+| | Core 7 (6 h 55 min) | stratum 17 (7 h) | stratum 19 (8 h) | 9-16 h |
+|---|---|---|---|---|
+| income | 8.39K/s | 5.97K/s | 2.82K/s | 2.5-2.9K/s |
+| makers at working heat | -- | 26 | 18 | 21-26 |
+| Assemblers at working heat | 3 | 1 | 0 | 0 |
+| stability (of 100) | -- | 0 | 0 | 38-42 |
+| Components in the store | -- | 8,852 | 8,852 | 6,665-8,852 |
+
+- **Decisions:** 803 in 296 of 546 minutes; 384 machines sold and 370 placed.
+- **Research:** 506K made and 526K spent, all of it on 14 Overdrive steps. No research level was bought.
+- **Waiting:** none. No row was ever left to credits alone, and Core 8 was not reached in 9 hours.
+
+**The same factory, moved down unchanged** (`tools/deep_lab.gd`). This is
+the factory of the moment Core 7's rows were met (the fixture
+`tests/fixtures/core7_ready.json`), with its levels and research, set on
+each stratum and run with no player:
+
+| stratum | credits/s | research/s | makers overheating / working / all |
+|---|---|---|---|
+| 15 | 8.38K | 34 | 0 / 46 / 69 |
+| 16 | 7.30K | 16 | 1 / 43 / 69 |
+| 17 | 10.0K | 18 | 11 / 25 / 69 |
+| 19 | 13.0K | 19 | 3 / 41 / 69 |
+| 21 | 11.2K | 16 | 6 / 38 / 69 |
+| 24 | 9.18K | 18 | 16 / 28 / 69 |
+
+(Credits move with each stratum's modifiers, not only with depth.)
+
+So the rock alone does not take the income: a stratum's richness grows
+faster than the heat costs a factory left alone. What the rock takes is:
+
+- **the Labs.** From stratum 16 research falls by about half. A Lab takes 3.0 heat, and the rock alone is 2.9-3.4.
+- **stability.** From stratum 17, Drills, Labs and Presses overheat from the rock alone (a Drill takes 3.0; the rock's 3.4 and its own 0.6 are past it). The stability row stays at 0 until every one of them is cooled or gone.
+- **and, played, the factory.** The player answered the stability row by selling what overheated, and a chain with a machine sold from its middle starves. Run a1's income fall was that teardown: 384 machines sold in nine hours.
+
+**The problem, then:** on deep rock the old chain gains nothing and has
+everything to fight. Every stratum only added heat to cool, and Core 8 asked
+for more of the same chain (80,000 Components) on the rock that stops it.
+
+### What was built
+
+One connected plan on the systems that exist: no new machine, no new
+currency.
+
+**1. The deep chain, on jobs** (`MachineDB.JOBS`). A job is another recipe
+for a machine the player already has, set tile by tile as a mode is.
+
+- **Deep Bore** (a Drill, from stratum 16) digs **Crystal**. It is built for hot rock: safe to 6.5, where a Drill is safe to 3.0. The rock holds 10% more crystal every stratum from 16 (`Strata.vein`).
+- **White Heat** (a Smelter, from stratum 16) turns Crystal into **Alloy**, and runs on heat (`MachineDB.drive_efficiency`):
+  - the hotter its tile, the faster it works, in proportion to its heat, from its optimum (5.0) up to its tolerance (9.0), where it is 1.8 times as fast;
+  - past the tolerance it chokes four times as hard as any other machine.
+  So the rock's heat, a Boiler, Hot mode and Overdrive, which choke the old chain, feed this one. How close to the edge to run it is the player's call.
+- **Alloy Sheet** (a Press, from stratum 16) rolls an Alloy into a Plate, and **Alloy Parts** (an Assembler, from stratum 16) makes a Component from one. Both are safe to 6.5, where the old chain's Press takes 2.5 and its Assembler 4.0.
+  - So the Plates and Components that every machine level and the Core's store still ask for come from either chain: cooled ore, or hot crystal.
+  - An Alloy rolled or worked is an Alloy not sold, not learnt from and not stored, and a Plate sells for less than the Alloy it was rolled from. So this is a choice, not a replacement.
+  - Both were added after plays in which the store's Plates and Components stopped for hours on stratum 19 (see "Played").
+- **Frame Jig** (an Assembler, from the Core's level 8) joins an Alloy and a Component into a **Frame**.
+
+**2. Every new material ties into systems that exist:**
+
+| material | made by | used by |
+|---|---|---|
+| Crystal | Deep Bore (stratum 16; more with depth) | White Heat; Vaults (3) |
+| Alloy | White Heat | Alloy Sheet; Alloy Parts; Frame Jig; the store (Core 8: 25,000; Core 9: 100,000); machine levels from 9 (with Components); Labs (2 research, twice a Component's); Dispatch; Vaults (12) |
+| Frame | Frame Jig (Core 8) | the store (Core 9: 30,000); Labs (4 research); Dispatch; Vaults (50) |
+
+**3. Research: branches and doctrines** (`Economy.BRANCHES`,
+`Economy.DOCTRINES`).
+
+- Every research line has a branch: production, efficiency, heat, deep mining, logistics, the Core. The grid shows the lines branch by branch.
+- From Core 7 a shaft follows **one doctrine**, chosen once. Each doctrine opens two research lines the others do not have, and only the chosen doctrine's lines are bought or count:
+
+| doctrine | its lines | what it changes |
+|---|---|---|
+| Deep Survey | Crystal Lattice (Deep Bores +20% a level); Survey Charges (quotas −8% a level) | more of the deep chain, and deeper sooner |
+| Heat Engineering | Cryo Lines (coolers +15% a level); Thermal Mass (+0.4 tolerance a level) | the old chain lives on hot rock |
+| Precision Works | Frame Jigs (Frames and Components sell for 20% more a level); Lab Benches (Labs learn 25% more a level from Alloy and Frames) | parts and research |
+
+- **The player cannot have everything.** In a shaft there is one doctrine. Its lines go two levels a Core level from Core 7, up to six at Core 9.
+- **A doctrine is the shaft's.** A collapse clears the choice and the research bought in its lines. So each shaft's Core 7 era has research to spend and a choice to make again. (Kept, the doctrine's research met the next shaft's doctrine row the moment the doctrine was chosen.)
+
+**4. Core 8 from the measurement** (`CoreLevels.LEVELS`).
+
+- **It asks for:**
+  - 25,000 Alloy and 50,000 Components in the store (a Vault 8);
+  - a Smelter driven 3 Overdrive steps, and Smelter 8;
+  - four levels of the shaft's doctrine's research;
+  - stable 100;
+  - stratum 19;
+  - 40M credits.
+- **It opens:** the Frame Jig, machine level 9 (paid in Alloy and Components) and strata 20-24.
+- **Core 9** is written out, designed and graph-checked but not played: 30,000 Frames, 100,000 Alloy, an Assembler driven 6 steps, eight doctrine levels, Drill 9, stable 120, stratum 24.
+
+**5. The collapse keeps a foundation** (`Sim.foundation`).
+
+- **The Core:** a new shaft's Core starts at half the best level any shaft reached. A collapse at Core 8 starts the next shaft at Core 4.
+- **Kept:** the research tree, Cores, blueprints and the foundation.
+- **Reset:** the board, credits, research points, depth, machine levels, Overdrive, the store, and the doctrine with its research.
+
+**6. Blueprints** (`Sim.save_blueprint`, `blueprint_report`,
+`lay_blueprint`, `fill_pending`; the Core card).
+
+- **A slot saves the board:** every machine, with its mode and its job.
+- **Laid in another shaft, it is checked first against that ground:**
+  - machines not found yet;
+  - tiles outside the yard or under rock;
+  - tiles taken;
+  - jobs not open yet;
+  - with the whole blueprint standing on this stratum's rock, what would overheat or run cold.
+  A key shows each flagged tile.
+- **It goes down from each line's end.** A seller goes down with the maker that feeds it, and a maker only once something beside it takes what it makes. So what goes down first earns. The first version put a Drill down first, alone, and a played second shaft never earned a credit.
+- **What cannot go down yet waits** for credits, ground or its job.
+- Drafting Table, which sells blueprint slots, is back in the research grid.
+
+### Played, after
+
+The scripted player (`tools/core_journey.gd`) was extended for the era:
+
+- it chooses a doctrine at Core 7;
+- it retasks a Drill the rock overheats (one built for income alone) to the Deep Bore;
+- it lays deep units (a Deep Bore, a White Heat Smelter, a Vault) away from the old chain;
+- it lays research units (a Deep Bore, a White Heat Smelter, a Coolant Cell and a Lab);
+- on hot rock it lays a line with a Coolant Cell where the rock has a machine at its edge, and prefers the jobs built for heat;
+- it spends on repairs at most a fifth of what it earns;
+- it keeps the Core's price once it has saved it;
+- it goes a stratum down only while nothing overheats.
+
+It is still a model: the numbers are its, not a person's.
+
+**A new game, to Core 8** (Deep Survey):
+
+| | before (a1) | after |
+|---|---|---|
+| Cores 1 → 7 | 6 h 55 min | 6 h 55 min (the same run: nothing before Core 7 changed) |
+| Core 7 → 8 | not reached in 9 h 04 min | **2 h 36 min** (Core 8 at 9 h 31 min) |
+| income over the stage | 8.39K/s → 2.82K/s on stratum 19; 2.8K/s average | 8.39K/s → 23.1K/s on stratum 19 (8 h) → 25.6K/s; 23.4K/s average |
+| decisions | 803 in 296 of 546 minutes (384 machines sold) | 341 in 63 of 157 minutes (116 sold) |
+| saving (only credits left) | 0% (nothing could be met) | 0% (20 s) |
+| research made / spent | 506K / 526K, all on Overdrive | 217K / 513K: Overdrive 363K, doctrine 150K |
+
+**Its rows, first met after** (stage start 6 h 55 min):
+
+| row | met after |
+|---|---|
+| a doctrine's 4 levels | 14 s |
+| stratum 19 | 23 min |
+| stable 100 | 32 min |
+| 25,000 Alloy | 14 min |
+| 50,000 Components | 1 h 28 min |
+| a Smelter driven 3 steps | 1 h 47 min |
+| Smelter 8 | 2 h 02 min |
+| 40M credits | 2 h 34 min |
+
+The last two rows are credits (a level at 38M and the Core at 40M), met in
+the half hour after the rest. That is the Core 7 model.
+
+**The three doctrines, from the same Core 7 factory** (the new game's,
+kept at 6 h 55 min):
+
+| doctrine | Core 7 → 8 | saving | decision minutes | income, average | research made / spent | stable 100 met after |
+|---|---|---|---|---|---|---|
+| Deep Survey | 2 h 13 min | 33% | 56 of 134 | 27.4K/s | 411K / 688K (Overdrive 418K) | 55 min |
+| Heat Engineering | 2 h 12 min | 34% | 59 of 133 | 27.1K/s | 340K / 761K (Overdrive 581K) | 2 min |
+| Precision Works | 3 h 04 min | 8% | 74 of 184 | 26.6K/s | 200K / 598K (Overdrive 418K) | 1 h 46 min |
+
+- **Each doctrine plays differently.** Heat Engineering met stability at once and put its research into Overdrive (15 steps). Deep Survey got there by the deep chain. Precision Works was slowest for this player: it builds few Labs and no Frames before Core 8, so the doctrine had little to work on.
+- **None is a trap,** but the right one depends on the factory built around it. That is the choice the brief asks for.
+
+**The collapse at Core 8, and the second shaft** (the Deep Survey game,
+collapsed the moment Core 8 was reached):
+
+- **The collapse:** 154 Cores, the tree kept, a blueprint of 245 machines, and a Core foundation at level 4.
+- **The blueprint, checked on the new shaft's ground:** 225 of its machines outside the yard, 5 ready, 15 that would run cold at stratum 0. It filled in as the yard grew.
+
+| | first shaft | second shaft |
+|---|---|---|
+| Core 5 | 46 min | **12 min** after the collapse |
+| Core 6 | 1 h 20 min | **39 min** |
+| Core 7 | 6 h 55 min | **2 h 36 min** |
+| Core 8 | 9 h 31 min | not reached in 13 h 53 min |
+
+- **Why the second shaft is faster.** The foundation skips Cores 1-3, and the blueprint lays 200 machines in its first 12 minutes.
+- **Where it still waits:** Cores 5 → 6 and 6 → 7 were 89% and 71% saving. The machine levels the rows ask for have to be bought again with credits, and the shaft's income there is the first shaft's.
+- **Why it stopped at Core 7 → 8.** It was stopped by an Overdrive step paid in Ingots. Its blueprint was the Core 8 factory, which makes almost no Ingots on the deep rock, and this player did not lay an Ingot line again (1,028 machines placed and 986 sold in the attempt).
+
+**Performance** (desktop, Intel UHD; the perf probe's late board: 308
+machines, a headless tick, best of 5 × 300):
+
+- before this round: 1.80 ms a tick;
+- with jobs, every tile asking for its job: 2.32 ms;
+- with what a machine takes worked out once per board (`Simulation._taker_candidates`): 1.78 ms.
+
+The journey to Core 5 is the same to the last credit. A phone is still
+UNKNOWN.
+
+### What the deep strata do now
+
+`tools/deep_lab.gd`, machines at level 7, the fixture's research.
+Credits a second a tile:
+
+| stratum | the Core 3 Assembler line, cooled | a block of Deep Bores, White Heat Smelters and Vaults | a Deep Bore's, and a White Heat Smelter's, cycles a second |
+|---|---|---|---|
+| 16 | 64 | 102 | 3.30, 3.85 |
+| 17 | 64 | 102 | 3.62, 3.97 |
+| 19 | 63 | 102 | 4.24, 4.19 |
+| 21 | 63 | 102 | 4.85, 4.42 |
+| 24 | 62 | 100 | 5.74, 4.76 |
+
+- **Per tile, the deep block pays 1.6 times the old line and needs no cooling.**
+- **Deeper, its machines are faster:** from stratum 16 to 24, +74% for the Bore and +24% for the Smelter.
+- **Its per-tile income does not rise with depth,** because a Vault sells one buffer (six units) a cycle and is the limit. So depth pays in more outlets -- Vaults, Labs, the store -- which is a layout decision.
+
+### Not done in this round
+
+- **The second shaft's Core 7 era** stopped on Ingots for Overdrive. The first shaft had an old Ingot line; the second, laid from a Core 8 blueprint, did not.
+- **Standard levels.** Machine levels are not kept by a collapse (FP-19 a), so the second shaft saves for them again.
+- **Labs on deep rock.** Labs still go quiet on strata 17-19 (research units with a Coolant Cell help, but this player keeps few). Research in the Core 7 era was 217K in 2 h 36 min, against 506K in 9 h before.
+- **Core 9** is designed and graph-checked, not played; **Core 10 and up** are a formula.
+- **No picture yet:** no ghost of a blueprint on the board, no mark for a tile's job, no Overdrive glow.
+- **World nodes** still draw nothing (FP-18).
+
 ---
 
 ## Plan P0-P8
@@ -1037,24 +1282,24 @@ For each step: why, what it touches, what the player gains, and what it links.
   - **Player gains:** research from the first session, and a reason to split
     material.
   - **Links:** the Core's research rows.
-- **P4 Regional and depth gates.** *Partly done: the Core caps depth.*
+- **P4 Regional and depth gates.** *Partly done: the Core caps depth, and strata 16 and down hold crystal (the Deep Bore job).*
   - **Next:** strata bands with their own resources and nodes, for example
     the crystal and heat-vent nodes that are already on the map and unused
     (`ResourceNodes`).
   - **Touches:** Strata, BuildArea, ResourceNodes.
   - **Player gains:** "the next era", not a bigger number.
   - **Links:** new materials into store rows.
-- **P5 Long-term.**
-  - **Why:** level 9 and up are a formula today.
+- **P5 Long-term.** *Core 8 and 9 written out (26 Sep 2026).*
+  - **Why:** level 10 and up are a formula today.
   - **Next:** give levels 6-12 their own identities, with a new material or
     production layer each (one resource per era, never for length alone),
     each graph-checked before it ships.
   - **Links:** P4 and P6.
-- **P6 Collapse integration.** See "Collapse" below.
+- **P6 Collapse integration.** *Partly done (26 Sep 2026): a Core foundation, blueprints and a doctrine chosen again.* See "Collapse" below.
   - **Why:** a collapse throws away the whole Core progression today.
   - **Next:** decide what a collapsed shaft keeps, for example a Core-level
     floor or kept machine levels, measured against the 4-hour pace.
-- **P7 Blueprint integration.** See "Blueprint" below.
+- **P7 Blueprint integration.** *Done without ghosts or share codes (26 Sep 2026).* See "Blueprint" below.
   - **Why:** the scripted player rebuilds the same three Core lines every
     shaft.
   - **Next:** blueprints of Core lines, once P6 decides what a new shaft
@@ -1066,7 +1311,8 @@ For each step: why, what it touches, what the player gains, and what it links.
 
 ## Collapse: where it conflicts with the new progression
 
-(Recorded now, changed later: P6.)
+(Recorded before the round of 26 September 2026, which answered the first
+point with the Core's foundation: see "After Core 7".)
 
 1. **A collapse resets everything the Core progression built.** The Core
    level, machine levels and the store all go. That is the "reset, start
@@ -1081,8 +1327,8 @@ For each step: why, what it touches, what the player gains, and what it links.
 
 ## Blueprint
 
-Blueprint becomes a real need if the Core lines have to be rebuilt after
-every collapse, and the scripted player shows that they do. It stays
-quality-of-life until P6 decides what a new shaft keeps; if machine levels
-or a Core floor survive, blueprints of Core lines become the obvious next
-step.
+Blueprint became a real need once a collapse kept a Core floor: a second
+shaft starting at Core 4 has four levels' worth of lines to lay at once.
+It is built (see "After Core 7"): a slot saves the board with every
+machine's mode and job; laid, it is checked against the new ground and put
+down as credits, the yard and the jobs allow.

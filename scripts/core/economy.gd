@@ -31,6 +31,7 @@ const RESEARCH_TREE := {
 		"max": 8,
 		"cost_growth": 2.1,
 		"effect": "speed",
+		"branch": "production",
 		"per_level": 0.15,
 		"core": 1,
 	},
@@ -45,6 +46,7 @@ const RESEARCH_TREE := {
 		"max": 6,
 		"cost_growth": 2.3,
 		"effect": "yield",
+		"branch": "production",
 		"per_level": 0.20,
 		"core": 2,
 	},
@@ -57,6 +59,7 @@ const RESEARCH_TREE := {
 		"max": 6,
 		"cost_growth": 2.4,
 		"effect": "value",
+		"branch": "efficiency",
 		"per_level": 0.18,
 		"core": 3,
 	},
@@ -69,6 +72,7 @@ const RESEARCH_TREE := {
 		"max": 5,
 		"cost_growth": 2.5,
 		"effect": "research",
+		"branch": "efficiency",
 		"per_level": 0.25,
 		"core": 4,
 	},
@@ -88,6 +92,7 @@ const RESEARCH_TREE := {
 		"max": 4,
 		"cost_growth": 2.5,
 		"effect": "resonance",
+		"branch": "production",
 		"per_level": 0.15,
 		"core": 6,
 	},
@@ -100,6 +105,7 @@ const RESEARCH_TREE := {
 		"max": 5,
 		"cost_growth": 2.6,
 		"effect": "tolerance",
+		"branch": "heat",
 		"per_level": 0.6,
 		"core": 3,
 	},
@@ -112,6 +118,7 @@ const RESEARCH_TREE := {
 		"max": 6,
 		"cost_growth": 2.2,
 		"effect": "offline_hours",
+		"branch": "logistics",
 		"per_level": 2.0,
 		"core": 1,
 	},
@@ -124,6 +131,7 @@ const RESEARCH_TREE := {
 		"max": 4,
 		"cost_growth": 2.8,
 		"effect": "offline_rate",
+		"branch": "logistics",
 		"per_level": 0.12,
 		"core": 2,
 	},
@@ -136,6 +144,7 @@ const RESEARCH_TREE := {
 		"max": 5,
 		"cost_growth": 3.0,
 		"effect": "core_yield",
+		"branch": "core",
 		"per_level": 0.25,
 		"core": 3,
 	},
@@ -148,14 +157,148 @@ const RESEARCH_TREE := {
 		"max": 3,
 		"cost_growth": 2.4,
 		"effect": "blueprints",
+		"branch": "core",
 		"per_level": 1.0,
 		"core": 2,
+	},
+	# The doctrines' lines (DOCTRINES): research only, opened by the Core's
+	# level DOCTRINE_CORE, and bought -- and worth anything -- only in a
+	# shaft that follows their doctrine.
+	"vein_1": {
+		"name": "Crystal Lattice",
+		"short": "Deep Bores dig more crystal.",
+		"desc": "Every Deep Bore digs 20% more crystal. A Deep Survey line: it works only in a shaft that follows the Deep Survey.",
+		"cost_research": 30000.0,
+		"cost_cores": 0,
+		"max": 6,
+		"cost_growth": 2.0,
+		"effect": "vein",
+		"branch": "deep",
+		"per_level": 0.2,
+		"core": 7,
+		"doctrine": "deep",
+	},
+	"survey_1": {
+		"name": "Survey Charges",
+		"short": "Going down costs less.",
+		"desc": "Every stratum's quota is 8% lower. A Deep Survey line: it works only in a shaft that follows the Deep Survey.",
+		"cost_research": 30000.0,
+		"cost_cores": 0,
+		"max": 6,
+		"cost_growth": 2.0,
+		"effect": "quota",
+		"branch": "deep",
+		"per_level": 0.08,
+		"core": 7,
+		"doctrine": "deep",
+	},
+	"cryo_1": {
+		"name": "Cryo Lines",
+		"short": "Coolers cool harder.",
+		"desc": "Coolant Cells and Condensers cool 15% harder. A Heat Engineering line: it works only in a shaft that follows Heat Engineering.",
+		"cost_research": 30000.0,
+		"cost_cores": 0,
+		"max": 6,
+		"cost_growth": 2.0,
+		"effect": "cooling",
+		"branch": "heat",
+		"per_level": 0.15,
+		"core": 7,
+		"doctrine": "thermal",
+	},
+	"mass_1": {
+		"name": "Thermal Mass",
+		"short": "Every machine takes more heat.",
+		"desc": "Every machine tolerates 0.4 more heat before it chokes. A Heat Engineering line: it works only in a shaft that follows Heat Engineering.",
+		"cost_research": 30000.0,
+		"cost_cores": 0,
+		"max": 6,
+		"cost_growth": 2.0,
+		"effect": "tolerance",
+		"branch": "heat",
+		"per_level": 0.4,
+		"core": 7,
+		"doctrine": "thermal",
+	},
+	"jigs_1": {
+		"name": "Frame Jigs",
+		"short": "Frames and Components sell for more.",
+		"desc": "Frames and Components sell for 20% more. A Precision Works line: it works only in a shaft that follows Precision Works.",
+		"cost_research": 30000.0,
+		"cost_cores": 0,
+		"max": 6,
+		"cost_growth": 2.0,
+		"effect": "fine_value",
+		"branch": "efficiency",
+		"per_level": 0.2,
+		"core": 7,
+		"doctrine": "precision",
+	},
+	"benches_1": {
+		"name": "Lab Benches",
+		"short": "Labs learn more from the deep chain.",
+		"desc": "Labs learn 25% more from an Alloy or a Frame. A Precision Works line: it works only in a shaft that follows Precision Works.",
+		"cost_research": 30000.0,
+		"cost_cores": 0,
+		"max": 6,
+		"cost_growth": 2.0,
+		"effect": "deep_learn",
+		"branch": "efficiency",
+		"per_level": 0.25,
+		"core": 7,
+		"doctrine": "precision",
 	},
 }
 
 const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resonance",
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
-	"core_yield"]
+	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1"]
+
+## What each line of the tree is about: the research grid shows it branch by
+## branch, in this order.
+const BRANCHES := {
+	"production": "Production",
+	"efficiency": "Efficiency",
+	"heat": "Heat",
+	"deep": "Deep mining",
+	"logistics": "Logistics",
+	"core": "Core",
+}
+
+
+## --- doctrines ------------------------------------------------------------------
+##
+## From the Core's level DOCTRINE_CORE a shaft follows one doctrine, chosen
+## once and kept until the shaft collapses (Sim.choose_doctrine). Each opens
+## two lines of research the others do not (the lines marked "doctrine"),
+## and only the chosen doctrine's lines are bought or count -- so the Core 7
+## era asks for a strategy, not for everything: the crystal and the descent,
+## the heat, or the parts and the Labs. Unlike the rest of the tree, a
+## doctrine's research is the shaft's: a collapse clears it with the
+## doctrine, so every shaft's Core 7 era has research to spend and a
+## choice to make again -- the same one, or another. (Kept, it met the
+## doctrine row of every later shaft the moment it was chosen.)
+const DOCTRINE_CORE := 7
+
+const DOCTRINES := {
+	"deep": {
+		"name": "Deep Survey",
+		"short": "More crystal, and the way down costs less.",
+		"lines": ["vein_1", "survey_1"],
+	},
+	"thermal": {
+		"name": "Heat Engineering",
+		"short": "Stronger cooling, and every machine takes more heat.",
+		"lines": ["cryo_1", "mass_1"],
+	},
+	"precision": {
+		"name": "Precision Works",
+		"short": "Frames and Components pay more, and Labs learn more.",
+		"lines": ["jigs_1", "benches_1"],
+	},
+}
+
+const DOCTRINE_ORDER := ["deep", "thermal", "precision"]
 
 ## Base offline behaviour before upgrades. Generous enough that a player who
 ## opens the game once a day is rewarded, small enough that playing is better
@@ -243,8 +386,15 @@ static func can_collapse(max_depth: int) -> bool:
 	return max_depth >= COLLAPSE_MIN_DEPTH
 
 
-## Applied multipliers for a given set of upgrade levels.
-static func multipliers(levels: Dictionary) -> Dictionary:
+## The doctrine research line `id` belongs to, or "" for a line every shaft
+## has.
+static func doctrine_of(id: String) -> String:
+	return String((RESEARCH_TREE.get(id, {}) as Dictionary).get("doctrine", ""))
+
+
+## Applied multipliers for a given set of upgrade levels, in a shaft that
+## follows `doctrine` (another doctrine's lines count for nothing).
+static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary:
 	var m: Dictionary = {
 		"speed": 1.0,
 		"yield": 1.0,
@@ -256,17 +406,26 @@ static func multipliers(levels: Dictionary) -> Dictionary:
 		"offline_rate": OFFLINE_BASE_RATE,
 		"core_yield": 0.0,
 		"blueprints": 1.0,
+		"vein": 1.0,
+		"quota": 1.0,
+		"cooling": 1.0,
+		"fine_value": 1.0,
+		"deep_learn": 1.0,
 	}
 	for id: String in RESEARCH_TREE:
 		var lvl: int = int(levels.get(id, 0))
 		if lvl <= 0:
 			continue
+		if doctrine_of(id) != "" and doctrine_of(id) != doctrine:
+			continue
 		var u: Dictionary = RESEARCH_TREE[id]
 		var per: float = float(u["per_level"])
 		var effect: String = String(u["effect"])
 		match effect:
-			"speed", "yield", "value", "research", "resonance":
+			"speed", "yield", "value", "research", "resonance", "vein", "cooling", "fine_value", "deep_learn":
 				m[effect] = float(m[effect]) + per * float(lvl)
+			"quota":
+				m[effect] = maxf(float(m[effect]) - per * float(lvl), 0.2)
 			"tolerance", "core_yield":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"offline_hours":

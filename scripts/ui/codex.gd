@@ -373,6 +373,15 @@ func _machine_card(id: String) -> Control:
 				lines.append(Loc.t("It runs best warm: around %.1f heat.") % float(m["heat_optimum"]))
 			-1:
 				lines.append(Loc.t("It runs best cool, and slows down past %.1f heat.") % float(m["heat_tolerance"]))
+		# Its other jobs (MachineDB.JOBS): what each makes, and what opens it.
+		for job: String in MachineDB.jobs_for(id):
+			if job == "":
+				continue
+			var info: Dictionary = MachineDB.job_info(id, job)
+			var at: String = Loc.t("Core level %d") % int(info["core"]) if info.has("core") \
+				else Loc.t("Stratum %d") % int(info.get("depth", 0))
+			lines.append(Loc.t("Job: %s (%s). %s %s") % [MachineDB.job_name(id, job), at,
+				Loc.t(String(info["short"])), MachineDB.recipe_text(id, job)])
 		if not open:
 			lines.append(Loc.t("It opens at stratum %d.") % opens)
 		return "\n\n".join(lines))

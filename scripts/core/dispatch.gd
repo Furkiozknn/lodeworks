@@ -40,20 +40,26 @@ const RESEARCH_PREMIUM := 1.25
 
 
 ## The stored materials this shaft can make now: a machine that makes each
-## has been found.
-static func reachable(unlocked: Array) -> Array[int]:
+## has been found and, for one made on a job (MachineDB.JOBS), the rock it
+## needs reached (`max_depth`) and the Core's level it needs grown.
+static func reachable(unlocked: Array, max_depth: int = 999, core_level: int = 999) -> Array[int]:
 	var out: Array[int] = []
 	for res: int in MachineDB.STOCKED:
-		if unlocked.has(CoreLevels.producer_of(res)):
-			out.append(res)
+		for mk: Array in MachineDB.makers_of(res):
+			var id: String = String(mk[0])
+			if unlocked.has(id) and max_depth >= int(MachineDB.job_info(id, String(mk[1])).get("depth", 0)) \
+					and core_level >= int(MachineDB.job_info(id, String(mk[1])).get("core", 1)):
+				out.append(res)
+				break
 	return out
 
 
 ## Contract number `serial` of this shaft: {"res", "n", "pays": "credits" |
 ## "research", "serial"}, or {} when nothing stored can be made yet.
 ## `cap` is what the store holds of each material.
-static func deal(core_level: int, depth: int, serial: int, unlocked: Array, cap: int) -> Dictionary:
-	var can: Array[int] = reachable(unlocked)
+static func deal(core_level: int, depth: int, serial: int, unlocked: Array, cap: int,
+		max_depth: int = 999) -> Dictionary:
+	var can: Array[int] = reachable(unlocked, max_depth, core_level)
 	if can.is_empty() or cap <= 0:
 		return {}
 	var rng := RandomNumberGenerator.new()

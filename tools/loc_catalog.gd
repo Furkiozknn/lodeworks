@@ -67,6 +67,11 @@ static func _tables() -> Array:
 			add.call(m.get(k, ""), "res://scripts/core/machine_db.gd")
 	for r in MachineDB.RES_NAME.values():
 		add.call(r, "res://scripts/core/machine_db.gd")
+	for id: String in MachineDB.JOBS:
+		for job: String in MachineDB.JOBS[id]:
+			var jb: Dictionary = MachineDB.JOBS[id][job]
+			add.call(jb.get("name", ""), "res://scripts/core/machine_db.gd")
+			add.call(jb.get("short", ""), "res://scripts/core/machine_db.gd")
 	for g: Dictionary in MachineDB.GROUPS:
 		add.call(g.get("name", ""), "res://scripts/core/machine_db.gd")
 		add.call(g.get("short", ""), "res://scripts/core/machine_db.gd")
@@ -74,6 +79,11 @@ static func _tables() -> Array:
 		var u: Dictionary = Economy.RESEARCH_TREE[id]
 		for k: String in ["name", "short", "desc"]:
 			add.call(u.get(k, ""), "res://scripts/core/economy.gd")
+	for d: String in Economy.DOCTRINES:
+		add.call(Economy.DOCTRINES[d].get("name", ""), "res://scripts/core/economy.gd")
+		add.call(Economy.DOCTRINES[d].get("short", ""), "res://scripts/core/economy.gd")
+	for b in Economy.BRANCHES.values():
+		add.call(b, "res://scripts/core/economy.gd")
 	for e: Dictionary in CoreLevels.LEVELS:
 		add.call(e.get("era", ""), "res://scripts/core/core_levels.gd")
 	for id: String in Strata.MODIFIERS:
@@ -97,6 +107,8 @@ static func _tables() -> Array:
 		add.call(b, "res://scripts/ui/main.gd")
 	for t: Dictionary in main["SETTINGS_TABS"]:
 		add.call(t.get("name", ""), "res://scripts/ui/main.gd")
+	for w in (main["BLUEPRINT_WORDS"] as Dictionary).values():
+		add.call(w, "res://scripts/ui/main.gd")
 	for key: String in MonetizationDB.keys():
 		var p: Dictionary = MonetizationDB.product(key)
 		for k: String in ["title", "headline", "footnote"]:

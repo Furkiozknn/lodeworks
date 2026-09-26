@@ -31,13 +31,16 @@ extends RefCounted
 ##   OVERDRIVE the Overdrive steps a machine type has been driven (from the
 ##             Core's level MachineDB.OVERDRIVE_CORE; paid in store
 ##             materials and research).
+##   DOCTRINE  levels bought in the lines of the doctrine this shaft follows
+##             (Economy.DOCTRINES, from the Core's level DOCTRINE_CORE) --
+##             whichever it is: the row asks for a strategy, not for one.
 ##
 ## The graph has no cycles by construction -- everything level L asks for is
 ## possible at level L-1 -- and `validate()` checks it, with every
 ## requirement's reachability, storage and research limit, so a level can
 ## never ask for the impossible.
 
-enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE }
+enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE, DOCTRINE }
 
 ## A support machine touches four machines at most (Grid.serves).
 const MAX_SERVES := 4
@@ -127,20 +130,35 @@ const LEVELS := [
 		[Req.STABLE, 80],
 		[Req.DEPTH, 15],
 	]},
-	# Designed and graph-checked, not yet played (docs/PROGRESSION.md, "Core
-	# 7", "After Core 7"): what Core 7 opens -- Overdrive, Resonance's last
-	# levels -- becomes a row, as a newly opened building does in the
-	# reference games.
+	# The Core 7 era's work, as played (docs/PROGRESSION.md, "After Core
+	# 7"): the deep chain into the store -- Alloy, made at white heat from
+	# the crystal of strata 16 and down -- with the old chain still feeding
+	# it Components; the Smelters that make it driven and levelled; the
+	# doctrine the shaft chose; the whole factory under control on the
+	# hottest rock yet.
 	{"level": 8, "era": "The Abyss", "depth_cap": 24, "machine_cap": 9, "requires": [
-		[Req.CREDITS, 60000000.0],
-		[Req.STOCK, MachineDB.Res.COMPONENT, 80000],
-		[Req.STOCK, MachineDB.Res.PLATE, 80000],
-		[Req.OVERDRIVE, "assembler", 3],
-		[Req.SERVES, "amplifier", 4],
-		[Req.RESEARCH, "resonance", 4],
-		[Req.MACHINE, "assembler", 8],
+		[Req.CREDITS, 40000000.0],
+		[Req.STOCK, MachineDB.Res.ALLOY, 25000],
+		[Req.STOCK, MachineDB.Res.COMPONENT, 50000],
+		[Req.OVERDRIVE, "smelter", 3],
+		[Req.DOCTRINE, 4],
+		[Req.MACHINE, "smelter", 8],
 		[Req.STABLE, 100],
 		[Req.DEPTH, 19],
+	]},
+	# Designed and graph-checked, not yet played: the Frame the Core's level
+	# 8 opens becomes the store's row, as a newly opened building does in
+	# the reference games; the levels Alloy pays for (MachineDB
+	# DEEP_LEVEL_FROM); the doctrine taken further.
+	{"level": 9, "era": "The Forge", "depth_cap": 29, "machine_cap": 10, "requires": [
+		[Req.CREDITS, 160000000.0],
+		[Req.STOCK, MachineDB.Res.FRAME, 30000],
+		[Req.STOCK, MachineDB.Res.ALLOY, 100000],
+		[Req.OVERDRIVE, "assembler", 6],
+		[Req.DOCTRINE, 8],
+		[Req.MACHINE, "drill", 9],
+		[Req.STABLE, 120],
+		[Req.DEPTH, 24],
 	]},
 ]
 
@@ -181,6 +199,8 @@ static func _entry(level: int) -> Dictionary:
 				reqs.append(r)
 			Req.DEPTH:
 				reqs.append([Req.DEPTH, depth_cap(level - 1)])
+			Req.DOCTRINE:
+				reqs.append([Req.DOCTRINE, mini(int(r[1]) + 2 * n, doctrine_cap(level - 1))])
 	var machine: String = String(LATE_MACHINES[n % LATE_MACHINES.size()])
 	reqs.append([Req.MACHINE, machine, machine_cap(level - 1)])
 	reqs.append([Req.OVERDRIVE, machine, overdrive_cap(level - 1)])
@@ -231,6 +251,30 @@ static func storage_level(amount: int) -> int:
 	return v
 
 
+## The most doctrine levels a shaft may have bought under a Core of `level`:
+## the lines of the doctrine with the most, each at the Core's limit.
+static func doctrine_cap(level: int) -> int:
+	var best: int = 0
+	for d: String in Economy.DOCTRINES:
+		var n: int = 0
+		for id: String in Economy.DOCTRINES[d]["lines"]:
+			n += Economy.research_cap(id, level)
+		best = maxi(best, n)
+	return best if level >= Economy.DOCTRINE_CORE else 0
+
+
+## The first Core level at which `n` doctrine levels can have been bought.
+static func doctrine_at(n: int) -> int:
+	var at: int = maxi(Economy.DOCTRINE_CORE, level_for_depth(MachineDB.unlock_depth("lab")))
+	var guard: int = 0
+	while doctrine_cap(at) < n:
+		at += 1
+		guard += 1
+		if guard > 1000:
+			return -1
+	return at
+
+
 ## The Overdrive steps a machine type may take under a Core of `level`.
 static func overdrive_cap(level: int) -> int:
 	return MachineDB.OVERDRIVE_PER_CORE * maxi(level - MachineDB.OVERDRIVE_CORE + 1, 0)
@@ -250,18 +294,27 @@ static func opens(level: int) -> Dictionary:
 	var from: int = depth_cap(level - 1) + 1 if level > 1 else 0
 	var to: int = depth_cap(level)
 	var machines: Array[String] = []
-	var materials: Array[int] = []
 	for id: String in MachineDB.ORDER:
 		var d: int = MachineDB.unlock_depth(id)
 		if d >= from and d <= to:
 			machines.append(id)
-			for res: int in (MachineDB.get_machine(id).get("outputs", {}) as Dictionary):
-				materials.append(res)
+	# A material opens where its first maker can run: a machine found, or a
+	# job its rock or the Core's level opens.
+	var materials: Array[int] = []
+	for res: int in MachineDB.Res.values():
+		if material_at(res) == level:
+			materials.append(res)
+	var jobs: Array = []
+	for id: String in MachineDB.ORDER:
+		for job: String in (MachineDB.JOBS.get(id, {}) as Dictionary):
+			if job_at(id, job) == level:
+				jobs.append([id, job])
 	var lines: Array[String] = []
 	for id: String in Economy.TREE_ORDER:
 		if int(Economy.RESEARCH_TREE[id].get("core", 1)) == level:
 			lines.append(id)
-	return {"strata": [from, to], "machines": machines, "materials": materials,
+	return {"strata": [from, to], "machines": machines, "materials": materials, "jobs": jobs,
+		"doctrine": level == Economy.DOCTRINE_CORE,
 		"machine_cap": machine_cap(level), "research": lines,
 		"stock_cap": MachineDB.stock_cap(machine_cap(level)),
 		"overdrive": overdrive_cap(level) - overdrive_cap(level - 1)}
@@ -306,6 +359,9 @@ static func status(state: Object) -> Array:
 			Req.OVERDRIVE:
 				have = float(int(state.call("overdrive_steps", String(r[1]))))
 				need = float(r[2])
+			Req.DOCTRINE:
+				have = float(int(state.call("doctrine_levels")))
+				need = float(r[1])
 		row.merge({"req": r, "met": have >= need, "have": have, "need": need})
 		out.append(row)
 	return out
@@ -350,7 +406,7 @@ static func why_not_working(state: Object, cell: int) -> String:
 		Simulation.Status.RUNNING, Simulation.Status.PASSIVE:
 			if eff >= WORKING_HEAT:
 				return ""
-			var m: Dictionary = MachineDB.get_machine(id)
+			var m: Dictionary = sim.machine_of(cell)
 			return "cold" if grid.heat_at(cell) < float(m.get("heat_optimum", 0.0)) else "hot"
 	return "idle"
 
@@ -428,11 +484,11 @@ static func available_at(r: Array) -> int:
 		Req.DEPTH:
 			return level_for_depth(int(r[1]))
 		Req.STOCK:
-			var maker: String = producer_of(int(r[1]))
-			if maker == "":
+			var made: int = material_at(int(r[1]))
+			if made < 0:
 				return -1
 			var store: int = machine_level_at("vault", storage_level(int(r[2])))
-			return -1 if store < 0 else maxi(level_for_depth(MachineDB.unlock_depth(maker)), store)
+			return -1 if store < 0 else maxi(made, store)
 		Req.WORKING, Req.SERVES:
 			if not MachineDB.exists(String(r[1])):
 				return -1
@@ -445,6 +501,8 @@ static func available_at(r: Array) -> int:
 			return research_at(String(r[1]), int(r[2]))
 		Req.OVERDRIVE:
 			return overdrive_at(String(r[1]), int(r[2]))
+		Req.DOCTRINE:
+			return doctrine_at(int(r[1]))
 	return -1
 
 
@@ -465,10 +523,10 @@ static func machine_level_at(id: String, level: int) -> int:
 	for k in range(2, level + 1):
 		var cost: Dictionary = MachineDB.level_materials(k, id)
 		for res: int in cost:
-			var maker: String = producer_of(res)
-			if maker == "":
+			var made: int = material_at(res)
+			if made < 0:
 				return -1
-			at = maxi(at, level_for_depth(MachineDB.unlock_depth(maker)))
+			at = maxi(at, made)
 			# The Vault's own levels are paid from the store its level before
 			# holds: `validate` checks that it does.
 			if id != "vault":
@@ -520,10 +578,10 @@ static func overdrive_at(id: String, steps: int) -> int:
 	for k in range(1, steps + 1):
 		var mats: Dictionary = MachineDB.overdrive_cost(k)["materials"]
 		for res: int in mats:
-			var maker: String = producer_of(res)
-			if maker == "":
+			var made: int = material_at(res)
+			if made < 0:
 				return -1
-			at = maxi(at, level_for_depth(MachineDB.unlock_depth(maker)))
+			at = maxi(at, made)
 			var v: int = storage_level(int(mats[res]))
 			if v > 1:
 				var store: int = machine_level_at("vault", v)
@@ -533,12 +591,34 @@ static func overdrive_at(id: String, steps: int) -> int:
 	return at
 
 
-## The machine that makes `res`, or "".
+## The machine that makes `res` -- on its own recipe, or on a job -- or "".
 static func producer_of(res: int) -> String:
-	for id: String in MachineDB.ORDER:
-		if (MachineDB.get_machine(id).get("outputs", {}) as Dictionary).has(res):
-			return id
-	return ""
+	var makers: Array = MachineDB.makers_of(res)
+	return "" if makers.is_empty() else String(makers[0][0])
+
+
+## The job that machine makes `res` on ("" for its own recipe).
+static func job_of(res: int) -> String:
+	var makers: Array = MachineDB.makers_of(res)
+	return "" if makers.is_empty() else String(makers[0][1])
+
+
+## The first Core level at which a machine can run job `job` ("" for its
+## own recipe): the stratum it needs within the Core's reach, and the
+## Core's level the job asks for.
+static func job_at(id: String, job: String) -> int:
+	return maxi(level_for_depth(MachineDB.job_depth(id, job)),
+		int(MachineDB.job_info(id, job).get("core", 1)))
+
+
+## The first Core level at which `res` can be made, or -1 when never.
+static func material_at(res: int) -> int:
+	var best: int = -1
+	for mk: Array in MachineDB.makers_of(res):
+		var at: int = job_at(String(mk[0]), String(mk[1]))
+		if best < 0 or at < best:
+			best = at
+	return best
 
 
 ## Every problem with levels 2..`upto`: [] when the graph is sound.

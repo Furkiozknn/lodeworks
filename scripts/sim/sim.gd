@@ -67,7 +67,20 @@ var contracts: Array = []
 var dispatch_serial: int = 0
 var contracts_filled: int = 0
 var contracts_lifetime: int = 0
+## Saved layouts (`save_blueprint`): one per slot, each {"cells": [[cell,
+## id, mode, job], ...], "core": the Core's level it was saved at, "depth":
+## the stratum}, or {} for an empty slot. A collapse keeps them.
 var blueprints: Array = []
+## What a blueprint being laid still has to place: [cell, id, mode, job]
+## entries, put down as credits, the yard and the machines found allow
+## (`fill_pending`).
+var blueprint_pending: Array = []
+## The doctrine this shaft follows (Economy.DOCTRINES), "" before one is
+## chosen. A collapse clears it: the next shaft chooses again.
+var doctrine: String = ""
+## The highest level any shaft's Core has reached. A new shaft's Core
+## starts at its FOUNDATION_SHARE (`foundation`).
+var best_core: int = 1
 var unlocked: Array[String] = []
 var settings: Dictionary = {"sound": true, "haptics": true}
 
@@ -89,6 +102,7 @@ var _tick_accum: float = 0.0
 var _save_accum: float = 0.0
 var _stratum: Dictionary = {}
 var _mult: Dictionary = {}
+var _fill_accum: float = 0.0
 var _started: bool = false
 var _tutorial_step: int = 0
 ## Two things the tutorial has to know that the board cannot tell it: whether
@@ -170,6 +184,11 @@ func _process(delta: float) -> void:
 		_rate_accum_research = 0.0
 		_rate_elapsed = 0.0
 	if steps > 0:
+		if not blueprint_pending.is_empty():
+			_fill_accum += float(steps) * Simulation.TICK_DT
+			if _fill_accum >= 1.0:
+				_fill_accum = 0.0
+				fill_pending()
 		stats_changed.emit()
 
 	_save_accum += delta
@@ -268,7 +287,7 @@ func power_core() -> bool:
 ## --- descent ---------------------------------------------------------------
 
 func quota() -> float:
-	return float(_stratum.get("quota", Strata.quota_for(depth)))
+	return float(_stratum.get("quota", Strata.quota_for(depth))) * float(_mult.get("quota", 1.0))
 
 
 func can_descend() -> bool:
@@ -399,6 +418,55 @@ func set_mode(cell: int, mode: int) -> bool:
 	return true
 
 
+## --- machine jobs ----------------------------------------------------------------
+
+## Why the machine on `cell` cannot be set to `job` now, or "" when it can:
+## "none" (no such job for it), "depth" (the rock it needs is further
+## down), "core" (the Core's level that opens it).
+func job_blocker(cell: int, job: String) -> String:
+	var id: String = grid.machine_at(cell)
+	if id == "" or not MachineDB.jobs_for(id).has(job):
+		return "none"
+	if max_depth < int(MachineDB.job_info(id, job).get("depth", 0)):
+		return "depth"
+	if core_level < int(MachineDB.job_info(id, job).get("core", 1)):
+		return "core"
+	return ""
+
+
+func can_set_job(cell: int, job: String) -> bool:
+	return job_blocker(cell, job) == ""
+
+
+## Has this shaft opened job `job` of machine type `id`: its rock reached,
+## its Core level grown?
+func job_open(id: String, job: String) -> bool:
+	return max_depth >= int(MachineDB.job_info(id, job).get("depth", 0)) \
+		and core_level >= int(MachineDB.job_info(id, job).get("core", 1))
+
+
+func set_job(cell: int, job: String) -> bool:
+	if not can_set_job(cell, job) or grid.job_at(cell) == job:
+		return false
+	grid.set_job(cell, job)
+	sim.reset_progress()
+	_recompute()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## Can this shaft make `res` now: a machine that makes it found, on a job
+## its rock and its Core have opened.
+func can_make(res: int) -> bool:
+	for mk: Array in MachineDB.makers_of(res):
+		var id: String = String(mk[0])
+		if is_unlocked(id) and max_depth >= int(MachineDB.job_info(id, String(mk[1])).get("depth", 0)) \
+				and core_level >= int(MachineDB.job_info(id, String(mk[1])).get("core", 1)):
+			return true
+	return false
+
+
 ## --- the Dispatch board ------------------------------------------------------------
 
 ## Deal a contract into every empty slot, once something the store keeps
@@ -410,7 +478,7 @@ func _deal_board() -> void:
 		if not (contracts[i] as Dictionary).is_empty():
 			continue
 		var c: Dictionary = Dispatch.deal(core_level, depth + 100 * collapses, dispatch_serial,
-			unlocked, stock_cap())
+			unlocked, stock_cap(), max_depth)
 		if c.is_empty():
 			return
 		contracts[i] = c
@@ -622,6 +690,7 @@ func collapse() -> int:
 	var gained: int = pending_cores()
 	cores += gained
 	collapses += 1
+	best_core = maxi(best_core, core_level)
 	# What survives: Cores, the permanent tree, blueprints, settings.
 	# What does not: the board, credits, research, depth. The loss is the point.
 	grid.clear()
@@ -631,9 +700,17 @@ func collapse() -> int:
 	lifetime_credits = 0.0
 	depth = 0
 	max_depth = 0
-	# A new shaft's Core starts at level 1, its machines at level 1, its
-	# store empty.
-	core_level = 1
+	# A new shaft's Core starts on its foundation -- part of the best level
+	# any shaft has reached -- its machines at level 1, its store empty, and
+	# it chooses its doctrine again.
+	core_level = foundation()
+	# A doctrine is the shaft's strategy: its research goes with it, and
+	# the next shaft chooses -- and pays -- again.
+	doctrine = ""
+	for id: String in Economy.RESEARCH_TREE:
+		if Economy.doctrine_of(id) != "":
+			upgrade_levels.erase(id)
+	blueprint_pending = []
 	machine_levels = {}
 	overdrive = {}
 	stock = {}
@@ -655,6 +732,45 @@ func collapse() -> int:
 	return gained
 
 
+## The Core level a new shaft starts at: FOUNDATION_SHARE of the best any
+## shaft has reached, rounded down, and never below 1. What a collapse keeps
+## of the Core: a second shaft skips the levels its first one outgrew by
+## far, and still has to earn every one it grew in its last stretch.
+const FOUNDATION_SHARE := 0.5
+
+
+func foundation() -> int:
+	return maxi(1, int(floor(float(maxi(best_core, core_level)) * FOUNDATION_SHARE)))
+
+
+## --- doctrines ----------------------------------------------------------------
+
+## Can the shaft choose a doctrine now? Once, from the Core's level
+## Economy.DOCTRINE_CORE.
+func can_choose_doctrine() -> bool:
+	return doctrine == "" and core_level >= Economy.DOCTRINE_CORE
+
+
+func choose_doctrine(id: String) -> bool:
+	if not can_choose_doctrine() or not Economy.DOCTRINES.has(id):
+		return false
+	doctrine = id
+	_recompute()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## Levels bought in the lines of the doctrine this shaft follows.
+func doctrine_levels() -> int:
+	if doctrine == "":
+		return 0
+	var n: int = 0
+	for id: String in Economy.DOCTRINES[doctrine]["lines"]:
+		n += upgrade_level(id)
+	return n
+
+
 ## --- research tree ---------------------------------------------------------
 
 func upgrade_level(id: String) -> int:
@@ -667,6 +783,9 @@ func can_buy_upgrade(id: String) -> bool:
 		return false
 	var lvl: int = upgrade_level(id)
 	if lvl >= int(u["max"]) or lvl >= research_cap(id):
+		return false
+	# A doctrine's line only in a shaft that follows it.
+	if Economy.doctrine_of(id) != "" and Economy.doctrine_of(id) != doctrine:
 		return false
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	return research >= float(c["research"]) and cores >= int(c["cores"])
@@ -718,7 +837,7 @@ func _recompute() -> void:
 		grid = Grid.new()
 		sim = Simulation.new(grid, 20260923)
 	_stratum = Strata.describe(depth)
-	_mult = Economy.multipliers(upgrade_levels)
+	_mult = Economy.multipliers(upgrade_levels, doctrine)
 
 	# One entry point, so a stratum field can never again be wired in the game
 	# and forgotten in the five tools that measure it. `richness` is folded
@@ -729,10 +848,16 @@ func _recompute() -> void:
 	var hs: Dictionary = {}
 	var types: Dictionary = machine_levels.duplicate()
 	types.merge(overdrive)
+	# A doctrine's Cryo Lines make every cooler cool harder.
+	var cooling: float = float(_mult.get("cooling", 1.0))
+	if cooling != 1.0:
+		types.merge({"coolant": 1, "condenser": 1})
 	for id: String in types:
 		if MachineDB.level_is_speed(id):
 			lm[id] = MachineDB.level_speed(machine_level(id), overdrive_steps(id))
 		var f: float = MachineDB.heat_factor(id, machine_level(id), overdrive_steps(id))
+		if MachineDB.is_heat_support(id) and (MachineDB.get_machine(id)["tags"] as Array).has("cool"):
+			f *= cooling
 		if not is_equal_approx(f, 1.0):
 			hs[id] = f
 	grid.set_heat_scale(hs)
@@ -778,6 +903,269 @@ func upgrade_marks() -> int:
 func blueprint_slots() -> int:
 	var base: int = int(float(_mult.get("blueprints", 1.0)))
 	return base + Store.bonus_blueprint_slots()
+
+
+## --- blueprints -------------------------------------------------------------------
+##
+## A blueprint is this board, saved: every machine where it stands, its mode
+## and its job. Laid again -- in a later shaft, after a collapse -- it is
+## checked against the ground it is laid on (`blueprint_report`: the
+## machines not yet found, the tiles outside the yard or under rock, the
+## tiles taken, the jobs not open yet, what would overheat or run cold on
+## this stratum with all of it standing) and then put down machine by
+## machine as credits allow, the rest waiting until the shaft has found,
+## reached or earned what it needs (`fill_pending`). So a collapse costs a
+## factory's machines, not the thought that went into laying them out.
+
+func blueprint(slot: int) -> Dictionary:
+	return blueprints[slot] if slot >= 0 and slot < blueprints.size() else {}
+
+
+## Save the board into `slot`.
+func save_blueprint(slot: int) -> bool:
+	if slot < 0 or slot >= blueprint_slots() or grid.cells.is_empty():
+		return false
+	var cells: Array = []
+	for cell: int in grid.cells:
+		cells.append([cell, grid.machine_at(cell), grid.mode_at(cell), grid.job_at(cell)])
+	cells.sort_custom(func(a: Array, b: Array) -> bool: return _lay_order(a) < _lay_order(b))
+	while blueprints.size() <= slot:
+		blueprints.append({})
+	blueprints[slot] = {"cells": cells, "core": core_level, "depth": depth}
+	Save.save_game(self)
+	return true
+
+
+## Saved in the order a line is laid from its end: sellers and Labs first,
+## then the makers that hand them something, the diggers, and the supports
+## last. `fill_pending` puts a machine down only once it has somewhere to
+## hand what it makes (`_lay_ready`), so a blueprint laid on a new shaft
+## starts earning with its first two machines -- a Vault, then a Drill
+## beside it -- instead of spending the Core's reserve on a line with no
+## end (measured: a Drill first, alone, and a shaft that never earned).
+const LAY_GROUPS := [MachineDB.Group.SELL, MachineDB.Group.RESEARCH, MachineDB.Group.MAKE,
+	MachineDB.Group.DIG, MachineDB.Group.COOL, MachineDB.Group.HEAT, MachineDB.Group.BOOST]
+
+
+func _lay_order(e: Array) -> int:
+	var id: String = String(e[1])
+	return LAY_GROUPS.find(MachineDB.group_of(id)) * 10000 + int(e[0])
+
+
+## Can blueprint entry `e` go down now and be of use: a seller or Lab beside
+## something that makes; a maker or digger that has a taker beside it; a
+## support beside a maker. (A seller with only a blueprint's maker beside it
+## goes down with that maker, as a pair: `_lay_pair`.)
+func _lay_ready(e: Array, _pending: Dictionary) -> bool:
+	var cell: int = int(e[0])
+	var id: String = String(e[1])
+	var m: Dictionary = MachineDB.job_machine(id, String(e[3]))
+	var tags: Array = m.get("tags", [])
+	var outs: Dictionary = m.get("outputs", {})
+	if tags.has("sink") or tags.has("research"):
+		for n: int in grid.neighbours(cell):
+			if not (sim.machine_of(n).get("outputs", {}) as Dictionary).is_empty():
+				return true
+		return false
+	if outs.is_empty():
+		for n: int in grid.neighbours(cell):
+			if not (sim.machine_of(n).get("outputs", {}) as Dictionary).is_empty():
+				return true
+		return false
+	for n: int in grid.bridged_machines(cell):
+		var nm: Dictionary = sim.machine_of(n)
+		if (nm.get("tags", []) as Array).has("sink"):
+			return true
+		for res: int in outs:
+			if (nm.get("inputs", {}) as Dictionary).has(res):
+				return true
+	if sim.core_touching().has(cell):
+		for res: int in outs:
+			if int(sim.core_wants.get(res, 0)) > 0:
+				return true
+	return false
+
+
+## Every machine of blueprint `slot` checked against this shaft as it
+## stands: {"cells": [{"cell", "id", "mode", "job", "why"}], "why": {why:
+## count}, "cost": credits for what can be placed now}. "why" is "" for a
+## machine that can be placed now, else "placed" (it already stands there),
+## "taken", "locked" (not found yet), "outside" (the yard), "blocked" (the
+## rock), "job" (the job is not open yet), "hot" or "cold" (on this
+## stratum, with the whole blueprint standing).
+func blueprint_report(slot: int) -> Dictionary:
+	return _report(blueprint(slot).get("cells", []))
+
+
+func _report(entries: Array) -> Dictionary:
+	# The board with the blueprint laid over it, on this stratum's rock.
+	var g := Grid.new()
+	g.from_dict(grid.to_dict())
+	g.set_environment(grid.ambient_heat, grid.heat_spread)
+	g.set_heat_scale(grid.heat_scale)
+	for e: Array in entries:
+		var cell: int = int(e[0])
+		if g.is_empty(cell):
+			g.place(cell, String(e[1]))
+			g.set_mode(cell, int(e[2]))
+			g.set_job(cell, String(e[3]))
+	var out: Array = []
+	var counts: Dictionary = {}
+	var cost: float = 0.0
+	var owned: Dictionary = {}
+	for e: Array in entries:
+		var cell: int = int(e[0])
+		var id: String = String(e[1])
+		var job: String = String(e[3])
+		var why: String = ""
+		if grid.machine_at(cell) == id:
+			why = "placed"
+		elif not grid.is_empty(cell):
+			why = "taken"
+		elif not is_unlocked(id):
+			why = "locked"
+		elif not is_open(cell):
+			why = "outside"
+		elif is_blocked(cell):
+			why = "blocked"
+		if why == "" or why == "placed":
+			var m: Dictionary = MachineDB.job_machine(id, job)
+			var heat: float = g.heat_at(cell)
+			var tol: float = float(m["heat_tolerance"]) + sim.tolerance_bonus
+			if not MachineDB.is_heat_support(id) and heat > tol:
+				why = "hot"
+			elif MachineDB.has_levels(id) and not MachineDB.is_heat_support(id) \
+					and heat < float(m["heat_optimum"]) \
+					and MachineDB.efficiency_of(m, heat, sim.tolerance_bonus) < CoreLevels.WORKING_HEAT:
+				why = "cold"
+			elif not job_open(id, job):
+				why = "job"
+		if why in ["", "hot", "cold", "job"] and grid.machine_at(cell) != id:
+			cost += MachineDB.cost_for(id, grid.count_of(id) + int(owned.get(id, 0)))
+			owned[id] = int(owned.get(id, 0)) + 1
+		out.append({"cell": cell, "id": id, "mode": int(e[2]), "job": job, "why": why})
+		counts[why] = int(counts.get(why, 0)) + 1
+	return {"cells": out, "why": counts, "cost": cost}
+
+
+## Lay blueprint `slot`: what it still needs placed waits in
+## `blueprint_pending` and goes down as it can. The report is `blueprint_report`'s.
+func lay_blueprint(slot: int) -> Dictionary:
+	var bp: Dictionary = blueprint(slot)
+	if bp.is_empty():
+		return {}
+	var rep: Dictionary = blueprint_report(slot)
+	blueprint_pending = []
+	for e: Array in bp["cells"]:
+		var cell: int = int(e[0])
+		if grid.machine_at(cell) == String(e[1]) and grid.mode_at(cell) == int(e[2]) \
+				and grid.job_at(cell) == String(e[3]):
+			continue
+		blueprint_pending.append([cell, String(e[1]), int(e[2]), String(e[3])])
+	blueprint_pending.sort_custom(func(a: Array, b: Array) -> bool: return _lay_order(a) < _lay_order(b))
+	fill_pending()
+	Save.save_game(self)
+	return rep
+
+
+## Put down what a blueprint being laid can have now, in its order: a
+## machine where its tile is free, in the yard and found, while credits
+## last; then its mode and its job once they are open. A tile another
+## machine stands on waits for the player. Returns how many were placed.
+func fill_pending() -> int:
+	var placed: int = 0
+	var changed: bool = false
+	var left: Array = []
+	var broke: bool = false
+	var waiting: Dictionary = {}
+	for e: Array in blueprint_pending:
+		waiting[int(e[0])] = e
+	for e: Array in blueprint_pending:
+		var cell: int = int(e[0])
+		var id: String = String(e[1])
+		if grid.machine_at(cell) != id:
+			# A machine laid for a job waits for the job: on its own recipe it
+			# would stand where nothing feeds it.
+			if broke or not grid.is_empty(cell) or not is_unlocked(id) or not is_open(cell) \
+					or is_blocked(cell) or String(e[3]) != "" and not job_open(id, String(e[3])):
+				left.append(e)
+				continue
+			if not _lay_ready(e, waiting):
+				# A seller whose maker is still to come: the two go down
+				# together, or neither does.
+				var partner: Array = _lay_pair(e, waiting)
+				if partner.is_empty() or credits < cost_of(id) + cost_of(String(partner[1])):
+					left.append(e)
+					continue
+				if try_place(cell, id):
+					placed += 1
+					waiting.erase(cell)
+					var pc: int = int(partner[0])
+					if try_place(pc, String(partner[1])):
+						placed += 1
+						waiting.erase(pc)
+						if String(partner[3]) != "" and can_set_job(pc, String(partner[3])):
+							changed = grid.set_job(pc, String(partner[3])) or changed
+				else:
+					left.append(e)
+					continue
+			elif credits < cost_of(id):
+				# In order: the credits go to this one next.
+				broke = true
+				left.append(e)
+				continue
+			elif not try_place(cell, id):
+				left.append(e)
+				continue
+			else:
+				placed += 1
+				waiting.erase(cell)
+		# Its mode and its job, set on the board and worked out once below.
+		if int(e[2]) != grid.mode_at(cell) and can_set_mode(cell, int(e[2])):
+			changed = grid.set_mode(cell, int(e[2])) or changed
+		if String(e[3]) != grid.job_at(cell) and can_set_job(cell, String(e[3])):
+			changed = grid.set_job(cell, String(e[3])) or changed
+		# Waiting for the Core's level that opens modes, or for its job.
+		if grid.mode_at(cell) != int(e[2]) and core_level < MachineDB.MODES_CORE \
+				or grid.job_at(cell) != String(e[3]):
+			left.append(e)
+	blueprint_pending = left
+	if changed:
+		sim.reset_progress()
+		_recompute()
+		stats_changed.emit()
+	if placed > 0 or changed:
+		Save.save_game(self)
+	return placed
+
+
+## For a seller or Lab entry `e` with nothing making beside it yet: a
+## waiting blueprint entry beside it that would hand it something, and can go
+## down now (found, in the yard, its tile free). [] when none.
+func _lay_pair(e: Array, waiting: Dictionary) -> Array:
+	var m: Dictionary = MachineDB.job_machine(String(e[1]), String(e[3]))
+	if not ((m.get("tags", []) as Array).has("sink") or (m.get("tags", []) as Array).has("research")):
+		return []
+	var learns: Dictionary = m.get("learns", {})
+	var best: Array = []
+	for n: int in grid.neighbours(int(e[0])):
+		if not waiting.has(n):
+			continue
+		var pe: Array = waiting[n]
+		var pid: String = String(pe[1])
+		if not grid.is_empty(n) or not is_unlocked(pid) or not is_open(n) or is_blocked(n):
+			continue
+		var outs: Dictionary = MachineDB.job_machine(pid, String(pe[3])).get("outputs", {})
+		for res: int in outs:
+			if ((m.get("tags", []) as Array).has("sink") or learns.has(res)) \
+					and (best.is_empty() or cost_of(pid) < cost_of(String(best[1]))):
+				best = pe
+	return best
+
+
+func cancel_blueprint() -> void:
+	blueprint_pending = []
+	Save.save_game(self)
 
 
 ## The credits per second a save banks offline income at: the rate on
@@ -885,6 +1273,9 @@ func to_dict() -> Dictionary:
 		"contracts_lifetime": contracts_lifetime,
 		"upgrades": upgrade_levels,
 		"blueprints": blueprints,
+		"blueprint_pending": blueprint_pending,
+		"doctrine": doctrine,
+		"best_core": best_core,
 		"grid": grid.to_dict(),
 		"settings": settings,
 		"tutorial": _tutorial_step,
@@ -940,7 +1331,17 @@ func from_dict(d: Dictionary) -> void:
 	contracts_filled = int(d.get("contracts_filled", 0))
 	contracts_lifetime = int(d.get("contracts_lifetime", 0))
 	upgrade_levels = d.get("upgrades", {})
-	blueprints = d.get("blueprints", [])
+	# Blueprints; JSON brings every number back as a float.
+	blueprints = []
+	for b in (d.get("blueprints", []) as Array):
+		var bd: Dictionary = b if typeof(b) == TYPE_DICTIONARY else {}
+		blueprints.append({} if not bd.has("cells") else {"cells": _entries(bd["cells"]),
+			"core": int(bd.get("core", 1)), "depth": int(bd.get("depth", 0))})
+	blueprint_pending = _entries(d.get("blueprint_pending", []))
+	doctrine = String(d.get("doctrine", ""))
+	if not Economy.DOCTRINES.has(doctrine):
+		doctrine = ""
+	best_core = maxi(int(d.get("best_core", 1)), core_level)
 	settings = d.get("settings", {"sound": true, "haptics": true})
 	_tutorial_step = int(d.get("tutorial", 0))
 	tutorial_moves = int(d.get("tutorial_moves", 0))
@@ -958,3 +1359,18 @@ func from_dict(d: Dictionary) -> void:
 	core_online = bool(d.get("core_online", not stuck))
 	sim.reset_progress()
 	_recompute()
+
+
+## Blueprint entries as saved: [[cell, id, mode, job], ...], the numbers
+## made whole again and anything not a machine left out.
+func _entries(raw: Variant) -> Array:
+	var out: Array = []
+	if typeof(raw) != TYPE_ARRAY:
+		return out
+	for e in (raw as Array):
+		if typeof(e) != TYPE_ARRAY or (e as Array).size() < 2 or not MachineDB.exists(String(e[1])):
+			continue
+		var a: Array = e
+		out.append([int(a[0]), String(a[1]), int(a[2]) if a.size() > 2 else 0,
+			String(a[3]) if a.size() > 3 else ""])
+	return out

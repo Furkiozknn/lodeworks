@@ -32,6 +32,10 @@ func _fresh(depth: int = 0) -> void:
 	Sim.core_online = true
 	Sim.unlocked.clear()
 	Sim.credits_per_sec = 0.0
+	Sim.best_core = 1
+	Sim.doctrine = ""
+	Sim.blueprints = []
+	Sim.blueprint_pending = []
 	Sim._recompute()
 
 
@@ -54,15 +58,15 @@ func test_nothing_is_dealt_before_the_store_can_be_filled() -> void:
 func test_a_contract_is_dealt_the_same_way_every_time_and_fits_the_store() -> void:
 	var unlocked: Array = MachineDB.unlocked_at(6)
 	for serial in range(40):
-		var a: Dictionary = Dispatch.deal(3, 6, serial, unlocked, 256)
-		var b: Dictionary = Dispatch.deal(3, 6, serial, unlocked, 256)
+		var a: Dictionary = Dispatch.deal(3, 6, serial, unlocked, 256, 6)
+		var b: Dictionary = Dispatch.deal(3, 6, serial, unlocked, 256, 6)
 		runner.eq(a, b, "contract %d is deterministic" % serial)
-		runner.check(Dispatch.reachable(unlocked).has(int(a["res"])), "for a material the shaft can make")
+		runner.check(Dispatch.reachable(unlocked, 6, 3).has(int(a["res"])), "for a material the shaft can make")
 		runner.check(int(a["n"]) >= 5 and int(a["n"]) <= 256 and int(a["n"]) % 5 == 0,
 			"%d units: at least 5, a multiple of 5, never more than the store holds" % int(a["n"]))
 	var kinds: Dictionary = {}
 	for serial in range(60):
-		kinds[int(Dispatch.deal(3, 6, serial, unlocked, 256)["res"])] = true
+		kinds[int(Dispatch.deal(3, 6, serial, unlocked, 256, 6)["res"])] = true
 	runner.eq(kinds.size(), 3, "old materials are still asked for, beside the newest")
 	runner.eq(Dispatch.deal(3, 6, 0, [], 256), {}, "nothing to make, nothing dealt")
 

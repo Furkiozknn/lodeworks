@@ -234,6 +234,26 @@ func set_mode(i: int, mode: int) -> bool:
 	return true
 
 
+## The job the machine on `i` is set to (MachineDB.JOBS): "" for its own
+## recipe. Kept with the tile, as its mode is, so a move takes it along.
+func job_at(i: int) -> String:
+	var c: Variant = cells.get(i)
+	return "" if c == null else String(c.get("job", ""))
+
+
+func set_job(i: int, job: String) -> bool:
+	if is_empty(i) or not MachineDB.jobs_for(machine_at(i)).has(job):
+		return false
+	if job == "":
+		(cells[i] as Dictionary).erase("job")
+	else:
+		cells[i]["job"] = job
+	# What it takes and makes changed: every cache keyed on the board goes.
+	(cells[i]["buf_in"] as Dictionary).clear()
+	version += 1
+	return true
+
+
 ## The machine levels changed how much heat a type gives off.
 func set_heat_scale(scale: Dictionary) -> void:
 	if scale == heat_scale:
@@ -484,11 +504,14 @@ func clear() -> void:
 func to_dict() -> Dictionary:
 	var packed: Dictionary = {}
 	var modes: Dictionary = {}
+	var jobs: Dictionary = {}
 	for i: int in cells:
 		packed[str(i)] = cells[i]["id"]
 		if mode_at(i) != 0:
 			modes[str(i)] = mode_at(i)
-	return {"w": W, "h": H, "cells": packed, "modes": modes}
+		if job_at(i) != "":
+			jobs[str(i)] = job_at(i)
+	return {"w": W, "h": H, "cells": packed, "modes": modes, "jobs": jobs}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -513,3 +536,6 @@ func from_dict(d: Dictionary) -> void:
 			# A mode saved with the tile (only on a board of this size).
 			if w == W and h == H and (d.get("modes", {}) as Dictionary).has(k):
 				set_mode(i, int(d["modes"][k]))
+			# And its job; a save from before jobs has none.
+			if w == W and h == H and (d.get("jobs", {}) as Dictionary).has(k):
+				set_job(i, String(d["jobs"][k]))

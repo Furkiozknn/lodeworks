@@ -132,9 +132,10 @@ const PRODUCTS := {
 		# single-byte description cap, which is generated from these. The cap
 		# is a good editor: it took "the offline bonus is simply always on"
 		# down to "No ads, ever", which is the stronger sentence anyway.
-		# The Licence also grants two blueprint slots (below), but no screen
-		# saves or loads a blueprint yet, so they are not offered as a
-		# reason to buy it. Put the bullet back with the blueprint screen.
+		# The Licence also grants two blueprint slots (below). The Core card
+		# saves and lays blueprints since the round after Core 7, but the
+		# slots are not yet offered as a reason to buy it: whether they
+		# become a bullet is a store-copy decision for the owner.
 		"bullets": [
 			"Bank 8 hours offline instead of 4",
 			"No ads, ever",

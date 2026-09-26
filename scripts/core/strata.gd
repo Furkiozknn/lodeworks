@@ -128,6 +128,15 @@ static func modifiers_for(depth: int) -> Array[String]:
 	return out
 
 
+## How much crystal the rock holds for a Deep Bore (MachineDB.JOBS): none
+## above MachineDB.CRYSTAL_DEPTH, then more with every stratum -- so the deep
+## chain pays more the deeper the shaft goes, as the old one pays less.
+static func vein(depth: int) -> float:
+	if depth < MachineDB.CRYSTAL_DEPTH:
+		return 0.0
+	return 1.0 + MachineDB.VEIN_GROWTH * float(depth - MachineDB.CRYSTAL_DEPTH)
+
+
 static func describe(depth: int) -> Dictionary:
 	return _describe(depth, modifiers_for(depth))
 
@@ -140,6 +149,7 @@ static func _describe(depth: int, mods: Array[String]) -> Dictionary:
 		"name": "Stratum %d" % depth,
 		"quota": quota_for(depth),
 		"richness": 1.0 + RICHNESS_PER_DEPTH * float(depth),
+		"vein": vein(depth),
 		"ambient_heat": AMBIENT_PER_DEPTH * float(depth),
 		"modifiers": mods,
 		"source_speed": 1.0,
@@ -232,6 +242,12 @@ static func apply(sim: Simulation, grid: Grid, st: Dictionary,
 	sim.value_mult = float(mu.get("value", 1.0)) * float(st["value"])
 	sim.research_mult = float(mu.get("research", 1.0)) * float(st["research"])
 	sim.tolerance_bonus = float(mu.get("tolerance", 0.0))
+	sim.vein_mult = float(st.get("vein", 0.0)) * float(mu.get("vein", 1.0))
+	# A doctrine's research on single materials (Economy.DOCTRINES).
+	var fine: float = float(mu.get("fine_value", 1.0))
+	sim.res_value_mult = {} if fine == 1.0 else {MachineDB.Res.FRAME: fine, MachineDB.Res.COMPONENT: fine}
+	var learn: float = float(mu.get("deep_learn", 1.0))
+	sim.res_learn_mult = {} if learn == 1.0 else {MachineDB.Res.ALLOY: learn, MachineDB.Res.FRAME: learn}
 	sim.buffer_cap = maxi(Simulation.BUF_CAP + int(st["buffer_delta"]), 1)
 
 

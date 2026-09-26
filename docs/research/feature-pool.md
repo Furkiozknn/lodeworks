@@ -323,7 +323,7 @@ These are rules every later feature follows, not features to build:
   - **Which types:** a type can be driven once it has reached the limit the Core before allowed (level 7 under Core 7). "At the Core's cap" would have meant a level 8 first, which Core 7 itself opens.
   - **Steps:** three per Core level from 7. Each step counts as half a level, for speed and for the heat that follows it; on a Coolant Cell or a Condenser a step is strength.
   - **Paid in:** Ingots and Plates from the Core's store, and research; never credits. So the store and the Labs have a job again after the research tree's credit lines end at Core 6.
-  - **Next level:** Core 8 asks for Overdrive steps. They are kept, not folded into the next level.
+  - **Next level:** Core 8 asks for a Smelter driven 3 steps (the White Heat Smelters run on the heat Overdrive adds), and Core 9 for an Assembler driven 6. Steps are kept, not folded into the next level.
   - **Not built:** the glow and the Core card's pips.
 
 **FP-13 · Mastery lines per machine type**
@@ -421,13 +421,26 @@ These are rules every later feature follows, not features to build:
 - *Adaptation:*
   - A research line opened by Core 6.
   - Every Amplifier, Condenser and Duplicator gives its neighbours 15% more of its boost per level.
-  - It has four levels. Core 7 asks for level 2 and Core 8 for level 4.
+  - It has four levels. Core 7 asks for level 2. (Core 8 asked for level 4 until the round of 26 September, which gave Core 8 the deep chain and a doctrine instead.)
   - Paid in research at a price a Core 6 factory's Labs take hours to make.
 - *Depends on:* the research tree and caps (built); `Simulation.amplify_mult` and a Duplicator multiplier.
 - *Related:* FP-12, FP-11 (every Booster is warm, so packing them in is a trade against heat).
 - *Challenges:* none measured yet beyond the journey.
 - *Vision / Decisions:* none.
 - *Status:* built (25 Sep 2026).
+
+**FP-23 · Jobs: a second recipe for a machine the player has** (added 26 Sep 2026)
+
+- *Source:* WOS P12 (an old building gains a new function at a later tier); HD Q1 (a production building with more than one recipe); cross-game pattern 5 (resources arrive by tier).
+- *Why it is new:* the Core 7 era had no new material and no new machine, and a new machine costs twelve sprite sheets.
+- *Adaptation:* a job is set tile by tile, as a mode is. Deep Bore (Drill, stratum 16: Crystal, built for hot rock), White Heat (Smelter: Crystal → Alloy, faster the hotter it runs), Frame Jig (Assembler, Core 8: Alloy + Component → Frame). Levels, Overdrive and modes carry over.
+- *Status:* built (26 Sep 2026). `MachineDB.JOBS`; `docs/PROGRESSION.md`, "After Core 7".
+
+**FP-24 · Doctrines: one strategy per shaft** (added 26 Sep 2026)
+
+- *Source:* RoK 10-12 (civilizations), WOS P13 (research that competes), BB F53; the owner's brief ("the player cannot max everything").
+- *Adaptation:* from Core 7 a shaft follows one of three doctrines, each with two research lines of its own (deep mining, heat, parts and research). Only the chosen one's lines are bought or count, the Core's level 8 asks for four of its levels, and a collapse clears the choice and its research.
+- *Status:* built (26 Sep 2026). `Economy.DOCTRINES`.
 
 ### Tier C (each waits for the decision named in it)
 
@@ -461,6 +474,7 @@ This answers P4 and GAP-AUDIT A2, the resource-node economy.
 - *Decisions:*
   - The **owner's decision A2** (node function).
   - **D1:** crystal as a new material is allowed only if it connects to other systems (the owner's 25 Sep amendment). It must never be a shop currency.
+- *Status:* **crystal built, sites not** (26 Sep 2026, the owner's brief for the deep strata). Crystal is dug by a Drill on the Deep Bore job from stratum 16 of the yard's own rock, more with depth (FP-23), and made into Alloy and Frames. The world ring -- survey, sites, a vent that heats, a node a Drill draws on -- is still unbuilt (TD8); the crystal nodes' cards now say which job digs crystal.
 
 **FP-19 · What a collapse keeps**
 
@@ -481,6 +495,7 @@ This answers P6.
 - *Challenges:* not trivialising the early Core levels on the second shaft; research is already permanent and pre-meets research rows.
 - *Vision:* none.
 - *Decisions:* the **owner's decision P6**.
+- *Status:* **partly built** (26 Sep 2026, on the owner's brief that a collapse keep part of the Core's progress). A new shaft's Core starts on a **foundation**, half the best level any shaft reached (`Sim.foundation`); blueprints are kept and laid (FP-20); the shaft's doctrine and its research start again, which is option (c) as a per-shaft choice (FP-24). Standard levels (a) and milestone unlocks (b) are not built.
 
 **FP-20 · Blueprints, line recipes and share codes**
 
@@ -496,11 +511,12 @@ This answers P7 and GAP-AUDIT A1.
   - Stamp it as ghosts; place what is affordable, and let the rest fill in as credits arrive.
   - Codex example boards become stampable recipes (O9).
   - A share code, with no server, carries a blueprint between players by any messenger ("Factory Tours").
-- *Depends on:* a blueprint format, ghost rendering, partial placement (TD6); share codes (TD7). `Sim.blueprints` is already saved; the Drafting Table research and the Licence slots are hidden.
+- *Depends on:* a blueprint format, ghost rendering, partial placement (TD6); share codes (TD7).
 - *Related:* FP-16, FP-19.
 - *Challenges:* layouts that cross the yard's edge; strata that block cells (Cramped).
 - *Vision:* none.
 - *Decisions:* the **owner's decision P7 / A1**. Share codes are allowed because they need no server (D3 is kept).
+- *Status:* **built without ghosts or share codes** (26 Sep 2026). The Core card saves the board into a slot (every machine, mode and job), checks a slot against the ground it would be laid on (machines not found yet, outside the yard, under rock, taken, jobs not open, and what would overheat or run cold on this stratum with the whole blueprint standing), lays it, and fills in what waits as credits, ground and jobs allow (`Sim.save_blueprint`, `blueprint_report`, `lay_blueprint`, `fill_pending`). Drafting Table is back in the research grid. Not built: ghost rendering on the board (TD6's picture), region blueprints, share codes (TD7).
 
 ---
 
@@ -641,7 +657,7 @@ does not exist yet.
 | TD3 | **Deterministic generator** for contracts and survey, seeded by (Core level, depth, count) | strata are already seeded by depth | FP-06, FP-18 | small |
 | TD4 | **Sandbox simulation**: a second Grid and Simulation | both are pure RefCounted classes; the tools already run them headless | FP-16, the FP-07 checklist | medium: the UI for a second board |
 | TD5 | **Highlight and focus layers** in IsoView | `focus_cell`, `pulse`, the chain highlight exist | FP-01, FP-02, FP-08 | small |
-| TD6 | **Blueprint format**, ghost rendering, partial placement | `Sim.blueprints` saved, never written | FP-20 | medium |
+| TD6 | **Blueprint format**, ghost rendering, partial placement | format, report and partial placement built (26 Sep 2026); ghosts not | FP-20 | medium |
 | TD7 | **Share code** encode/decode with validation | none | FP-20 | small |
 | TD8 | **World-node effects**: nodes kept in the ring, claims, heat from sites | `ResourceNodes` words only; nodes vanish under the yard | FP-18 | large |
 | TD9 | **Android local notifications** (plugin, POST_NOTIFICATIONS) | none | a notification (section 7) | medium; release work |

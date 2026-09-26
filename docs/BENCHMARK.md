@@ -5,7 +5,8 @@ Survival, Rise of Kingdoms, Hay Day, Township and State of Survival.
 
 This file takes stock of the game as it is (26 September 2026, branch
 `visual/landscape-iso`) against their player loop. It measures the gaps,
-and it records the one problem chosen to work on next.
+and it records the problem chosen for each round and what it did. The
+latest round is section 11: the Core 7 era.
 
 - **Sources.** The mechanics and their sources are in `research/progression-reference.md`, `research/feature-pool.md` and the five reports in `research/reference-games/`.
 - **Measurements.** They come from `tools/core_journey.gd`: a scripted player on the real game, reporting each Core level as a stage (`PROGRESSION.md`, "Core 7", "How it is measured").
@@ -24,17 +25,18 @@ Status meanings:
 | system | status | evidence | gap |
 |---|---|---|---|
 | Core 1→7 progression | DONE (this round) | `core_levels.gd`; `test_core_levels.gd`, `test_core7.gd`; played to Core 7 by `core_journey` | human pace unknown |
-| Core 8 and later | PARTIAL | designed and graph-checked; asks for Overdrive and Resonant Frames 4 | not played; 9+ are a formula (P5) |
-| Research tree | PARTIAL | `economy.gd`; the Core caps each line | a purchase list, not a choice: every research-paid line gets bought, and all are complete by Core 6 bar Resonant Frames; Ceramic Lining (heat) is paid in Cores |
-| Strata | PARTIAL | 12 modifiers; the Core caps depth; `test_strata_*` | no stratum band has resources or sites of its own (P4) |
+| Core 8 | DONE (26 Sep) | asks for the deep chain's Alloy, Components, a driven Smelter, the shaft's doctrine and stability on stratum 19; played to (§11) | human pace unknown |
+| Core 9 and later | PARTIAL | Core 9 written out and graph-checked; 10+ a formula | not played (P5) |
+| Research tree | PARTIAL | branches; one doctrine a shaft from Core 7, whose research a collapse clears (`test_deep.gd`) | the lines shared by every shaft are still bought to their end by Core 7; Ceramic Lining (heat) is paid in Cores |
+| Strata | PARTIAL | 12 modifiers; the Core caps depth; crystal from stratum 16, more with depth | no stratum band has sites of its own; world nodes still draw nothing (FP-18) |
 | Heat | PARTIAL | safe range, modes, levels, heat card; `test_heat.gd`; `heat_lab` in CI | no mode or cause mark on the board |
 | Stability row | DONE | `CoreLevels.stable`, `holding_back`; tests | the hardest row on hot rock (see §3) |
-| Resource chains | DONE | Ore → Gravel → Ingot → Plate → Component; each feeds levels, the store, Labs, Overdrive | no material after Components (Core 3); a new one waits on the owner (D1, FP-18) |
+| Resource chains | DONE | Ore → Gravel → Ingot → Plate → Component, and from stratum 16 Crystal → Alloy → (Plate, Component,) Frame on jobs; each feeds levels, the store, Labs, Dispatch | -- |
 | Machines and levels | DONE | 12 types; levels; Overdrive | no Overdrive glow |
 | Storage (the Core's store) | DONE | Vault levels; store rows; tests | no "store full" badge (FP-04) |
 | Contracts (Dispatch) | PARTIAL | `dispatch.gd`; `test_dispatch.gd` | first version: no big shipments, no bulk buyer |
-| Collapse | PARTIAL | `sim.gd` collapse; the tree and Cores kept | measured weak (§5); what it keeps is the owner's P6 |
-| Blueprint | MISSING | `Sim.blueprints` saved but never written | P7, waits on P6 |
+| Collapse | PARTIAL | the tree, Cores, blueprints and a Core foundation kept; the doctrine chosen again (§11) | Cores still buy only the Core-priced lines; no standard levels (FP-19 a) |
+| Blueprint | DONE (26 Sep) | save, check against the ground, lay from each line's end, fill in as credits allow; `test_deep.gd` | no ghost picture on the board; no share codes (TD7) |
 | Factory expansion (yard) | DONE | a ring every three strata from 10; test | growth is area only; see §4 |
 | "What now?" | DONE | `worklist.gd`; tests | -- |
 | Codex | PARTIAL | 12 running pages; test | no page for the Core, store, levels, modes, Overdrive, Dispatch |
@@ -220,8 +222,8 @@ still a wall that a collapse does not touch.
 |---|---|---|---|
 | first session | the next Core row is always in reach; every level opens a material or machine through Core 5 | Cores 1-4 in 33 min; "What now?" | the tutorial ends at the first Descend |
 | first day | the Core's rows in several systems; offline banking | Core 7 is about 11 hours of active play | the Core 4-6 waiting (§6) |
-| first week | hot rock: heat and stability at 13-19; Overdrive; the Core 7 era | measured to Core 7 and 3 h past it | income falls on strata 16-19; Core 8 not measured |
-| first month | prestige; records; new material bands | -- | collapse weak (§5); no new material after Core 3; Blueprint missing |
+| first week | hot rock: heat and stability at 13-19; the deep chain; a doctrine; Overdrive; the Core 7 era | measured to Core 8 (§11) | Core 9 not played |
+| first month | prestige; records; new material bands | a collapse keeps a Core foundation and blueprints (§11) | Core 10 and up are a formula; no records |
 
 Daily and weekly systems are left out on purpose:
 
@@ -234,7 +236,7 @@ Daily and weekly systems are left out on purpose:
 **Nothing is built, and nothing should be built for "later".** The limits
 a future social layer would work within:
 
-- **Sharing and visits.** Factory sharing, layout sharing and visits need a blueprint format. A share code (text, no server) is allowed now (FP-20), and it can be done in the single-player game first.
+- **Sharing and visits.** Factory sharing, layout sharing and visits need a blueprint format. It exists now (`Sim.blueprints`: every machine, its mode and its job, checked against the ground it is laid on). A share code (text, no server) is allowed (FP-20, TD7), and it can be done in the single-player game first.
 - **Server-backed systems.** Assistance, resource exchange, cooperative projects, leaderboards and reputation all need a server, an account and a privacy surface. They are out by decision (D3, V1).
 - **What would help such a layer later:**
   - deterministic simulation (D5);
@@ -265,3 +267,53 @@ Monetization does not stand in for progression:
 
 Nothing changed in this round. Measuring how it sits in real play needs a
 live build and players.
+
+## 11. The Core 7 era (the round of 26 September 2026)
+
+**Measured first.**
+
+- **Played before (run a1):** the income fell from 8.39K/s at Core 7 to 2.9K/s on stratum 19, and Core 8 was not reached in 9 hours.
+- **The same factory moved down with no player** (`tools/deep_lab.gd`) earns 8.4K-13.0K/s on strata 15-24. So the rock did not take the income.
+- **What the rock did take:**
+  - the Labs: research fell by about half from stratum 16;
+  - stability: from stratum 17, Drills, Labs and Presses overheat from the rock alone;
+  - the factory itself: the player answered stability by selling what overheated, 384 machines in nine hours, and its chains starved.
+- **The benchmark gap:** in Clash of Clans and the others, a new tier makes the base stronger and opens new things to build. In Lodeworks it only made more heat to fight, and nothing new to make.
+
+**What was built** (`PROGRESSION.md`, "After Core 7: deeper is stronger"):
+
+- **A deep chain on jobs.** A job is a second recipe for a machine the player has:
+  - Deep Bore: crystal, from stratum 16, more with depth;
+  - White Heat: alloy, faster the hotter it runs;
+  - Alloy Sheet and Alloy Parts: Plates and Components from alloy, on the hot rock;
+  - Frame Jig (Core 8): frames.
+  Each material feeds the store, the Labs, machine levels, the Core's rows and Dispatch.
+- **Doctrines.** From Core 7 a shaft follows one of three, each with its own research. A collapse clears the choice and its research.
+- **Core 8 from the measurement.** It asks for Alloy and Components, a driven and levelled Smelter, the doctrine, stability on stratum 19, and credits. Core 9 is written out.
+- **A collapse keeps a Core foundation** (half the best level) **and blueprints.** A blueprint is checked against the new ground and laid from each line's end as credits allow.
+
+**Played after** (scripted player, a new game, Deep Survey):
+
+| | before | after |
+|---|---|---|
+| Core 7 → 8 | not reached in 9 h | 2 h 36 min; saving 0% |
+| income on stratum 19 | 2.8K/s | 23.1K/s at 8 h, 25.6K/s at Core 8 |
+| decision minutes, Core 7 → 8 | 296 of 546 | 63 of 157 |
+| machines sold | 384 | 116 |
+| a second shaft, after a collapse at Core 7 (before) or Core 8 (after): Core 6 / Core 7 | 42 min / not in 16 h | 39 min / 2 h 36 min |
+
+**The three doctrines** from the same Core 7 factory:
+
+| doctrine | Core 7 → 8 |
+|---|---|
+| Deep Survey | 2 h 13 min |
+| Heat Engineering | 2 h 12 min (stable in 2 min; 15 Overdrive steps) |
+| Precision Works | 3 h 04 min (it rewards Labs and Frames, which this player builds few of) |
+
+**Still open, in order.**
+
+1. **The second shaft's Core 7 → 8** was not reached in 13 h 53 min. It was stopped on Ingots for Overdrive: its blueprint, the Core 8 factory, makes almost none on deep rock.
+2. **The second shaft saves for machine levels again:** Cores 5 → 6 and 6 → 7 were 89% and 71% saving. Standard levels (FP-19 a) are the pool's answer.
+3. **Labs go quiet on strata 17-19.** Research in the Core 7 era was about 84K an hour.
+4. **Core 10 and up are a formula.**
+5. **The long game is not shown:** no roadmap of eras, no picture for a tile's job, no blueprint ghost.

@@ -124,6 +124,8 @@ var _sheet_up: Button
 var _sheet_drive: Button
 ## The machine sheet's mode key (MachineDB.Mode), opened by the Core.
 var _sheet_mode: Button
+## The machine sheet's job key (MachineDB.JOBS): what this one tile makes.
+var _sheet_job: Button
 var _palette_buttons: Dictionary = {}
 var _palette_costs: Dictionary = {}
 
@@ -1248,7 +1250,27 @@ func _build_sheet() -> void:
 			Juice.tap()
 			_show_cell_info(cell)
 			_refresh())
-	row.add_child(_sheet_mode)
+	# What this one machine makes (MachineDB.JOBS), a tap for the next job
+	# the shaft has opened.
+	_sheet_job = _button("", Palette.PANEL)
+	_sheet_job.custom_minimum_size = Vector2(140, MIN_TOUCH)
+	_sheet_job.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_sheet_job.pressed.connect(func():
+		var cell: int = iso_view.selected_cell
+		if cell < 0:
+			return
+		var next: String = _next_job(cell)
+		if next != Sim.grid.job_at(cell) and Sim.set_job(cell, next):
+			Juice.tap()
+			_show_cell_info(cell)
+			_refresh())
+	var mode_col := VBoxContainer.new()
+	mode_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	mode_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	mode_col.add_theme_constant_override("separation", 6)
+	mode_col.add_child(_sheet_mode)
+	mode_col.add_child(_sheet_job)
+	row.add_child(mode_col)
 	# The machine type's level, and the key that raises it; under it, from
 	# the Core's level MachineDB.OVERDRIVE_CORE, the key that drives it.
 	var keys := VBoxContainer.new()
@@ -2019,6 +2041,7 @@ func _show_core() -> void:
 	if board != null:
 		body.add_child(board)
 	body.add_child(_core_next())
+	body.add_child(_core_blueprints())
 
 	# The factory in four numbers.
 	var stats := HBoxContainer.new()
@@ -2067,6 +2090,121 @@ func _show_core() -> void:
 	if problems > 0:
 		actions.append({"text": Loc.t("Show me"), "color": Palette.WARN, "cb": _cycle_problem})
 	_open_overlay(Loc.t("Factory Core"), body, actions, 900.0)
+
+
+## The blueprints (Sim.save_blueprint): a row a slot -- what it holds and
+## what laying it on this shaft would find -- with a key that saves the board
+## into it and one that lays it; while one is being laid, how many machines
+## it still has to place, and a key that stops it.
+func _core_blueprints() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	box.set_meta("blueprints", Sim.blueprint_slots())
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	head.add_child(_icon_rect("codex", 36))
+	var hl := _label(Loc.t("Blueprints"), 24, Palette.TEXT)
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(hl)
+	head.add_child(_help_button(Loc.t("Blueprints"), func() -> String:
+		return Loc.t("A blueprint is this board saved: every machine where it stands, its mode and its job. A collapse keeps it.\n\nLaid in a new shaft, it is checked against the ground first -- machines not found yet, tiles outside the yard or under rock, tiles taken, jobs not open yet, what would overheat or run cold on this stratum -- and then put down machine by machine as credits allow. What cannot go down yet waits until it can.")))
+	box.add_child(head)
+	if not Sim.blueprint_pending.is_empty():
+		var lay := HBoxContainer.new()
+		lay.add_theme_constant_override("separation", 10)
+		lay.set_meta("blueprint_pending", Sim.blueprint_pending.size())
+		var ll := _label(Loc.tn("Laying a blueprint: %d machine still waiting for credits, ground or its job.",
+			"Laying a blueprint: %d machines still waiting for credits, ground or their jobs.", Sim.blueprint_pending.size())
+			% Sim.blueprint_pending.size(), 20, Palette.CORE)
+		ll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ll.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lay.add_child(ll)
+		var stop := _button(Loc.t("Stop"), Palette.PANEL_HI)
+		stop.custom_minimum_size = Vector2(120, MIN_TOUCH)
+		stop.pressed.connect(func():
+			Sim.cancel_blueprint()
+			_show_core())
+		lay.add_child(stop)
+		box.add_child(lay)
+	for slot in range(Sim.blueprint_slots()):
+		box.add_child(_blueprint_row(slot))
+	return box
+
+
+func _blueprint_row(slot: int) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var bp: Dictionary = Sim.blueprint(slot)
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.add_theme_constant_override("separation", 0)
+	var flagged: Array = []
+	if bp.is_empty():
+		words.add_child(_label(Loc.t("Slot %d: empty") % (slot + 1), 20, Palette.TEXT_DIM))
+	else:
+		words.add_child(_label(Loc.t("Slot %d: %d machines, saved at Core %d") % [slot + 1,
+			(bp["cells"] as Array).size(), int(bp["core"])], 20, Palette.TEXT))
+		var rep: Dictionary = Sim.blueprint_report(slot)
+		row.set_meta("report", rep["why"])
+		var line: String = _blueprint_words(rep)
+		var sub := _label(line, TEXT_MIN, Palette.TEXT_DIM)
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(sub)
+		for e: Dictionary in rep["cells"]:
+			if String(e["why"]) in ["taken", "blocked", "outside", "hot", "cold"]:
+				flagged.append(int(e["cell"]))
+	row.add_child(words)
+	if not flagged.is_empty():
+		var show_key := _button(Loc.t("Show"), Palette.WARN)
+		show_key.custom_minimum_size = Vector2(110, MIN_TOUCH)
+		show_key.pressed.connect(func():
+			_close_overlay()
+			_show_fixes(flagged))
+		row.add_child(show_key)
+	var save := _button(Loc.t("Save") if bp.is_empty() else Loc.t("Save over"), Palette.PANEL_HI)
+	save.custom_minimum_size = Vector2(150, MIN_TOUCH)
+	save.disabled = Sim.grid.cells.is_empty()
+	save.pressed.connect(func():
+		if Sim.save_blueprint(slot):
+			Juice.tap()
+			_toast_msg(Loc.t("The board is saved in slot %d.") % (slot + 1))
+			_show_core())
+	row.add_child(save)
+	var lay := _button(Loc.t("Lay"), Palette.CORE if not bp.is_empty() else Palette.PANEL)
+	lay.custom_minimum_size = Vector2(120, MIN_TOUCH)
+	lay.disabled = bp.is_empty()
+	lay.set_meta("lay_blueprint", slot)
+	lay.pressed.connect(func():
+		var before: int = Sim.grid.cells.size()
+		Sim.lay_blueprint(slot)
+		Juice.reward()
+		_toast_msg(Loc.t("Blueprint laid: %d machines down, %d waiting.") % [
+			Sim.grid.cells.size() - before, Sim.blueprint_pending.size()])
+		_refresh()
+		_show_core())
+	row.add_child(lay)
+	return row
+
+
+## What a blueprint would find, in a line: "12 ready · 3 not found yet ·
+## 2 would overheat · 4.2K credits".
+func _blueprint_words(rep: Dictionary) -> String:
+	var why: Dictionary = rep["why"]
+	var parts: Array[String] = []
+	for k: String in ["", "placed", "locked", "outside", "blocked", "taken", "job", "hot", "cold"]:
+		if int(why.get(k, 0)) > 0:
+			parts.append(Loc.t(String(BLUEPRINT_WORDS[k])) % int(why[k]))
+	if float(rep["cost"]) > 0.0:
+		parts.append(Loc.t("%s credits") % Economy.fmt(float(rep["cost"])))
+	return " · ".join(parts)
+
+
+## What a blueprint's report says of each kind of machine (Sim._report).
+const BLUEPRINT_WORDS := {
+	"": "%d ready", "placed": "%d standing", "taken": "%d tiles taken", "locked": "%d not found yet",
+	"outside": "%d outside the yard", "blocked": "%d under rock", "job": "%d jobs not open yet",
+	"hot": "%d would overheat", "cold": "%d would run cold",
+}
 
 
 ## One of the Core card's numbers: a picture, the number, a word under it.
@@ -2130,6 +2268,62 @@ func _fill_mode_key(cell: int) -> void:
 	_sheet_mode.tooltip_text = Loc.t("How hard this one machine runs. Cool: three quarters of the speed, half its own heat. Hot: a quarter faster, 60% more heat. A Boiler run Low gives half its heat.")
 
 
+## The machine sheet's job key: what this machine makes, a tap for the next
+## job the shaft has opened -- or, while none other is open, a lock and what
+## opens the first (a stratum or the Core's level).
+func _fill_job_key(cell: int) -> void:
+	for c in _sheet_job.get_children():
+		c.queue_free()
+	var id: String = Sim.grid.machine_at(cell)
+	var jobs: Array[String] = MachineDB.jobs_for(id)
+	_sheet_job.visible = jobs.size() > 1
+	if not _sheet_job.visible:
+		return
+	var job: String = Sim.grid.job_at(cell)
+	var next: String = _next_job(cell)
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gem: Control
+	var outs: Dictionary = MachineDB.job_machine(id, job).get("outputs", {})
+	if outs.is_empty():
+		gem = _icon_rect("settings", 30)
+	else:
+		gem = Chips.Gem.new(int(outs.keys()[0]), 1, 30.0)
+	gem.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(gem)
+	var words: String = MachineDB.job_name(id, job)
+	var open: bool = next != job
+	if not open:
+		# Nothing else open yet: say what opens the first other job.
+		var other: String = jobs[1] if job == "" else ""
+		var why: String = Sim.job_blocker(cell, other)
+		if why == "depth":
+			words = Loc.t("Stratum %d") % MachineDB.job_depth(id, other)
+		elif why == "core":
+			words = Loc.t("Core %d") % int(MachineDB.job_info(id, other).get("core", 1))
+	var word := _label(words, TEXT_MIN, Palette.TEXT if open else Palette.TEXT_DIM)
+	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(word)
+	_sheet_job.add_child(col)
+	_sheet_job.disabled = not open
+	_sheet_job.set_meta("job", job)
+	_sheet_job.tooltip_text = Loc.t("What this one machine makes. Deeper rock and the Core's levels open new jobs: crystal from a Drill, alloy from a Smelter at white heat, frames from an Assembler.")
+
+
+## The next job the shaft has opened for the machine on `cell`, after the
+## one it is on; its own job when no other is open.
+func _next_job(cell: int) -> String:
+	var jobs: Array[String] = MachineDB.jobs_for(Sim.grid.machine_at(cell))
+	var at: int = jobs.find(Sim.grid.job_at(cell))
+	for k in range(1, jobs.size()):
+		var j: String = jobs[(at + k) % jobs.size()]
+		if Sim.can_set_job(cell, j):
+			return j
+	return Sim.grid.job_at(cell)
+
+
 func _mode_name(id: String, mode: int) -> String:
 	match mode:
 		MachineDB.Mode.COOL:
@@ -2147,7 +2341,7 @@ func _show_heat(cell: int) -> void:
 	if id == "":
 		return
 	var heat: float = Sim.grid.heat_at(cell)
-	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus)
+	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus, Sim.grid.job_at(cell))
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 8)
 	body.set_meta("heat_card", cell)
@@ -2165,6 +2359,10 @@ func _show_heat(cell: int) -> void:
 	head.add_child(_label(verdict, 20, Palette.TEXT_DIM))
 	head.add_child(_label(Loc.t("Running at %d%% of its speed for its heat") % int(round(
 		Sim.sim.heat_efficiency_at(cell) * 100.0)), TEXT_MIN, Palette.TEXT_DIM))
+	if Sim.sim.machine_of(cell).has("heat_drive"):
+		# White heat: the heat is what it runs on.
+		head.add_child(_label(Loc.t("It runs on heat: the hotter, the faster, up to %.1f. Past that it chokes.")
+			% safe.y, TEXT_MIN, Palette.CORE))
 	top.add_child(head)
 	body.add_child(top)
 	body.add_child(_label(Loc.t("Where its heat comes from"), 22, Palette.TEXT))
@@ -2219,7 +2417,7 @@ func _mode_note(cell: int) -> String:
 func _heat_answers(cell: int) -> Array:
 	var id: String = Sim.grid.machine_at(cell)
 	var heat: float = Sim.grid.heat_at(cell)
-	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus)
+	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus, Sim.grid.job_at(cell))
 	var out: Array = []
 	var modes_open: bool = Sim.core_level >= MachineDB.MODES_CORE
 	var spread: float = Sim.grid.heat_spread
@@ -2261,6 +2459,15 @@ func _heat_answers(cell: int) -> Array:
 			else:
 				out.append({"icon": "cold", "go": select.call(cell),
 					"words": Loc.t("No free tile beside it: move it, or a neighbour, to make room for a Coolant Cell")})
+		# Another job this machine can take that is built for the heat: on
+		# deep rock, the answer may be to make something else here.
+		for job: String in MachineDB.jobs_for(id):
+			if job == Sim.grid.job_at(cell) or not Sim.can_set_job(cell, job):
+				continue
+			var js: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus, job)
+			if js.y > safe.y and heat <= js.y:
+				out.append({"icon": "settings", "go": select.call(cell), "words":
+					Loc.t("Set it to %s: that job takes up to %.1f") % [MachineDB.job_name(id, job), js.y]})
 		if has_cool and Sim.machine_upgrade_blocker("coolant") != "none":
 			var next: float = 2.2 * spread * MachineDB.heat_factor("coolant", Sim.machine_level("coolant") + 1,
 				Sim.overdrive_steps("coolant"))
@@ -2339,6 +2546,29 @@ func _core_next() -> Control:
 		dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		drive.add_child(dl)
 		box.add_child(drive)
+	for jb: Array in (o.get("jobs", []) as Array):
+		var jrow := HBoxContainer.new()
+		jrow.add_theme_constant_override("separation", 10)
+		jrow.set_meta("core_opens_job", jb)
+		jrow.add_child(Chips.MachineSprite.new(String(jb[0]), 36.0))
+		var jl := _label(Loc.t("And a new job for the %s: %s -- %s") % [MachineDB.name_of(String(jb[0])),
+			MachineDB.job_name(String(jb[0]), String(jb[1])),
+			Loc.t(String(MachineDB.job_info(String(jb[0]), String(jb[1]))["short"]))], TEXT_MIN, Palette.TEXT_DIM)
+		jl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		jl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		jrow.add_child(jl)
+		box.add_child(jrow)
+	if bool(o.get("doctrine", false)):
+		var drow := HBoxContainer.new()
+		drow.add_theme_constant_override("separation", 10)
+		drow.set_meta("core_opens_doctrine", true)
+		drow.add_child(_icon_rect("research", 36))
+		var dtl := _label(Loc.t("And a doctrine for the shaft: one of three ways to grow it, each with research of its own. Chosen once, until the shaft collapses."),
+			TEXT_MIN, Palette.TEXT_DIM)
+		dtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		drow.add_child(dtl)
+		box.add_child(drow)
 	if next == MachineDB.MODES_CORE:
 		var modes := HBoxContainer.new()
 		modes.add_theme_constant_override("separation", 10)
@@ -2376,7 +2606,7 @@ func _core_store() -> Control:
 	row.add_child(_label(Loc.t("Store"), 22, Palette.TEXT))
 	var cap: int = Sim.stock_cap()
 	for res: int in MachineDB.STOCKED:
-		if not Sim.is_unlocked(CoreLevels.producer_of(res)):
+		if not Sim.can_make(res):
 			continue
 		row.add_child(Chips.Gem.new(res, 1, 30.0))
 		row.add_child(_label("%d/%d" % [Sim.stock_of(res), cap], 22,
@@ -2527,6 +2757,14 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 			words = Loc.t("%s driven %d Overdrive steps") % [MachineDB.name_of(did), int(st["need"])]
 			amount = "%d / %d" % [int(st["have"]), int(st["need"])]
 			go = func() -> void: _select_type(did)
+		CoreLevels.Req.DOCTRINE:
+			pic = _icon_rect("research", 44)
+			if Sim.doctrine == "":
+				words = Loc.t("A doctrine chosen, and %d levels of its research") % int(st["need"])
+			else:
+				words = Loc.t("%d levels of %s research") % [int(st["need"]),
+					Loc.t(String(Economy.DOCTRINES[Sim.doctrine]["name"]))]
+			go = _show_research
 		_:
 			pic = _icon_rect("heat", 44)
 			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
@@ -3169,7 +3407,8 @@ func _show_cell_info(cell: int) -> void:
 	if id == "":
 		_close_sheet()
 		return
-	var m: Dictionary = MachineDB.get_machine(id)
+	var job: String = Sim.grid.job_at(cell)
+	var m: Dictionary = Sim.sim.machine_of(cell)
 	var heat: float = Sim.grid.heat_at(cell)
 	var eff: float = Sim.sim.heat_efficiency_at(cell)
 	var delta: float = Sim.sim.heat_delta_at(cell)
@@ -3211,15 +3450,16 @@ func _show_cell_info(cell: int) -> void:
 				verdict = Loc.t("Running well.")
 				icon = "ok"
 	(_sheet_status as TextureRect).texture = IsoArt.icon(icon)
-	_sheet_body.add_child(Chips.recipe(id, 42.0))
+	_sheet_body.add_child(Chips.recipe(id, 42.0, job))
 	_fill_level_key(id)
 	_fill_drive_key(id)
 	_fill_mode_key(cell)
+	_fill_job_key(cell)
 
 	# Heat: the bar is the machine's temperature, the notch where it wants to
 	# be, the red mark the end of its safe range; the numbers beside it; a
 	# tap shows where the heat comes from.
-	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus)
+	var safe: Vector2 = MachineDB.safe_range(id, Sim.sim.tolerance_bonus, job)
 	var top: float = maxf(safe.y * 1.6, heat * 1.1) + 0.5
 	var hg := Chips.Gauge.new(130, 14)
 	hg.value = heat / top
@@ -3257,7 +3497,7 @@ func _show_cell_info(cell: int) -> void:
 
 	# Everything the panel used to spell out, for the "?".
 	var lines: Array[String] = [verdict]
-	var recipe: String = MachineDB.recipe_text(id)
+	var recipe: String = MachineDB.recipe_text(id, job)
 	if recipe != "":
 		lines.append(recipe)
 	lines.append(MachineDB.desc_of(id))
@@ -3288,6 +3528,12 @@ const RESEARCH_ART := {
 	"offline_rate": ["@foreman", "energy"],
 	"core_yield": ["@core", "cores"],
 	"blueprint_slots": ["@icon:codex", "upgrade"],
+	"vein_1": ["drill", "upgrade"],
+	"survey_1": ["@icon:descend", "credits"],
+	"cryo_1": ["coolant", "cold"],
+	"mass_1": ["assembler", "heat"],
+	"jigs_1": ["assembler", "credits"],
+	"benches_1": ["lab", "research"],
 }
 ## The research grid's columns: three side by side on a landscape phone, two
 ## where the screen is too narrow for three to keep their pictures big.
@@ -3295,10 +3541,8 @@ const RESEARCH_COLUMNS := 3
 const RESEARCH_CARD_MIN_W := 330.0
 
 
-## Research lines the grid does not offer. Drafting Table sells blueprint
-## slots, and no screen saves or loads a blueprint yet: a card that takes
-## research and changes nothing the player can see would be a fake. It comes
-## back with the blueprint screen; its level, if a save has one, is kept.
+## Research lines the grid does not offer (Worklist.HIDDEN): none since the
+## Core card saves and lays blueprints, which Drafting Table's slots are for.
 const HIDDEN_RESEARCH := Worklist.HIDDEN
 
 
@@ -3323,10 +3567,77 @@ func _show_research() -> void:
 	grid.columns = RESEARCH_COLUMNS if w >= RESEARCH_CARD_MIN_W * RESEARCH_COLUMNS + 60.0 else 2
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
-	for id: String in Economy.TREE_ORDER:
-		if not HIDDEN_RESEARCH.has(id):
-			grid.add_child(_research_card(id))
-	_open_overlay(Loc.t("Research"), grid, [], 1240.0, wallet)
+	# Branch by branch (Economy.BRANCHES), each line in the tree's order.
+	for branch: String in Economy.BRANCHES:
+		for id: String in Economy.TREE_ORDER:
+			if not HIDDEN_RESEARCH.has(id) and String(Economy.RESEARCH_TREE[id].get("branch", "")) == branch:
+				grid.add_child(_research_card(id))
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 14)
+	body.add_child(_doctrine_row())
+	body.add_child(grid)
+	_open_overlay(Loc.t("Research"), body, [], 1240.0, wallet)
+
+
+## The shaft's doctrine (Economy.DOCTRINES), above the research grid: the
+## Core's level that opens it; the three to choose from; or the one chosen.
+func _doctrine_row() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.set_meta("doctrine", Sim.doctrine)
+	if Sim.doctrine != "":
+		var d: Dictionary = Economy.DOCTRINES[Sim.doctrine]
+		row.add_child(_icon_rect("ok", 40))
+		var l := _label(Loc.t("Doctrine: %s. %s") % [Loc.t(String(d["name"])), Loc.t(String(d["short"]))],
+			20, Palette.TEXT)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(l)
+		return row
+	if not Sim.can_choose_doctrine():
+		row.add_child(_icon_rect("lock", 40))
+		var l2 := _label(Loc.t("Core level %d opens doctrines: one of three ways to grow the shaft, with research of its own.")
+			% Economy.DOCTRINE_CORE, 20, Palette.TEXT_DIM)
+		l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(l2)
+		return row
+	for id: String in Economy.DOCTRINE_ORDER:
+		var d2: Dictionary = Economy.DOCTRINES[id]
+		var b := _button("", Palette.RESEARCH)
+		b.custom_minimum_size = Vector2(0, MIN_TOUCH + 24)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.set_meta("choose_doctrine", id)
+		var col := VBoxContainer.new()
+		col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		col.alignment = BoxContainer.ALIGNMENT_CENTER
+		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var n := _label(Loc.t(String(d2["name"])), 22, Palette.BG)
+		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(n)
+		var sh := _label(Loc.t(String(d2["short"])), 15, Palette.BG)
+		sh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sh.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(sh)
+		b.add_child(col)
+		b.pressed.connect(func(): _confirm_doctrine(id))
+		row.add_child(b)
+	return row
+
+
+## Choosing a doctrine is for the whole shaft: said before it is done.
+func _confirm_doctrine(id: String) -> void:
+	var d: Dictionary = Economy.DOCTRINES[id]
+	var text: String = Loc.t("Follow %s in this shaft? %s\n\nIts two lines of research open, and the other doctrines' close until the shaft collapses. What you buy in them is this shaft's: a collapse clears it, and the next shaft chooses again.") % [
+		Loc.t(String(d["name"])), Loc.t(String(d["short"]))]
+	var l := _label(text, 20, Palette.TEXT_DIM)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_open_overlay(Loc.t(String(d["name"])), l, [{"text": Loc.t("Follow it"), "color": Palette.RESEARCH,
+		"cb": func():
+			if Sim.choose_doctrine(id):
+				Juice.upgrade()
+				_show_research()
+				_refresh()}])
 
 
 ## One research line as a card: its picture big, a short name, a line a
@@ -3341,6 +3652,9 @@ func _research_card(id: String) -> Control:
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	var can: bool = Sim.can_buy_upgrade(id)
 	var locked: bool = not maxed and Sim.cores < int(c["cores"])
+	# A doctrine's line, in a shaft that does not follow it.
+	var doctrine: String = Economy.doctrine_of(id)
+	var other: bool = doctrine != "" and doctrine != Sim.doctrine
 	# The Core's level is this line's limit: the level that lets it go on.
 	var core_needed: int = 0
 	if not maxed and lvl >= Sim.research_cap(id):
@@ -3364,8 +3678,8 @@ func _research_card(id: String) -> Control:
 		sb.set_border_width_all(3)
 		sb.bg_color = Color(Palette.PANEL_HI.lerp(Palette.RESEARCH, 0.12), 0.96)
 	card.set_meta("research_id", id)
-	card.set_meta("state", "max" if maxed else ("ready" if can else ("core" if core_needed > 0
-		else ("locked" if locked else "short"))))
+	card.set_meta("state", "max" if maxed else ("ready" if can else ("doctrine" if other
+		else ("core" if core_needed > 0 else ("locked" if locked else "short")))))
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
@@ -3377,6 +3691,14 @@ func _research_card(id: String) -> Control:
 	var words := VBoxContainer.new()
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.add_theme_constant_override("separation", 4)
+	# Its branch, and a doctrine's name on a doctrine's line.
+	var tag: String = Loc.t(String(Economy.BRANCHES.get(String(u.get("branch", "")), ""))).to_upper()
+	if doctrine != "":
+		tag += " · " + Loc.t(String(Economy.DOCTRINES[doctrine]["name"]))
+	# Wrapped, so a long language's branch and doctrine never widen the card.
+	var tag_lbl := _label(tag, 14, Palette.RESEARCH if doctrine == "" else Palette.CORE)
+	tag_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(tag_lbl)
 	var name_lbl := _label(Loc.t(String(u["name"])), 21, Palette.TEXT)
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(name_lbl)
@@ -3405,6 +3727,19 @@ func _research_card(id: String) -> Control:
 		done.add_child(_icon_rect("ok", 52))
 		done.add_child(_label(Loc.t("MAX"), 26, Palette.CORE))
 		bottom.add_child(done)
+	elif other:
+		var only := HBoxContainer.new()
+		only.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		only.alignment = BoxContainer.ALIGNMENT_CENTER
+		only.custom_minimum_size = Vector2(0, MIN_TOUCH)
+		only.add_theme_constant_override("separation", 8)
+		only.add_child(_icon_rect("lock", 40))
+		var only_lbl := _label(Loc.t("%s only") % Loc.t(String(Economy.DOCTRINES[doctrine]["name"])), 20,
+			Palette.TEXT_DIM)
+		only_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		only_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		only.add_child(only_lbl)
+		bottom.add_child(only)
 	elif core_needed > 0:
 		var wait := HBoxContainer.new()
 		wait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3565,7 +3900,7 @@ func _show_collapse() -> void:
 	trade.add_child(_help_button(Loc.t("Collapse the shaft"), func() -> String:
 		return Loc.tn("You get %d Core.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one.",
 			"You get %d Cores.\n\nGone: the machines, your credits, your research points and your depth.\nKept: your Cores and every upgrade you have researched.\n\nGoing deeper and earning more both raise the Cores. One more stratum is usually worth more than one more hour at this one.",
-			gained) % gained))
+			gained) % gained + "\n\n" + Loc.t("Also kept: your blueprints, and half of the Core's best level -- the next shaft's Core starts at level %d. Its doctrine, and the doctrine's research, start again.") % Sim.foundation()))
 	body.add_child(trade)
 
 	# What goes, crossed out; what stays, ticked.
@@ -3580,10 +3915,15 @@ func _show_collapse() -> void:
 	fate.add_child(gone)
 	var kept := HBoxContainer.new()
 	kept.add_theme_constant_override("separation", 12)
-	for pic: Control in [_icon_rect("cores", 76), _icon_rect("upgrade", 76)]:
+	for pic: Control in [_icon_rect("cores", 76), _icon_rect("upgrade", 76), _icon_rect("codex", 76)]:
 		kept.add_child(_fated(pic, 76.0, true))
 	fate.add_child(kept)
 	body.add_child(fate)
+	# The Core's foundation: where the next shaft starts.
+	var found := _label(Loc.t("The next shaft's Core starts at level %d.") % Sim.foundation(), 22, Palette.CORE)
+	found.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	found.set_meta("foundation", Sim.foundation())
+	body.add_child(found)
 
 	# What the Cores are for: the research lines whose Core price the new
 	# total reaches and today's does not. They still cost Research, which a

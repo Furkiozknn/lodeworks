@@ -1663,7 +1663,7 @@ func _draw_machine(ci: CanvasItem, cell: int, id: String) -> void:
 			var k: float = 0.5 + 0.5 * sin(_anim * 6.0)
 			mod = mod * Color(1.0 + 0.2 * k, 0.85 - 0.1 * k, 0.8 - 0.1 * k)
 	if overlay == Overlay.HEAT:
-		var m: Dictionary = MachineDB.get_machine(id)
+		var m: Dictionary = Sim.sim.machine_of(cell)
 		var dv: Color = Palette.divergent_color(Sim.sim.heat_delta_at(cell),
 			float(m["heat_tolerance"]) + Sim.sim.tolerance_bonus)
 		mod = mod * Color.WHITE.lerp(dv.lightened(0.35), 0.45)
@@ -2307,12 +2307,10 @@ func _draw_placement_preview(ci: CanvasItem, font: Font) -> void:
 		var txt: String = "%+.1f" % bleed
 		var nid: String = Sim.grid.machine_at(nb)
 		if nid != "":
-			var nm: Dictionary = MachineDB.get_machine(nid)
+			var nm: Dictionary = Sim.sim.machine_of(nb)
 			var now: float = Sim.grid.heat_at(nb)
-			var before: float = MachineDB.heat_efficiency(now, float(nm["heat_optimum"]),
-				float(nm["heat_tolerance"]) + Sim.sim.tolerance_bonus)
-			var after: float = MachineDB.heat_efficiency(now + bleed, float(nm["heat_optimum"]),
-				float(nm["heat_tolerance"]) + Sim.sim.tolerance_bonus)
+			var before: float = MachineDB.efficiency_of(nm, now, Sim.sim.tolerance_bonus)
+			var after: float = MachineDB.efficiency_of(nm, now + bleed, Sim.sim.tolerance_bonus)
 			txt = "%+d%%" % int(round((after - before) * 100.0))
 		var tint: Color = Palette.ST_HOT if bleed > 0.0 else Palette.ST_COLD
 		_num(ci, font, cam.world_to_screen(Iso.cell_center(nb)), txt, tint.lightened(0.3), 15)

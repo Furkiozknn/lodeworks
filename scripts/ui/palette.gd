@@ -86,6 +86,9 @@ const RES_COLOR := {
 	2: Color("cfd6df"),   ## ingot   — bright metal
 	3: Color("8fb4d6"),   ## plate   — blued steel
 	4: Color("d9c56a"),   ## component — finished, valuable
+	5: Color("a57be0"),   ## crystal — the violet of the veins in the rock
+	6: Color("f08a4b"),   ## alloy — white-hot copper
+	7: Color("5fd0c0"),   ## frame — the deep chain's end, cool teal
 }
 
 ## Machine colours. Grouped by role so the board is legible at a glance:

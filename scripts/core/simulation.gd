@@ -167,6 +167,13 @@ var research_mult: float = 1.0
 var tolerance_bonus: float = 0.0
 ## Stratum "Unstable" shrinks this; "Drafting"-style upgrades could grow it.
 var buffer_cap: int = BUF_CAP
+## How much crystal the rock gives a Deep Bore (Strata.vein, and a
+## doctrine's research): a rate on machines on a job marked "vein".
+var vein_mult: float = 1.0
+## What a doctrine adds to one material's sale or to what a Lab learns
+## from it: {res: multiplier}, 1 when absent.
+var res_value_mult: Dictionary = {}
+var res_learn_mult: Dictionary = {}
 
 
 func _init(g: Grid, seed_value: int = 12345) -> void:
@@ -199,16 +206,37 @@ func _buf_total(buf: Dictionary) -> int:
 	return t
 
 
+## The machine on `i` as it runs: its type's table, on the job the tile is
+## set to (MachineDB.job_machine). {} for an empty tile.
+func machine_of(i: int) -> Dictionary:
+	var c: Variant = grid.cells.get(i)
+	if c == null:
+		return MachineDB.NONE
+	return _machine_in(c)
+
+
+## The machine a board cell holds (its dictionary), on its job. Asked for
+## every neighbour of every producer each tick: most tiles have no job, and
+## those go straight to the table.
+static func _machine_in(c: Dictionary) -> Dictionary:
+	var job: Variant = c.get("job")
+	if job == null:
+		return MachineDB.get_machine(c["id"])
+	return MachineDB.job_machine(c["id"], job)
+
+
 ## How fast this cell runs right now, all multipliers folded in.
 func effective_rate(i: int) -> float:
 	var id: String = grid.machine_at(i)
 	if id == "":
 		return 0.0
-	var m: Dictionary = MachineDB.get_machine(id)
+	var m: Dictionary = machine_of(i)
 	var eff: float = heat_efficiency_at(i) * float(level_mult.get(id, 1.0)) \
 		* float(MachineDB.MODE_SPEED.get(grid.mode_at(i), 1.0))
 	var amp: float = 1.0 + (grid.amplify_at(i) - 1.0) * amplify_mult
 	var src: float = source_speed_mult if (m["tags"] as Array).has("source") else 1.0
+	if m.has("vein"):
+		src *= vein_mult
 	return float(m["rate"]) * eff * amp * speed_mult * src
 
 
@@ -297,21 +325,44 @@ func debug_takers(source: int, res: int) -> Array[int]:
 
 func _takers(source: int, res: int) -> Array[int]:
 	var out: Array[int] = []
-	# Bridged, not merely adjacent: a support machine passes material straight
-	# through to whatever is on its far side rather than blocking the line.
-	for other in grid.bridged_machines(source):
-		var c: Dictionary = grid.cells[other]
-		var m: Dictionary = MachineDB.get_machine(String(c["id"]))
-		var tags: Array = m["tags"]
-		if tags.has("sink"):
-			# A Vault takes anything; that is the point of a Vault.
+	var limit: int = cap()
+	for t: Array in _taker_candidates(source, res):
+		var other: int = int(t[0])
+		# A Vault takes anything; that is the point of a Vault.
+		if bool(t[1]) or int(grid.cells[other]["buf_in"].get(res, 0)) < limit:
 			out.append(other)
-			continue
-		var inputs: Dictionary = m["inputs"]
-		if inputs.has(res) and int(c["buf_in"].get(res, 0)) < cap():
-			out.append(other)
-	out.sort()
 	return out
+
+
+## The neighbours of `source` that take `res` at all -- [cell, is a sink],
+## in board order -- worked out once per board: what a machine takes changes
+## only when the board does (a machine placed, moved or set to a job), and
+## this is asked for every producer every tick. Bridged, not merely
+## adjacent: a support machine passes material straight through to whatever
+## is on its far side rather than blocking the line.
+func _taker_candidates(source: int, res: int) -> Array:
+	if _taker_version != grid.version:
+		_taker_version = grid.version
+		_taker_cache.clear()
+	var key: int = source * 64 + res
+	var hit: Variant = _taker_cache.get(key)
+	if hit != null:
+		return hit
+	var out: Array = []
+	var cells: Array[int] = grid.bridged_machines(source).duplicate()
+	cells.sort()
+	for other: int in cells:
+		var m: Dictionary = _machine_in(grid.cells[other])
+		if (m["tags"] as Array).has("sink"):
+			out.append([other, true])
+		elif (m["inputs"] as Dictionary).has(res):
+			out.append([other, false])
+	_taker_cache[key] = out
+	return out
+
+
+var _taker_cache: Dictionary = {}
+var _taker_version: int = -1
 
 
 ## Would machine `id`, placed on the empty `cell`, be fed by a neighbour, and
@@ -330,7 +381,7 @@ func links_if_placed(cell: int, id: String) -> Dictionary:
 	var fed: bool = ins.is_empty() and not sink
 	var delivers: bool = outs.is_empty()
 	for n: int in grid.bridged_machines(cell):
-		var nm: Dictionary = MachineDB.get_machine(grid.machine_at(n))
+		var nm: Dictionary = machine_of(n)
 		if not fed:
 			for res: int in (nm.get("outputs", {}) as Dictionary):
 				if sink or ins.has(res):
@@ -364,15 +415,14 @@ func _work(dt: float) -> void:
 	# "A late board").
 	grid.heat_at(0)
 	var key: Array = [grid.version, grid.heat_stamp, speed_mult, source_speed_mult,
-		amplify_mult, tolerance_bonus, levels_stamp]
+		amplify_mult, tolerance_bonus, levels_stamp, vein_mult]
 	if key != _rate_key:
 		_rate_key = key
 		_rate_cache.clear()
 
 	for i: int in grid.cells:
 		var cell: Dictionary = grid.cells[i]
-		var id: String = String(cell["id"])
-		var m: Dictionary = MachineDB.get_machine(id)
+		var m: Dictionary = _machine_in(cell)
 		var tags: Array = m["tags"]
 
 		# Passive tiles (Boiler, Coolant, Amplifier, Duplicator) do their work
@@ -488,7 +538,8 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 			return false
 		for res: int in buf_in.keys():
 			var n: int = int(buf_in[res])
-			last_credits += MachineDB.value_of(res) * float(n) * value_mult
+			last_credits += MachineDB.value_of(res) * float(n) * value_mult \
+				* float(res_value_mult.get(res, 1.0))
 		buf_in.clear()
 		return true
 
@@ -503,7 +554,8 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 		if best < 0:
 			return false
 		_consume(buf_in, {best: 1})
-		last_research += float(learns[best]) * float(m.get("research_per_cycle", 1.0)) * research_mult
+		last_research += float(learns[best]) * float(m.get("research_per_cycle", 1.0)) * research_mult \
+			* float(res_learn_mult.get(best, 1.0))
 		return true
 
 	var inputs: Dictionary = m["inputs"]
@@ -587,9 +639,7 @@ func heat_efficiency_at(i: int) -> float:
 	var hit: Variant = _eff_cache.get(i)
 	if hit != null:
 		return hit
-	var m: Dictionary = MachineDB.get_machine(id)
-	var e: float = MachineDB.heat_efficiency(heat, float(m["heat_optimum"]),
-		float(m["heat_tolerance"]) + tolerance_bonus)
+	var e: float = MachineDB.efficiency_of(machine_of(i), heat, tolerance_bonus)
 	_eff_cache[i] = e
 	return e
 
@@ -599,7 +649,7 @@ func overheated_at(i: int) -> bool:
 	var id: String = grid.machine_at(i)
 	if id == "":
 		return false
-	var m: Dictionary = MachineDB.get_machine(id)
+	var m: Dictionary = machine_of(i)
 	return grid.heat_at(i) > float(m["heat_tolerance"]) + tolerance_bonus
 
 
@@ -617,7 +667,7 @@ func heat_delta_at(i: int) -> float:
 	var id: String = grid.machine_at(i)
 	if id == "":
 		return 0.0
-	var m: Dictionary = MachineDB.get_machine(id)
+	var m: Dictionary = machine_of(i)
 	return grid.heat_at(i) - float(m["heat_optimum"])
 
 

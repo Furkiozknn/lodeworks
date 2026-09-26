@@ -143,8 +143,8 @@ Then:
 | 10 minutes | the quota falls, you descend, the yard widens, the rock is richer and hotter |
 | first session | the first strata take two or three minutes each, the middle ones three or four, and the first machine that only matters because of what it is next to arrives |
 | next day | offline production banked while you were away |
-| first week | the Core's later levels, the component chain and the research tree |
-| long term | collapse the shaft for Cores, which survive it with every upgrade you researched, and start again deeper and faster |
+| first week | the Core's later levels, the component chain, the hot rock of strata 16 and down -- crystal, alloy at white heat -- and a doctrine for the shaft |
+| long term | collapse the shaft for Cores, which survive it with every upgrade you researched, half the Core's best level and your blueprints, and start again deeper and faster |
 
 ## The Factory Core
 
@@ -161,11 +161,18 @@ materials, each paying credits or research, printed before it is filled,
 with no clock on any of them.
 The Core's seventh level opens **Overdrive**: a machine type at the level
 the Core before allowed can be driven past it, paid in Ingots, Plates and
-research rather than credits. Played by a scripted player, Core 2 falls at
-8 minutes, Core 3 at 16, Core 4 at 33, Core 5 at 46, Core 6 at 1 h 20 and
-Core 7 at 6 h 55 of active play; every stage asks for work in several
-systems at once, and the Core 6 → 7 stage leaves 4% of it with only credits
-to wait for. [docs/BENCHMARK.md](docs/BENCHMARK.md) takes stock of the
+research rather than credits, and from stratum 16 the rock holds
+**crystal**: a Drill on the Deep Bore job digs it, a Smelter at white heat --
+faster the hotter it runs -- fuses it into Alloy, and Presses, Assemblers and
+Labs work the Alloy on rock too hot for the old chain. Core 7 also has the
+shaft choose one of three **doctrines**, each with research of its own. A
+**collapse** keeps half the Core's best level and the board's
+**blueprints**, which are checked against the new ground and laid as
+credits allow. Played by a scripted player, Core 2 falls at 8 minutes,
+Core 3 at 16, Core 4 at 33, Core 5 at 46, Core 6 at 1 h 20, Core 7 at 6 h 55
+and Core 8 at 9 h 31 of active play; every stage asks for work in several
+systems at once. After a collapse at Core 8 the second shaft reaches Core 7
+in 2 h 36 min. [docs/BENCHMARK.md](docs/BENCHMARK.md) takes stock of the
 player loop against Clash of Clans and the other benchmark games;
 [docs/PROGRESSION.md](docs/PROGRESSION.md)
 is the design, the graph and the measurements, and
@@ -233,7 +240,7 @@ are synthesised from arithmetic at startup.
   hours of offline banking; "Foundry Colours" is six palettes. Neither
   unlocks a machine, a stratum or an upgrade, and the whole game is
   reachable without them. The Licence also carries 2 blueprint slots, which
-  the shop does not advertise while blueprints have no screen.
+  the shop does not advertise yet (a store-copy decision).
 - **Neither one can move an economy number**, and that is a test rather than a
   promise: the suite runs the same board licensed and unlicensed and requires
   identical output. If the ad SDK is missing, broken, or hangs mid-ad, the game
@@ -248,7 +255,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 1440x720                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 368 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 381 tests
 godot --headless --path . tools/layout_check.tscn                 # 11 screen shapes x 3 safe areas
 godot --path . --resolution 1440x720 tools/perf_probe.tscn        # frame times, draw calls, memory
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
@@ -336,7 +343,7 @@ scripts/ui/iso/   the world: projection, camera, badges, art lookup, and
                   sell / pan / zoom
 scripts/ui/       the landscape HUD, Codex, shop, diagnostics
 assets/art/       the generated art and layout.json; art_src/ its sources
-tests/            368 tests, no framework dependency
+tests/            381 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs
@@ -385,9 +392,8 @@ nothing behind it:
 - **The store screenshots and preview video are the old portrait ones** and
   no longer show the game; the landscape capture is automated, choosing and
   uploading is not.
-- No music. Blueprints have no screen: the save keeps an empty list that
-  nothing writes, so the research line and the shop bullet that would sell
-  slots are hidden (docs/GAP-AUDIT.md, B-5).
+- No music. Blueprints have no picture on the board yet: the Core card
+  saves, checks and lays them, and says what each one would find.
 - Anonymous statistics are recorded but **sent nowhere**: no endpoint is
   set, so the Data safety answers say the game collects nothing.
 

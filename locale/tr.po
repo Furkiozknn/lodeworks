@@ -99,6 +99,18 @@ msgstr "En iyi sıcakta çalışır: yaklaşık %.1f ısı."
 msgid "It runs best cool, and slows down past %.1f heat."
 msgstr "En iyi serinde çalışır; %.1f ısının üstünde yavaşlar."
 
+#: res://scripts/ui/codex.gd res://scripts/ui/main.gd
+msgid "Core level %d"
+msgstr "Çekirdek seviye %d"
+
+#: res://scripts/ui/codex.gd res://scripts/ui/main.gd
+msgid "Stratum %d"
+msgstr "Katman %d"
+
+#: res://scripts/ui/codex.gd
+msgid "Job: %s (%s). %s %s"
+msgstr "İş: %s (%s). %s %s"
+
 #: res://scripts/ui/codex.gd
 msgid "It opens at stratum %d."
 msgstr "%d. katmanda açılır."
@@ -118,6 +130,12 @@ msgid "You brought up %d Core.\n\nCores survive a collapse, and so does every up
 msgid_plural "You brought up %d Cores.\n\nCores survive a collapse, and so does every upgrade you have researched. The next shaft goes deeper and faster than this one did."
 msgstr[0] "%d Çekirdek çıkardın.\n\nÇekirdekler çöküşten sonra da kalır, araştırdığın her geliştirme de. Sonraki kuyu bundan daha derine ve daha hızlı iner."
 msgstr[1] "%d Çekirdek çıkardın.\n\nÇekirdekler çöküşten sonra da kalır, araştırdığın her geliştirme de. Sonraki kuyu bundan daha derine ve daha hızlı iner."
+
+#: res://scripts/ui/main.gd
+msgid "Laying a blueprint: %d machine still waiting for credits, ground or its job."
+msgid_plural "Laying a blueprint: %d machines still waiting for credits, ground or their jobs."
+msgstr[0] "Plan kuruluyor: %d makine hâlâ kredi, zemin ya da işini bekliyor."
+msgstr[1] "Plan kuruluyor: %d makine hâlâ kredi, zemin ya da işini bekliyor."
 
 #: res://scripts/ui/main.gd
 msgid "%d machine needs help"
@@ -182,10 +200,6 @@ msgstr "Ödemen bekleniyor. Kendiliğinden açılacak."
 #: res://scripts/ui/main.gd
 msgid "Undo"
 msgstr "Geri al"
-
-#: res://scripts/ui/main.gd
-msgid "Stratum %d"
-msgstr "Katman %d"
 
 #: res://scripts/ui/main.gd
 msgid "The yard grows to %d x %d."
@@ -396,6 +410,54 @@ msgid "Show me"
 msgstr "Göster"
 
 #: res://scripts/ui/main.gd
+msgid "Blueprints"
+msgstr "Planlar"
+
+#: res://scripts/ui/main.gd
+msgid "A blueprint is this board saved: every machine where it stands, its mode and its job. A collapse keeps it.\n\nLaid in a new shaft, it is checked against the ground first -- machines not found yet, tiles outside the yard or under rock, tiles taken, jobs not open yet, what would overheat or run cold on this stratum -- and then put down machine by machine as credits allow. What cannot go down yet waits until it can."
+msgstr "Plan, bu sahanın kaydıdır: her makine durduğu yerde, kipiyle ve işiyle. Çöküş onu silmez.\n\nYeni bir kuyuda kurulduğunda önce zemine göre denetlenir -- henüz bulunmamış makineler, sahanın dışındaki ya da kaya altındaki karolar, dolu karolar, henüz açılmamış işler, bu katmanda aşırı ısınacak ya da soğuk kalacak olanlar -- sonra kredi yettikçe makine makine yerleştirilir. Henüz konamayan, konabilene dek bekler."
+
+#: res://scripts/ui/main.gd
+msgid "Stop"
+msgstr "Durdur"
+
+#: res://scripts/ui/main.gd
+msgid "Slot %d: empty"
+msgstr "Yuva %d: boş"
+
+#: res://scripts/ui/main.gd
+msgid "Slot %d: %d machines, saved at Core %d"
+msgstr "Yuva %d: %d makine, Çekirdek %d'de kaydedildi"
+
+#: res://scripts/ui/main.gd
+msgid "Show"
+msgstr "Göster"
+
+#: res://scripts/ui/main.gd
+msgid "Save"
+msgstr "Kaydet"
+
+#: res://scripts/ui/main.gd
+msgid "Save over"
+msgstr "Üstüne kaydet"
+
+#: res://scripts/ui/main.gd
+msgid "The board is saved in slot %d."
+msgstr "Saha %d. yuvaya kaydedildi."
+
+#: res://scripts/ui/main.gd
+msgid "Lay"
+msgstr "Kur"
+
+#: res://scripts/ui/main.gd
+msgid "Blueprint laid: %d machines down, %d waiting."
+msgstr "Plan kuruldu: %d makine yerinde, %d bekliyor."
+
+#: res://scripts/ui/main.gd
+msgid "%s credits"
+msgstr "%s kredi"
+
+#: res://scripts/ui/main.gd
 msgid "%.1f · safe %.1f-%.1f"
 msgstr "%.1f · güvenli %.1f-%.1f"
 
@@ -410,6 +472,10 @@ msgstr "Çekirdek %d"
 #: res://scripts/ui/main.gd
 msgid "How hard this one machine runs. Cool: three quarters of the speed, half its own heat. Hot: a quarter faster, 60% more heat. A Boiler run Low gives half its heat."
 msgstr "Bu makinenin ne kadar zorlandığı. Serin: hızın dörtte üçü, kendi ısısının yarısı. Sıcak: dörtte bir daha hızlı, %60 daha fazla ısı. Kısık çalışan bir Kazan ısısının yarısını verir."
+
+#: res://scripts/ui/main.gd
+msgid "What this one machine makes. Deeper rock and the Core's levels open new jobs: crystal from a Drill, alloy from a Smelter at white heat, frames from an Assembler."
+msgstr "Bu tek makinenin ne ürettiği. Daha derin kaya ve Çekirdeğin seviyeleri yeni işler açar: Matkaptan kristal, akkor sıcaklıktaki Ergiticiden alaşım, Montajcıdan çerçeve."
 
 #: res://scripts/ui/main.gd
 msgid "Low"
@@ -444,6 +510,10 @@ msgid "Running at %d%% of its speed for its heat"
 msgstr "Isısı yüzünden hızının %%%d kadarında çalışıyor"
 
 #: res://scripts/ui/main.gd
+msgid "It runs on heat: the hotter, the faster, up to %.1f. Past that it chokes."
+msgstr "Isıyla çalışır: ne kadar sıcaksa o kadar hızlı, %.1f değerine kadar. Ötesinde tıkanır."
+
+#: res://scripts/ui/main.gd
 msgid "Where its heat comes from"
 msgstr "Isısı nereden geliyor"
 
@@ -451,7 +521,7 @@ msgstr "Isısı nereden geliyor"
 msgid "What changes it"
 msgstr "Bunu ne değiştirir"
 
-#: res://scripts/ui/main.gd
+#: res://scripts/ui/main.gd res://scripts/core/economy.gd
 msgid "Heat"
 msgstr "Isı"
 
@@ -496,6 +566,10 @@ msgid "No free tile beside it: move it, or a neighbour, to make room for a Coola
 msgstr "Yanında boş karo yok: Soğutma Hücresine yer açmak için onu ya da bir komşusunu taşı"
 
 #: res://scripts/ui/main.gd
+msgid "Set it to %s: that job takes up to %.1f"
+msgstr "%s işine geçir: o iş %.1f ısıya dayanır"
+
+#: res://scripts/ui/main.gd
 msgid "Coolant Cells at level %d: %.1f less from each"
 msgstr "Soğutma Hücreleri seviye %d: her birinden %.1f daha az"
 
@@ -526,6 +600,14 @@ msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
 #: res://scripts/ui/main.gd
 msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research."
 msgstr "Ve Aşırı Sürüş: bir önceki Çekirdeğin sınırına getirdiği her makine türü için seviyesinin ötesinde %d adım; Külçe, Levha ve araştırmayla ödenir."
+
+#: res://scripts/ui/main.gd
+msgid "And a new job for the %s: %s -- %s"
+msgstr "Ve %s için yeni bir iş: %s -- %s"
+
+#: res://scripts/ui/main.gd
+msgid "And a doctrine for the shaft: one of three ways to grow it, each with research of its own. Chosen once, until the shaft collapses."
+msgstr "Ve kuyu için bir doktrin: onu büyütmenin üç yolundan biri, her birinin kendi araştırmasıyla. Bir kez seçilir, kuyu çökene dek sürer."
 
 #: res://scripts/ui/main.gd
 msgid "And machine modes: run a machine Cool for less heat, or Hot for more output."
@@ -606,6 +688,14 @@ msgstr "Bir %s, %d makineye hizmet ediyor"
 #: res://scripts/ui/main.gd
 msgid "%s driven %d Overdrive steps"
 msgstr "%s, %d Aşırı Sürüş adımı"
+
+#: res://scripts/ui/main.gd
+msgid "A doctrine chosen, and %d levels of its research"
+msgstr "Seçilmiş bir doktrin ve onun araştırmasından %d seviye"
+
+#: res://scripts/ui/main.gd
+msgid "%d levels of %s research"
+msgstr "%d seviye %s araştırması"
 
 #: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
@@ -792,12 +882,28 @@ msgid "Neighbour boost +%.0f%%"
 msgstr "Komşu desteği +%%%.0f"
 
 #: res://scripts/ui/main.gd
+msgid "Doctrine: %s. %s"
+msgstr "Doktrin: %s. %s"
+
+#: res://scripts/ui/main.gd
+msgid "Core level %d opens doctrines: one of three ways to grow the shaft, with research of its own."
+msgstr "Çekirdek seviyesi %d doktrinleri açar: kuyuyu büyütmenin üç yolundan biri, kendi araştırmasıyla."
+
+#: res://scripts/ui/main.gd
+msgid "Follow %s in this shaft? %s\n\nIts two lines of research open, and the other doctrines' close until the shaft collapses. What you buy in them is this shaft's: a collapse clears it, and the next shaft chooses again."
+msgstr "Bu kuyuda %s izlensin mi? %s\n\nİki araştırma dalı açılır, öteki doktrinlerinki kuyu çökene dek kapanır. Onlarda aldığın bu kuyuya aittir: çöküş onu siler ve sonraki kuyu yeniden seçer."
+
+#: res://scripts/ui/main.gd
+msgid "Follow it"
+msgstr "İzle"
+
+#: res://scripts/ui/main.gd
 msgid "MAX"
 msgstr "MAKS"
 
 #: res://scripts/ui/main.gd
-msgid "Core level %d"
-msgstr "Çekirdek seviye %d"
+msgid "%s only"
+msgstr "Yalnızca %s"
 
 #: res://scripts/ui/main.gd
 msgid "This one also costs Cores. You get Cores when you collapse the shaft."
@@ -814,6 +920,14 @@ msgstr "Kuyuyu çökertmek, kurduğun her şeyi Çekirdeğe çevirir; Çekirdekl
 #: res://scripts/ui/main.gd
 msgid "Collapse the shaft"
 msgstr "Kuyuyu çökert"
+
+#: res://scripts/ui/main.gd
+msgid "Also kept: your blueprints, and half of the Core's best level -- the next shaft's Core starts at level %d. Its doctrine, and the doctrine's research, start again."
+msgstr "Ayrıca kalan: planların ve Çekirdeğin en iyi seviyesinin yarısı -- sonraki kuyunun Çekirdeği %d. seviyeden başlar. Doktrini ve doktrin araştırması baştan başlar."
+
+#: res://scripts/ui/main.gd
+msgid "The next shaft's Core starts at level %d."
+msgstr "Sonraki kuyunun Çekirdeği %d. seviyeden başlar."
 
 #: res://scripts/ui/main.gd
 msgid "The shaft kept running.\n\nAway %s. Counted %s at %d%% of your live rate."
@@ -1224,6 +1338,58 @@ msgid "Component"
 msgstr "Parça"
 
 #: res://scripts/core/machine_db.gd
+msgid "Crystal"
+msgstr "Kristal"
+
+#: res://scripts/core/machine_db.gd
+msgid "Alloy"
+msgstr "Alaşım"
+
+#: res://scripts/core/machine_db.gd
+msgid "Frame"
+msgstr "Çerçeve"
+
+#: res://scripts/core/machine_db.gd
+msgid "Deep Bore"
+msgstr "Derin Sondaj"
+
+#: res://scripts/core/machine_db.gd
+msgid "Bores crystal out of the hot rock."
+msgstr "Sıcak kayadan kristal çıkarır."
+
+#: res://scripts/core/machine_db.gd
+msgid "White Heat"
+msgstr "Akkor"
+
+#: res://scripts/core/machine_db.gd
+msgid "Fuses crystal into alloy -- far hotter than ingots."
+msgstr "Kristali alaşıma kaynaştırır -- külçeden çok daha sıcakta."
+
+#: res://scripts/core/machine_db.gd
+msgid "Alloy Sheet"
+msgstr "Alaşım Levha"
+
+#: res://scripts/core/machine_db.gd
+msgid "Rolls alloy into plates -- on rock too hot for ingots."
+msgstr "Alaşımı levhaya haddeler -- külçe için fazla sıcak kayada."
+
+#: res://scripts/core/machine_db.gd
+msgid "Alloy Parts"
+msgstr "Alaşım Parçalar"
+
+#: res://scripts/core/machine_db.gd
+msgid "Makes parts from alloy -- and takes the heat."
+msgstr "Alaşımdan parça yapar -- ve ısıya dayanır."
+
+#: res://scripts/core/machine_db.gd
+msgid "Frame Jig"
+msgstr "Çerçeve Kalıbı"
+
+#: res://scripts/core/machine_db.gd
+msgid "Joins alloy and parts into frames."
+msgstr "Alaşımı ve parçaları çerçeveye birleştirir."
+
+#: res://scripts/core/machine_db.gd
 msgid "Diggers"
 msgstr "Kazıcılar"
 
@@ -1395,6 +1561,122 @@ msgstr "Kayıtlı bir yerleşim daha."
 msgid "One more blueprint slot for saved layouts."
 msgstr "Kayıtlı yerleşimler için bir plan yuvası daha."
 
+#: res://scripts/core/economy.gd
+msgid "Crystal Lattice"
+msgstr "Kristal Örgü"
+
+#: res://scripts/core/economy.gd
+msgid "Deep Bores dig more crystal."
+msgstr "Derin Sondajlar daha çok kristal çıkarır."
+
+#: res://scripts/core/economy.gd
+msgid "Every Deep Bore digs 20% more crystal. A Deep Survey line: it works only in a shaft that follows the Deep Survey."
+msgstr "Her Derin Sondaj %20 daha çok kristal çıkarır. Bir Derin Etüt dalı: yalnızca Derin Etüt'ü izleyen bir kuyuda işe yarar."
+
+#: res://scripts/core/economy.gd
+msgid "Survey Charges"
+msgstr "Sondaj Şarjları"
+
+#: res://scripts/core/economy.gd
+msgid "Going down costs less."
+msgstr "Derine inmek daha ucuz."
+
+#: res://scripts/core/economy.gd
+msgid "Every stratum's quota is 8% lower. A Deep Survey line: it works only in a shaft that follows the Deep Survey."
+msgstr "Her katmanın kotası %8 daha düşük. Bir Derin Etüt dalı: yalnızca Derin Etüt'ü izleyen bir kuyuda işe yarar."
+
+#: res://scripts/core/economy.gd
+msgid "Cryo Lines"
+msgstr "Kriyo Hatları"
+
+#: res://scripts/core/economy.gd
+msgid "Coolers cool harder."
+msgstr "Soğutucular daha çok soğutur."
+
+#: res://scripts/core/economy.gd
+msgid "Coolant Cells and Condensers cool 15% harder. A Heat Engineering line: it works only in a shaft that follows Heat Engineering."
+msgstr "Soğutma Hücreleri ve Yoğuşturucular %15 daha çok soğutur. Bir Isı Mühendisliği dalı: yalnızca Isı Mühendisliği'ni izleyen bir kuyuda işe yarar."
+
+#: res://scripts/core/economy.gd
+msgid "Thermal Mass"
+msgstr "Isıl Kütle"
+
+#: res://scripts/core/economy.gd
+msgid "Every machine takes more heat."
+msgstr "Her makine daha çok ısıya dayanır."
+
+#: res://scripts/core/economy.gd
+msgid "Every machine tolerates 0.4 more heat before it chokes. A Heat Engineering line: it works only in a shaft that follows Heat Engineering."
+msgstr "Her makine tıkanmadan önce 0.4 daha fazla ısıya dayanır. Bir Isı Mühendisliği dalı: yalnızca Isı Mühendisliği'ni izleyen bir kuyuda işe yarar."
+
+#: res://scripts/core/economy.gd
+msgid "Frame Jigs"
+msgstr "Çerçeve Kalıpları"
+
+#: res://scripts/core/economy.gd
+msgid "Frames and Components sell for more."
+msgstr "Çerçeveler ve Parçalar daha pahalıya satılır."
+
+#: res://scripts/core/economy.gd
+msgid "Frames and Components sell for 20% more. A Precision Works line: it works only in a shaft that follows Precision Works."
+msgstr "Çerçeveler ve Parçalar %20 daha pahalıya satılır. Bir Hassas İşçilik dalı: yalnızca Hassas İşçilik'i izleyen bir kuyuda işe yarar."
+
+#: res://scripts/core/economy.gd
+msgid "Lab Benches"
+msgstr "Laboratuvar Tezgâhları"
+
+#: res://scripts/core/economy.gd
+msgid "Labs learn more from the deep chain."
+msgstr "Laboratuvarlar derin zincirden daha çok öğrenir."
+
+#: res://scripts/core/economy.gd
+msgid "Labs learn 25% more from an Alloy or a Frame. A Precision Works line: it works only in a shaft that follows Precision Works."
+msgstr "Laboratuvarlar bir Alaşım ya da Çerçeveden %25 daha çok öğrenir. Bir Hassas İşçilik dalı: yalnızca Hassas İşçilik'i izleyen bir kuyuda işe yarar."
+
+#: res://scripts/core/economy.gd
+msgid "Deep Survey"
+msgstr "Derin Etüt"
+
+#: res://scripts/core/economy.gd
+msgid "More crystal, and the way down costs less."
+msgstr "Daha çok kristal, ve derine inmek daha ucuz."
+
+#: res://scripts/core/economy.gd
+msgid "Heat Engineering"
+msgstr "Isı Mühendisliği"
+
+#: res://scripts/core/economy.gd
+msgid "Stronger cooling, and every machine takes more heat."
+msgstr "Daha güçlü soğutma, ve her makine daha çok ısıya dayanır."
+
+#: res://scripts/core/economy.gd
+msgid "Precision Works"
+msgstr "Hassas İşçilik"
+
+#: res://scripts/core/economy.gd
+msgid "Frames and Components pay more, and Labs learn more."
+msgstr "Çerçeveler ve Parçalar daha çok kazandırır, Laboratuvarlar daha çok öğrenir."
+
+#: res://scripts/core/economy.gd
+msgid "Production"
+msgstr "Üretim"
+
+#: res://scripts/core/economy.gd
+msgid "Efficiency"
+msgstr "Verim"
+
+#: res://scripts/core/economy.gd
+msgid "Deep mining"
+msgstr "Derin madencilik"
+
+#: res://scripts/core/economy.gd
+msgid "Logistics"
+msgstr "Lojistik"
+
+#: res://scripts/core/economy.gd
+msgid "Core"
+msgstr "Çekirdek"
+
 #: res://scripts/core/core_levels.gd
 msgid "Extraction"
 msgstr "Çıkarım"
@@ -1422,6 +1704,10 @@ msgstr "Derin İşler"
 #: res://scripts/core/core_levels.gd res://scripts/ui/main.gd
 msgid "The Abyss"
 msgstr "Uçurum"
+
+#: res://scripts/core/core_levels.gd
+msgid "The Forge"
+msgstr "Dökümhane"
 
 #: res://scripts/core/strata.gd
 msgid "Thermal Vent"
@@ -1580,8 +1866,8 @@ msgid "Purple crystal grows in the rock."
 msgstr "Kayanın içinde mor kristal büyüyor."
 
 #: res://scripts/core/resource_nodes.gd
-msgid "No machine mines crystal yet."
-msgstr "Henüz kristal kazan bir makine yok."
+msgid "Deep Bore Drills dig it from stratum 16."
+msgstr "Derin Sondaj Matkapları 16. katmandan çıkarır."
 
 #: res://scripts/core/resource_nodes.gd
 msgid "BLUE CRYSTAL"
@@ -1827,6 +2113,42 @@ msgstr "Kontroller"
 msgid "Accessibility"
 msgstr "Erişilebilirlik"
 
+#: res://scripts/ui/main.gd
+msgid "%d ready"
+msgstr "%d hazır"
+
+#: res://scripts/ui/main.gd
+msgid "%d standing"
+msgstr "%d yerinde"
+
+#: res://scripts/ui/main.gd
+msgid "%d tiles taken"
+msgstr "%d karo dolu"
+
+#: res://scripts/ui/main.gd
+msgid "%d not found yet"
+msgstr "%d henüz bulunmadı"
+
+#: res://scripts/ui/main.gd
+msgid "%d outside the yard"
+msgstr "%d saha dışında"
+
+#: res://scripts/ui/main.gd
+msgid "%d under rock"
+msgstr "%d kaya altında"
+
+#: res://scripts/ui/main.gd
+msgid "%d jobs not open yet"
+msgstr "%d iş henüz açılmadı"
+
+#: res://scripts/ui/main.gd
+msgid "%d would overheat"
+msgstr "%d aşırı ısınır"
+
+#: res://scripts/ui/main.gd
+msgid "%d would run cold"
+msgstr "%d soğuk kalır"
+
 #: res://scripts/core/monetization_db.gd
 msgid "Foreman's Licence"
 msgstr "Ustabaşı Ruhsatı"
@@ -1918,7 +2240,4 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
-
-#~ msgid "A Lab turns materials into research. What it buys stays after a collapse."
-#~ msgstr "Laboratuvar malzemeleri araştırmaya çevirir. Onunla alınanlar çöküşten sonra da kalır."
 

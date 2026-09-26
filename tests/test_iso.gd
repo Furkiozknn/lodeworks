@@ -732,9 +732,10 @@ func test_resource_nodes_say_only_what_is_true() -> void:
 		var m: String = String(info["machine"])
 		if m != "":
 			runner.check(MachineDB.exists(m), "%s names a machine that exists" % kind)
-			var outs: Dictionary = MachineDB.get_machine(m).get("outputs", {})
-			runner.check(outs.has(int(info["res"])),
-				"%s: the %s really makes the resource it is named for" % [kind, m])
+			# On its own recipe or on a job (MachineDB.JOBS).
+			var makes: bool = MachineDB.makers_of(int(info["res"])).any(func(mk: Array) -> bool:
+				return String(mk[0]) == m)
+			runner.check(makes, "%s: the %s really makes the resource it is named for" % [kind, m])
 		else:
 			runner.eq(int(info["res"]), -1, "%s claims no resource no machine makes" % kind)
 	for kind: String in ["rubble", "crate", "lamp", "lock"]:

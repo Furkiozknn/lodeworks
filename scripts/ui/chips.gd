@@ -304,11 +304,11 @@ static func gem(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
 ## What a machine turns into what, as gems and an arrow: its inputs, an
 ## arrow, its outputs. A Vault turns anything into credits; a machine with
 ## no recipe (it works on its neighbours) shows the energy sign.
-static func recipe(id: String, px: float) -> Control:
+static func recipe(id: String, px: float, job: String = "") -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var m: Dictionary = MachineDB.get_machine(id)
+	var m: Dictionary = MachineDB.job_machine(id, job)
 	var ins: Dictionary = m.get("inputs", {})
 	var outs: Dictionary = m.get("outputs", {})
 	var sink: bool = (m.get("tags", []) as Array).has("sink")

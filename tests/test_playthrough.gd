@@ -84,6 +84,10 @@ func test_a_naive_player_can_actually_progress() -> void:
 	Sim.collapses = 0
 	Sim.core_online = false
 	Sim.unlocked.clear()
+	Sim.best_core = 1
+	Sim.doctrine = ""
+	Sim.blueprints = []
+	Sim.blueprint_pending = []
 	Sim._recompute()
 	Sim.start()
 

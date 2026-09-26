@@ -16,7 +16,12 @@ extends RefCounted
 ## Resources flow strictly up this chain. Keeping it linear is deliberate:
 ## the interesting decisions should come from SPACE and HEAT, not from
 ## memorising a recipe graph.
-enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT }
+##
+## The deep chain -- Crystal, Alloy, Frame -- is made by the same machines
+## on another job (JOBS): Crystal is found from stratum CRYSTAL_DEPTH, an
+## Alloy wants white heat, and a Frame joins an Alloy to a Component. It is
+## appended, so every save's numbers keep their meaning.
+enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT, CRYSTAL, ALLOY, FRAME }
 
 const RES_NAME := {
 	Res.ORE: "Ore",
@@ -24,7 +29,12 @@ const RES_NAME := {
 	Res.INGOT: "Ingot",
 	Res.PLATE: "Plate",
 	Res.COMPONENT: "Component",
+	Res.CRYSTAL: "Crystal",
+	Res.ALLOY: "Alloy",
+	Res.FRAME: "Frame",
 }
+
+const DEEP_VALUES := [3.0, 12.0, 50.0]
 
 ## What a unit of each resource is worth when a Vault sells it. The curve is
 ## steeper than the conversion ratio, so refining is always worth the space --
@@ -36,6 +46,11 @@ const RES_VALUE := {
 	Res.INGOT: 9.0,
 	Res.PLATE: 28.0,
 	Res.COMPONENT: 95.0,
+	# The deep chain, in every model the same (set by tools/core_journey.gd:
+	# docs/PROGRESSION.md, "After Core 7").
+	Res.CRYSTAL: DEEP_VALUES[0],
+	Res.ALLOY: DEEP_VALUES[1],
+	Res.FRAME: DEEP_VALUES[2],
 }
 
 ## Heat is the spatial constraint that makes placement a puzzle rather than a
@@ -190,8 +205,8 @@ const MACHINES := {
 		"cost": 180.0,
 		"cost_growth": 1.22,
 		# Any one of these runs a cycle; `learns` is the research it gives.
-		"inputs": {Res.INGOT: 1, Res.PLATE: 1, Res.COMPONENT: 1},
-		"learns": {Res.INGOT: 0.25, Res.PLATE: 0.5, Res.COMPONENT: 1.0},
+		"inputs": {Res.INGOT: 1, Res.PLATE: 1, Res.COMPONENT: 1, Res.ALLOY: 1, Res.FRAME: 1},
+		"learns": {Res.INGOT: 0.25, Res.PLATE: 0.5, Res.COMPONENT: 1.0, Res.ALLOY: 2.0, Res.FRAME: 4.0},
 		"outputs": {},
 		"rate": 0.6,
 		"heat_out": 0.3,
@@ -237,6 +252,171 @@ const MACHINES := {
 
 const ORDER := ["drill", "crusher", "vault", "smelter", "boiler", "coolant",
 	"press", "assembler", "amplifier", "lab", "duplicator", "condenser"]
+
+
+## --- jobs ----------------------------------------------------------------------
+##
+## A job is another recipe for the same machine, set tile by tile as a mode
+## is (Sim.set_job): the deep chain is made by the machines the player
+## already has, so it needs no new building and no new art, and every
+## machine's level, Overdrive and mode carry over. A job may change what a
+## machine takes and makes and the heat it wants; never the heat it gives
+## off, which is the machine's own.
+##
+## The deep chain is the answer to the rock of strata 16-19, which took the
+## Core 7 era's income from 8.4K/s to 2.9K/s (docs/PROGRESSION.md, "After
+## Core 7"). It is made hot:
+##   Deep Bore   a Drill below stratum CRYSTAL_DEPTH digs Crystal, which the
+##               rock holds more of the deeper it goes (VEIN_GROWTH), and it
+##               is built for hot rock;
+##   White Heat  a Smelter fuses Crystal into Alloy, and runs on heat: the
+##               hotter its tile, the faster it works (`drive_efficiency`),
+##               right up to the point where it chokes like any other
+##               machine -- so the heat of deep rock, a Boiler, Hot mode and
+##               Overdrive, which choke the old chain, are what this one
+##               is fed, and how close to the edge to run it is the
+##               player's call;
+##   Alloy Sheet a Press rolls an Alloy into a Plate, and
+##   Alloy Parts an Assembler makes a Component from an Alloy -- both
+##               taking the heat that the old chain's Press and Assembler
+##               cannot: measured, the scripted player's Plates and
+##               Components stopped for hours on stratum 19, where those
+##               need a Coolant Cell each (docs/PROGRESSION.md, "After Core
+##               7"). So the materials every machine level and the Core's
+##               store still ask for come from either chain, cooled ore or
+##               hot crystal. The Alloy they take is Alloy not sold, learnt
+##               from or stored -- a Plate is worth less than the Alloy it
+##               was rolled from -- so it is a choice, not a replacement;
+##   Frame Jig   an Assembler, from the Core's level FRAME_CORE, joins an
+##               Alloy and a Component into a Frame.
+## `depth`: the stratum it needs the shaft to have reached; `core`: the
+## Core's level that opens it.
+const CRYSTAL_DEPTH := 16
+const VEIN_GROWTH := 0.1
+const FRAME_CORE := 8
+
+const JOBS := {
+	"drill": {"crystal": {
+		"name": "Deep Bore",
+		"short": "Bores crystal out of the hot rock.",
+		"outputs": {Res.CRYSTAL: 1},
+		"heat_optimum": 2.0,
+		"heat_tolerance": 6.5,
+		"depth": CRYSTAL_DEPTH,
+		"vein": true,
+	}},
+	"smelter": {"alloy": {
+		"name": "White Heat",
+		"short": "Fuses crystal into alloy -- far hotter than ingots.",
+		"inputs": {Res.CRYSTAL: 1},
+		"outputs": {Res.ALLOY: 1},
+		"heat_optimum": 5.0,
+		"heat_tolerance": 9.0,
+		"heat_drive": true,
+		"depth": CRYSTAL_DEPTH,
+	}},
+	"press": {"sheet": {
+		"name": "Alloy Sheet",
+		"short": "Rolls alloy into plates -- on rock too hot for ingots.",
+		"inputs": {Res.ALLOY: 1},
+		"outputs": {Res.PLATE: 1},
+		"heat_optimum": 2.0,
+		"heat_tolerance": 6.5,
+		"depth": CRYSTAL_DEPTH,
+	}},
+	"assembler": {"parts": {
+		"name": "Alloy Parts",
+		"short": "Makes parts from alloy -- and takes the heat.",
+		"inputs": {Res.ALLOY: 1},
+		"outputs": {Res.COMPONENT: 1},
+		"heat_optimum": 3.0,
+		"heat_tolerance": 6.5,
+		"depth": CRYSTAL_DEPTH,
+	}, "frame": {
+		"name": "Frame Jig",
+		"short": "Joins alloy and parts into frames.",
+		"inputs": {Res.ALLOY: 1, Res.COMPONENT: 1},
+		"outputs": {Res.FRAME: 1},
+		"heat_optimum": 3.0,
+		"heat_tolerance": 6.5,
+		"core": FRAME_CORE,
+	}},
+}
+
+
+## The jobs machine type `id` can be set to: "" (its own recipe) first.
+static func jobs_for(id: String) -> Array[String]:
+	var out: Array[String] = [""]
+	for job: String in (JOBS.get(id, {}) as Dictionary):
+		out.append(job)
+	return out
+
+
+## Job `job` of machine type `id` as written in JOBS, or {} for its own.
+static func job_info(id: String, job: String) -> Dictionary:
+	if job == "":
+		return NONE
+	return (JOBS.get(id, NONE) as Dictionary).get(job, NONE)
+
+
+## Machine type `id` on job `job`: its table, with what the job changes.
+## The same Dictionary each time (read-only), so it is cheap to ask for
+## every tick.
+static func job_machine(id: String, job: String) -> Dictionary:
+	var base: Dictionary = get_machine(id)
+	if job == "":
+		return base
+	if _jobbed_model != _active_name:
+		_jobbed.clear()
+		_jobbed_model = _active_name
+	var key: String = id + "/" + job
+	var hit: Variant = _jobbed.get(key)
+	if hit != null:
+		return hit
+	var info: Dictionary = job_info(id, job)
+	if info.is_empty():
+		return base
+	var m: Dictionary = base.duplicate(true)
+	for k: String in ["inputs", "outputs", "heat_optimum", "heat_tolerance", "vein", "heat_drive"]:
+		if info.has(k):
+			m[k] = info[k]
+	m["job"] = job
+	_jobbed[key] = m
+	return m
+
+
+static var _jobbed: Dictionary = {}
+static var _jobbed_model: String = ""
+
+
+## The job's name, in the player's language: "Deep Bore"; a machine's own
+## recipe is named for what it makes ("Ore").
+static func job_name(id: String, job: String) -> String:
+	var info: Dictionary = job_info(id, job)
+	if not info.is_empty():
+		return Loc.t(String(info["name"]))
+	for res: int in (get_machine(id).get("outputs", {}) as Dictionary):
+		return Loc.t(String(RES_NAME[res]))
+	return name_of(id)
+
+
+## Every [machine type, job] that makes `res`, a machine's own recipe first.
+static func makers_of(res: int) -> Array:
+	var out: Array = []
+	for id: String in ORDER:
+		if (get_machine(id).get("outputs", {}) as Dictionary).has(res):
+			out.append([id, ""])
+	for id: String in ORDER:
+		for job: String in (JOBS.get(id, {}) as Dictionary):
+			if (JOBS[id][job].get("outputs", {}) as Dictionary).has(res):
+				out.append([id, job])
+	return out
+
+
+## The stratum at which a job, or a machine's own recipe, can first run: the
+## machine found and, for a job, the rock it needs.
+static func job_depth(id: String, job: String) -> int:
+	return maxi(unlock_depth(id), int(job_info(id, job).get("depth", 0)))
 
 
 ## --- groups ------------------------------------------------------------------
@@ -454,8 +634,8 @@ static func exists(id: String) -> bool:
 ## table changes, the sentence does not, and the sentence is what they read.
 ## The flavour line in each machine's `desc` is allowed to be prose; this is
 ## the part that has to be true.
-static func recipe_text(id: String) -> String:
-	var m: Dictionary = get_machine(id)
+static func recipe_text(id: String, job: String = "") -> String:
+	var m: Dictionary = job_machine(id, job)
 	if m.is_empty():
 		return ""
 	var tags: Array = m.get("tags", [])
@@ -512,7 +692,9 @@ static func unlock_depth(id: String) -> int:
 ## times dearer each level after, the same for every type, so a level is
 ## priced for the era it opens in -- and in materials from the Core's store
 ## (`level_materials`): a level 2 in Ingots, a level 3 in Plates and Ingots,
-## a level 4 and up in Components and Plates. So upgrading a machine is a
+## a level 4 and up in Components and Plates -- and from DEEP_LEVEL_FROM, the
+## level the Core's level 8 opens, in Alloys and Components, so the deep
+## chain has a use in every machine. So upgrading a machine is a
 ## production problem, not a purchase: the Ingots come from a Smelter
 ## touching the Core, the store has to be big enough to hold them, and
 ## every old material keeps a use. The Vault's own levels cost
@@ -542,12 +724,13 @@ const LEVEL_MATERIAL := 10.0
 const LEVEL_MATERIAL_GROWTH := 3.0
 const VAULT_MATERIAL_SHARE := 0.3
 const LEVEL_TIERS := [Res.INGOT, Res.PLATE, Res.COMPONENT]
+const DEEP_LEVEL_FROM := 9
 
 ## What the Core's store keeps, and how much of each a Vault level holds:
 ## STOCK_BASE at level 1, STOCK_GROWTH times as much each level. It grows
 ## faster than LEVEL_MATERIAL_GROWTH, so a Vault's next level is always
 ## payable from the store its level before holds.
-const STOCKED := [Res.INGOT, Res.PLATE, Res.COMPONENT]
+const STOCKED := [Res.INGOT, Res.PLATE, Res.COMPONENT, Res.ALLOY, Res.FRAME]
 const STOCK_BASE := 25.0
 const STOCK_GROWTH := 3.2
 
@@ -577,6 +760,8 @@ static func level_materials(to_level: int, id: String = "") -> Dictionary:
 	if id == "vault":
 		raw *= VAULT_MATERIAL_SHARE
 	var n: int = int(ceil(minf(raw, LEVEL_NUMBER_MAX)))
+	if to_level >= DEEP_LEVEL_FROM:
+		return {Res.ALLOY: n, Res.COMPONENT: n}
 	var t: int = mini(step, LEVEL_TIERS.size() - 1)
 	var out: Dictionary = {int(LEVEL_TIERS[t]): n}
 	if t > 0:
@@ -726,11 +911,14 @@ static func modes_for(id: String) -> Array[int]:
 ## The heat range machine type `id` works in at full measure: from the
 ## warmth it needs (a warm machine below it is slow) to its tolerance (past
 ## it, it chokes). `bonus` is research's tolerance bonus.
-static func safe_range(id: String, bonus: float = 0.0) -> Vector2:
-	var m: Dictionary = get_machine(id)
+static func safe_range(id: String, bonus: float = 0.0, job: String = "") -> Vector2:
+	var m: Dictionary = job_machine(id, job)
 	var optimum: float = float(m.get("heat_optimum", 0.0))
 	var low: float = 0.0
-	if optimum > 0.0:
+	if m.has("heat_drive"):
+		# Driven by heat: working from WORKING_EFFICIENCY of its optimum.
+		low = optimum * WORKING_EFFICIENCY
+	elif optimum > 0.0:
 		# The cold side runs from COLD_FLOOR at no heat to 1 at the optimum.
 		low = optimum * (WORKING_EFFICIENCY - COLD_FLOOR) / (1.0 - COLD_FLOOR)
 	return Vector2(low, float(m.get("heat_tolerance", 99.0)) + bonus)
@@ -788,3 +976,35 @@ static func heat_efficiency(cell_heat: float, optimum: float, tolerance: float) 
 	# never quite zero, so a player can always see it is still alive.
 	var excess: float = (over - span) / span
 	return WORKING_EFFICIENCY / (1.0 + excess * excess * 3.0)
+
+
+## How fast a machine driven by heat (a job marked "heat_drive") runs at a
+## given heat: in proportion to it -- at its optimum as a machine at its
+## optimum does, faster above it -- from COLD_FLOOR up to its tolerance,
+## and past the tolerance it chokes as `heat_efficiency` does, from the
+## speed it had reached. So the heat a player gives it is output, and the
+## edge is where it stops being.
+static func drive_efficiency(cell_heat: float, optimum: float, tolerance: float) -> float:
+	var h: float = maxf(cell_heat, 0.0)
+	var o: float = maxf(optimum, 0.001)
+	if h <= tolerance:
+		return maxf(COLD_FLOOR, h / o)
+	var peak: float = maxf(tolerance / o, COLD_FLOOR)
+	var span: float = maxf(tolerance - optimum, 0.001)
+	var excess: float = (h - tolerance) / span
+	return peak / (1.0 + excess * excess * DRIVE_CHOKE)
+
+
+## Past its tolerance a heat-driven machine falls off four times as hard as
+## any other: the edge is sharp, so running close to it is a choice.
+const DRIVE_CHOKE := 12.0
+
+
+## How fast machine table `m` (as `job_machine` gives it) runs at `heat`,
+## with `bonus` more tolerance: by heat for a heat-driven job, else by the
+## usual curve.
+static func efficiency_of(m: Dictionary, heat: float, bonus: float = 0.0) -> float:
+	var tol: float = float(m.get("heat_tolerance", 99.0)) + bonus
+	if m.has("heat_drive"):
+		return drive_efficiency(heat, float(m.get("heat_optimum", 0.0)), tol)
+	return heat_efficiency(heat, float(m.get("heat_optimum", 0.0)), tol)

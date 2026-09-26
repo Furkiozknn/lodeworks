@@ -38,6 +38,10 @@ func _fresh() -> void:
 	Sim.stock = {}
 	Sim.core_online = true
 	Sim.unlocked.clear()
+	Sim.best_core = 1
+	Sim.doctrine = ""
+	Sim.blueprints = []
+	Sim.blueprint_pending = []
 	Sim._recompute()
 
 

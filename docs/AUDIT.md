@@ -630,6 +630,9 @@ Duplicates and dead systems found:
 - **Blueprints.** The simulation, a research line and the Licence all add
   blueprint slots, but no screen saves or loads a blueprint. It is listed
   under "What is still UNKNOWN" as the owner's decision.
+  *Update, 26 September 2026:* the Core card now saves, checks and lays
+  blueprints, and Drafting Table is back in the grid
+  (`docs/PROGRESSION.md`, "After Core 7").
 
 **The brief used Clash of Clans as a reference for habits, not content.**
 This is how its habits map onto the factory, and where each one stands.
@@ -779,6 +782,9 @@ player can see is a fake, so the grid no longer offers it
 bought it keeps its level. For the same reason the Licence's shop page no
 longer lists "Two more blueprint slots", though the grant is kept. Both
 come back with a blueprint screen, which is the owner's decision.
+*Update, 26 September 2026:* the blueprint screen is the Core card's
+Blueprints rows, and Drafting Table is offered again. The Licence's
+shop page still leaves the slots out; that is store copy, for the owner.
 
 **Collapse** (`ui_collapse.png`, `ui_collapse_locked.png`) is one card.
 - **Open**, it shows the trade: the Core, an arrow, and the Cores it pays,
@@ -1274,6 +1280,12 @@ Making nodes matter is a new mechanic, and it is left for the owner to
 decide. For example, a Drill on or beside an ore vein could dig faster,
 or a crystal could be mined for Research. Either one changes the economy
 and the balance labs.
+
+*Update, 26 September 2026:* crystal is now a material -- a Drill on the
+Deep Bore job digs it from the yard's own rock from stratum 16 -- so the
+two crystal nodes say "Deep Bore Drills dig it from stratum 16." No
+machine draws on a node's own tile yet, and the vent still says nothing
+uses its heat (FP-18, TD8).
 
 ### The Factory Core's card
 

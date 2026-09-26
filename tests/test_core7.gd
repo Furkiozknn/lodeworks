@@ -38,6 +38,10 @@ func _fresh() -> void:
 	Sim.stock = {}
 	Sim.core_online = true
 	Sim.unlocked.clear()
+	Sim.best_core = 1
+	Sim.doctrine = ""
+	Sim.blueprints = []
+	Sim.blueprint_pending = []
 	Sim._recompute()
 
 
@@ -100,7 +104,9 @@ func _new_work(level: int, r: Array) -> bool:
 		CoreLevels.Req.CREDITS:
 			return true
 		CoreLevels.Req.STOCK:
-			return int(r[2]) > MachineDB.stock_cap(1 if first else CoreLevels.machine_cap(before))
+			# A material the era before could not make is new work at any amount.
+			return CoreLevels.material_at(int(r[1])) > before \
+				or int(r[2]) > MachineDB.stock_cap(1 if first else CoreLevels.machine_cap(before))
 		CoreLevels.Req.MACHINE:
 			return int(r[2]) > (1 if first else CoreLevels.machine_cap(before))
 		CoreLevels.Req.RESEARCH:
@@ -109,6 +115,8 @@ func _new_work(level: int, r: Array) -> bool:
 			return int(r[1]) > (0 if first else CoreLevels.depth_cap(before))
 		CoreLevels.Req.OVERDRIVE:
 			return int(r[2]) > (0 if first else CoreLevels.overdrive_cap(before))
+		CoreLevels.Req.DOCTRINE:
+			return int(r[1]) > (0 if first else CoreLevels.doctrine_cap(before))
 	var most: int = -1
 	for l in range(2, level):
 		for e: Array in CoreLevels.requirements(l):
@@ -201,11 +209,23 @@ func test_the_level_after_core_7_asks_for_what_core_7_opened() -> void:
 	var od: Array = _row(8, CoreLevels.Req.OVERDRIVE)
 	runner.check(not od.is_empty(), "Core 8 asks for Overdrive steps")
 	runner.eq(CoreLevels.available_at(od), 7, "which Core 7 first makes possible")
-	var res: Array = []
+	# The deep chain Core 7's rock opens, and the doctrine it opens.
+	var alloy: Array = []
 	for r: Array in CoreLevels.requirements(8):
-		if int(r[0]) == CoreLevels.Req.RESEARCH:
-			res = r
-	runner.eq(res, [CoreLevels.Req.RESEARCH, "resonance", 4], "and Resonant Frames' last levels")
+		if int(r[0]) == CoreLevels.Req.STOCK and int(r[1]) == MachineDB.Res.ALLOY:
+			alloy = r
+	runner.check(not alloy.is_empty(), "Core 8 asks for Alloy in the store")
+	runner.eq(CoreLevels.material_at(MachineDB.Res.ALLOY), 7, "a material Core 7's strata open")
+	var doc: Array = _row(8, CoreLevels.Req.DOCTRINE)
+	runner.check(not doc.is_empty(), "and for a doctrine's research")
+	runner.eq(CoreLevels.available_at(doc), Economy.DOCTRINE_CORE, "which Core 7 opens")
+	# And Core 9 for the Frame Core 8 opens.
+	var frame: Array = []
+	for r: Array in CoreLevels.requirements(9):
+		if int(r[0]) == CoreLevels.Req.STOCK and int(r[1]) == MachineDB.Res.FRAME:
+			frame = r
+	runner.check(not frame.is_empty(), "Core 9 asks for Frames")
+	runner.eq(CoreLevels.material_at(MachineDB.Res.FRAME), 8, "which Core 8 opens")
 	var o: Dictionary = CoreLevels.opens(8)
 	runner.eq(int(o["overdrive"]), MachineDB.OVERDRIVE_PER_CORE, "Core 8 opens three more steps")
 	runner.eq(CoreLevels.overdrive_from(8), CoreLevels.machine_cap(7), "for types at Core 7's limit")
@@ -321,9 +341,9 @@ func test_saves_from_before_core_7_changed_load_under_the_new_table() -> void:
 	runner.eq(Sim.core_level, 7, "its Core stays at 7")
 	runner.eq(Sim.machine_level("assembler"), 8, "its levels stay")
 	runner.eq(Sim.overdrive, {}, "it has no Overdrive yet")
-	var od: Dictionary = _status(CoreLevels.Req.OVERDRIVE, "assembler")
+	var od: Dictionary = _status(CoreLevels.Req.OVERDRIVE, "smelter")
 	runner.check(not od.is_empty() and not bool(od["met"]), "and Core 8 now asks for it")
-	runner.eq(Sim.overdrive_blocker("assembler"), "stock", "which it can start on at once: level 8 >= 7")
+	runner.eq(Sim.overdrive_blocker("smelter"), "stock", "which it can start on at once: level 7 >= 7")
 	# A Core 6 shaft meets the new Core 7 rows.
 	d["core_level"] = 6
 	d["depth"] = 13

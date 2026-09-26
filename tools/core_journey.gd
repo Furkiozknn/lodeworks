@@ -13,6 +13,12 @@ extends SceneTree
 ##   LODEWORKS_CORE_CARRY=<file> ... a new game that starts with what a
 ##     collapse keeps: {"upgrades": {line: level}, "cores": n} -- the second
 ##     shaft, measured against the first.
+##   LODEWORKS_CORE_DOCTRINE=deep|thermal|precision ... the doctrine the
+##     player follows from the Core's level 7 (Economy.DOCTRINES); deep when
+##     not given.
+##   LODEWORKS_CORE_COLLAPSE=8 ... once the Core reaches level 8, the player
+##     saves the board as a blueprint, collapses, lays the blueprint in the
+##     new shaft and plays on: the second shaft, as the game plays it.
 ##   LODEWORKS_CORE_KEEP=6:<file> ... writes the game and the player the
 ##     moment the Core reaches level 6; LODEWORKS_CORE_FROM=<file> plays on
 ##     from there. For trying a later level's rules without replaying the
@@ -68,6 +74,9 @@ func _initialize() -> void:
 	var dump_level: int = int(dump.get_slice(":", 0)) if dump != "" else 0
 	P = load("res://tools/core_journey_player.gd").new(root.get_node("Sim"))
 	P.fresh()
+	if OS.get_environment("LODEWORKS_CORE_DOCTRINE") != "":
+		P.doctrine = OS.get_environment("LODEWORKS_CORE_DOCTRINE")
+	var collapse_at: int = int(OS.get_environment("LODEWORKS_CORE_COLLAPSE"))
 	var carry: String = OS.get_environment("LODEWORKS_CORE_CARRY")
 	if carry != "":
 		var kept: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(carry))
@@ -85,6 +94,21 @@ func _initialize() -> void:
 		P.S.from_dict(saved["sim"])
 		P.restore(saved["player"])
 		print("  (playing on from %s, Core %d at %s)" % [from.get_file(), int(P.S.core_level), _clock(P.t)])
+		# Another doctrine than the kept game's: the choice is undone, and
+		# the research its lines took is given back, so each doctrine
+		# starts the era from the same factory.
+		var want: String = OS.get_environment("LODEWORKS_CORE_DOCTRINE")
+		if want != "" and String(P.S.doctrine) != want:
+			for id: String in Economy.RESEARCH_TREE:
+				if Economy.doctrine_of(id) == "":
+					continue
+				for k in range(int(P.S.upgrade_level(id))):
+					P.S.research += float(Economy.upgrade_cost(id, k)["research"])
+				P.S.upgrade_levels.erase(id)
+			P.S.doctrine = ""
+			P.doctrine = want
+			P.S._recompute()
+			print("  (the doctrine undone for %s)" % want)
 	var marks: Array = EARLY_MARKS.duplicate()
 	var h: float = 3600.0
 	while h <= horizon:
@@ -124,7 +148,10 @@ func _initialize() -> void:
 			kf.close()
 			print("  (the game at Core %d kept at %s)" % [keep_level, _clock(P.t)])
 			keep_level = 0
-		if target > 0 and int(P.S.core_level) >= target:
+		if collapse_at > 0 and int(P.S.core_level) >= collapse_at:
+			_collapse()
+			collapse_at = 0
+		if target > 0 and int(P.S.core_level) >= target and collapse_at == 0:
 			break
 		if skip:
 			_skip(horizon)
@@ -152,6 +179,29 @@ func _initialize() -> void:
 	quit(0)
 
 
+## The first shaft ends: the board saved as a blueprint, the shaft
+## collapsed, the blueprint laid in the next one -- what is kept and what
+## the blueprint finds, printed.
+func _collapse() -> void:
+	var S: Node = P.S
+	_close_stage(false)
+	stage["collapsed"] = true
+	S.save_blueprint(0)
+	var level: int = int(S.core_level)
+	var gained: int = S.collapse()
+	P.new_shaft()
+	var rep: Dictionary = S.lay_blueprint(0)
+	print("\n-- at %s: collapsed at Core %d for %d Cores; the new shaft's Core starts at %d --" % [
+		_clock(P.t), level, gained, int(S.core_level)])
+	print("  kept: the tree %s, %d Cores, the blueprint (%d machines)" % [str(S.upgrade_levels), int(S.cores),
+		(S.blueprint(0).get("cells", []) as Array).size()])
+	print("  the blueprint, laid on the new shaft's ground: %s; %s credits for what can go down now" % [
+		str(rep.get("why", {})), Economy.fmt(float(rep.get("cost", 0.0)))])
+	_board = _board_now()
+	_remember()
+	_open_stage()
+
+
 ## --- stages: one per Core level ------------------------------------------------------
 
 func _open_stage() -> void:
@@ -173,7 +223,7 @@ func _open_stage() -> void:
 	var first: Array = []
 	for _r in rows:
 		first.append(-1.0)
-	stage = {"level": level, "t0": P.t, "rows": rows, "first": first, "wait": 0.0,
+	stage = {"level": level, "shaft": int(S.collapses) + 1, "t0": P.t, "rows": rows, "first": first, "wait": 0.0,
 		"decisions": {}, "minutes": {}, "rate0": P.rate(), "levels_spent": 0.0,
 		"upgrades_open": upgrades, "research_open": research_open,
 		"makers": makers, "opens": CoreLevels.opens(level + 1), "skipped": 0.0,
@@ -238,6 +288,9 @@ func _record(level_before: int) -> void:
 			for k in range(was_r, int(S.upgrade_levels[id])):
 				stage["research_spent"] = float(stage["research_spent"]) \
 					+ float(Economy.upgrade_cost(id, k)["research"])
+				if Economy.doctrine_of(id) != "":
+					stage["research_doctrine"] = float(stage.get("research_doctrine", 0.0)) \
+						+ float(Economy.upgrade_cost(id, k)["research"])
 			n += up
 	for id: String in S.overdrive:
 		var steps: int = int(S.overdrive[id]) - int(_overdrive.get(id, 0))
@@ -246,6 +299,8 @@ func _record(level_before: int) -> void:
 			stage["overdrive"] = int(stage["overdrive"]) + steps
 			for k in range(int(_overdrive.get(id, 0)) + 1, int(S.overdrive[id]) + 1):
 				stage["research_spent"] = float(stage["research_spent"]) \
+					+ float(MachineDB.overdrive_cost(k)["research"])
+				stage["research_od"] = float(stage.get("research_od", 0.0)) \
 					+ float(MachineDB.overdrive_cost(k)["research"])
 			n += steps
 	if int(S.contracts_lifetime) > _contracts:
@@ -310,7 +365,7 @@ func _board_now() -> Dictionary:
 	var out: Dictionary = {}
 	var g: Grid = P.S.grid
 	for cell: int in g.cells:
-		out[cell] = "%s|%d" % [g.machine_at(cell), g.mode_at(cell)]
+		out[cell] = "%s|%d|%s" % [g.machine_at(cell), g.mode_at(cell), g.job_at(cell)]
 	return out
 
 
@@ -361,8 +416,9 @@ func _print_stages() -> void:
 		var dur: float = float(s["t1"]) - float(s["t0"])
 		if dur <= 0.0:
 			continue
-		print("\nCore %d -> %d: %s -> %s (%s%s)" % [level, level + 1, _clock(float(s["t0"])),
-			_clock(float(s["t1"])), _clock(dur), "" if bool(s["reached"]) else ", not reached"])
+		print("\n%sCore %d -> %d: %s -> %s (%s%s)" % ["" if int(s["shaft"]) == 1 else "Shaft %d, " % int(s["shaft"]),
+			level, level + 1, _clock(float(s["t0"])), _clock(float(s["t1"])), _clock(dur),
+			"" if bool(s["reached"]) else (", collapsed" if bool(s.get("collapsed", false)) else ", not reached")])
 		var o: Dictionary = s["opens"]
 		print("  Core %d would open: strata %d-%d, machine levels to %d, research %s, machines %s" % [
 			level + 1, int(o["strata"][0]), int(o["strata"][1]), int(o["machine_cap"]),
@@ -404,17 +460,22 @@ func _print_stages() -> void:
 			Economy.fmt(float(s.get("research1", 0.0)) - float(s["research0"]) + float(s["research_spent"])),
 			Economy.fmt(float(s["research_spent"])), int(s["research_bought"]), int(s["overdrive"]),
 			int(s["collapse"])])
+		if float(s.get("research_od", 0.0)) + float(s.get("research_doctrine", 0.0)) > 0.0:
+			print("    of it: Overdrive %s, doctrine lines %s, the rest of the tree %s" % [
+				Economy.fmt(float(s.get("research_od", 0.0))), Economy.fmt(float(s.get("research_doctrine", 0.0))),
+				Economy.fmt(float(s["research_spent"]) - float(s.get("research_od", 0.0))
+					- float(s.get("research_doctrine", 0.0)))])
 
 
 func _row_text(r: Array) -> String:
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive"][int(r[0])]
+		"stable", "overdrive", "doctrine"][int(r[0])]
 	match int(r[0]):
 		CoreLevels.Req.CREDITS:
 			return "credits %s" % Economy.fmt(float(r[1]))
 		CoreLevels.Req.STOCK:
 			return "stock %s %d" % [String(MachineDB.RES_NAME[int(r[1])]), int(r[2])]
-		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE:
+		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE:
 			return "%s %d" % [name, int(r[1])]
 	return "%s %s %d" % [name, str(r[1]), int(r[2])]
 
@@ -438,6 +499,13 @@ func _snapshot(s: Dictionary) -> void:
 	if not (s["hot"] as Array).is_empty():
 		print("  overheating: %s" % "; ".join(s["hot"]))
 	print("  contracts filled: %d" % int(s["contracts"]))
+	var sp: Array[String] = []
+	for k: String in (s.get("spend", {}) as Dictionary):
+		sp.append("%s %s" % [k, Economy.fmt(float(s["spend"][k]))])
+	if not sp.is_empty():
+		print("  credits spent since the last mark: %s" % ", ".join(sp))
+	if String(s.get("doctrine", "")) != "" or int(s.get("deep", 0)) > 0:
+		print("  doctrine: %s; deep units (Deep Bore, White Heat Smelter): %d" % [String(s["doctrine"]), int(s["deep"])])
 
 
 func _clock(s: float) -> String:

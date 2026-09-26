@@ -11,12 +11,12 @@ extends RefCounted
 ## second factory, or another player's, can be given the same nodes later
 ## without this changing.
 ##
-## The words are only what is true today. No machine draws on a node yet: a
-## Drill digs ore from any tile of its yard, and the yard clears a node when
-## it reaches it. So a node's card says what it is, where the factory will
-## reach it, and -- only where a machine really makes its resource -- which
-## machine that is. Giving nodes a use is a new mechanic and waits for the
-## owner (docs/AUDIT.md, "Resource nodes").
+## The words are only what is true today. No machine draws on a node itself:
+## a Drill digs ore -- or, from stratum 16 on the Deep Bore job, crystal --
+## from any tile of its yard, and the yard clears a node when it reaches it.
+## So a node's card says what it is, where the factory will reach it, and
+## which machine makes its resource. Drawing on a node's own tile is a new
+## mechanic and waits for the owner (docs/AUDIT.md, "Resource nodes").
 
 const KINDS := {
 	"ore_vein": {
@@ -30,16 +30,16 @@ const KINDS := {
 	"crystal_purple": {
 		"name": "CRYSTAL VEIN",
 		"line": "Purple crystal grows in the rock.",
-		"res": -1,
-		"machine": "",
-		"use": "No machine mines crystal yet.",
+		"res": MachineDB.Res.CRYSTAL,
+		"machine": "drill",
+		"use": "Deep Bore Drills dig it from stratum 16.",
 	},
 	"crystal_cyan": {
 		"name": "BLUE CRYSTAL",
 		"line": "A rare blue crystal, deep in the rock.",
-		"res": -1,
-		"machine": "",
-		"use": "No machine mines crystal yet.",
+		"res": MachineDB.Res.CRYSTAL,
+		"machine": "drill",
+		"use": "Deep Bore Drills dig it from stratum 16.",
 	},
 	"vent": {
 		"name": "HEAT VENT",

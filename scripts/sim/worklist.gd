@@ -34,8 +34,9 @@ extends RefCounted
 
 const MAX := 5
 
-## Research lines the game does not offer yet (see main.HIDDEN_RESEARCH).
-const HIDDEN := ["blueprint_slots"]
+## Research lines the game does not offer yet (see main.HIDDEN_RESEARCH):
+## none, now the Core card saves and lays blueprints.
+const HIDDEN := []
 
 
 ## The list for this shaft: [{"kind", ...}], in the order above.
@@ -132,12 +133,12 @@ static func core_need(state: Object) -> Dictionary:
 			CoreLevels.Req.DEPTH:
 				deeper = true
 			CoreLevels.Req.STOCK:
-				if bool(state.call("is_unlocked", CoreLevels.producer_of(int(r[1])))):
+				if _can_make(state, int(r[1])):
 					return st
 			CoreLevels.Req.MACHINE:
 				var ok: bool = bool(state.call("is_unlocked", String(r[1])))
 				for res: int in MachineDB.level_materials(int(state.call("machine_level", String(r[1]))) + 1):
-					ok = ok and bool(state.call("is_unlocked", CoreLevels.producer_of(res)))
+					ok = ok and _can_make(state, res)
 				if ok:
 					return st
 			CoreLevels.Req.RESEARCH:
@@ -149,6 +150,14 @@ static func core_need(state: Object) -> Dictionary:
 			_:
 				return st
 	return {} if deeper else credits
+
+
+## Can the shaft make `res` now: its maker found and, for a material made
+## on a job, the job open (Sim.can_make).
+static func _can_make(state: Object, res: int) -> bool:
+	if state.has_method("can_make"):
+		return bool(state.call("can_make", res))
+	return bool(state.call("is_unlocked", CoreLevels.producer_of(res)))
 
 
 ## A machine type whose next level can be bought now: one the Core's next

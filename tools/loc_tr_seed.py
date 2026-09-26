@@ -17,7 +17,8 @@ Glossary (keep these the same everywhere):
   Press = Pres, Assembler = Montajcı, Amplifier = Güçlendirici,
   Lab = Laboratuvar, Duplicator = Çoğaltıcı, Condenser = Yoğuşturucu.
   Resources: Ore = Cevher, Gravel = Çakıl, Ingot = Külçe, Plate = Levha,
-  Component = Parça.
+  Component = Parça, Crystal = Kristal, Alloy = Alaşım, Frame = Çerçeve.
+  job = iş, doctrine = doktrin, blueprint = plan, white heat = akkor.
 """
 import io
 import os
@@ -547,6 +548,103 @@ TR = {
     "Resonant Frames": "Rezonans Gövdeleri",
     "Boosters push harder.": "Destekçiler daha güçlü iter.",
     "Every Amplifier, Condenser and Duplicator gives its neighbours 15% more of its boost.": "Her Güçlendirici, Yoğuşturucu ve Çoğaltıcı komşularına etkisinin %15 fazlasını verir.",
+    # --- after Core 7: the deep chain, doctrines, the foundation, blueprints
+    "Laying a blueprint: %d machine still waiting for credits, ground or its job.": (
+        "Plan kuruluyor: %d makine hâlâ kredi, zemin ya da işini bekliyor.",
+        "Plan kuruluyor: %d makine hâlâ kredi, zemin ya da işini bekliyor."),
+    "Blueprints": "Planlar",
+    "A blueprint is this board saved: every machine where it stands, its mode and its job. A collapse keeps it.\n\nLaid in a new shaft, it is checked against the ground first -- machines not found yet, tiles outside the yard or under rock, tiles taken, jobs not open yet, what would overheat or run cold on this stratum -- and then put down machine by machine as credits allow. What cannot go down yet waits until it can.":
+        "Plan, bu sahanın kaydıdır: her makine durduğu yerde, kipiyle ve işiyle. Çöküş onu silmez.\n\nYeni bir kuyuda kurulduğunda önce zemine göre denetlenir -- henüz bulunmamış makineler, sahanın dışındaki ya da kaya altındaki karolar, dolu karolar, henüz açılmamış işler, bu katmanda aşırı ısınacak ya da soğuk kalacak olanlar -- sonra kredi yettikçe makine makine yerleştirilir. Henüz konamayan, konabilene dek bekler.",
+    "Stop": "Durdur",
+    "Slot %d: empty": "Yuva %d: boş",
+    "Slot %d: %d machines, saved at Core %d": "Yuva %d: %d makine, Çekirdek %d'de kaydedildi",
+    "Show": "Göster",
+    "Save": "Kaydet",
+    "Save over": "Üstüne kaydet",
+    "The board is saved in slot %d.": "Saha %d. yuvaya kaydedildi.",
+    "Lay": "Kur",
+    "Blueprint laid: %d machines down, %d waiting.": "Plan kuruldu: %d makine yerinde, %d bekliyor.",
+    "%s credits": "%s kredi",
+    "What this one machine makes. Deeper rock and the Core's levels open new jobs: crystal from a Drill, alloy from a Smelter at white heat, frames from an Assembler.":
+        "Bu tek makinenin ne ürettiği. Daha derin kaya ve Çekirdeğin seviyeleri yeni işler açar: Matkaptan kristal, akkor sıcaklıktaki Ergiticiden alaşım, Montajcıdan çerçeve.",
+    "It runs on heat: the hotter, the faster, up to %.1f. Past that it chokes.":
+        "Isıyla çalışır: ne kadar sıcaksa o kadar hızlı, %.1f değerine kadar. Ötesinde tıkanır.",
+    "And a new job for the %s: %s -- %s": "Ve %s için yeni bir iş: %s -- %s",
+    "And a doctrine for the shaft: one of three ways to grow it, each with research of its own. Chosen once, until the shaft collapses.":
+        "Ve kuyu için bir doktrin: onu büyütmenin üç yolundan biri, her birinin kendi araştırmasıyla. Bir kez seçilir, kuyu çökene dek sürer.",
+    "A doctrine chosen, and %d levels of its research": "Seçilmiş bir doktrin ve onun araştırmasından %d seviye",
+    "%d levels of %s research": "%d seviye %s araştırması",
+    "Doctrine: %s. %s": "Doktrin: %s. %s",
+    "Core level %d opens doctrines: one of three ways to grow the shaft, with research of its own.":
+        "Çekirdek seviyesi %d doktrinleri açar: kuyuyu büyütmenin üç yolundan biri, kendi araştırmasıyla.",
+    "Follow %s in this shaft? %s\n\nIts two lines of research open, and the other doctrines' close until the shaft collapses. What you buy in them is this shaft's: a collapse clears it, and the next shaft chooses again.":
+        "Bu kuyuda %s izlensin mi? %s\n\nİki araştırma dalı açılır, öteki doktrinlerinki kuyu çökene dek kapanır. Onlarda aldığın bu kuyuya aittir: çöküş onu siler ve sonraki kuyu yeniden seçer.",
+    "Follow it": "İzle",
+    "%s only": "Yalnızca %s",
+    "Also kept: your blueprints, and half of the Core's best level -- the next shaft's Core starts at level %d. Its doctrine, and the doctrine's research, start again.":
+        "Ayrıca kalan: planların ve Çekirdeğin en iyi seviyesinin yarısı -- sonraki kuyunun Çekirdeği %d. seviyeden başlar. Doktrini ve doktrin araştırması baştan başlar.",
+    "The next shaft's Core starts at level %d.": "Sonraki kuyunun Çekirdeği %d. seviyeden başlar.",
+    "Crystal": "Kristal",
+    "Alloy": "Alaşım",
+    "Frame": "Çerçeve",
+    "Deep Bore": "Derin Sondaj",
+    "Bores crystal out of the hot rock.": "Sıcak kayadan kristal çıkarır.",
+    "White Heat": "Akkor",
+    "Fuses crystal into alloy -- far hotter than ingots.": "Kristali alaşıma kaynaştırır -- külçeden çok daha sıcakta.",
+    "Frame Jig": "Çerçeve Kalıbı",
+    "Alloy Parts": "Alaşım Parçalar",
+    "Alloy Sheet": "Alaşım Levha",
+    "Rolls alloy into plates -- on rock too hot for ingots.": "Alaşımı levhaya haddeler -- külçe için fazla sıcak kayada.",
+    "Makes parts from alloy -- and takes the heat.": "Alaşımdan parça yapar -- ve ısıya dayanır.",
+    "Joins alloy and parts into frames.": "Alaşımı ve parçaları çerçeveye birleştirir.",
+    "Crystal Lattice": "Kristal Örgü",
+    "Deep Bores dig more crystal.": "Derin Sondajlar daha çok kristal çıkarır.",
+    "Every Deep Bore digs 20% more crystal. A Deep Survey line: it works only in a shaft that follows the Deep Survey.":
+        "Her Derin Sondaj %20 daha çok kristal çıkarır. Bir Derin Etüt dalı: yalnızca Derin Etüt'ü izleyen bir kuyuda işe yarar.",
+    "Survey Charges": "Sondaj Şarjları",
+    "Going down costs less.": "Derine inmek daha ucuz.",
+    "Every stratum's quota is 8% lower. A Deep Survey line: it works only in a shaft that follows the Deep Survey.":
+        "Her katmanın kotası %8 daha düşük. Bir Derin Etüt dalı: yalnızca Derin Etüt'ü izleyen bir kuyuda işe yarar.",
+    "Cryo Lines": "Kriyo Hatları",
+    "Coolers cool harder.": "Soğutucular daha çok soğutur.",
+    "Coolant Cells and Condensers cool 15% harder. A Heat Engineering line: it works only in a shaft that follows Heat Engineering.":
+        "Soğutma Hücreleri ve Yoğuşturucular %15 daha çok soğutur. Bir Isı Mühendisliği dalı: yalnızca Isı Mühendisliği'ni izleyen bir kuyuda işe yarar.",
+    "Thermal Mass": "Isıl Kütle",
+    "Every machine takes more heat.": "Her makine daha çok ısıya dayanır.",
+    "Every machine tolerates 0.4 more heat before it chokes. A Heat Engineering line: it works only in a shaft that follows Heat Engineering.":
+        "Her makine tıkanmadan önce 0.4 daha fazla ısıya dayanır. Bir Isı Mühendisliği dalı: yalnızca Isı Mühendisliği'ni izleyen bir kuyuda işe yarar.",
+    "Frame Jigs": "Çerçeve Kalıpları",
+    "Frames and Components sell for more.": "Çerçeveler ve Parçalar daha pahalıya satılır.",
+    "Frames and Components sell for 20% more. A Precision Works line: it works only in a shaft that follows Precision Works.":
+        "Çerçeveler ve Parçalar %20 daha pahalıya satılır. Bir Hassas İşçilik dalı: yalnızca Hassas İşçilik'i izleyen bir kuyuda işe yarar.",
+    "Lab Benches": "Laboratuvar Tezgâhları",
+    "Labs learn more from the deep chain.": "Laboratuvarlar derin zincirden daha çok öğrenir.",
+    "Labs learn 25% more from an Alloy or a Frame. A Precision Works line: it works only in a shaft that follows Precision Works.":
+        "Laboratuvarlar bir Alaşım ya da Çerçeveden %25 daha çok öğrenir. Bir Hassas İşçilik dalı: yalnızca Hassas İşçilik'i izleyen bir kuyuda işe yarar.",
+    "Deep Survey": "Derin Etüt",
+    "More crystal, and the way down costs less.": "Daha çok kristal, ve derine inmek daha ucuz.",
+    "Heat Engineering": "Isı Mühendisliği",
+    "Stronger cooling, and every machine takes more heat.": "Daha güçlü soğutma, ve her makine daha çok ısıya dayanır.",
+    "Precision Works": "Hassas İşçilik",
+    "Frames and Components pay more, and Labs learn more.": "Çerçeveler ve Parçalar daha çok kazandırır, Laboratuvarlar daha çok öğrenir.",
+    "Production": "Üretim",
+    "Efficiency": "Verim",
+    "Deep mining": "Derin madencilik",
+    "Logistics": "Lojistik",
+    "Core": "Çekirdek",
+    "The Forge": "Dökümhane",
+    "Deep Bore Drills dig it from stratum 16.": "Derin Sondaj Matkapları 16. katmandan çıkarır.",
+    "%d ready": "%d hazır",
+    "%d standing": "%d yerinde",
+    "%d tiles taken": "%d karo dolu",
+    "%d not found yet": "%d henüz bulunmadı",
+    "%d outside the yard": "%d saha dışında",
+    "%d under rock": "%d kaya altında",
+    "%d jobs not open yet": "%d iş henüz açılmadı",
+    "%d would overheat": "%d aşırı ısınır",
+    "%d would run cold": "%d soğuk kalır",
+    "Job: %s (%s). %s %s": "İş: %s (%s). %s %s",
+    "Set it to %s: that job takes up to %.1f": "%s işine geçir: o iş %.1f ısıya dayanır",
 }
 
 
