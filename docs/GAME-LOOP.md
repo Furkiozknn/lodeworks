@@ -374,3 +374,176 @@ A new game by the scripted player, against the same game before the crew:
 - **Core 7 came 2 h 26 min later, and it was the purchases that moved it.** The same game with salvage paid but Salvaged Gearing never bought reached Cores 2 to 7 at the same second as the game without salvage. With it, the Core 6 stage's stability row (80 machines running at working heat) took 5 h instead of 12 min. A faster machine makes no more heat, and the row counts only machines running. Measured in that game's Core 6 factory, every half hour for four hours: of the machines at working heat, 49-74 were running, 25-37 starved and 10-27 blocked, and one to six overheated at times. The row was short of fed machines, not of cool ones; why buying Gearing left more of them starved is not yet measured.
 - **The crew stopped at 48 sites.** From about 3 h to 10 h the scripted player cleared no site, with eight to ten Rigs. Why is not yet measured; its sortie and repair rules are the next thing to look at before the galleries' late game is measured.
 
+## 9. Proving the loop (measured, 26 September 2026, evening)
+
+The owner's brief for this round: before a second kind of Rig or a
+defence, prove that factory → Rig → sortie → reward → factory works, and
+make the Core 8 → 10 measurement trustworthy.
+
+### What stopped Core 9: the store and the Frame line
+
+Two Core 8 factories of the scripted player, measured with a probe:
+
+| | the first (the player before this round) | the second (the player now) |
+|---|---|---|
+| store: Components / Alloy | 11 / 85,899 for eight hours | 22,542 / 54,777, both full within 90 min |
+| the Frame Jig | Alloy + Component → Frame, 0.7 cycles a second | the same |
+| Alloy makers (White Heat) | 36-48, able to make 170-225 a second, making 68-76: blocked by the full store | the same shape |
+| Component makers (Alloy Parts) | 1-3, none beside a Jig with Alloy | 2 beside the Core, 1 beside a Jig |
+| Frames | 0 for eight hours | the row of 30,000 met within 30 minutes of Core 8 |
+
+What each part was:
+
+- **Simulation bug in the transfer: none.** Every unit moved by the rules the code states: a machine hands its output round robin to the neighbours that take it, and to the Core last while its store has room.
+- **Production-chain design: sound.** A Frame is an Alloy and a Component, and a Component is an Alloy: two White Heat lines a Jig.
+- **Storage architecture: the store only takes, by design.** It pays for levels, Overdrive, repairs, fuel and contracts, and feeds no machine. A player could not see that. A starved machine now says which input no neighbour makes, and, beside the Core, that the store feeds no machine.
+- **Transfer rule: sound.**
+- **Scripted player: the cause.** It never fed the store what Vault 9 is paid in (Components), took Alloy Parts beside a Jig for another job, and laid Alloy Parts beside the Core rather than beside a Jig. Fixed in the player, not the game.
+
+What a person does: lays an Alloy Parts machine between a White Heat
+Smelter and a Frame Jig that touches the Core.
+
+**A simulation bug found on the way.** Every placement, sale, move, mode
+and job change reset every machine on the board: its half-done cycle, its
+status and its uptime (`Simulation.reset_progress`). Every progress ring
+emptied at each placement; a Rig Frame, eleven seconds a cycle, could not
+finish while a player kept building; and anything that read a status in
+the same moment saw the whole board idle. The scripted player's tidy-up
+read that and scrapped six Duplicators, the Core 6 row's, and forty
+machines in an hour. Now only the edited tile forgets (`Simulation.forget`),
+tested (`test_a_machine_placed_elsewhere_keeps_every_other_machines_cycle`).
+
+### Why the crew stopped after three hours
+
+Measured from a Core 6 save, every fifteen minutes:
+
+1. **Repairs waited on Plates the Core's rows kept.** 20 Plates of 8,389 were kept for a row of 25,000 the store could not yet hold (the Vault's level comes first). The crew stayed worn for 75 minutes.
+2. **Three sites the crew could not clear at once.** Three tier-2 sites of 114 against a crew of 80; the player sent a sortie that only takes a share only while a Core row asked for sites.
+3. **Rig Plating only when a row asked for sites.**
+4. **At Core 8, no fuel.** The factory of the Core 8 era makes crystal and Alloy, and few Ingots: 38 in the store, and a sortie of thirteen Rigs burns 173.
+
+The game let a person go on in cases 1-3: the site row said "hard: a share
+of it" and its Send key worked. What now? did not point at such a site;
+it now does ("they bring home 70% of it and leave it weaker"). Case 4 was
+the game's: **fuel now follows the era**, Ingots until Core 8 and Alloy in
+it (`Operations.fuel_res`). The player now chips at sites, repairs from
+Plates kept for a row the store cannot yet hold, and buys Rig Plating on
+research no row waits for. From the same Core 6 save, 28 sites cleared in
+all: the player before went to 48 and stopped; the player now reached 218
+in three hours.
+
+### Salvage, three ways
+
+The same new game, the three ways the scripted player can spend salvage
+(`LODEWORKS_CORE_SALVAGE`). B was the run carried on to Core 10 and was
+cut at 24 h before it printed its report, so its times are read from the
+hourly marks:
+
+| | A: none (no Gearing) | B: Salvaged Gearing first | C: Rig Plating first |
+|---|---|---|---|
+| Core 4 | 25 min 44 s | by 30 min | 25 min 44 s |
+| Core 6 | 1 h 14 min | between 1 h and 2 h | 1 h 08 min |
+| Core 7 | 6 h 51 min | between 6 h and 7 h | 6 h 29 min |
+| Core 8 | 8 h 26 min | between 8 h and 9 h | 8 h 32 min |
+| income at Core 8 | 25.3K/s | 32.3K/s (9 h mark) | 38.7K/s |
+| Rig Plating, at the 8 h mark | 4 | 3 (and Gearing 10) | 7 |
+| sites cleared, at the 8 h mark | 718 | 664 | 817 |
+| salvage unspent, at the 8 h mark | 1,483 | 623 | 1,410 |
+| decisions, Core 6 → 7 | 366 in 122 of 338 min | not recorded | 440 in 133 of 322 min |
+
+**The verdict: salvage is not yet a choice.** Every way reaches the eighth
+hour with more than a thousand salvage unspent. What limits Gearing and Plating is
+research and the Core's research caps, never salvage; the player who buys
+Gearing first buys Plating too, and the reverse. A choice needs salvage to
+be scarce: fewer a site, or dearer lines, so that a level of Gearing is a
+level of Plating not bought. That is the next change to the galleries.
+
+### Core 1 → 10 in one new game
+
+A new game with every change of this round, the scripted player spending
+salvage on Gearing (B above), carried on to 24 h; the stage figures are
+scenario A's, the same game to Core 8 with its full report:
+
+| stage | length (A) | only credits left (A) | minutes with a decision (A) | the row that came last | what the stage opens |
+|---|---|---|---|---|---|
+| Core 1 → 2 | 6 min 20 s | 4% | 7 of 7 | credits | the first gallery; Salvaged Gearing |
+| Core 2 → 3 | 6 min 10 s | 23% | 7 of 7 | credits (a site cleared by then) | the Assembler |
+| Core 3 → 4 | 13 min 14 s | 62% | 8 of 14 | credits | the Rig Frame, a crew of three, three galleries, Rig Plating |
+| Core 4 → 5 | 11 min 09 s | 42% | 8 of 12 | credits (five sites by then) | the Condenser, the nest |
+| Core 5 → 6 | 37 min 29 s | 1% | 35 of 39 | the Drill's level | Resonant Frames |
+| Core 6 → 7 | 5 h 37 min | 0% | 122 of 338 | stability 80 (4 h 26 min) | Overdrive, the deep chain, doctrines |
+| Core 7 → 8 | 1 h 35 min | 27% | 27 of 96 | credits | the Frame Jig, Alloy fuel |
+| Core 8 → 9 (B) | 2 to 4 h (hourly marks) | -- | -- | Vault 9's Alloy, the doctrine, then stability 120 and the price; the Frame row went first | the Assay Bench |
+| Core 9 → 10 (B) | not in 12 h | -- | -- | **four Assay Benches at work: 0 of 4** | the Core's export |
+
+- **Cores 1 to 9 are now reached in one new game** (Core 9 between 11 h and 12 h), and the galleries run the whole way: 1,684 sites cleared by 24 h.
+- **Core 10 is blocked by the same class as Core 9 was:** eight Assay Benches laid, every one starved: their Frame Jigs have no Alloy Parts or Alloy beside them, and three stand alone -- while the store holds 67,000 Frames. A person builds White Heat → Alloy Parts → Frame Jig → Assay Bench; the scripted player does not. Nothing feeds a machine from the store (above).
+- **The long stage is still Core 6 → 7, and it is the stability row.** In A it took 4 h 26 min of the 5 h 37 min.
+- **Core 9 and 10 each open something to do** (the Assay Bench, the export), but their rows are mostly more of the Core 8 era's chains; the Core 10 row is the first that asks for a four-stage line.
+
+## 10. The robot loop against the reference model (design, not built)
+
+**What a Rig does for the player today.**
+
+| function | status | how |
+|---|---|---|
+| production | real | an Assembler on the Rig Frame job, from Plates (Core 4); the Foreman's Rig before it |
+| capacity | real | the crew's room: the Core's level, and one more Rig every ten sites cleared, up to six |
+| upgrade | real | Rig Plating: research and salvage |
+| repair | real | Plates, at once; wear makes the crew weaker, never smaller |
+| operation | real | sorties: strength against a site, a share when short, the site weaker for the next |
+| reward | real | credits, research, a material, and salvage only a cleared site pays |
+| risk and reward | real | wear by hazard; the nest pays more salvage and wears most |
+| factory work | **for the eye** | service calls walk to the machines levelled; they change nothing |
+| specialization | **missing** | one kind of Rig |
+| technology | partial | one line (Rig Plating) |
+
+**The largest gap in that table is the factory work.** The Rigs walk to the
+machines, and the machines do not notice. The Core 8 finding (section 9)
+points at the job the factory has for them: the store fills with what the
+lines make, and nothing takes it out again.
+
+**The next step, chosen: posting a Rig.**
+
+- **What it is.** A Rig at the Core can be posted to a machine touching the Core. There it hauls one input the machine takes from the Core's store: Components to a Frame Jig, Plates to a Rig Frame.
+- **What it costs.** A posted Rig does not go on sorties. A post takes a Rig for as long as it stands.
+- **The decision it makes.** Crew in the galleries (pay, salvage, the crew's growth) or crew in the factory (a full store turned back into production), from the same Rigs.
+- **The reference games.**
+
+| mechanic | seen in | verdict | the Lodeworks version |
+|---|---|---|---|
+| Production draws its ingredients from storage | Township, Hay Day (A4: production starts when every ingredient is in the barn) | **ADAPT** | Only through a posted Rig, only beside the Core: the lines stay the puzzle, and the store becomes a supply the crew hauls from |
+| A limited pool of workers assigned to jobs | CoC builders; WOS survivors assigned to buildings | **ADAPT** | The crew is the pool; a Rig posted is a Rig not in the galleries |
+| Wounded units heal in a hospital | RoK 63; WOS Clinic (H10) | **ADAPT** (already) | Wear and Plates; no Rig is ever lost |
+| Units that cost upkeep | BB F17 | **DEFER** | A drain while offline reads as a punishment |
+
+**The second kind of Rig: research only.** A second kind has to answer a
+property of the sites, not just add strength:
+
+| role | reference | what it would answer | verdict now |
+|---|---|---|---|
+| heavy (strong, slow, costly) | BB Heavy; RoK infantry | tier-2 sites and the nest: need | DEFER until one Rig's loop is measured stable |
+| support (lowers the crew's wear) | BB Medic | hazard | DEFER |
+| hauler (carries more of the pay) | Township trains and ships | reward, not need | DEFER; overlaps posting |
+| scout (deals a better site) | BB Radar, RoK scouts | target choice | DEFER |
+| defence | CoC and BB defences | nothing attacks the factory yet | REJECT until there is an attack |
+
+**Towards fights (architecture, not built).** Every link of the chain
+factory → robot production → upgrade → composition → operation → target →
+encounter → damage → repair → reward → factory already has a place in the
+code, except composition:
+
+| link | where it lives |
+|---|---|
+| production | `MachineDB.JOBS["assembler"]["rig"]`, the Core's crew room (`Sim.crew_cap`) |
+| upgrade | `Economy` lines on effect `rig_power` (Rig Plating) |
+| composition | **missing**: a sortie is *n* Rigs of one kind |
+| operation, target | `Sim.send_sortie`, `Operations.deal` |
+| encounter | `Operations.resolve(site, strength)`: decided when the sortie leaves (D5) |
+| damage, repair | `rig_wear`, `Sim.repair_rigs` |
+| reward | `Operations.reward`, `Operations.salvage` |
+
+A rival factory later is one more kind of target: its need and hazard come
+from a blueprint's machines (a share code, V4), and `resolve` stays the
+encounter. Nothing in it needs a server; raids that take anything from a
+player still do (V1/D3), and stay out.

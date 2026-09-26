@@ -755,7 +755,7 @@ msgid "Send"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "Fuel: %d Ingots"
+msgid "Fuel: %d %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd

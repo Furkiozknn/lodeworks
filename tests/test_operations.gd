@@ -74,6 +74,8 @@ func test_the_crew_opens_at_core_4_with_the_rig_frame_job() -> void:
 	runner.check(not ops.is_empty(), "Core 5 asks for sites cleared")
 	runner.eq(CoreLevels.available_at(ops), Operations.FIRST_SITE_CORE, "which the first gallery makes possible")
 	runner.check(not MachineDB.STOCKED.has(RIG), "a Rig is crew, not stock: no store row, contract or export")
+	runner.eq(Operations.fuel_res(MachineDB.FRAME_CORE - 1), INGOT, "sorties burn Ingots until the Core 8 era")
+	runner.eq(Operations.fuel_res(MachineDB.FRAME_CORE), MachineDB.Res.ALLOY, "and Alloy in it")
 	# Sites cleared earn the crew room: one Rig every ten, up to six.
 	runner.eq(Operations.earned_rigs(9), 0, "")
 	runner.eq(Operations.earned_rigs(10), 1, "ten sites cleared, room for one more Rig")
@@ -137,6 +139,12 @@ func test_the_foremans_rig_and_the_first_gallery() -> void:
 		if int(row[0]) == CoreLevels.Req.OPERATIONS:
 			ops = row
 	runner.eq(ops, [CoreLevels.Req.OPERATIONS, 1], "Core 3 asks for that one site")
+	# What the first sorties bring makes the factory faster from Core 2: four
+	# early sites' salvage and a little research buy Salvaged Gearing.
+	runner.eq(int(Sim.site_reward(0)["salvage"]), 1, "an early site pays one salvage")
+	Sim.salvage = 4
+	Sim.research = 100.0
+	runner.check(Sim.can_buy_upgrade("salvage_gearing"), "four of them buy Salvaged Gearing at Core 2")
 	_done()
 
 

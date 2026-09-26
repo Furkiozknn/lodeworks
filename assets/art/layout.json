@@ -870,5 +870,54 @@
    ]
   ],
   "bg_parallax": 0.12
- }
+ },
+ "crew": {
+  "file": "res://assets/art/crew/rig.webp",
+  "cell": [
+   194,
+   204
+  ],
+  "anchor": [
+   97.0,
+   196.1
+  ],
+  "base_px": 120,
+  "order": [
+   "idle",
+   "drive",
+   "work",
+   "carry",
+   "worn"
+  ]
+ },
+ "galleries": {
+  "file": "res://assets/art/world/galleries.webp",
+  "cell": [
+   438,
+   317
+  ],
+  "anchor": [
+   219.0,
+   311.5
+  ],
+  "base_px": 300,
+  "order": [
+   "open",
+   "boarded",
+   "nest",
+   "bay"
+  ]
+ },
+ "worlds": [
+  "res://assets/art/world/surface.jpg",
+  "res://assets/art/world/workings.jpg",
+  "res://assets/art/world/deep.jpg",
+  "res://assets/art/world/abyss.jpg"
+ ],
+ "tiles_bands": [
+  "res://assets/art/tiles/floor_surface.jpg",
+  "res://assets/art/tiles/floor.jpg",
+  "res://assets/art/tiles/floor_deep.jpg",
+  "res://assets/art/tiles/floor_abyss.jpg"
+ ]
 }

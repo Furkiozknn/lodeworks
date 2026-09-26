@@ -196,6 +196,7 @@ func _ready() -> void:
 			else Loc.t("Contract filled: +%s research") % Economy.fmt(paid)))
 	Sim.sortie_back.connect(func(rep: Dictionary):
 		Juice.income()
+		iso_view.deliver(rep)
 		var where: String = Loc.t(String(Operations.KINDS[String(rep["kind"])]["name"]))
 		if bool(rep["cleared"]):
 			_toast_msg(Loc.t("Rigs home from the %s, cleared: +%s credits, +%s research, +%d salvage")
@@ -2814,6 +2815,7 @@ func _ops_rows(box: VBoxContainer) -> void:
 		fix.set_meta("repair", true)
 		fix.pressed.connect(func():
 			if Sim.repair_rigs():
+				iso_view.repair_call()
 				Juice.upgrade()
 				_close_overlay()
 				_ops_reopen.call())
@@ -2872,7 +2874,8 @@ func _site_row(i: int) -> Control:
 	go.custom_minimum_size = Vector2(130, MIN_TOUCH)
 	go.disabled = why != ""
 	go.set_meta("send", i)
-	go.tooltip_text = Loc.t("Fuel: %d Ingots") % Operations.fuel(maxi(n, 1), Sim.core_level)
+	go.tooltip_text = Loc.t("Fuel: %d %s") % [Operations.fuel(maxi(n, 1), Sim.core_level),
+		Loc.t(String(MachineDB.RES_NAME[Operations.fuel_res(Sim.core_level)]))]
 	go.pressed.connect(func():
 		if Sim.send_sortie(i, Sim.sortie_size(i)):
 			Juice.place()

@@ -9,7 +9,7 @@ extends RefCounted
 ## army, the army goes out, what it brings back makes the base stronger --
 ## in Lodeworks' own terms: an Assembler on the Rig Frame job makes a Rig
 ## from two Plates; the Core keeps Rigs as its crew, up to a
-## limit its level sets; a sortie takes some of them, and Ingots for fuel,
+## limit its level sets; a sortie takes some of them, and fuel (fuel_res),
 ## to one of SLOTS sites dealt on the board; they walk out, work, and walk
 ## home with the site's printed reward, worn by its hazard; worn Rigs are
 ## weaker until Plates repair them; Rig Plating (research) makes every Rig
@@ -126,7 +126,7 @@ const CREDITS_PER_NEED := 900.0
 const RESEARCH_PER_NEED := 3.0
 const UNITS_PER_NEED := 0.8
 const REWARD_SECONDS := 10.0
-## Ingots a Rig burns on a sortie, growing with the Core.
+## Fuel a Rig burns on a sortie (fuel_res), growing with the Core.
 const FUEL_PER_RIG := 4.0
 ## Plates that repair one Rig from fully worn, growing with the Core.
 const REPAIR_PER_RIG := 6.0
@@ -207,7 +207,15 @@ static func reward(s: Dictionary, credits_per_sec: float) -> Dictionary:
 	}
 
 
-## Ingots a sortie of `n` Rigs burns under a Core of `level`.
+## What a sortie burns under a Core of `level`: Ingots, until the Core 8
+## era, whose factory runs on crystal and Alloy and makes few Ingots; Alloy
+## after (measured: a Core 8 factory held 38 Ingots, its crew of thirteen
+## needed 173 for a sortie, and sat at the Core for four hours).
+static func fuel_res(level: int) -> int:
+	return MachineDB.Res.INGOT if level < MachineDB.FRAME_CORE else MachineDB.Res.ALLOY
+
+
+## What a sortie of `n` Rigs burns under a Core of `level`, in fuel_res.
 static func fuel(n: int, level: int) -> int:
 	return int(ceil(float(n) * FUEL_PER_RIG * growth(level)))
 

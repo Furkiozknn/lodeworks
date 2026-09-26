@@ -344,10 +344,11 @@ func _operations() -> void:
 	if (S.rig_wear >= 0.3 or stuck) and S.can_repair() and (plates >= S.repair_cost() or cheap):
 		S.repair_rigs()
 		_event("repair", "first Rigs repaired")
-	# From Core 7, fuel from Ingots the Core's rows do not keep, as for
-	# repairs: a sortie there burns a hundred or more.
-	var ingots: int = S.stock_of(MachineDB.Res.INGOT) - int(keep.get(MachineDB.Res.INGOT, 0))
-	var kept_past_store: bool = int(keep.get(MachineDB.Res.INGOT, 0)) > S.stock_cap()
+	# From Core 7, fuel the Core's rows do not keep, as for repairs: a
+	# sortie there burns a hundred or more.
+	var fuel_res: int = Operations.fuel_res(S.core_level)
+	var ingots: int = S.stock_of(fuel_res) - int(keep.get(fuel_res, 0))
+	var kept_past_store: bool = int(keep.get(fuel_res, 0)) > S.stock_cap()
 	var weakest: int = -1
 	for i in range(S.ops_board.size()):
 		var n: int = S.sortie_size(i)

@@ -110,6 +110,10 @@ func _run() -> void:
 		await _run_rigs()
 		get_tree().quit()
 		return
+	if OS.get_environment("LODEWORKS_CAPTURE") == "bands":
+		await _run_bands()
+		get_tree().quit()
+		return
 	for s: Dictionary in SHOTS:
 		_apply_build(String(s["build"]))
 		_set_overlay(bool(s.get("overlay", false)))
@@ -441,12 +445,16 @@ func _run_rigs() -> void:
 	Sim._sync_core()
 	Sim.send_sortie(0, 2)
 	Sim.send_sortie(1, 1)
-	# One sortie on its way out, the other at work in its gallery's mouth.
-	(Sim.sorties[0] as Dictionary)["left"] = float(Sim.sorties[0]["trip"]) * 0.8
+	# One sortie walking home with its crates, the other at work in its
+	# gallery's mouth; and what a third brought, flying into the Core.
+	(Sim.sorties[0] as Dictionary)["left"] = float(Sim.sorties[0]["trip"]) * 0.3
 	(Sim.sorties[1] as Dictionary)["left"] = float(Sim.sorties[1]["trip"]) * 0.5
 	# Whatever this machine's save left open (a welcome-back card) goes.
 	_clear_transient()
-	await _settle(1.5)
+	await _settle(1.2)
+	var gv: IsoView = _main.get("iso_view")
+	gv.deliver({"kind": "pumphouse", "salvage": 2})
+	await _settle(0.45)
 	await _capture("rigs_board")
 	_main.call("_show_core")
 	await _settle(0.8)
@@ -475,6 +483,23 @@ func _run_rigs() -> void:
 	await _settle(1.0)
 	await _capture("rigs_early_board")
 	_clear_transient()
+
+
+## The same factory on a stratum of each band: each band's own painting.
+## `LODEWORKS_CAPTURE=bands`.
+func _run_bands() -> void:
+	_apply_build("full")
+	_clear_transient()
+	var gv: IsoView = _main.get("iso_view")
+	for d: int in [2, 6, 12, 20]:
+		Sim.depth = d
+		Sim.max_depth = d
+		Sim._recompute()
+		Sim.depth_changed.emit(d)
+		await _settle(3.5)
+		_clear_transient()
+		await _settle(0.3)
+		await _capture("band_%02d" % d)
 
 
 ## Alt text, up to 140 characters each, written next to the images so whoever

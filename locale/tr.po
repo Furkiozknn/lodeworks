@@ -756,8 +756,8 @@ msgid "Send"
 msgstr "Gönder"
 
 #: res://scripts/ui/main.gd
-msgid "Fuel: %d Ingots"
-msgstr "Yakıt: %d Külçe"
+msgid "Fuel: %d %s"
+msgstr "Yakıt: %d %s"
 
 #: res://scripts/ui/main.gd
 msgid "too easy"
@@ -2466,4 +2466,7 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
+
+#~ msgid "Fuel: %d Ingots"
+#~ msgstr "Yakıt: %d Külçe"
 

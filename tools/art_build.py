@@ -205,9 +205,42 @@ def build_machine_atlas(im, name, cols=4, rows=3, folder="machines", base_px=BAS
             "file": "res://assets/art/%s/%s.webp" % (folder, name)}
 
 
+# --- sprites that stand on the ground: the crew and the galleries ------------
+
+def build_sprites(im, name, cols, rows, folder, width_px, order):
+    """A sheet of things that stand on the ground at their lowest point --
+    the Rig's poses, the gallery mouths -- one scale for the whole sheet
+    (the median base is `width_px` wide), each cell anchored at the centre
+    of its lowest solid row."""
+    parts = machine_parts(im, cols, rows)
+    base = float(np.median([p["plate_w"] for p in parts]))
+    s = width_px / base
+    above, below, half = 0.0, 0.0, 0.0
+    for p in parts:
+        fx, fy = p["foot"]
+        iw, ih = p["img"].size
+        above = max(above, fy * s)
+        below = max(below, (ih - fy) * s)
+        half = max(half, max(fx, iw - fx) * s)
+    cw = int(np.ceil(half * 2 + 8))
+    ch = int(np.ceil(above + below + 8))
+    ax, ay = cw / 2.0, above + 4
+    n = cols * rows
+    atlas = Image.new("RGBA", (cw * n, ch), (0, 0, 0, 0))
+    for k, p in enumerate(parts):
+        iw, ih = p["img"].size
+        sp = p["img"].resize((max(1, round(iw * s)), max(1, round(ih * s))), Image.LANCZOS)
+        fx, fy = p["foot"]
+        atlas.alpha_composite(sp, (int(round(k * cw + ax - fx * s)), int(round(ay - fy * s))))
+    os.makedirs(os.path.join(OUT, folder), exist_ok=True)
+    atlas.save(os.path.join(OUT, folder, name + ".webp"), "WEBP", quality=90, method=6)
+    return {"file": "res://assets/art/%s/%s.webp" % (folder, name), "cell": [cw, ch],
+            "anchor": [round(ax, 1), round(ay, 1)], "base_px": width_px, "order": order}
+
+
 # --- tiles ------------------------------------------------------------------
 
-def build_tiles(im):
+def build_tiles(im, name="floor"):
     rgb = np.asarray(im.convert("RGB"), dtype=np.float32)
     lum = rgb.mean(axis=2)
     lab, n = ndimage.label(lum > 38)
@@ -228,9 +261,9 @@ def build_tiles(im):
         t = im.convert("RGB").crop((x0 + ix, y0 + iy, x1 - ix, y1 - iy))
         atlas.paste(t.resize((TILE_PX, TILE_PX), Image.LANCZOS),
                     ((k % 4) * TILE_PX, (k // 4) * TILE_PX))
-    atlas.save(os.path.join(OUT, "tiles", "floor.jpg"), "JPEG", quality=88,
+    atlas.save(os.path.join(OUT, "tiles", name + ".jpg"), "JPEG", quality=88,
                optimize=True)
-    return {"file": "res://assets/art/tiles/floor.jpg", "tile_px": TILE_PX,
+    return {"file": "res://assets/art/tiles/%s.jpg" % name, "tile_px": TILE_PX,
             "cols": 4, "rows": 2,
             "kinds": ["plain", "plain", "plain", "plain", "plate", "grate",
                       "crystal", "cracked"]}
@@ -367,12 +400,28 @@ def main():
     global RAW
     ap = argparse.ArgumentParser()
     ap.add_argument("--raw")
+    # Only these layout keys, the rest of layout.json kept as it is: a new
+    # sheet does not re-encode every atlas the game already ships.
+    ap.add_argument("--only")
     args = ap.parse_args()
     RAW = raw_dir(args.raw)
     with io.open(SOURCES, encoding="utf-8") as f:
         src = json.load(f)
     for d in ["machines", "tiles", "world", "foreman"]:
         os.makedirs(os.path.join(OUT, d), exist_ok=True)
+    lp = os.path.join(OUT, "layout.json")
+    if args.only:
+        with io.open(lp, encoding="utf-8") as f:
+            layout = json.load(f)
+        for key in args.only.split(","):
+            print(key)
+            layout[key] = SPRITE_SHEETS[key](src)
+        with io.open(lp, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(layout, f, indent=1)
+            f.write("\n")
+        write_sources_md(src)
+        print("wrote", lp)
+        return
 
     layout = {"tile": {"w": 128, "h": 64}, "machines": {"order": MACHINE_ORDER,
               "sheets": {}}}
@@ -422,6 +471,40 @@ def main():
         f.write("\n")
     write_sources_md(src)
     print("wrote", lp)
+
+
+def build_band_worlds(src):
+    """A painting for each band of the shaft -- the Surface, the Workings
+    (the world painting, `build_world`), the Deep and the Abyss -- the same
+    composition and size, so the camera frames them all alike."""
+    files = []
+    for band in ["surface", "workings", "deep", "abyss"]:
+        if band == "workings":
+            files.append("res://assets/art/world/workings.jpg")
+            continue
+        im = load_raw(src, "world_" + band).convert("RGB")
+        im.save(os.path.join(OUT, "world", band + ".jpg"), "JPEG", quality=84, optimize=True,
+                progressive=False)
+        files.append("res://assets/art/world/%s.jpg" % band)
+    return files
+
+
+# The Rig's five poses (docs/GAME-LOOP.md), and the galleries' mouths with
+# the crew's Bay: sheets built on their own (--only), or with the rest.
+SPRITE_SHEETS = {
+    "worlds": build_band_worlds,
+    # The floor of each band, in build_tiles' layout: the Workings' is the
+    # "tiles" sheet itself.
+    "tiles_bands": lambda src: [
+        build_tiles(load_raw(src, "tiles_surface"), "floor_surface")["file"],
+        "res://assets/art/tiles/floor.jpg",
+        build_tiles(load_raw(src, "tiles_deep"), "floor_deep")["file"],
+        build_tiles(load_raw(src, "tiles_abyss"), "floor_abyss")["file"]],
+    "crew": lambda src: build_sprites(load_raw(src, "crew"), "rig", 5, 1, "crew", 120,
+                                      ["idle", "drive", "work", "carry", "worn"]),
+    "galleries": lambda src: build_sprites(load_raw(src, "galleries"), "galleries", 2, 2, "world", 300,
+                                           ["open", "boarded", "nest", "bay"]),
+}
 
 
 if __name__ == "__main__":

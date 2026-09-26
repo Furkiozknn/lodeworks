@@ -355,5 +355,145 @@
   "used_for": [
    "assets/art/ui/icons.webp"
   ]
+ },
+ "crew": {
+  "file": "r4_rig.png",
+  "job": "b90b6221-1fe8-4cc0-a0a5-64c02002fc4d",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_145924_b90b6221-1fe8-4cc0-a0a5-64c02002fc4d.png",
+  "date": "2026-09-26 14:59 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "21:9",
+  "background": "transparent",
+  "refs": [],
+  "session": "Claude Code, 26 Sep 2026 (the crew's art)",
+  "used_for": [
+   "assets/art/crew/rig.webp"
+  ],
+  "prompt": "Character pose sheet on a fully transparent background: the small helper robot of the mobile game LODEWORKS, called a Rig, in exactly the art style, glossy materials, warm upper-left light and TRUE ISOMETRIC camera of the FIRST attached sheet (stylized 3D, chunky, toy-like, premium mobile game art, soft bevels), and the friendly character appeal of the miner in the SECOND attached image - an original robot, not a copy of any other game's robot. Design: a compact knee-high industrial robot about as wide as tall, a rounded box body painted in bright safety orange with dark riveted iron trim and polished brass bolts, riding on two chunky dark caterpillar treads; a round brass porthole face on the front with two big friendly glowing cyan eyes; a small headlamp above the face; a short antenna with a tiny glowing orange tip; two short jointed iron arms with simple claw hands; a small brass exhaust pipe on its back. Strong clear silhouette readable at 60 pixels. The same robot shown 5 times in a row, evenly spaced, not overlapping, identical design, every one seen from the same high isometric camera facing down and to the LEFT: 1 IDLE standing still, cheerful; 2 DRIVING forward, leaning slightly, a small puff of dust behind the treads; 3 WORKING with a welding torch in one claw, bright cyan-white sparks; 4 CARRYING a small wooden crate of glowing orange ore on top of its body, held with both arms; 5 WORN and tired after a mission, its orange paint scuffed and dusty, one eye dimmer, a small wisp of smoke from the exhaust. No text, no background, no floor, no ground shadow. (Generated with no reference images attached.)"
+ },
+ "galleries": {
+  "file": "r4_galleries.png",
+  "job": "162bf71a-5c38-4aec-b699-7163a5a2f866",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_145944_162bf71a-5c38-4aec-b699-7163a5a2f866.png",
+  "date": "2026-09-26 14:59 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "transparent",
+  "refs": [],
+  "session": "Claude Code, 26 Sep 2026 (the crew's art)",
+  "used_for": [
+   "assets/art/world/galleries.webp"
+  ],
+  "prompt": "Game asset sprite sheet on a fully transparent background for the mobile game LODEWORKS: 4 environment structures in a clean 2 columns x 2 rows grid, each centred in its cell with generous space, nothing overlapping, no text, no floor beyond each structure's own small base, no ground shadow. Exactly the art style, materials, colours and TRUE ISOMETRIC camera of the FIRST attached sheet (45 degree rotation, camera about 35 degrees above the ground, warm key light from the upper left, stylized 3D, chunky, toy-like, glossy, premium mobile game art), with the rock, moss and crystal look of the SECOND attached image. Row 1 left: an OPEN MINE GALLERY ENTRANCE: a low outcrop of grey-brown layered rock with patches of moss, cut into it a dark tunnel mouth facing the viewer, framed by two thick timber props and a timber lintel, a warm glowing iron lantern hanging from the lintel, two short mine rails running out of the tunnel toward the viewer. Row 1 right: the SAME entrance BOARDED UP: the tunnel mouth closed with crossed weathered planks nailed over it, a small hanging chain, a little dust, the lantern dark. Row 2 left: a ROGUE NEST ENTRANCE: a jagged cave mouth in dark red-brown rock, scrap metal and broken drill bits scattered at its base, two small glowing red eyes in the darkness inside, a red warning lamp on a bent iron post. Row 2 right: a RIG BAY: a small robot garage and charging platform of dark riveted iron with brass trim and orange hazard stripes, an open roll-up door, a charging pylon with a soft cyan glow, a tool rack with wrenches, a small crane arm, sized to sit on a square of 2 x 2 floor tiles that appears as a diamond twice as wide as deep. No characters, no text. (Generated with no reference images attached.)"
+ },
+ "world_surface": {
+  "date": "2026-09-26 15:07 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 4k",
+  "aspect": "16:9",
+  "background": "default",
+  "refs": [
+   "26c5cae1-ecd8-4fe8-8910-18996744a56c"
+  ],
+  "session": "Claude Code, 26 Sep 2026 (a world for each band)",
+  "file": "r4_world_surface.png",
+  "job": "13412175-c505-46ac-a1f7-b039099bec77",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_150701_13412175-c505-46ac-a1f7-b039099bec77.png",
+  "used_for": [
+   "assets/art/world/surface.jpg"
+  ],
+  "prompt": "Wide LANDSCAPE 16:9 background painting for a landscape mobile strategy game. Keep EXACTLY the composition, camera, framing and layout of the attached painting: the same high three-quarter isometric-style view looking down at about 35 degrees, the same big cliffs on the left and right, the same DEEP EMPTY CHASM filling the centre (the middle 45 percent of the width and the middle 55 percent of the height has nothing in it but mist or haze and far-away shapes, because a floating rock island with a factory will be placed there later), and the same art style (stylized 3D, chunky, toy-like, premium mobile game art). Change ONLY the world to THE SURFACE, near the top of a mine in bright warm DAYLIGHT: the cliffs are warm sandstone and grey rock covered in lush green grass, bushes and a few pine trees; several bright blue waterfalls pour into the chasm; along the top edge a clear blue sky with soft white clouds and distant snowy mountains, and far-away mine headframes, wooden cranes and a small brass town with smoking chimneys on the far cliffs; on the side cliffs wooden mine buildings, rails with ore carts, a few glowing cyan crystal clusters in the rock, lanterns; golden sunlight shafts falling into the chasm, which is filled with light airy blue-white mist. Near things darker and larger, far things hazier. No factory platform, no UI, no text, no logo, no people."
+ },
+ "world_deep": {
+  "date": "2026-09-26 15:07 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 4k",
+  "aspect": "16:9",
+  "background": "default",
+  "refs": [
+   "26c5cae1-ecd8-4fe8-8910-18996744a56c"
+  ],
+  "session": "Claude Code, 26 Sep 2026 (a world for each band)",
+  "file": "r4_world_deep.png",
+  "job": "31509db4-9dee-4296-a9f9-3522e04865cc",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_150713_31509db4-9dee-4296-a9f9-3522e04865cc.png",
+  "used_for": [
+   "assets/art/world/deep.jpg"
+  ],
+  "prompt": "Wide LANDSCAPE 16:9 background painting for a landscape mobile strategy game. Keep EXACTLY the composition, camera, framing and layout of the attached painting: the same high three-quarter isometric-style view looking down at about 35 degrees, the same big cliffs on the left and right, the same DEEP EMPTY CHASM filling the centre (the middle 45 percent of the width and the middle 55 percent of the height has nothing in it but mist or haze and far-away shapes, because a floating rock island with a factory will be placed there later), and the same art style (stylized 3D, chunky, toy-like, premium mobile game art). Change ONLY the world to THE DEEP, a vast volcanic cavern far below: the cliffs are dark basalt and black rock with glowing orange and red cracks; several bright LAVA FALLS pour into the chasm instead of water; rivers of molten lava in channels along the ledges; heavy iron foundries and forges with red-lit windows, big chains, riveted iron bridges and pipes on the side cliffs; floating embers and sparks in the air, drifting smoke; along the top edge a cavern ceiling with hanging rock and the silhouettes of huge old furnaces; the chasm glows deep red and orange from below through smoky haze. Warm red-orange key light with cool dark shadows. Near things darker and larger, far things hazier. No factory platform, no UI, no text, no logo, no people."
+ },
+ "world_abyss": {
+  "date": "2026-09-26 15:07 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 4k",
+  "aspect": "16:9",
+  "background": "default",
+  "refs": [
+   "26c5cae1-ecd8-4fe8-8910-18996744a56c"
+  ],
+  "session": "Claude Code, 26 Sep 2026 (a world for each band)",
+  "file": "r4_world_abyss.png",
+  "job": "12219fde-1e2b-41de-956b-15ab79f90173",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_150718_12219fde-1e2b-41de-956b-15ab79f90173.png",
+  "used_for": [
+   "assets/art/world/abyss.jpg"
+  ],
+  "prompt": "Wide LANDSCAPE 16:9 background painting for a landscape mobile strategy game. Keep EXACTLY the composition, camera, framing and layout of the attached painting: the same high three-quarter isometric-style view looking down at about 35 degrees, the same big cliffs on the left and right, the same DEEP EMPTY CHASM filling the centre (the middle 45 percent of the width and the middle 55 percent of the height has nothing in it but mist or haze and far-away shapes, because a floating rock island with a factory will be placed there later), and the same art style (stylized 3D, chunky, toy-like, premium mobile game art). Change ONLY the world to THE ABYSS, the deepest crystal realm: the cliffs are dark navy and violet rock grown over with GIANT glowing purple and cyan crystals; floating rock shards and crystal fragments hang in the air; bioluminescent violet moss and glowing blue fungi on the ledges; strange ancient brass machinery and pylons half-swallowed by crystal, pulsing with violet energy lines; thin waterfalls of glowing cyan liquid; along the top edge a vast dark cavern vault with distant crystal spires; the chasm glows violet and cyan from far below through purple mist. Cool violet and cyan light with warm brass accents. Near things darker and larger, far things hazier. No factory platform, no UI, no text, no logo, no people."
+ },
+ "tiles_surface": {
+  "file": "r4_tiles_surface.png",
+  "job": "39cef536-00cf-4254-969b-a6b4b62c629c",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_151129_39cef536-00cf-4254-969b-a6b4b62c629c.png",
+  "date": "2026-09-26 15:11 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "default",
+  "refs": [
+   "5db56fbc-fde4-4e47-9944-998fa4a0bda8"
+  ],
+  "session": "Claude Code, 26 Sep 2026 (a floor for each band)",
+  "used_for": [
+   "assets/art/tiles/floor_surface.jpg"
+  ],
+  "prompt": "Texture sheet for a mobile game factory floor, in EXACTLY the layout, size, framing and painted style of the attached sheet: 8 square floor tile textures in a 4 columns x 2 rows grid, each a perfect square seen EXACTLY from straight above (orthographic top-down, no perspective, no visible sides), all the same size, separated by thin black gaps, on a black background. This version is THE SURFACE in daylight: each square is packed earth and sun-warmed sandy-brown ground with short green grass growing at its edges and in its cracks, a few pebbles, soft bevelled edges, a lighter top-left edge and darker bottom-right edge. Row 1: four plain variations (more or less grass). Row 2: one with a flat grey paving stone set into it, one with a small iron drain grate, one with a small glowing cyan crystal chip and a tuft of grass, one with a little puddle of clear water and pebbles. Stylized painted game texture, soft even warm lighting, bright and fresh, no text."
+ },
+ "tiles_deep": {
+  "file": "r4_tiles_deep.png",
+  "job": "c72d791a-2f15-4715-8a41-741819418841",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_151133_c72d791a-2f15-4715-8a41-741819418841.png",
+  "date": "2026-09-26 15:11 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "default",
+  "refs": [
+   "5db56fbc-fde4-4e47-9944-998fa4a0bda8"
+  ],
+  "session": "Claude Code, 26 Sep 2026 (a floor for each band)",
+  "used_for": [
+   "assets/art/tiles/floor_deep.jpg"
+  ],
+  "prompt": "Texture sheet for a mobile game factory floor, in EXACTLY the layout, size, framing and painted style of the attached sheet: 8 square floor tile textures in a 4 columns x 2 rows grid, each a perfect square seen EXACTLY from straight above (orthographic top-down, no perspective, no visible sides), all the same size, separated by thin black gaps, on a black background. This version is THE DEEP, a volcanic cavern: each square is one chunky slab of dark charcoal basalt with soft bevelled edges, a lighter top-left edge and darker bottom-right edge, thin cracks glowing faintly orange with heat. Row 1: four plain variations with a few faint glowing cracks. Row 2: one with a riveted dark iron plate inlaid, one with an iron grate over a red-orange glow, one with a small cluster of dark obsidian shards, one cracked open with a thin bright line of lava. Stylized painted game texture, warm red-orange light, readable and not too busy, no text."
+ },
+ "tiles_abyss": {
+  "file": "r4_tiles_abyss.png",
+  "job": "edc1f57b-6490-49b6-8cd3-0e070afcdece",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_151137_edc1f57b-6490-49b6-8cd3-0e070afcdece.png",
+  "date": "2026-09-26 15:11 UTC",
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "4:3",
+  "background": "default",
+  "refs": [
+   "5db56fbc-fde4-4e47-9944-998fa4a0bda8"
+  ],
+  "session": "Claude Code, 26 Sep 2026 (a floor for each band)",
+  "used_for": [
+   "assets/art/tiles/floor_abyss.jpg"
+  ],
+  "prompt": "Texture sheet for a mobile game factory floor, in EXACTLY the layout, size, framing and painted style of the attached sheet: 8 square floor tile textures in a 4 columns x 2 rows grid, each a perfect square seen EXACTLY from straight above (orthographic top-down, no perspective, no visible sides), all the same size, separated by thin black gaps, on a black background. This version is THE ABYSS, a crystal realm: each square is one chunky slab of dark navy-violet stone with soft bevelled edges, a lighter top-left edge and darker bottom-right edge, fine veins glowing faintly violet and cyan. Row 1: four plain variations with a few thin glowing veins. Row 2: one with a brass plate inlaid with a small violet rune-like circle, one with an iron grate over a soft cyan glow, one with a small cluster of glowing purple crystals, one cracked with violet light in the cracks. Stylized painted game texture, cool violet light, readable and not too busy, no text."
  }
 }

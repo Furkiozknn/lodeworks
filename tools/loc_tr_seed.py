@@ -647,7 +647,7 @@ TR = {
     "Rigs out": "Robotlar dışarıda",
     "Send %d": "%d gönder",
     "Send": "Gönder",
-    "Fuel: %d Ingots": "Yakıt: %d Külçe",
+    "Fuel: %d %s": "Yakıt: %d %s",
     "too easy": "çok kolay",
     "easy": "kolay",
     "even": "denk",

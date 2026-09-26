@@ -40,6 +40,16 @@ The older front-view sheets (`machines_v1` and its palettes) are **not**
 used: they are a different camera, and mixing cameras is the one
 inconsistency the eye catches first.
 
+**Added 26 September 2026 (`docs/VISION.md`):** the Rig's pose sheet
+(`crew/rig.webp`: idle, driving, welding, carrying, worn; the sheet faces
+down-left and is mirrored for the other way), the galleries' sheet
+(`world/galleries.webp`: an open mine entrance, the same boarded up, the
+rogue nest, the Rig Bay), and a painting and a floor for each band of the
+shaft (`world/surface.jpg`, `deep.jpg`, `abyss.jpg`; `tiles/floor_surface.jpg`,
+`floor_deep.jpg`, `floor_abyss.jpg`; the Workings keep `workings.jpg` and
+`floor.jpg`). `tools/art_build.py --only crew,galleries,worlds,tiles_bands`
+builds them without re-encoding the rest.
+
 ## 2. Camera and projection
 
 - **2:1 isometric**, cell 128 x 64 world units (`Iso.TW`, `Iso.TH`). Board x

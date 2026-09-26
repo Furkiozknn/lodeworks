@@ -631,7 +631,7 @@ func sortie_blocker(i: int, n: int) -> String:
 		return "busy"
 	if n < 1 or n > rigs_home():
 		return "rigs"
-	if stock_of(MachineDB.Res.INGOT) < Operations.fuel(n, core_level):
+	if stock_of(Operations.fuel_res(core_level)) < Operations.fuel(n, core_level):
 		return "fuel"
 	return ""
 
@@ -660,7 +660,7 @@ func send_sortie(i: int, n: int) -> bool:
 		return false
 	var s: Dictionary = site(i)
 	var out: Dictionary = Operations.resolve(s, crew_strength(n))
-	_take_stock({MachineDB.Res.INGOT: Operations.fuel(n, core_level), MachineDB.Res.RIG: n})
+	_take_stock({Operations.fuel_res(core_level): Operations.fuel(n, core_level), MachineDB.Res.RIG: n})
 	var trip: float = Operations.trip(s)
 	sorties.append({"slot": i, "n": n, "left": trip, "trip": trip, "site": s.duplicate(),
 		"out": out, "wear": rig_wear})

@@ -23,9 +23,10 @@ after it (section "Cores 5 and 6"), and the Core 7 era with the deep
 chain, doctrines, the collapse's foundation and blueprints (section "After
 Core 7"). Cores 9 and 10 are played from kept saves (sections "Core 9"
 and "Core 10"). With the crew and the galleries (`GAME-LOOP.md`), one new
-game was played straight through: Core 7 at 4 h 49 min, Core 8 at 6 h 52
-min, and Core 9 not reached, the scripted player's Frame line starving
-(`GAME-LOOP.md`, section 8). The features that come next are in
+game was played straight through. The latest, with every fix of the
+evening of 26 September: Core 7 between 6 h and 7 h, Core 8 between 8 h
+and 9 h, Core 9 between 11 h and 12 h, and Core 10 not in 24 h, its four
+Assay Benches starved (`GAME-LOOP.md`, section 9). The features that come next are in
 [`research/feature-pool.md`](research/feature-pool.md).
 
 ---
