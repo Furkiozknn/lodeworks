@@ -496,6 +496,7 @@ func _run_rigs() -> void:
 	Sim.stock[MachineDB.Res.RIG] = Sim.crew_cap() - 3
 	Sim.breakers = 3
 	Sim.stock[MachineDB.Res.INGOT] = 2000
+	Sim.stock[MachineDB.Res.PLATE] = 2000
 	Sim._sync_core()
 	for i in range(Sim.ops_board.size()):
 		if Operations.armored(Sim.site(i)):
@@ -508,6 +509,12 @@ func _run_rigs() -> void:
 	_main.call("_show_galleries")
 	await _settle(0.8)
 	await _capture("rigs_breakers_galleries")
+	_clear_transient()
+	Sim.salvage = 12
+	Sim.stock[MachineDB.Res.COMPONENT] = 500
+	_main.call("_show_bay")
+	await _settle(0.8)
+	await _capture("rigs_bay")
 	_clear_transient()
 	# Before the crew is made: the Foreman's Rig in the one gallery Core 2
 	# opens, the other two mouths boarded up.

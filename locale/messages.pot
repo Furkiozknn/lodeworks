@@ -887,6 +887,10 @@ msgid "needs %d · %d Rigs and %d Breakers: strength %d, %s, wear +%d%%"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Fuel: %d %s, and the store has %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Send %d"
 msgstr ""
 

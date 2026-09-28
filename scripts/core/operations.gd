@@ -310,12 +310,21 @@ static func reward(s: Dictionary, credits_per_sec: float) -> Dictionary:
 	}
 
 
-## What a sortie burns under a Core of `level`: Ingots, until the Core 8
-## era, whose factory runs on crystal and Alloy and makes few Ingots; Alloy
-## after (measured: a Core 8 factory held 38 Ingots, its crew of thirteen
-## needed 173 for a sortie, and sat at the Core for four hours).
+## What a sortie burns under a Core of `level`, following what the era's
+## store holds: Ingots; from PLATE_FUEL_CORE Plates -- the Core 6 and 7
+## eras turn their Ingots into Plates and no row keeps Ingots (measured: a
+## Core 6 store held no Ingot and 8,389 Plates, and the crew stood at the
+## Bay for five hours); from the Core 8 era Alloy, whose factory runs on
+## crystal and makes few of either (measured: a Core 8 factory held 38
+## Ingots, its crew of thirteen needed 173 for a sortie, and sat at the
+## Core for four hours).
+const PLATE_FUEL_CORE := 6
+
+
 static func fuel_res(level: int) -> int:
-	return MachineDB.Res.INGOT if level < MachineDB.FRAME_CORE else MachineDB.Res.ALLOY
+	if level >= MachineDB.FRAME_CORE:
+		return MachineDB.Res.ALLOY
+	return MachineDB.Res.PLATE if level >= PLATE_FUEL_CORE else MachineDB.Res.INGOT
 
 
 ## What a sortie of `n` Rigs burns under a Core of `level`, in fuel_res.

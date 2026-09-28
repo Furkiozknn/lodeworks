@@ -74,8 +74,9 @@ func test_the_crew_opens_at_core_4_with_the_rig_frame_job() -> void:
 	runner.check(not ops.is_empty(), "Core 5 asks for sites cleared")
 	runner.eq(CoreLevels.available_at(ops), Operations.FIRST_SITE_CORE, "which the first gallery makes possible")
 	runner.check(not MachineDB.STOCKED.has(RIG), "a Rig is crew, not stock: no store row, contract or export")
-	runner.eq(Operations.fuel_res(MachineDB.FRAME_CORE - 1), INGOT, "sorties burn Ingots until the Core 8 era")
-	runner.eq(Operations.fuel_res(MachineDB.FRAME_CORE), MachineDB.Res.ALLOY, "and Alloy in it")
+	runner.eq(Operations.fuel_res(Operations.PLATE_FUEL_CORE - 1), INGOT, "sorties burn Ingots until the Core 6 era")
+	runner.eq(Operations.fuel_res(MachineDB.FRAME_CORE - 1), PLATE, "Plates in the Core 6 and 7 eras")
+	runner.eq(Operations.fuel_res(MachineDB.FRAME_CORE), MachineDB.Res.ALLOY, "and Alloy from the Core 8 era")
 	# Sites cleared earn the crew room: one Rig every ten, up to six.
 	runner.eq(Operations.earned_rigs(9), 0, "")
 	runner.eq(Operations.earned_rigs(10), 1, "ten sites cleared, room for one more Rig")
@@ -297,7 +298,7 @@ func test_a_collapse_takes_the_crew_and_the_board_and_keeps_rig_plating() -> voi
 	Sim.cores = 0
 	Sim.salvage = 0
 	Sim.lifetime_credits = 1.0e9
-	Sim.stock = {RIG: 3, INGOT: 100}
+	Sim.stock = {RIG: 3, INGOT: 100, PLATE: 100}
 	Sim.upgrade_levels["rig_plating"] = 1
 	Sim.ops_cleared = 4
 	Sim.ops_lifetime = 4
@@ -528,7 +529,7 @@ func test_a_rig_refitted_as_a_breaker_goes_to_rock() -> void:
 	Sim._recompute()
 	runner.eq(Sim.refit_blocker(), "core", "not before the Core's level 6")
 	_fresh(Operations.BREAKER_CORE, 15)
-	Sim.stock = {RIG: 4, INGOT: 1000, MachineDB.Res.COMPONENT: 1000}
+	Sim.stock = {RIG: 4, INGOT: 1000, PLATE: 1000, MachineDB.Res.COMPONENT: 1000}
 	Sim.salvage = 20
 	Sim._recompute()
 	var room: int = int(Sim.sim.core_wants.get(RIG, 0))

@@ -347,7 +347,10 @@ func _operations() -> void:
 	# 7,290 Plates at 6,900 for hours).
 	var cheap: bool = S.repair_cost() * 50 <= S.stock_of(MachineDB.Res.PLATE) \
 		and int(keep.get(MachineDB.Res.PLATE, 0)) > S.stock_cap()
-	if (S.rig_wear >= 0.3 or stuck) and S.can_repair() and (plates >= S.repair_cost() or cheap):
+	# A crew so worn it clears nothing is repaired from whatever Plates there
+	# are (measured: with Plating bought first, a worn crew waited on Plates
+	# kept for the Core 7 row and cleared no site from 2 h to 16 h).
+	if (S.rig_wear >= 0.3 or stuck) and S.can_repair() and (plates >= S.repair_cost() or cheap or stuck):
 		S.repair_rigs()
 		_event("repair", "first Rigs repaired")
 	# Fuel the Core's rows do not keep, as for repairs, unless the Core asks

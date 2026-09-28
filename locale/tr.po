@@ -888,6 +888,10 @@ msgid "needs %d · %d Rigs and %d Breakers: strength %d, %s, wear +%d%%"
 msgstr "%d güç gerekir · %d Robot ve %d Kırıcı: güç %d, %s, aşınma +%%%d"
 
 #: res://scripts/ui/main.gd
+msgid "Fuel: %d %s, and the store has %d"
+msgstr "Yakıt: %d %s, depoda %d var"
+
+#: res://scripts/ui/main.gd
 msgid "Send %d"
 msgstr "%d gönder"
 

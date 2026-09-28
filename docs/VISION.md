@@ -25,7 +25,7 @@ measurements are in `PROGRESSION.md`.
 | **the world around the factory**: rock, cliffs, crystals, veins, water, steam, passages | the canyon painting and the floating island; props (crystal, ore veins, vents, lamps, crates, rubble); **gallery mouths** (open, boarded, the nest) and the **Rig Bay** (`world/galleries.webp`); **land for each band** beyond the yard and under its unbuilt tiles -- a grass meadow at the Surface, rocky mine ground in the Workings, cooled lava with glowing cracks in the Deep, violet crystal ground in the Abyss (`tiles/land_*.jpg`) -- and only the tiles a machine stands on, with a one-tile apron, paved | PARTIAL: no water or cliffs on the board itself; the props are one set |
 | **each depth a new world** (the poster's "Derinlikler") | **a painting and a floor for each band** (`world/surface.jpg`, `workings.jpg`, `deep.jpg`, `abyss.jpg`, `tiles/floor_*.jpg`), crossfading on the dive into a new band | **DONE** (this round) for the painting and the yard's floor; the island's rock and the props are still one set |
 | **the Foreman as a character** | five poses, speaking the tutorial and the game's news in the screen's margin -- **and on the board**: he stands at the front of the Core's plate, walks to a machine the moment it is laid, jumps at the Core when it grows, cheers there when a machine is found, and now and then walks over to a working machine to look it over | **DONE** (27 September) |
-| **operations that are not a menu** | Rigs drive to mine entrances past the yard, weld there with sparks, drive home with a crate; what they bring flies into the Core; **the team is the player's choice**: more Rigs come home less worn and burn more fuel, fewer leave Rigs for a post and take a share | PARTIAL: no map of regions; three sites at a time; one kind of Rig |
+| **operations that are not a menu** | Rigs drive to mine entrances past the yard, weld there with sparks, drive home with a crate; what they bring flies into the Core; **the team is the player's choice**: more Rigs come home less worn and burn more fuel, fewer leave Rigs for a post and take a share; **two kinds**: from Core 6 a Rig refitted as a Breaker does 2.5 Rigs' work on rock (where a Rig does half) and less than one in water, so the team is picked against the site | PARTIAL: no map of regions; three sites at a time |
 | **reward feedback** | toasts; gems flying from the Bay into the Core; the Core's pulse on a level; **a reward card for each Core level**: the Core's new picture, the era's name, the Foreman cheering, what the level opened and the next level's first rows, each a tap that goes to do it; the NEW! card with the Foreman for a machine found | **DONE** for the Core and machines; a site's find is still a toast |
 | **UI: big icons, strong cards, a menu of Machines / Research / Shop / Missions** | **a side menu** of picture keys with their words: Tasks (What now?), Core (its stage's picture), Crew (the Rig Bay), Sorties (the galleries), Heat, Problems; Research, **Map**, Collapse and Codex at the bottom left | PARTIAL: the shop is still in Settings; the research screen is a grid of cards, not a tree |
 | **the research tree** as a graph of branches | cards by branch | PARTIAL |
@@ -35,10 +35,12 @@ measurements are in `PROGRESSION.md`.
 | **daily rewards, daily and weekly goals** | none, by decision D2 | **owner's call**: the images show them; D2 rejects daily and weekly loops |
 | **gems (a premium currency) and energy (12/20)** | none, by decisions D4 and V3 | **owner's call**: the images show both; D4 and V3 reject them |
 
-**Overall:** the art register, the machines and now the crew and the
-depths are in the target's category. What still reads as "a board of
-machines" is the ground beyond the yard, the Core that never grows, and a
-UI that is a tool panel rather than a game's menu.
+**Overall (27 September):** the art register, the machines, the crew, the
+depths, the Core's growth and the land are in the target's category, and
+the screen has a game's menu and a character on the board. What still
+reads as a tool is the research grid (not a tree), the missions (What now?
+ranked, without rewards of their own), and a map of bands rather than of
+regions to explore.
 
 ## 2. The reference games, for the target's systems
 
@@ -81,10 +83,16 @@ The target's one screen, and where the slice stands:
 - **A small operation and its reward:** the galleries, the crates, the gems flying home (this round).
 - **Environment, lighting, depth:** a painting and a floor per band (this round); glow, motes, contact shadows.
 
-**Next, in order:** the Core that grows with its level (four pictures); the
-ground beyond the yard as terrain (grass, rock, water at the Surface; basalt
-and lava in the Deep); the side menu (Machines, Research, Shop, Missions)
-and a Missions screen; the reward screen with the Foreman.
+**Done on 27 September:** the Core in four stages; land for each band; the
+side menu (Tasks, Core, Crew, Sorties, Heat, Problems) with Research, Map,
+Shop, Collapse and Codex at the bottom left; the shaft's map; the Core's
+reward card with the Foreman; the Foreman walking the yard; the Breaker,
+parked and on sorties.
+
+**Next, in order:** the research screen as a tree (the image's); a site's
+find as a reward card; a Missions screen of goals with rewards, built from
+the Core's rows and What now?; water and cliffs on the Surface's land; art
+of its own for the Breaker (it is the Rig's, bigger and rust-red).
 
 ## 4. Art, and what it cost
 
@@ -94,3 +102,10 @@ no reference attached), three world paintings (4k, the Workings painting
 as reference), three floors (2k, the Workings floor as reference): 26.5
 credits, the account going from 251.03 to 224.53. The target images are not in the
 repository; they are kept beside the raw art.
+
+Seven more on 26 September, evening, for the 27 September changes: the
+Core's three other stages (2k, transparent, the Core as reference) and the
+four bands' land (2k, each band's floor as reference): 19.25 credits by
+the prices of the jobs, the account at 205.28 by that count. The balance
+was not read again afterwards (the connector was not available), so that
+figure is computed, not measured.

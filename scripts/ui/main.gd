@@ -3027,15 +3027,16 @@ func _show_bay() -> void:
 		price.alignment = BoxContainer.ALIGNMENT_CENTER
 		price.add_theme_constant_override("separation", 6)
 		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		price.add_child(_label(Loc.t("Level %d") % (Sim.bay_level + 1), 22, Palette.TEXT))
+		var ink: Color = Palette.BG if why == "" else Palette.TEXT
+		price.add_child(_label(Loc.t("Level %d") % (Sim.bay_level + 1), 22, ink))
 		if why == "core":
 			price.add_child(_label(Loc.t("at the Core's level %d") % (Sim.bay_level + 3), 22, Palette.TEXT_DIM))
 		else:
 			price.add_child(_icon_rect("settings", 34))
-			price.add_child(_label(str(int(c["salvage"])), 22, Palette.TEXT if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
+			price.add_child(_label(str(int(c["salvage"])), 22, ink if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
 			price.add_child(_icon_rect("credits", 34))
 			price.add_child(_label(Economy.fmt(float(c["credits"])), 22,
-				Palette.TEXT if Sim.credits >= float(c["credits"]) else Palette.BAD))
+				ink if Sim.credits >= float(c["credits"]) else Palette.BAD))
 		up.add_child(price)
 		up.pressed.connect(func():
 			if Sim.upgrade_bay():
@@ -3091,12 +3092,16 @@ func _refit_row() -> Control:
 	price.alignment = BoxContainer.ALIGNMENT_CENTER
 	price.add_theme_constant_override("separation", 6)
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	price.add_child(_label(Loc.t("Refit a Rig as a Breaker"), 22, Palette.TEXT))
+	# Dark words on the lit key, light on the dim one.
+	var ink: Color = Palette.BG if why == "" else Palette.TEXT
+	price.add_child(_label(Loc.t("Refit a Rig as a Breaker"), 22, ink))
 	price.add_child(_icon_rect("settings", 34))
-	price.add_child(_label(str(int(c["salvage"])), 22, Palette.TEXT if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
-	price.add_child(Chips.Gem.new(MachineDB.Res.COMPONENT, 1, 30.0))
+	price.add_child(_label(str(int(c["salvage"])), 22, ink if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
+	var gem := Chips.Gem.new(MachineDB.Res.COMPONENT, 1, 30.0)
+	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	price.add_child(gem)
 	price.add_child(_label(str(int(c["components"])), 22,
-		Palette.TEXT if Sim.stock_of(MachineDB.Res.COMPONENT) >= int(c["components"]) else Palette.BAD))
+		ink if Sim.stock_of(MachineDB.Res.COMPONENT) >= int(c["components"]) else Palette.BAD))
 	key.add_child(price)
 	key.pressed.connect(func():
 		if Sim.refit_rig():
@@ -3292,6 +3297,13 @@ func _site_row(i: int) -> Control:
 		need.add_theme_color_override("font_color", Palette.GOOD if verdict in ["trivial", "easy", "even"]
 			else (Palette.WARN if verdict == "hard" else Palette.BAD))
 		var why: String = Sim.sortie_blocker(i, sent, sent_b)
+		if why == "fuel":
+			# Said, not only greyed out: a phone has no tooltip.
+			var fr: int = Operations.fuel_res(Sim.core_level)
+			need.text += "
+" + Loc.t("Fuel: %d %s, and the store has %d") % [Operations.fuel(sent, Sim.core_level, sent_b),
+				Loc.t(String(MachineDB.RES_NAME[fr])), Sim.stock_of(fr)]
+			need.add_theme_color_override("font_color", Palette.BAD)
 		go.text = Loc.t("Send %d") % (sent + sent_b) if sent + sent_b > 0 else Loc.t("Send")
 		go.disabled = why != ""
 		go.tooltip_text = Loc.t("Fuel: %d %s") % [Operations.fuel(sent, Sim.core_level, sent_b),
