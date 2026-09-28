@@ -419,6 +419,50 @@ func _posting() -> void:
 		_event("post", "first Rig posted")
 
 
+## A starved machine `id` on `job` away from the Core moved to a tile beside
+## it -- a free one, or one standing a machine built for income alone or
+## starved most of the time that no row asks for -- while fewer than `need`
+## of them stand there.
+func _move_beside_core(id: String, job: String, need: int) -> bool:
+	var beside: int = 0
+	for cell: int in S.sim.core_touching():
+		if S.grid.machine_at(cell) == id and S.grid.job_at(cell) == job:
+			beside += 1
+	if beside >= need:
+		return false
+	var from: int = -1
+	for cell: int in S.grid.cells:
+		if S.grid.machine_at(cell) == id and S.grid.job_at(cell) == job \
+				and not S.sim.core_touching().has(cell) and S.sim.status_of(cell) == Simulation.Status.STARVED:
+			from = cell
+			break
+	if from < 0:
+		return false
+	var rows: Array = _row_machines()
+	var spot: int = -1
+	for cell: int in S.sim.core_touching():
+		if _free(cell) and _heat_safe(cell, id):
+			spot = cell
+			break
+	if spot < 0:
+		for cell: int in S.sim.core_touching():
+			if S.grid.is_empty(cell) or S.posts.has(cell) or _in_rows(cell, rows) \
+					or t - float(_fed_at.get(cell, -1.0e9)) < SETTLE:
+				continue
+			var idle: bool = S.sim.uptime.has(cell) and S.sim.uptime_of(cell) < 0.2 \
+				and S.sim.status_of(cell) == Simulation.Status.STARVED
+			if _income_only(cell) or idle:
+				S.sell(cell)
+				spot = cell
+				break
+	if spot < 0 or not S.move_machine(from, spot):
+		return false
+	_fed_at[spot] = t
+	_line[spot] = true
+	_event("bench_moved", "first %s moved beside the Core" % MachineDB.job_name(id, job))
+	return true
+
+
 ## Machines beside the Core, starved, that the store could feed.
 func _post_candidates() -> Array[int]:
 	var out: Array[int] = []
@@ -688,6 +732,14 @@ func _pursue(st: Dictionary) -> void:
 					_last_lab = t
 					if not (_store_feeds(id, job) and _build_core_side(id, job)):
 						_build_job(id, job)
+				elif _store_feeds(id, job) and t - _last_lab >= LAB_BEAT:
+					# Enough of them, starved away from the Core while the store
+					# holds what they take: one moved beside it, where a Rig
+					# feeds it (measured: eight Assay Benches laid with their
+					# chains, seven starved, none beside the Core, and the Core
+					# 10 row at one of four for thirteen hours).
+					_last_lab = t
+					_move_beside_core(id, job, int(st["need"]))
 				return
 			if not _fix_heat_of(id) and not _unblock(id):
 				if id == "lab" or S.grid.count_of(id) < int(st["need"]):

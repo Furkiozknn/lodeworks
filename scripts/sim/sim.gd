@@ -626,12 +626,23 @@ func haul_rate() -> float:
 ## level asks the store for. The crew feeds the machines from what is over
 ## (measured: two posted Rigs carried every Ingot to the Presses beside the
 ## Core, and the Core 6 row's 8,000 Ingots stood at 0 for three hours).
+##
+## A row the store cannot hold yet (the Vault's level comes first) leaves
+## the top HAUL_TOP of a full store to the crew: the Core takes nothing more
+## until the Vault grows, so the machines beside it may have it (measured:
+## with the Frame row at 300,000 and a Vault 9 holding 274,878, no Rig could
+## feed an Assay Bench, and the Core 10 row of four Benches stood at one).
 func haul_floor(res: int) -> int:
 	var keep: int = 0
 	for r: Array in CoreLevels.requirements(core_level + 1):
 		if int(r[0]) == CoreLevels.Req.STOCK and int(r[1]) == res:
 			keep = maxi(keep, int(r[2]))
+	if keep > stock_cap():
+		keep = int(float(stock_cap()) * (1.0 - HAUL_TOP))
 	return keep
+
+
+const HAUL_TOP := 0.05
 
 
 ## What the crew may haul of `res`: the store's, over its floor.

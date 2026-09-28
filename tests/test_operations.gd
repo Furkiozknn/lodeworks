@@ -434,9 +434,23 @@ func test_a_posted_rig_hauls_from_the_store_into_a_machine_beside_the_core() -> 
 func test_a_posted_rig_leaves_the_store_what_the_core_asks_for() -> void:
 	_fresh()
 	Sim.core_level = 5
+	Sim.machine_levels.erase("vault")
+	Sim._recompute()
 	var floor_: int = Sim.haul_floor(INGOT)
 	runner.gt(float(floor_), 0.0, "the Core's level 6 asks the store for Ingots")
 	runner.eq(Sim.haul_floor(MachineDB.Res.ALLOY), 0, "and for no Alloy")
+	var need: int = 0
+	for r: Array in CoreLevels.requirements(6):
+		if int(r[0]) == CoreLevels.Req.STOCK and int(r[1]) == INGOT:
+			need = int(r[2])
+	runner.gt(float(need), float(Sim.stock_cap()), "a row this store cannot hold yet")
+	runner.eq(floor_, int(float(Sim.stock_cap()) * (1.0 - Sim.HAUL_TOP)),
+		"so the crew may take the top of a full store, which the Core refuses anyway")
+	Sim.machine_levels["vault"] = 8
+	Sim._recompute()
+	runner.eq(Sim.haul_floor(INGOT), need, "a store that holds the row keeps all of it")
+	Sim.machine_levels.erase("vault")
+	Sim._recompute()
 	var press: int = Grid.idx(19, 22)
 	Sim.grid.place(press, "press")
 	Sim.grid.place(Grid.idx(19, 23), "vault")
