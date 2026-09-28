@@ -64,6 +64,11 @@ var _depth: int = 0
 ## [t, lifetime credits, research] while only credits are left.
 var _wait_log: Array = []
 var skipped: float = 0.0
+## The crew as last seen, and sorties sent since (Sim.sortie_sent).
+var _sorties_sent: int = 0
+var _posted: int = 0
+var _bay: int = 1
+var _wear: float = 0.0
 
 
 func _initialize() -> void:
@@ -76,6 +81,7 @@ func _initialize() -> void:
 	var dump_level: int = int(dump.get_slice(":", 0)) if dump != "" else 0
 	P = load("res://tools/core_journey_player.gd").new(root.get_node("Sim"))
 	P.fresh()
+	P.S.sortie_sent.connect(func(_i: int, _n: int) -> void: _sorties_sent += 1)
 	if OS.get_environment("LODEWORKS_CORE_DOCTRINE") != "":
 		P.doctrine = OS.get_environment("LODEWORKS_CORE_DOCTRINE")
 	if OS.get_environment("LODEWORKS_CORE_SALVAGE") != "":
@@ -234,6 +240,11 @@ func _open_stage() -> void:
 		"makers": makers, "opens": CoreLevels.opens(level + 1), "skipped": 0.0,
 		"research_bought": 0, "life0": float(S.lifetime_credits), "credits0": float(S.credits),
 		"research_spent": 0.0, "research0": float(S.research), "overdrive": 0,
+		# The crew over the stage: sites, salvage, hauling, and where the
+		# Rigs were, beat by beat; and how much of the store stood full.
+		"sites0": int(S.ops_lifetime), "salvage_earned0": int(S.salvage_earned),
+		"salvage0": int(S.salvage), "hauled0": int(S.hauled), "beats": 0,
+		"rigs_out": 0, "rigs_posted": 0, "rigs_home": 0, "full": 0, "kept": 0,
 		"collapse": Economy.cores_for_collapse(int(S.max_depth), float(S.lifetime_credits),
 			float(S.mult().get("core_yield", 0.0)))}
 	_wait_log.clear()
@@ -257,6 +268,10 @@ func _close_stage(reached: bool) -> void:
 				stage["first"][i] = P.t - float(stage["t0"])
 	stage["reached"] = reached
 	stage["rate1"] = P.rate()
+	stage["sites1"] = int(P.S.ops_lifetime)
+	stage["salvage_earned1"] = int(P.S.salvage_earned)
+	stage["salvage1"] = int(P.S.salvage)
+	stage["hauled1"] = int(P.S.hauled)
 	stages.append(stage)
 
 
@@ -264,6 +279,15 @@ func _close_stage(reached: bool) -> void:
 ## the Core's rows are met.
 func _record(level_before: int) -> void:
 	var S: Node = P.S
+	stage["beats"] = int(stage["beats"]) + 1
+	stage["rigs_out"] = int(stage["rigs_out"]) + S.rigs_out()
+	stage["rigs_posted"] = int(stage["rigs_posted"]) + S.rigs_posted()
+	stage["rigs_home"] = int(stage["rigs_home"]) + S.rigs_home()
+	for res: int in MachineDB.STOCKED:
+		if S.stock_of(int(res)) > 0:
+			stage["kept"] = int(stage["kept"]) + 1
+			if S.stock_of(int(res)) >= S.stock_cap():
+				stage["full"] = int(stage["full"]) + 1
 	var d: Dictionary = stage["decisions"]
 	var n: int = 0
 	var now: Dictionary = _board_now()
@@ -314,6 +338,24 @@ func _record(level_before: int) -> void:
 	if int(S.depth) != _depth:
 		d["strata"] = int(d.get("strata", 0)) + absi(int(S.depth) - _depth)
 		n += 1
+	# The crew's decisions: a sortie sent, a Rig posted or called home, the
+	# Bay raised, the crew repaired.
+	if _sorties_sent > 0:
+		d["sorties"] = int(d.get("sorties", 0)) + _sorties_sent
+		n += _sorties_sent
+		_sorties_sent = 0
+	if S.rigs_posted() != _posted:
+		d["posts"] = int(d.get("posts", 0)) + absi(S.rigs_posted() - _posted)
+		n += 1
+	if int(S.bay_level) != _bay:
+		d["the Bay"] = int(d.get("the Bay", 0)) + 1
+		n += 1
+	if float(S.rig_wear) < _wear - 0.001 and float(S.rig_wear) <= 0.0:
+		d["repairs"] = int(d.get("repairs", 0)) + 1
+		n += 1
+	_posted = S.rigs_posted()
+	_bay = int(S.bay_level)
+	_wear = float(S.rig_wear)
 	_board = now
 	_remember()
 	if n > 0:
@@ -465,6 +507,16 @@ func _print_stages() -> void:
 			Economy.fmt(float(s.get("research1", 0.0)) - float(s["research0"]) + float(s["research_spent"])),
 			Economy.fmt(float(s["research_spent"])), int(s["research_bought"]), int(s["overdrive"]),
 			int(s["collapse"])])
+		var beats: float = maxf(float(s["beats"]), 1.0)
+		var rigs: float = maxf(float(int(s["rigs_out"]) + int(s["rigs_posted"]) + int(s["rigs_home"])), 1.0)
+		var sites: int = int(s["sites1"]) - int(s["sites0"])
+		var earned_s: int = int(s["salvage_earned1"]) - int(s["salvage_earned0"])
+		print("  the crew: %.1f Rigs on average -- %d%% out on sorties, %d%% posted, %d%% at the Bay; %d sites cleared (%.1f an hour); salvage %d earned, %d spent; %d units hauled from the store" % [
+			rigs / beats, int(round(100.0 * float(s["rigs_out"]) / rigs)), int(round(100.0 * float(s["rigs_posted"]) / rigs)),
+			int(round(100.0 * float(s["rigs_home"]) / rigs)), sites, float(sites) / (dur / 3600.0),
+			earned_s, earned_s - (int(s["salvage1"]) - int(s["salvage0"])), int(s["hauled1"]) - int(s["hauled0"])])
+		print("  the store: %d%% of the time a material it keeps stood at the Vault's limit" % [
+			int(round(100.0 * float(s["full"]) / maxf(float(s["kept"]), 1.0)))])
 		if float(s.get("research_od", 0.0)) + float(s.get("research_doctrine", 0.0)) > 0.0:
 			print("    of it: Overdrive %s, doctrine lines %s, the rest of the tree %s" % [
 				Economy.fmt(float(s.get("research_od", 0.0))), Economy.fmt(float(s.get("research_doctrine", 0.0))),

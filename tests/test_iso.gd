@@ -685,28 +685,35 @@ func _field_view(depth: int) -> IsoView:
 
 
 func test_the_cells_behind_the_core_are_yard_cells_the_player_can_use() -> void:
-	# The Core's tower stands over the yard cells behind it. They are
-	# ordinary yard: the view has to let a player reach them.
-	var v := _field_view(1)
-	var hidden: Array[int] = v.cells_behind_core()
-	for xy: Vector2i in [Vector2i(19, 19), Vector2i(18, 18), Vector2i(20, 19), Vector2i(19, 20)]:
-		runner.check(hidden.has(Grid.idx(xy.x, xy.y)),
-			"(%d,%d) is found behind the Core at stratum 1" % [xy.x, xy.y])
-	v.arm_id = "drill"
-	for cell: int in hidden:
-		runner.check(not BuildArea.is_core(cell), "a cell behind the Core is not the Core's own")
-		runner.check(Sim.is_open(cell), "a cell behind the Core is yard")
-		runner.eq(v.pick_at_screen(v.cam.world_to_screen(Iso.cell_center(cell))), cell,
-			"placing reaches cell %d through the Core" % cell)
-	v.arm_id = ""
-	# A machine built there is drawn through the Core and tapped through it.
-	var back: int = Grid.idx(19, 19)
-	Sim.credits = 10000.0
-	runner.check(Sim.try_place(back, "drill"), "a machine can be built behind the Core")
-	runner.eq(v.pick_at_screen(v.cam.world_to_screen(Iso.cell_center(back))), back,
-		"and a tap on it, through the Core, selects it")
-	Sim.grid.clear()
-	v.free()
+	# The Core stands over the yard cells behind it. They are ordinary yard:
+	# the view has to let a player reach them. The young Core of the first
+	# strata (IsoView.core_info) hides two; the tower of Core 4, down where
+	# a Core 4 factory stands, hides four.
+	var was: int = Sim.core_level
+	for case: Array in [[1, 1, [Vector2i(19, 19), Vector2i(19, 20)]],
+			[4, 6, [Vector2i(19, 19), Vector2i(18, 18), Vector2i(20, 19), Vector2i(19, 20)]]]:
+		Sim.core_level = int(case[0])
+		var v := _field_view(int(case[1]))
+		var hidden: Array[int] = v.cells_behind_core()
+		for xy: Vector2i in case[2]:
+			runner.check(hidden.has(Grid.idx(xy.x, xy.y)),
+				"(%d,%d) is found behind the Core %d at stratum %d" % [xy.x, xy.y, case[0], case[1]])
+		v.arm_id = "drill"
+		for cell: int in hidden:
+			runner.check(not BuildArea.is_core(cell), "a cell behind the Core is not the Core's own")
+			runner.check(Sim.is_open(cell), "a cell behind the Core is yard")
+			runner.eq(v.pick_at_screen(v.cam.world_to_screen(Iso.cell_center(cell))), cell,
+				"placing reaches cell %d through the Core" % cell)
+		v.arm_id = ""
+		# A machine built there is drawn through the Core and tapped through it.
+		var back: int = Grid.idx(19, 19)
+		Sim.credits = 10000.0
+		runner.check(Sim.try_place(back, "drill"), "a machine can be built behind the Core")
+		runner.eq(v.pick_at_screen(v.cam.world_to_screen(Iso.cell_center(back))), back,
+			"and a tap on it, through the Core, selects it")
+		Sim.grid.clear()
+		v.free()
+	Sim.core_level = was
 	Save.wipe()
 
 

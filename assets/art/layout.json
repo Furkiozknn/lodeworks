@@ -919,5 +919,53 @@
   "res://assets/art/tiles/floor.jpg",
   "res://assets/art/tiles/floor_deep.jpg",
   "res://assets/art/tiles/floor_abyss.jpg"
+ ],
+ "core_t1": {
+  "cell": [
+   540,
+   431
+  ],
+  "anchor": [
+   270.0,
+   280.7
+  ],
+  "base_px": 520,
+  "cols": 1,
+  "rows": 1,
+  "file": "res://assets/art/world/core_t1.webp"
+ },
+ "core_t3": {
+  "cell": [
+   531,
+   679
+  ],
+  "anchor": [
+   265.5,
+   528.2
+  ],
+  "base_px": 520,
+  "cols": 1,
+  "rows": 1,
+  "file": "res://assets/art/world/core_t3.webp"
+ },
+ "core_t4": {
+  "cell": [
+   530,
+   670
+  ],
+  "anchor": [
+   265.0,
+   519.7
+  ],
+  "base_px": 520,
+  "cols": 1,
+  "rows": 1,
+  "file": "res://assets/art/world/core_t4.webp"
+ },
+ "terrain_bands": [
+  "res://assets/art/tiles/land_surface.jpg",
+  "res://assets/art/tiles/land_workings.jpg",
+  "res://assets/art/tiles/land_deep.jpg",
+  "res://assets/art/tiles/land_abyss.jpg"
  ]
 }

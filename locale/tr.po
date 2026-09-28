@@ -184,16 +184,16 @@ msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr "Katman %d. Saha büyüdü: kuracak daha çok yer var."
 
 #: res://scripts/ui/main.gd
+msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
+msgstr "Çekirdek seviye %d. Kuyu %d. katmana kadar inebilir; makinelerin sınırı seviye %d."
+
+#: res://scripts/ui/main.gd
 msgid "The first gallery past the yard is open. Send the Core's Rig in: it comes home with what the old workings held."
 msgstr "Sahanın ötesindeki ilk galeri açıldı. Çekirdeğin Robotunu içeri gönder: eski işletmede ne varsa alıp döner."
 
 #: res://scripts/ui/main.gd
 msgid "The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."
 msgstr "Çekirdek artık bir ekip tutabilir. Bir Montajcıyı Robot Şasisi işine ayarla: Robotları Çekirdeğe yürür, oradan da galerilere."
-
-#: res://scripts/ui/main.gd
-msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
-msgstr "Çekirdek seviye %d. Kuyu %d. katmana kadar inebilir; makinelerin sınırı seviye %d."
 
 #: res://scripts/ui/main.gd
 msgid "Contract filled: +%s credits"
@@ -224,6 +224,38 @@ msgid "Undo"
 msgstr "Geri al"
 
 #: res://scripts/ui/main.gd
+msgid "Strata %d-%d"
+msgstr "Katman %d-%d"
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d and down"
+msgstr "Katman %d ve altı"
+
+#: res://scripts/ui/main.gd
+msgid "The factory is here, on stratum %d"
+msgstr "Fabrika burada, %d. katmanda"
+
+#: res://scripts/ui/main.gd
+msgid "Reached"
+msgstr "Ulaşıldı"
+
+#: res://scripts/ui/main.gd
+msgid "Open to the factory: Descend to reach it"
+msgstr "Fabrikaya açık: ulaşmak için derine in"
+
+#: res://scripts/ui/main.gd
+msgid "The Core's level %d reaches it"
+msgstr "Çekirdek %d. seviyede ulaşır"
+
+#: res://scripts/ui/main.gd
+msgid "The galleries: %d sites open, %d cleared in all"
+msgstr "Galeriler: %d alan açık, toplam %d temizlendi"
+
+#: res://scripts/ui/main.gd
+msgid "Map"
+msgstr "Harita"
+
+#: res://scripts/ui/main.gd
 msgid "The yard grows to %d x %d."
 msgstr "Saha %d x %d olur."
 
@@ -244,8 +276,28 @@ msgid "+%s /s"
 msgstr "+%s /sn"
 
 #: res://scripts/ui/main.gd
+msgid "Tasks"
+msgstr "Görevler"
+
+#: res://scripts/ui/main.gd
 msgid "What now?"
 msgstr "Şimdi ne yapmalı?"
+
+#: res://scripts/ui/main.gd res://scripts/core/economy.gd
+msgid "Core"
+msgstr "Çekirdek"
+
+#: res://scripts/ui/main.gd
+msgid "Crew"
+msgstr "Robotlar"
+
+#: res://scripts/ui/main.gd
+msgid "Sorties"
+msgstr "Seferler"
+
+#: res://scripts/ui/main.gd res://scripts/core/economy.gd
+msgid "Heat"
+msgstr "Isı"
 
 #: res://scripts/ui/main.gd
 msgid "Heat view"
@@ -258,6 +310,10 @@ msgstr "Yakınlaştır"
 #: res://scripts/ui/main.gd
 msgid "Problems"
 msgstr "Sorunlar"
+
+#: res://scripts/ui/main.gd
+msgid "Shop"
+msgstr "Mağaza"
 
 #: res://scripts/ui/main.gd
 msgid "Collapse"
@@ -298,6 +354,26 @@ msgstr "Kaldırılsın mı?"
 #: res://scripts/ui/main.gd
 msgid "NEW!"
 msgstr "YENİ!"
+
+#: res://scripts/ui/main.gd
+msgid "The Core has grown: see it on the board."
+msgstr "Çekirdek büyüdü: sahada bak."
+
+#: res://scripts/ui/main.gd
+msgid "It opens strata %d to %d, machine level %d and a store of %d."
+msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
+
+#: res://scripts/ui/main.gd
+msgid "Next, for level %d:"
+msgstr "Sıradaki, %d. seviye için:"
+
+#: res://scripts/ui/main.gd
+msgid "Core level %d!"
+msgstr "Çekirdek %d. seviyede!"
+
+#: res://scripts/ui/main.gd
+msgid "Onward"
+msgstr "Devam"
 
 #: res://scripts/ui/main.gd
 msgid "Helped here: %s. %s"
@@ -543,10 +619,6 @@ msgstr "Isısı nereden geliyor"
 msgid "What changes it"
 msgstr "Bunu ne değiştirir"
 
-#: res://scripts/ui/main.gd res://scripts/core/economy.gd
-msgid "Heat"
-msgstr "Isı"
-
 #: res://scripts/ui/main.gd
 msgid "The rock at stratum %d"
 msgstr "%d. katmanın kayası"
@@ -614,10 +686,6 @@ msgstr "Yeniden normal çalıştır"
 #: res://scripts/ui/main.gd
 msgid "To reach level %d"
 msgstr "Seviye %d için"
-
-#: res://scripts/ui/main.gd
-msgid "It opens strata %d to %d, machine level %d and a store of %d."
-msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
 
 #: res://scripts/ui/main.gd
 msgid "And Overdrive: %d steps past its level for every machine type the Core before brought to its limit, paid in Ingots, Plates and research."
@@ -716,16 +784,20 @@ msgid "No machine beside the Core takes anything the store keeps. A Press, an As
 msgstr "Çekirdeğin yanında depodaki bir şeyi alan makine yok. Çekirdeğe değen bir Pres, Montajcı, Laboratuvar ya da Çerçeve Kalıbı bir Robot alabilir."
 
 #: res://scripts/ui/main.gd
+msgid "(%s kept for the Core)"
+msgstr "(%s Çekirdek için ayrılır)"
+
+#: res://scripts/ui/main.gd
 msgid "a Rig hauls it: %s"
 msgstr "bir Robot taşıyor: %s"
 
 #: res://scripts/ui/main.gd
-msgid "starved; the store holds: %s"
-msgstr "aç; depoda: %s"
+msgid "starved; the store can spare: %s"
+msgstr "aç; depodan verilebilir: %s"
 
 #: res://scripts/ui/main.gd
-msgid "the store holds: %s"
-msgstr "depoda: %s"
+msgid "the store can spare: %s"
+msgstr "depodan verilebilir: %s"
 
 #: res://scripts/ui/main.gd
 msgid "Call home"
@@ -776,16 +848,16 @@ msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes wal
 msgstr "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür."
 
 #: res://scripts/ui/main.gd
-msgid "needs %d · sending %d: strength %d, %s"
-msgstr "%d güç gerekir · %d gönderilirse: güç %d, %s"
-
-#: res://scripts/ui/main.gd
 msgid "pays %s credits, %s research, %d %s, %d salvage"
 msgstr "%s kredi, %s araştırma, %d %s, %d hurda öder"
 
 #: res://scripts/ui/main.gd
 msgid "Rigs out"
 msgstr "Robotlar dışarıda"
+
+#: res://scripts/ui/main.gd
+msgid "needs %d · sending %d: strength %d, %s, wear +%d%%"
+msgstr "%d güç gerekir · %d gönderilirse: güç %d, %s, aşınma +%%%d"
 
 #: res://scripts/ui/main.gd
 msgid "Send %d"
@@ -1908,10 +1980,6 @@ msgid "Logistics"
 msgstr "Lojistik"
 
 #: res://scripts/core/economy.gd
-msgid "Core"
-msgstr "Çekirdek"
-
-#: res://scripts/core/economy.gd
 msgid "Robotics"
 msgstr "Robotik"
 
@@ -2361,7 +2429,7 @@ msgstr "Yüzey"
 
 #: res://scripts/ui/main.gd
 msgid "The Workings"
-msgstr "Galeriler"
+msgstr "Maden Ocakları"
 
 #: res://scripts/ui/main.gd
 msgid "The Deep"

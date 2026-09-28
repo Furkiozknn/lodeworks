@@ -91,7 +91,7 @@ static func of(state: Object) -> Array:
 			if bool(state.call("can_post", cell)) and sim2.status_of(cell) == Simulation.Status.STARVED:
 				var held: bool = false
 				for res: int in (state.call("haul_inputs", cell) as Array):
-					held = held or int(state.call("stock_of", res)) > 0
+					held = held or int(state.call("haulable", res)) > 0
 				if held:
 					out.append({"kind": "post", "cell": cell})
 					break

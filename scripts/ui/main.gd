@@ -99,6 +99,9 @@ var _btn_heat: Button
 var _btn_zoom: Button
 ## "What now?": the Worklist, one tap away.
 var _btn_worklist: Button
+## The side menu's Core key's picture: the Core's stage now.
+var _rail_core_pic: TextureRect
+var _rail_core_file: String = ""
 ## Tiles an "extend" line pointed at, outlined until they are built on.
 var _work_hint: Array[int] = []
 var _btn_descend: Button
@@ -178,18 +181,16 @@ func _ready() -> void:
 	Sim.core_upgraded.connect(func(level: int):
 		Juice.upgrade()
 		iso_view.pulse_core()
+		iso_view.foreman_visit(-1, Foreman.Pose.JUMP, 5.0)
+		var words: String = Loc.t("The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d.") \
+			% [level, Sim.depth_cap(), Sim.machine_level_cap()]
 		if level == Operations.FIRST_SITE_CORE:
 			# The first gallery: the Foreman's Rig has somewhere to go.
-			_say(Loc.t("The first gallery past the yard is open. Send the Core's Rig in: it comes home with what the old workings held."),
-				Foreman.Pose.POINT, 7.0)
-			return
-		if level == MachineDB.RIG_CORE:
+			words = Loc.t("The first gallery past the yard is open. Send the Core's Rig in: it comes home with what the old workings held.")
+		elif level == MachineDB.RIG_CORE:
 			# The crew's first contact: what it is, and the one step to it.
-			_say(Loc.t("The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."),
-				Foreman.Pose.POINT, 7.0)
-			return
-		_say(Loc.t("The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d.")
-			% [level, Sim.depth_cap(), Sim.machine_level_cap()], Foreman.Pose.CHEER, 5.5))
+			words = Loc.t("The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries.")
+		_show_core_up(level, words))
 	Sim.contract_filled.connect(func(_i: int, paid: float, pays: String):
 		Juice.income()
 		_toast_msg(Loc.t("Contract filled: +%s credits") % Economy.fmt(paid) if pays == "credits"
@@ -773,6 +774,94 @@ func _show_stratum_info() -> void:
 	_open_overlay(Loc.t("Stratum %d") % Sim.depth, body, [])
 
 
+## The first stratum of each of the four bands (Palette.band_at).
+const BAND_FIRST := [0, 4, 10, 17]
+
+
+## The shaft's map (the side menu's Map): the four bands top to bottom, each
+## its own world -- its picture, its strata, the machines found there --
+## with the factory's place marked and how far the Core lets it go. The
+## pictures are the bands' own paintings, loaded while the map is open.
+func _show_map() -> void:
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	var here: int = int(Palette.band_at(Sim.depth)[0])
+	var worlds: Array = IsoArt.layout().get("worlds", [])
+	for b in range(4):
+		var first: int = int(BAND_FIRST[b])
+		var last: int = int(BAND_FIRST[b + 1]) - 1 if b < 3 else -1
+		var vein := Color(Palette.BAND_VEIN[b])
+		var card := PanelContainer.new()
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(Palette.PANEL_HI, 0.95) if b == here else Color(Palette.PANEL, 0.9)
+		sb.set_corner_radius_all(16)
+		sb.set_border_width_all(4 if b == here else 0)
+		sb.border_color = vein
+		sb.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", sb)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 14)
+		var pic := TextureRect.new()
+		if b < worlds.size() and ResourceLoader.exists(String(worlds[b])):
+			pic.texture = load(String(worlds[b]))
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.custom_minimum_size = Vector2(230, 128)
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if first > Sim.max_depth:
+			pic.modulate = Color(0.45, 0.45, 0.5)
+		row.add_child(pic)
+		var words := VBoxContainer.new()
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.add_theme_constant_override("separation", 2)
+		words.add_child(_label(Loc.t(BAND_NAMES[b]), 26, vein.lightened(0.2)))
+		words.add_child(_label(Loc.t("Strata %d-%d") % [first, last] if last >= 0
+			else Loc.t("Stratum %d and down") % first, TEXT_MIN, Palette.TEXT_DIM))
+		var state: String
+		var col: Color = Palette.TEXT
+		if b == here:
+			state = Loc.t("The factory is here, on stratum %d") % Sim.depth
+			col = Palette.CORE
+		elif first <= Sim.max_depth:
+			state = Loc.t("Reached")
+			col = Palette.TEXT_DIM
+		elif first <= Sim.depth_cap():
+			state = Loc.t("Open to the factory: Descend to reach it")
+		else:
+			state = Loc.t("The Core's level %d reaches it") % CoreLevels.level_for_depth(first)
+			col = Palette.TEXT_DIM
+		var st := _label(state, 20, col)
+		st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(st)
+		# The machines found in the band: shown once found, a lock until then.
+		var found := HBoxContainer.new()
+		found.add_theme_constant_override("separation", 4)
+		for id: String in MachineDB.ORDER:
+			var at: int = int(MachineDB.get_machine(id).get("unlock_depth", 0))
+			if at < first or (last >= 0 and at > last):
+				continue
+			if Sim.is_unlocked(id):
+				found.add_child(Chips.MachineSprite.new(id, 40.0))
+			else:
+				found.add_child(_icon_rect("lock", 34))
+		if found.get_child_count() > 0:
+			words.add_child(found)
+		row.add_child(words)
+		card.add_child(row)
+		body.add_child(card)
+	# The galleries under the yard: where the crew goes.
+	if Operations.slots(Sim.core_level) > 0:
+		var sites: int = 0
+		for i in range(Sim.ops_board.size()):
+			if Sim.site(i).has("kind"):
+				sites += 1
+		var gal := _label(Loc.t("The galleries: %d sites open, %d cleared in all") % [
+			sites, Sim.ops_lifetime], 20, Palette.TEXT_DIM)
+		gal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.add_child(gal)
+	_open_overlay(Loc.t("Map"), body, [], 820.0)
+
+
 ## What lies below: the next stratum before going down to it -- how far the
 ## quota is, its rules with the machines they will move, the machines it
 ## opens and the ground the yard gains. A tap on Descend before the quota
@@ -924,23 +1013,49 @@ func _build_resources() -> Control:
 	return row
 
 
+## The game's menu, down the right-hand side, as the reference games keep
+## theirs: a picture and a word a key -- the tasks, the Core, the crew and
+## their Bay, the sorties -- then the heat view and the problems. Two keys a
+## row: three rows fit the height a landscape phone with a notch and a
+## gesture bar leaves between the top panels and the Descend key
+## (tools/layout_check.tscn). The shaft's map is with Research, bottom left.
 func _build_tools() -> Control:
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	var col := GridContainer.new()
+	col.columns = 2
+	col.add_theme_constant_override("h_separation", 6)
+	col.add_theme_constant_override("v_separation", 6)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# What to do now, ranked (Worklist): first in the column, because after
+	# What to do now, ranked (Worklist): first on the menu, because after
 	# the tutorial it is the answer to the question the tutorial answered.
-	_btn_worklist = _button("", Palette.PANEL_HI)
-	_btn_worklist.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
-	var wl := Chips.Glyph.new("tasks", 60.0)
-	wl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_btn_worklist.add_child(wl)
+	_btn_worklist = _rail_key(Chips.Glyph.new("tasks", 46.0), Loc.t("Tasks"))
 	_btn_worklist.tooltip_text = Loc.t("What now?")
 	_btn_worklist.pressed.connect(func():
 		Juice.tap()
 		_show_worklist())
 	col.add_child(_btn_worklist)
+
+	# The Core as it stands now: its stage's picture (IsoView.core_info).
+	_rail_core_pic = _core_picture(46.0)
+	var core_key := _rail_key(_rail_core_pic, Loc.t("Core"))
+	core_key.pressed.connect(func():
+		Juice.tap()
+		_show_core())
+	col.add_child(core_key)
+
+	# The crew: the Rig Bay, where Rigs are posted to machines.
+	var crew_key := _rail_key(_sheet_picture("crew", "idle", 46.0), Loc.t("Crew"))
+	crew_key.pressed.connect(func():
+		Juice.tap()
+		_show_bay())
+	col.add_child(crew_key)
+
+	# The sorties: the galleries and their sites.
+	var sortie_key := _rail_key(_sheet_picture("galleries", "open", 46.0), Loc.t("Sorties"))
+	sortie_key.pressed.connect(func():
+		Juice.tap()
+		_show_galleries())
+	col.add_child(sortie_key)
 
 	_btn_heat = _button("", Palette.PANEL_HI)
 	_btn_heat.toggle_mode = true
@@ -952,10 +1067,9 @@ func _build_tools() -> Control:
 	_heat_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_heat_glow.modulate = Color(Palette.ST_HOT, 0.0)
 	_btn_heat.add_child(_heat_glow)
-	var hic := _icon_rect("heat", 46)
-	hic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var hic := _icon_rect("heat", 42)
 	_heat_icon = hic
-	_btn_heat.add_child(hic)
+	_btn_heat.add_child(_rail_face(hic, Loc.t("Heat")))
 	_btn_heat.tooltip_text = Loc.t("Heat view")
 	_btn_heat.toggled.connect(func(on: bool):
 		iso_view.set_overlay(IsoView.Overlay.HEAT if on else IsoView.Overlay.NONE)
@@ -995,9 +1109,7 @@ func _build_tools() -> Control:
 	_problem_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_problem_glow.modulate = Color(Palette.WARN, 0.0)
 	_btn_problems.add_child(_problem_glow)
-	var wic := _icon_rect("warning", 42)
-	wic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_btn_problems.add_child(wic)
+	_btn_problems.add_child(_rail_face(_icon_rect("warning", 40), Loc.t("Problems")))
 	_lbl_problem_count = _label("", 16, Palette.TEXT)
 	_lbl_problem_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_lbl_problem_count.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
@@ -1013,6 +1125,49 @@ func _build_tools() -> Control:
 	return col
 
 
+## A key of the side menu: `pic` over `caption`.
+func _rail_key(pic: Control, caption: String) -> Button:
+	var b := _button("", Palette.PANEL_HI)
+	b.custom_minimum_size = Vector2(TOOL_W, MIN_TOUCH)
+	b.add_child(_rail_face(pic, caption))
+	return b
+
+
+func _rail_face(pic: Control, caption: String) -> Control:
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.add_theme_constant_override("separation", 0)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(pic)
+	var l := _label(caption, TEXT_MIN, Palette.TEXT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_fit(l, TOOL_W - 8.0)
+	box.add_child(l)
+	return box
+
+
+## One frame of a sprite sheet in layout.json (the crew, the galleries), as
+## a picture `px` square.
+func _sheet_picture(key: String, frame: String, px: float) -> TextureRect:
+	var info: Dictionary = IsoArt.layout().get(key, {})
+	var t := TextureRect.new()
+	var k: int = (info.get("order", []) as Array).find(frame)
+	var tex: Texture2D = IsoArt.texture(String(info.get("file", "")))
+	if tex != null and k >= 0:
+		var a := AtlasTexture.new()
+		a.atlas = tex
+		a.region = IsoArt.region(info, k)
+		t.texture = a
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.custom_minimum_size = Vector2(px, px)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
+
 func _build_actions() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -1026,6 +1181,17 @@ func _build_actions() -> Control:
 	_research_badge = _count_badge(Palette.RESEARCH)
 	_research_badge.position = Vector2(ACTION_W - 26, -8)
 	_btn_research.add_child(_research_badge)
+	# The shaft's map: the four bands, where the factory is, what each holds.
+	var map_key := _icon_button("descend", Loc.t("Map"), Palette.PANEL_HI)
+	map_key.pressed.connect(func():
+		Juice.tap()
+		_show_map())
+	row.add_child(map_key)
+	# The shop, one tap from the board as in the reference games: the two
+	# one-time purchases (also in Settings).
+	var shop_key := _icon_button("shop", Loc.t("Shop"), Palette.PANEL_HI)
+	shop_key.pressed.connect(_open_shop)
+	row.add_child(shop_key)
 	_btn_collapse = _icon_button("cores", Loc.t("Collapse"), Palette.PANEL_HI)
 	_btn_collapse.pressed.connect(_show_collapse)
 	row.add_child(_btn_collapse)
@@ -1561,6 +1727,7 @@ func _on_cell_tapped(cell: int) -> void:
 		if Sim.try_place(cell, _armed):
 			Juice.place()
 			iso_view.pulse(cell)
+			iso_view.foreman_visit(cell, Foreman.Pose.POINT, 2.0)
 			_push_undo({"kind": "place", "cell": cell, "id": _armed,
 				"price": price})
 			_shown_credits = Sim.credits
@@ -1625,6 +1792,7 @@ func _on_unlocked(ids: Array) -> void:
 		return
 	_rebuild_palette()
 	Juice.unlock()
+	iso_view.foreman_visit(-1, Foreman.Pose.CHEER, 4.0)
 
 	# The new machines, big and working, each with what it makes and a "?"
 	# for the words. They are waiting in the tray.
@@ -1655,6 +1823,62 @@ func _on_unlocked(ids: Array) -> void:
 	badge.size_flags_vertical = Control.SIZE_SHRINK_END
 	row.add_child(badge)
 	_open_overlay(Loc.t("NEW!"), row, [])
+
+
+## The Core's new level, as the reward it is: the Core as it stands now
+## (a new stage at 4, 7 and 10), the Foreman's word, what the level opened,
+## and the first things the next one asks for -- each a tap that goes to do
+## it, so the card that celebrates is also the answer to "what now?".
+func _show_core_up(level: int, words: String) -> void:
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	body.set_meta("core_up", level)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 16)
+	top.add_child(_core_picture(170.0))
+	var said := VBoxContainer.new()
+	said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	said.add_theme_constant_override("separation", 6)
+	said.alignment = BoxContainer.ALIGNMENT_CENTER
+	if CoreLevels.era(level) != "":
+		said.add_child(_label(Loc.t(CoreLevels.era(level)), 28, Palette.CORE))
+	if level in [4, 7, 10]:
+		said.add_child(_label(Loc.t("The Core has grown: see it on the board."), 20, Palette.TEXT))
+	var w := _label(words, 20, Palette.TEXT_DIM)
+	w.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	said.add_child(w)
+	top.add_child(said)
+	var badge := Foreman.Badge.new(Foreman.Pose.CHEER, 110.0)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_END
+	top.add_child(badge)
+	body.add_child(top)
+	# What it opened: the same words the Core card used for it.
+	var o: Dictionary = CoreLevels.opens(level)
+	var opened := HBoxContainer.new()
+	opened.add_theme_constant_override("separation", 10)
+	opened.add_child(_icon_rect("descend", 40))
+	var ol := _label(Loc.t("It opens strata %d to %d, machine level %d and a store of %d.") % [
+		int(o["strata"][0]), int(o["strata"][1]), int(o["machine_cap"]), int(o["stock_cap"])],
+		TEXT_MIN, Palette.TEXT_DIM)
+	ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opened.add_child(ol)
+	for id: String in (o["machines"] as Array).slice(0, 3):
+		opened.add_child(Chips.MachineSprite.new(id, 40.0))
+	for _id: String in (o["research"] as Array).slice(0, 2):
+		opened.add_child(_icon_rect("research", 34))
+	body.add_child(opened)
+	# The next level: its first rows not met, each a tap.
+	var next: Array = []
+	for st: Dictionary in Sim.core_status():
+		if not bool(st["met"]):
+			next.append(st)
+	if not next.is_empty():
+		body.add_child(_label(Loc.t("Next, for level %d:") % (level + 1), 22, Palette.TEXT))
+		for st: Dictionary in next.slice(0, 3):
+			body.add_child(_core_req_row(st))
+	_open_overlay(Loc.t("Core level %d!") % level, body,
+		[{"text": Loc.t("Onward"), "color": Palette.CORE}], 900.0)
 
 
 ## A machine's "?": its name, what it makes and what it is for.
@@ -1730,6 +1954,14 @@ var _afford_shown: Dictionary = {}
 var _problem_level_shown: int = -1
 
 func _refresh() -> void:
+	# The side menu's Core: the picture of its stage.
+	if _rail_core_pic != null and iso_view != null:
+		var file: String = String(iso_view.core_info().get("file", ""))
+		if file != _rail_core_file:
+			_rail_core_file = file
+			var pic := _core_picture(46.0)
+			_rail_core_pic.texture = pic.texture
+			pic.free()
 	# The headline figure counts up rather than snapping. In a game whose
 	# whole feedback loop is a number going up, a number that jumps reads as
 	# a variable being assigned and a number that rolls reads as income.
@@ -2846,9 +3078,13 @@ func _post_row(cell: int, why: String) -> Control:
 	words.add_child(_label(MachineDB.job_name(id, job) if job != "" else MachineDB.name_of(id), 22, Palette.TEXT))
 	var hauls: Array[String] = []
 	for res: int in Sim.haul_inputs(cell):
-		hauls.append("%s %s" % [Loc.t(String(MachineDB.RES_NAME[res])), Economy.fmt(float(Sim.stock_of(res)))])
-	var state: String = Loc.t("a Rig hauls it: %s") if why == "posted" else (Loc.t("starved; the store holds: %s")
-		if Sim.sim.status_of(cell) == Simulation.Status.STARVED else Loc.t("the store holds: %s"))
+		var word: String = "%s %s" % [Loc.t(String(MachineDB.RES_NAME[res])), Economy.fmt(float(Sim.haulable(res)))]
+		if Sim.haul_floor(res) > 0:
+			# What the Core's next level asks the store for stays there.
+			word += " " + Loc.t("(%s kept for the Core)") % Economy.fmt(float(Sim.haul_floor(res)))
+		hauls.append(word)
+	var state: String = Loc.t("a Rig hauls it: %s") if why == "posted" else (Loc.t("starved; the store can spare: %s")
+		if Sim.sim.status_of(cell) == Simulation.Status.STARVED else Loc.t("the store can spare: %s"))
 	var line := _label(state % (", ".join(hauls) if not hauls.is_empty() else "-"), TEXT_MIN, Palette.TEXT_DIM)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(line)
@@ -2949,13 +3185,13 @@ func _site_row(i: int) -> Control:
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.add_theme_constant_override("separation", 0)
 	words.add_child(_label(Loc.t(String(kind["name"])), 22, Palette.TEXT))
+	# The team: as many Rigs as clear it, unless the player picks another
+	# number -- more come home less worn and burn more fuel; fewer leave
+	# Rigs at the Bay for a post or another site, and take a share.
 	var n: int = Sim.sortie_size(i)
-	var strength: float = Sim.crew_strength(maxi(n, 0))
-	var verdict: String = Operations.verdict(s, strength)
-	var vcol: Color = Palette.GOOD if verdict in ["trivial", "easy", "even"] else \
-		(Palette.WARN if verdict == "hard" else Palette.BAD)
-	var need := _label(Loc.t("needs %d · sending %d: strength %d, %s") % [int(ceil(float(s["left"]))), n,
-		int(round(strength)), _verdict_words(verdict)], TEXT_MIN, vcol)
+	if _sortie_pick.has(i):
+		n = clampi(int(_sortie_pick[i]), mini(1, Sim.rigs_home()), Sim.rigs_home())
+	var need := _label("", TEXT_MIN, Palette.TEXT)
 	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(need)
 	var r: Dictionary = Sim.site_reward(i)
@@ -2968,21 +3204,64 @@ func _site_row(i: int) -> Control:
 	if Sim.site_busy(i):
 		row.add_child(_label(Loc.t("Rigs out"), TEXT_MIN, Palette.CORE))
 		return row
-	var why: String = Sim.sortie_blocker(i, n)
-	var go := _button(Loc.t("Send %d") % n if n > 0 else Loc.t("Send"),
-		Palette.CORE if why == "" else Palette.PANEL)
-	go.custom_minimum_size = Vector2(130, MIN_TOUCH)
-	go.disabled = why != ""
+	var go := _button("", Palette.CORE)
+	go.custom_minimum_size = Vector2(150, MIN_TOUCH)
+	go.size_flags_horizontal = Control.SIZE_SHRINK_END
 	go.set_meta("send", i)
-	go.tooltip_text = Loc.t("Fuel: %d %s") % [Operations.fuel(maxi(n, 1), Sim.core_level),
-		Loc.t(String(MachineDB.RES_NAME[Operations.fuel_res(Sim.core_level)]))]
+	var fewer := _button("-", Palette.PANEL_HI)
+	var more := _button("+", Palette.PANEL_HI)
+	for k: Button in [fewer, more]:
+		k.custom_minimum_size = Vector2(64, MIN_TOUCH)
+		k.size_flags_horizontal = Control.SIZE_SHRINK_END
+		k.add_theme_font_size_override("font_size", 34)
+		k.add_theme_color_override("font_color", Palette.TEXT)
+	# The row as the team stands: strength against the site, the wear it
+	# brings home, the fuel it burns. (The team in a Dictionary: a lambda
+	# keeps its own copy of a plain local.)
+	var team := {"n": n}
+	var show := func() -> void:
+		var sent: int = int(team["n"])
+		var strength: float = Sim.crew_strength(maxi(sent, 0))
+		var verdict: String = Operations.verdict(s, strength)
+		var wear: float = float(Operations.resolve(s, strength)["wear"])
+		need.text = Loc.t("needs %d · sending %d: strength %d, %s, wear +%d%%") % [int(ceil(float(s["left"]))), sent,
+			int(round(strength)), _verdict_words(verdict), int(round(wear * 100.0))]
+		need.add_theme_color_override("font_color", Palette.GOOD if verdict in ["trivial", "easy", "even"]
+			else (Palette.WARN if verdict == "hard" else Palette.BAD))
+		var why: String = Sim.sortie_blocker(i, sent)
+		go.text = Loc.t("Send %d") % sent if sent > 0 else Loc.t("Send")
+		go.disabled = why != ""
+		go.tooltip_text = Loc.t("Fuel: %d %s") % [Operations.fuel(maxi(sent, 1), Sim.core_level),
+			Loc.t(String(MachineDB.RES_NAME[Operations.fuel_res(Sim.core_level)]))]
+		fewer.disabled = sent <= 1
+		more.disabled = sent >= Sim.rigs_home()
+	show.call()
+	fewer.pressed.connect(func():
+		team["n"] = maxi(int(team["n"]) - 1, 1)
+		_sortie_pick[i] = team["n"]
+		Juice.tap()
+		show.call())
+	more.pressed.connect(func():
+		team["n"] = mini(int(team["n"]) + 1, Sim.rigs_home())
+		_sortie_pick[i] = team["n"]
+		Juice.tap()
+		show.call())
 	go.pressed.connect(func():
-		if Sim.send_sortie(i, Sim.sortie_size(i)):
+		if Sim.send_sortie(i, int(team["n"])):
+			_sortie_pick.erase(i)
 			Juice.place()
 			_close_overlay()
 			_ops_reopen.call())
+	if Sim.rigs_home() > 1:
+		row.add_child(fewer)
+		row.add_child(more)
 	row.add_child(go)
 	return row
+
+
+## The team the player picked for a site, by the site's place on the board;
+## forgotten once it is sent.
+var _sortie_pick: Dictionary = {}
 
 
 ## A site's verdict against the crew, in words.
@@ -4195,7 +4474,7 @@ func _research_art(id: String, px: float, locked: bool) -> Control:
 
 ## The Factory Core's picture, for panels that talk about it.
 func _core_picture(px: float) -> TextureRect:
-	var info: Dictionary = IsoArt.layout().get("core", {})
+	var info: Dictionary = iso_view.core_info() if iso_view != null else IsoArt.layout().get("core", {})
 	var a := AtlasTexture.new()
 	a.atlas = IsoArt.texture(String(info.get("file", "")))
 	a.region = IsoArt.region(info, 0)

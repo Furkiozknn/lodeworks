@@ -607,7 +607,10 @@ func test_a_posted_rig_feeds_an_assay_bench_frames_from_the_store() -> void:
 	var bench: int = Grid.idx(19, 22)
 	Sim.grid.place(bench, "lab")
 	runner.check(Sim.set_job(bench, "assay"), "")
-	Sim.stock = {MachineDB.Res.FRAME: 200, MachineDB.Res.RIG: 1}
+	# Over what the Core's next level asks the store for, which a Rig leaves
+	# there (Sim.haul_floor).
+	var keep: int = Sim.haul_floor(MachineDB.Res.FRAME)
+	Sim.stock = {MachineDB.Res.FRAME: keep + 200, MachineDB.Res.RIG: 1}
 	Sim._recompute()
 	var r0: float = Sim.research
 	for _i in range(int(20.0 * Simulation.TICK_HZ)):
@@ -619,5 +622,6 @@ func test_a_posted_rig_feeds_an_assay_bench_frames_from_the_store() -> void:
 		Sim.research += float(Sim.sim.tick()["research"])
 		Sim.after_tick(Simulation.TICK_DT)
 	runner.gt(Sim.research, r0, "hauls it Frames, and it learns")
-	runner.lt(float(Sim.stock_of(MachineDB.Res.FRAME)), 200.0, "the Frames came out of the store")
+	runner.lt(float(Sim.stock_of(MachineDB.Res.FRAME)), float(keep + 200), "the Frames came out of the store")
+	runner.gte(float(Sim.stock_of(MachineDB.Res.FRAME)), float(keep), "none of the Core's row's")
 	_done()

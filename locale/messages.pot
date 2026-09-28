@@ -183,15 +183,15 @@ msgid "Stratum %d. The yard is bigger: more ground to build on."
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "The first gallery past the yard is open. Send the Core's Rig in: it comes home with what the old workings held."
 msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "The Core can keep a crew now. Set an Assembler to Rig Frame: its Rigs walk to the Core, and from there into the galleries."
-msgstr ""
-
-#: res://scripts/ui/main.gd
-msgid "The Core is level %d. The shaft can go down to stratum %d, and machines up to level %d."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -223,6 +223,38 @@ msgid "Undo"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Strata %d-%d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Stratum %d and down"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The factory is here, on stratum %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Reached"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Open to the factory: Descend to reach it"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Core's level %d reaches it"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The galleries: %d sites open, %d cleared in all"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Map"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "The yard grows to %d x %d."
 msgstr ""
 
@@ -243,7 +275,27 @@ msgid "+%s /s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Tasks"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "What now?"
+msgstr ""
+
+#: res://scripts/ui/main.gd res://scripts/core/economy.gd
+msgid "Core"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Crew"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Sorties"
+msgstr ""
+
+#: res://scripts/ui/main.gd res://scripts/core/economy.gd
+msgid "Heat"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -256,6 +308,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Problems"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Shop"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -296,6 +352,26 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "NEW!"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Core has grown: see it on the board."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "It opens strata %d to %d, machine level %d and a store of %d."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Next, for level %d:"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Core level %d!"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Onward"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -542,10 +618,6 @@ msgstr ""
 msgid "What changes it"
 msgstr ""
 
-#: res://scripts/ui/main.gd res://scripts/core/economy.gd
-msgid "Heat"
-msgstr ""
-
 #: res://scripts/ui/main.gd
 msgid "The rock at stratum %d"
 msgstr ""
@@ -612,10 +684,6 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "To reach level %d"
-msgstr ""
-
-#: res://scripts/ui/main.gd
-msgid "It opens strata %d to %d, machine level %d and a store of %d."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -715,15 +783,19 @@ msgid "No machine beside the Core takes anything the store keeps. A Press, an As
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "(%s kept for the Core)"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "a Rig hauls it: %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "starved; the store holds: %s"
+msgid "starved; the store can spare: %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "the store holds: %s"
+msgid "the store can spare: %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -775,15 +847,15 @@ msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes wal
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "needs %d · sending %d: strength %d, %s"
-msgstr ""
-
-#: res://scripts/ui/main.gd
 msgid "pays %s credits, %s research, %d %s, %d salvage"
 msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Rigs out"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "needs %d · sending %d: strength %d, %s, wear +%d%%"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1904,10 +1976,6 @@ msgstr ""
 
 #: res://scripts/core/economy.gd
 msgid "Logistics"
-msgstr ""
-
-#: res://scripts/core/economy.gd
-msgid "Core"
 msgstr ""
 
 #: res://scripts/core/economy.gd

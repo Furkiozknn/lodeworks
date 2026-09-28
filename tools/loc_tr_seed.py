@@ -401,7 +401,7 @@ TR = {
     "Depth multiplies what every machine yields and raises the ambient heat of the whole board. Some strata stop heat spreading, some collapse a third of the grid, some double what Amplifiers do. The board that was right up there is rarely right down here. Hold Descend to see the next one first; arrows on the tray show what it does.":
         "Derinlik her makinenin verimini artırır ve bütün tahtanın ortam ısısını yükseltir. Bazı katmanlar ısının yayılmasını durdurur, bazıları ızgaranın bir kısmını çökertir, bazıları Güçlendiricileri ikiye katlar. Yukarıda doğru olan tahta aşağıda nadiren doğrudur. Sonrakini önce görmek için İn tuşunu basılı tut; tepsideki oklar ne yaptığını gösterir.",
     "The Surface": "Yüzey",
-    "The Workings": "Galeriler",
+    "The Workings": "Maden Ocakları",
     "The Deep": "Derinlik",
     "The Abyss": "Uçurum",
     "Game": "Oyun",
@@ -637,8 +637,9 @@ TR = {
     "No machine beside the Core takes anything the store keeps. A Press, an Assembler, a Lab or a Frame Jig touching the Core can have a Rig.":
         "Çekirdeğin yanında depodaki bir şeyi alan makine yok. Çekirdeğe değen bir Pres, Montajcı, Laboratuvar ya da Çerçeve Kalıbı bir Robot alabilir.",
     "a Rig hauls it: %s": "bir Robot taşıyor: %s",
-    "starved; the store holds: %s": "aç; depoda: %s",
-    "the store holds: %s": "depoda: %s",
+    "starved; the store can spare: %s": "aç; depodan verilebilir: %s",
+    "the store can spare: %s": "depodan verilebilir: %s",
+    "(%s kept for the Core)": "(%s Çekirdek için ayrılır)",
     "Call home": "Geri çağır",
     "Post a Rig": "Robot görevlendir",
     "Post a Rig to the %s": "%s için bir Robot görevlendir",
@@ -649,7 +650,7 @@ TR = {
     "Repair: %d Plates": "Onar: %d Levha",
     "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes walks to the Core.":
         "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür.",
-    "needs %d · sending %d: strength %d, %s": "%d güç gerekir · %d gönderilirse: güç %d, %s",
+    "needs %d · sending %d: strength %d, %s, wear +%d%%": "%d güç gerekir · %d gönderilirse: güç %d, %s, aşınma +%%%d",
     "pays %s credits, %s research, %d %s, %d salvage": "%s kredi, %s araştırma, %d %s, %d hurda öder",
     "Salvage: %d -- it buys the Rig Bay's levels, and Salvaged Gearing and Rig Plating in Research":
         "Hurda: %d -- Robot Garajı'nın seviyelerini, Araştırma'da Hurda Dişliler ve Robot Zırhı'nı alır",
@@ -733,6 +734,22 @@ TR = {
     "%d would run cold": "%d soğuk kalır",
     "Job: %s (%s). %s %s": "İş: %s (%s). %s %s",
     "Set it to %s: that job takes up to %.1f": "%s işine geçir: o iş %.1f ısıya dayanır",
+    "Tasks": "Görevler",
+    "Shop": "Mağaza",
+    "Core level %d!": "Çekirdek %d. seviyede!",
+    "The Core has grown: see it on the board.": "Çekirdek büyüdü: sahada bak.",
+    "Next, for level %d:": "Sıradaki, %d. seviye için:",
+    "Onward": "Devam",
+    "Crew": "Robotlar",
+    "Sorties": "Seferler",
+    "Map": "Harita",
+    "Strata %d-%d": "Katman %d-%d",
+    "Stratum %d and down": "Katman %d ve altı",
+    "The factory is here, on stratum %d": "Fabrika burada, %d. katmanda",
+    "Reached": "Ulaşıldı",
+    "Open to the factory: Descend to reach it": "Fabrikaya açık: ulaşmak için derine in",
+    "The Core's level %d reaches it": "Çekirdek %d. seviyede ulaşır",
+    "The galleries: %d sites open, %d cleared in all": "Galeriler: %d alan açık, toplam %d temizlendi",
 }
 
 

@@ -148,6 +148,7 @@ func new_shaft() -> void:
 	_dropped.clear()
 	_bare.clear()
 	_touched.clear()
+	_fed_at.clear()
 	_stuck_since.clear()
 	_line.clear()
 	_history.clear()
@@ -348,8 +349,10 @@ func _operations() -> void:
 	if (S.rig_wear >= 0.3 or stuck) and S.can_repair() and (plates >= S.repair_cost() or cheap):
 		S.repair_rigs()
 		_event("repair", "first Rigs repaired")
-	# From Core 7, fuel the Core's rows do not keep, as for repairs: a
-	# sortie there burns a hundred or more.
+	# Fuel the Core's rows do not keep, as for repairs, unless the Core asks
+	# for sites (measured: from Core 5 the sorties burnt the Ingots the Core 6
+	# row asks for as fast as the starved Smelters made them, and the row
+	# stood below its 8,000 for four hours).
 	var fuel_res: int = Operations.fuel_res(S.core_level)
 	var ingots: int = S.stock_of(fuel_res) - int(keep.get(fuel_res, 0))
 	var kept_past_store: bool = int(keep.get(fuel_res, 0)) > S.stock_cap()
@@ -358,8 +361,7 @@ func _operations() -> void:
 		var n: int = S.sortie_size(i)
 		if n <= 0 or not S.can_send(i, n):
 			continue
-		if S.core_level >= MachineDB.OVERDRIVE_CORE and ingots < Operations.fuel(n, S.core_level) \
-				and not kept_past_store:
+		if not asked and ingots < Operations.fuel(n, S.core_level) and not kept_past_store:
 			continue
 		if S.crew_strength(n) >= float(S.site(i)["left"]):
 			S.send_sortie(i, n)
@@ -373,7 +375,8 @@ func _operations() -> void:
 	# takes (measured: three sites of 114 against a crew of 80 froze the
 	# galleries for seven hours; a sortie of 80 takes 70% of one).
 	if weakest >= 0 and S.rigs_out() == 0 and (asked
-			or S.crew_strength(S.sortie_size(weakest)) * 3.0 >= float(S.site(weakest)["left"])):
+			or S.crew_strength(S.sortie_size(weakest)) * 3.0 >= float(S.site(weakest)["left"])
+			and (ingots >= Operations.fuel(S.sortie_size(weakest), S.core_level) or kept_past_store)):
 		S.send_sortie(weakest, S.sortie_size(weakest))
 
 
@@ -391,10 +394,25 @@ func _posting() -> void:
 	var wanted: Array[int] = _post_candidates()
 	if wanted.is_empty():
 		return
+	# A machine a Core row waits on first (measured: every dock of the Bay
+	# fed Presses while four of five Assay Benches beside the Core starved,
+	# and the Core 10 row stood at one of four).
+	var rows: Array = _row_machines()
+	wanted.sort_custom(func(a: int, b: int) -> bool: return _in_rows(a, rows) and not _in_rows(b, rows))
 	if S.rigs_posted() >= S.bay_posts():
 		if S.bay_blocker() == "":
 			S.upgrade_bay()
 			_event("bay%d" % S.bay_level, "Rig Bay level %d" % S.bay_level)
+			return
+		# Every dock in use and the Bay at its height: a Rig posted to a
+		# machine no row asks for is called home for one a row does.
+		if _in_rows(wanted[0], rows):
+			for cell: int in S.posts.keys():
+				if not _in_rows(cell, rows):
+					S.recall_rig(cell)
+					S.post_rig(wanted[0])
+					_event("repost", "first Rig called home for a Core row's machine")
+					return
 		return
 	var keep: int = 0 if _rows_wait_on_posts() else 2
 	if S.rigs_home() > keep and S.post_rig(wanted[0]):
@@ -413,10 +431,27 @@ func _post_candidates() -> Array[int]:
 		if b != "" and b != "rigs" and b != "bay":
 			continue
 		for res: int in S.haul_inputs(cell):
-			if S.stock_of(res) > 0:
+			if S.haulable(res) > 0:
 				out.append(cell)
 				break
 	return out
+
+
+## The machines open rows of the Core ask to be at work: [[id, job], ...].
+func _row_machines() -> Array:
+	var out: Array = []
+	for st: Dictionary in S.core_status():
+		var r: Array = st["req"]
+		if int(r[0]) == CoreLevels.Req.WORKING and not bool(st["met"]):
+			out.append([String(r[1]), CoreLevels.row_job(r)])
+	return out
+
+
+func _in_rows(cell: int, rows: Array) -> bool:
+	for r: Array in rows:
+		if S.grid.machine_at(cell) == String(r[0]) and S.grid.job_at(cell) == String(r[1]):
+			return true
+	return false
 
 
 ## Does an open row of the Core ask for machines on a job the store feeds?
@@ -436,7 +471,7 @@ func _store_feeds(id: String, job: String) -> bool:
 	if ins.is_empty():
 		return false
 	for res: int in ins:
-		if not MachineDB.STOCKED.has(res) or S.stock_of(res) < 100:
+		if not MachineDB.STOCKED.has(res) or S.haulable(res) < 100:
 			return false
 	return true
 
@@ -1028,11 +1063,13 @@ var _dropped_depth: int = -1
 ## A tile beside `cell` to build on: a free one, or else one standing a
 ## machine the player built for income alone (not a plan's, not a support
 ## machine, not one touching the Core), sold to make room. -1 when none.
-func _room_near(cell: int) -> int:
+func _room_near(cell: int, for_id: String = "") -> int:
 	var free: Array[int] = _free_near(cell, false)
 	if not free.is_empty():
 		return free[0]
 	for n: int in S.grid.neighbours(cell):
+		if S.grid.machine_at(n) == for_id:
+			continue
 		if _income_only(n) and not S.sim.core_touching().has(n):
 			S.sell(n)
 			return n
@@ -1083,12 +1120,17 @@ func _free(cell: int) -> bool:
 		# now (`_cool_if_needed`), so the tile can be tried again -- but not
 		# at once, or a repair lays again what was just cleared away.
 		return t - float(_bare.get(cell, -1.0e9)) > FORGET and t - float(_scrapped.get(cell, -1.0e9)) > FORGET
-	return not _bare.has(cell)
+	# Before it, a tile left bare is left for FORGET_EARLY: the rock under
+	# the next stratum is another rock (measured: kept bare for good, 67
+	# tiles sold for heat in the Core 5 era left no room beside a Duplicator
+	# and the row stood at two of three for hours).
+	return t - float(_bare.get(cell, -1.0e9)) > FORGET_EARLY
 
 
 ## Tiles a machine was scrapped from (`_tidy`), and when.
 var _scrapped: Dictionary = {}
 const FORGET := 1800.0
+const FORGET_EARLY := 3600.0
 
 
 func _free_near(cell: int, away_from_core: bool) -> Array[int]:
@@ -1108,10 +1150,11 @@ func _core_feeders(res: int) -> int:
 	var n: int = 0
 	for cell: int in S.sim.core_touching():
 		if (S.sim.machine_of(cell).get("outputs", {}) as Dictionary).has(res):
-			# From Core 7 a feeder that has been starved most of the time is
-			# not one: its line behind it has gone.
-			if S.core_level >= MachineDB.OVERDRIVE_CORE and S.sim.uptime_of(cell) < 0.2 \
-					and S.sim.status_of(cell) == Simulation.Status.STARVED:
+			# A feeder that has been starved most of the time is not one: its
+			# line behind it has gone (measured: on stratum 12 the Crushers
+			# behind the Core 5 factory's Smelters overheated and were sold,
+			# and the Smelters beside the Core, starved, still counted).
+			if S.sim.uptime_of(cell) < 0.2 and S.sim.status_of(cell) == Simulation.Status.STARVED:
 				continue
 			n += 1
 	return n
@@ -1184,6 +1227,12 @@ func _feed_core(res: int) -> bool:
 			var outs: Dictionary = S.sim.machine_of(cell).get("outputs", {})
 			if outs.is_empty() or S.grid.machine_at(cell) == "vault":
 				continue
+			# One this laid is given the time to start (measured: an
+			# Assembler laid here was read as starved before its first
+			# cycle and sold on the next beat, 120 times in five minutes,
+			# and the Core 8 stability row stood at 0 for hours).
+			if t - float(_fed_at.get(cell, -1.0e9)) < SETTLE:
+				continue
 			var keep: bool = false
 			for o: int in outs:
 				keep = keep or wanted.has(o)
@@ -1196,7 +1245,12 @@ func _feed_core(res: int) -> bool:
 				break
 	if best < 0:
 		return false
+	_fed_at[best] = t
 	return _chain(maker, best, 0, String(mk[1]))
+
+
+## Tiles beside the Core `_feed_core` laid a maker on, and when.
+var _fed_at: Dictionary = {}
 
 
 ## The materials the Core's next level wants in its store: its store rows
@@ -1371,7 +1425,13 @@ func _repair() -> void:
 		if S.sim.status_of(cell) == Simulation.Status.BLOCKED:
 			if not _worth(S.cost_of("vault")) or S.grid.machine_at(cell) == "drill":
 				continue
-			var out: int = _room_near(cell)
+			# Like a starved one: given the time to show what the last
+			# answer did (measured: a Vault sold every few seconds for a new
+			# one beside the same machine, 55 in five minutes).
+			if t - float(_touched.get(cell, -1.0e9)) < SETTLE:
+				continue
+			_touched[cell] = t
+			var out: int = _room_near(cell, "vault")
 			if out >= 0 and S.try_place(out, "vault"):
 				return
 			continue
@@ -1583,6 +1643,11 @@ func _income_only(cell: int) -> bool:
 	_line.erase(cell)
 	if not S.grid.machine_at(cell) in ["drill", "vault", "crusher"] or _reserved(cell):
 		return false
+	# What a Duplicator or an Amplifier serves is what it was placed for
+	# (measured: Drills beside the Core 6 row's Duplicators sold one by one
+	# for Vaults, until none served three and the row stood for hours).
+	if _serves_support(cell):
+		return false
 	# From Core 7, when the plans' tiles are no longer kept: a Drill or a
 	# Crusher that feeds a maker is part of a line, not built for income.
 	if S.core_level >= MachineDB.OVERDRIVE_CORE and S.grid.machine_at(cell) != "vault":
@@ -1592,6 +1657,16 @@ func _income_only(cell: int) -> bool:
 				if (nm.get("inputs", {}) as Dictionary).has(res) and not (nm.get("tags", []) as Array).has("sink"):
 					return false
 	return true
+
+
+## Does a support machine that multiplies (a Duplicator, an Amplifier)
+## stand beside `cell`?
+func _serves_support(cell: int) -> bool:
+	for n: int in S.grid.neighbours(cell):
+		var m: Dictionary = MachineDB.get_machine(S.grid.machine_at(n))
+		if m.has("amplify") or m.has("duplicate_chance"):
+			return true
+	return false
 
 
 ## Tiles the player laid as part of a line (`_chain`): not income-only, so
@@ -1647,7 +1722,7 @@ func _fix_heat_of(id: String) -> bool:
 func _unblock(id: String) -> bool:
 	for cell: int in S.grid.cells:
 		if S.grid.machine_at(cell) == id and S.sim.status_of(cell) == Simulation.Status.BLOCKED:
-			var spot: int = _room_near(cell)
+			var spot: int = _room_near(cell, "vault")
 			if spot >= 0 and S.try_place(spot, "vault"):
 				return true
 	return false
@@ -1736,6 +1811,11 @@ func _place_support(id: String, need: int) -> void:
 			S.sell(cell)
 			S.try_place(cell, id)
 			return
+	# No tile serves enough: the best free one, and Drills laid round it
+	# until it would, on tiles where they run cool enough -- what a player
+	# does who has read the row.
+	if id != "condenser" and _lay_support(id, need):
+		return
 	# From the Core's level KEEP_FROM: a Condenser in a Coolant Cell's place
 	# among the machines it cools (it cools harder, and speeds them).
 	if id != "condenser" or S.core_level < KEEP_FROM:
@@ -1746,6 +1826,35 @@ func _place_support(id: String, need: int) -> void:
 			if S.try_place(cell, id):
 				_dropped[cell] = true
 			return
+
+
+## A support machine `id` on the free tile beside the most machines, with
+## Drills on its free neighbours until it serves `need`. False when no tile
+## has room for that.
+func _lay_support(id: String, need: int) -> bool:
+	var best: int = -1
+	var best_n: int = -1
+	for cell: int in BuildArea.cells(S.max_depth):
+		if not _free(cell) or S.sim.core_touching().has(cell):
+			continue
+		var have: int = S.grid.serves_if_placed(cell)
+		var room: int = 0
+		for n: int in _free_near(cell, true):
+			if _heat_safe(n, "drill"):
+				room += 1
+		if have + room >= need and have > best_n:
+			best = cell
+			best_n = have
+	if best < 0:
+		return false
+	for n: int in _free_near(best, true):
+		if S.grid.serves_if_placed(best) >= need:
+			break
+		if _heat_safe(n, "drill") and S.can_afford("drill"):
+			S.try_place(n, "drill")
+	if S.grid.serves_if_placed(best) < need or not S.can_afford(id):
+		return false
+	return S.try_place(best, id)
 
 
 ## What "What now?" names, off the Core's kept sides.

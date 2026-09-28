@@ -431,6 +431,35 @@ func test_a_posted_rig_hauls_from_the_store_into_a_machine_beside_the_core() -> 
 	_done()
 
 
+func test_a_posted_rig_leaves_the_store_what_the_core_asks_for() -> void:
+	_fresh()
+	Sim.core_level = 5
+	var floor_: int = Sim.haul_floor(INGOT)
+	runner.gt(float(floor_), 0.0, "the Core's level 6 asks the store for Ingots")
+	runner.eq(Sim.haul_floor(MachineDB.Res.ALLOY), 0, "and for no Alloy")
+	var press: int = Grid.idx(19, 22)
+	Sim.grid.place(press, "press")
+	Sim.grid.place(Grid.idx(19, 23), "vault")
+	Sim.stock = {RIG: 2, INGOT: floor_}
+	Sim._recompute()
+	for _i in range(int(2.0 * Simulation.TICK_HZ)):
+		Sim.sim.tick()
+		Sim.after_tick(Simulation.TICK_DT)
+	var posts := func() -> int:
+		return Worklist.of(Sim).filter(func(e: Dictionary) -> bool: return String(e["kind"]) == "post").size()
+	runner.eq(int(posts.call()), 0, "a starved Press, but What now? points no Rig at what the store must keep")
+	Sim.stock[INGOT] = floor_ + 3
+	runner.eq(Sim.haulable(INGOT), 3, "what is over the row may be hauled")
+	runner.eq(int(posts.call()), 1, "and What now? says so")
+	runner.check(Sim.post_rig(press), "")
+	for _i in range(int(10.0 * Simulation.TICK_HZ)):
+		Sim.sim.tick()
+		Sim.after_tick(Simulation.TICK_DT)
+	runner.eq(Sim.stock_of(INGOT), floor_, "the Rig hauls the three, and leaves the row's Ingots")
+	runner.eq(Sim.haulable(INGOT), 0, "")
+	_done()
+
+
 func test_the_bay_grows_on_salvage_and_credits_under_the_core() -> void:
 	_fresh()
 	runner.eq(Sim.bay_level, 1, "")

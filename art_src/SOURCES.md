@@ -33,6 +33,13 @@ Every image the game ships is built from one of these raw generations. The raw f
 | `r4_tiles_surface.png` | `39cef536-00cf-4254-969b-a6b4b62c629c` | 2026-09-26 15:11 UTC | gpt_image_2_5 / flare | high, 2k | `5db56fbc` | `assets/art/tiles/floor_surface.jpg` |
 | `r4_tiles_deep.png` | `c72d791a-2f15-4715-8a41-741819418841` | 2026-09-26 15:11 UTC | gpt_image_2_5 / flare | high, 2k | `5db56fbc` | `assets/art/tiles/floor_deep.jpg` |
 | `r4_tiles_abyss.png` | `edc1f57b-6490-49b6-8cd3-0e070afcdece` | 2026-09-26 15:11 UTC | gpt_image_2_5 / flare | high, 2k | `5db56fbc` | `assets/art/tiles/floor_abyss.jpg` |
+| `r5_core_t1.png` | `fff03af9-b637-4303-a11b-34397bd335d7` | 2026-09-26 17:08 UTC | gpt_image_2_5 / flare | high, 2k | `6e25a242` | `assets/art/world/core_t1.webp` |
+| `r5_core_t3.png` | `e8b3a6ee-f6f7-4184-bb8b-571b40100069` | 2026-09-26 17:08 UTC | gpt_image_2_5 / flare | high, 2k | `6e25a242` | `assets/art/world/core_t3.webp` |
+| `r5_core_t4.png` | `81f76587-8351-4730-855a-7a8e4e99f915` | 2026-09-26 17:08 UTC | gpt_image_2_5 / flare | high, 2k | `6e25a242` | `assets/art/world/core_t4.webp` |
+| `r5_land_surface.png` | `ba71ed5f-ded1-4f69-841c-76c19e461f58` | 2026-09-26 17:09 UTC | gpt_image_2_5 / flare | high, 2k | `39cef536` | `assets/art/tiles/land_surface.jpg` |
+| `r5_land_workings.png` | `10024d3a-0a3e-49a8-b495-9233d7b44cb9` | 2026-09-26 17:09 UTC | gpt_image_2_5 / flare | high, 2k | `5db56fbc` | `assets/art/tiles/land_workings.jpg` |
+| `r5_land_deep.png` | `acb0ca1d-6991-4849-978f-0cff407b0887` | 2026-09-26 17:09 UTC | gpt_image_2_5 / flare | high, 2k | `c72d791a` | `assets/art/tiles/land_deep.jpg` |
+| `r5_land_abyss.png` | `7ead8059-6077-4436-824b-e0375321b744` | 2026-09-26 17:09 UTC | gpt_image_2_5 / flare | high, 2k | `edc1f57b` | `assets/art/tiles/land_abyss.jpg` |
 
 ## Prompts
 
@@ -251,3 +258,59 @@ Every image the game ships is built from one of these raw generations. The raw f
 - url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_151137_edc1f57b-6490-49b6-8cd3-0e070afcdece.png
 
 > Texture sheet for a mobile game factory floor, in EXACTLY the layout, size, framing and painted style of the attached sheet: 8 square floor tile textures in a 4 columns x 2 rows grid, each a perfect square seen EXACTLY from straight above (orthographic top-down, no perspective, no visible sides), all the same size, separated by thin black gaps, on a black background. This version is THE ABYSS, a crystal realm: each square is one chunky slab of dark navy-violet stone with soft bevelled edges, a lighter top-left edge and darker bottom-right edge, fine veins glowing faintly violet and cyan. Row 1: four plain variations with a few thin glowing veins. Row 2: one with a brass plate inlaid with a small violet rune-like circle, one with an iron grate over a soft cyan glow, one with a small cluster of glowing purple crystals, one cracked with violet light in the cracks. Stylized painted game texture, cool violet light, readable and not too busy, no text.
+
+### r5_core_t1.png
+
+- job `fff03af9-b637-4303-a11b-34397bd335d7`, 2026-09-26 17:08 UTC, gpt_image_2_5 / flare, high, 2k, aspect 1:1, background transparent
+- session: Claude Code, 26 Sep 2026 (the Core that grows)
+- url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_170837_fff03af9-b637-4303-a11b-34397bd335d7.png
+
+> One game asset on a fully transparent background: an EARLIER, SMALLER stage of the Factory Core in the attached image, for the mobile game LODEWORKS. Keep EXACTLY the same art style, materials, warm upper-left light, TRUE ISOMETRIC camera and the SAME big square base plate of dark riveted metal with brass corner caps (the same size and shape, a flat diamond twice as wide as deep) as the attached Core. On the plate, a modest young version of the Core: a short squat brass and iron furnace-drum only about half as tall as the attached tower, a small glowing cyan crystal set in its top in a simple bracket, a few rivets and two short pipes, some wooden crates and a toolbox on the plate, scaffolding poles on one side as if it is still being built. Humble but clearly the same machine, readable silhouette. Centred, nothing cut off, no text, no floor, no ground shadow.
+
+### r5_core_t3.png
+
+- job `e8b3a6ee-f6f7-4184-bb8b-571b40100069`, 2026-09-26 17:08 UTC, gpt_image_2_5 / flare, high, 2k, aspect 1:1, background transparent
+- session: Claude Code, 26 Sep 2026 (the Core that grows)
+- url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_170839_e8b3a6ee-f6f7-4184-bb8b-571b40100069.png
+
+> One game asset on a fully transparent background: a LATER, GREATER stage of the Factory Core in the attached image, for the mobile game LODEWORKS. Keep EXACTLY the same art style, materials, warm upper-left light, TRUE ISOMETRIC camera and the SAME big square base plate of dark riveted metal with brass corner caps (the same size and shape, a flat diamond twice as wide as deep) as the attached Core. On the plate, the Core grown up: a taller tower, about a third taller than the attached one, with two heavy brass energy rings orbiting its upper half, four slim pylons at the corners of the plate joined to the tower by glowing cyan cables, a larger faceted cyan-and-violet crystal floating above the top in an ornate cage, more glowing windows and heat vents, bright energy crackling between the pylons. Proud landmark silhouette, taller than wide. Centred, nothing cut off, no text, no floor, no ground shadow.
+
+### r5_core_t4.png
+
+- job `81f76587-8351-4730-855a-7a8e4e99f915`, 2026-09-26 17:08 UTC, gpt_image_2_5 / flare, high, 2k, aspect 1:1, background transparent
+- session: Claude Code, 26 Sep 2026 (the Core that grows)
+- url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_170842_81f76587-8351-4730-855a-7a8e4e99f915.png
+
+> One game asset on a fully transparent background: the GRANDEST, FINAL stage of the Factory Core in the attached image, for the mobile game LODEWORKS. Keep EXACTLY the same art style, materials, warm upper-left light, TRUE ISOMETRIC camera and the SAME big square base plate of dark riveted metal with brass corner caps (the same size and shape, a flat diamond twice as wide as deep) as the attached Core. On the plate, a magnificent citadel of a Core: a tall central spire of brass, gold and dark iron, half again as tall as the attached tower, ringed by three counter-rotating golden energy rings, with four smaller satellite towers at the plate's corners linked to it by arcing cyan and violet energy beams, a huge radiant crystal of cyan, gold and violet hovering above the spire and throwing a column of light upward, glowing runes on the plate, steam and sparks. Awe-inspiring landmark silhouette, taller than wide. Centred, nothing cut off, no text, no floor, no ground shadow.
+
+### r5_land_surface.png
+
+- job `ba71ed5f-ded1-4f69-841c-76c19e461f58`, 2026-09-26 17:09 UTC, gpt_image_2_5 / flare, high, 2k, aspect 1:1, background default
+- session: Claude Code, 26 Sep 2026 (the land beyond the yard)
+- url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_170904_ba71ed5f-ded1-4f69-841c-76c19e461f58.png
+
+> A SEAMLESS TILEABLE ground texture seen EXACTLY from straight above (orthographic top-down, no perspective, no horizon), filling the whole square edge to edge, for the natural ground around a factory in a stylized mobile game, in the painted style and colours of the attached sheet: THE SURFACE in warm daylight -- a meadow of short lush green grass with patches of sandy brown earth, scattered pebbles and small grey stones, a few tiny wildflowers, gentle painted shading. Natural and organic: NO tiles, NO grid, NO squares, NO borders, no objects that would repeat noticeably, no text. The left edge must continue seamlessly into the right edge and the top into the bottom.
+
+### r5_land_workings.png
+
+- job `10024d3a-0a3e-49a8-b495-9233d7b44cb9`, 2026-09-26 17:09 UTC, gpt_image_2_5 / flare, high, 2k, aspect 1:1, background default
+- session: Claude Code, 26 Sep 2026 (the land beyond the yard)
+- url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_171204_10024d3a-0a3e-49a8-b495-9233d7b44cb9.png
+
+> A SEAMLESS TILEABLE ground texture seen EXACTLY from straight above (orthographic top-down, no perspective, no horizon), filling the whole square edge to edge, for the natural ground around a factory in a stylized mobile game, in the painted style and colours of the attached sheet: THE WORKINGS of an old mine lit by lamps -- rough warm grey-brown rock floor with gravel, dusty packed earth, small rocks, faint cart ruts and a few scattered tiny ore glints, gentle painted shading. Natural and organic: NO tiles, NO grid, NO squares, NO borders, no objects that would repeat noticeably, no text. The left edge must continue seamlessly into the right edge and the top into the bottom.
+
+### r5_land_deep.png
+
+- job `acb0ca1d-6991-4849-978f-0cff407b0887`, 2026-09-26 17:09 UTC, gpt_image_2_5 / flare, high, 2k, aspect 1:1, background default
+- session: Claude Code, 26 Sep 2026 (the land beyond the yard)
+- url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_170913_acb0ca1d-6991-4849-978f-0cff407b0887.png
+
+> A SEAMLESS TILEABLE ground texture seen EXACTLY from straight above (orthographic top-down, no perspective, no horizon), filling the whole square edge to edge, for the natural ground around a factory in a stylized mobile game, in the painted style and colours of the attached sheet: THE DEEP, a volcanic cavern floor -- dark charcoal basalt and cooled black lava rock in natural flows, with thin cracks glowing orange, a few small pools of glowing lava, scattered ash and obsidian pebbles, gentle painted shading. Natural and organic: NO tiles, NO grid, NO squares, NO borders, no objects that would repeat noticeably, no text. The left edge must continue seamlessly into the right edge and the top into the bottom.
+
+### r5_land_abyss.png
+
+- job `7ead8059-6077-4436-824b-e0375321b744`, 2026-09-26 17:09 UTC, gpt_image_2_5 / flare, high, 2k, aspect 1:1, background default
+- session: Claude Code, 26 Sep 2026 (the land beyond the yard)
+- url: https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260926_171214_7ead8059-6077-4436-824b-e0375321b744.png
+
+> A SEAMLESS TILEABLE ground texture seen EXACTLY from straight above (orthographic top-down, no perspective, no horizon), filling the whole square edge to edge, for the natural ground around a factory in a stylized mobile game, in the painted style and colours of the attached sheet: THE ABYSS, a crystal realm floor -- dark navy and violet stone in natural shapes, veins glowing faintly violet and cyan, small clusters of tiny purple crystals, patches of glowing blue moss, gentle painted shading. Natural and organic: NO tiles, NO grid, NO squares, NO borders, no objects that would repeat noticeably, no text. The left edge must continue seamlessly into the right edge and the top into the bottom.

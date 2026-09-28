@@ -473,6 +473,13 @@ def main():
     print("wrote", lp)
 
 
+def build_land(im, band):
+    """One band's land: a seamless ground picture, 1024 pixels square."""
+    im = im.convert("RGB").resize((1024, 1024), Image.LANCZOS)
+    im.save(os.path.join(OUT, "tiles", "land_%s.jpg" % band), "JPEG", quality=86, optimize=True)
+    return "res://assets/art/tiles/land_%s.jpg" % band
+
+
 def build_band_worlds(src):
     """A painting for each band of the shaft -- the Surface, the Workings
     (the world painting, `build_world`), the Deep and the Abyss -- the same
@@ -493,6 +500,14 @@ def build_band_worlds(src):
 # the crew's Bay: sheets built on their own (--only), or with the rest.
 SPRITE_SHEETS = {
     "worlds": build_band_worlds,
+    # The land beyond the yard, one seamless picture a band.
+    "terrain_bands": lambda src: [build_land(load_raw(src, "land_" + b), b)
+                                  for b in ["surface", "workings", "deep", "abyss"]],
+    # The Factory Core's stages: the one before the "core" sheet (Cores 1-3)
+    # and the two after it (7-9, 10 and up), on the same plate.
+    "core_t1": lambda src: build_machine_atlas(load_raw(src, "core_t1"), "core_t1", 1, 1, "world", CORE_BASE_PX),
+    "core_t3": lambda src: build_machine_atlas(load_raw(src, "core_t3"), "core_t3", 1, 1, "world", CORE_BASE_PX),
+    "core_t4": lambda src: build_machine_atlas(load_raw(src, "core_t4"), "core_t4", 1, 1, "world", CORE_BASE_PX),
     # The floor of each band, in build_tiles' layout: the Workings' is the
     # "tiles" sheet itself.
     "tiles_bands": lambda src: [

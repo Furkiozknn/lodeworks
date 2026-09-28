@@ -153,6 +153,7 @@ var _atlas: Texture2D
 var _pick_img: Image
 var _pick_sheet: String = ""
 var _core_mask: BitMap
+var _core_mask_file: String = ""
 ## The yard the view was last framed for.
 var _yard := Vector2i.ZERO
 ## Ground the yard has just reached, lighting up in a wave: cell -> seconds
@@ -176,6 +177,11 @@ var _world_tex: Texture2D
 ## Surface, the Workings, the Deep, the Abyss. Only the band's own is held,
 ## and, while a dive crosses into a new band, the one it left, fading out.
 var _world_band: int = -1
+## The ground beyond the yard, the band's own (layout.json "terrain_bands"):
+## one seamless picture laid across every cell the yard has not reached,
+## TERRAIN_CELLS cells to a repeat, so it reads as land, not as slabs.
+var _terrain: Texture2D
+const TERRAIN_CELLS := 7.0
 var _world_prev: Texture2D
 var _world_fade: float = 0.0
 var _island_tex: Texture2D
@@ -194,6 +200,8 @@ func _ready() -> void:
 	clip_contents = true
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_ground = _layer(false)
+	# The land beyond the yard is one picture repeated (_draw_terrain).
+	_ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_MIRROR
 	_floor = _layer(false)
 	_floor_glow = _layer(true)
 	_things = _layer(false)
@@ -618,9 +626,10 @@ func _on_core(w: Vector2) -> bool:
 	var r: Rect2 = core_rect()
 	if not r.has_point(w):
 		return false
-	var info: Dictionary = IsoArt.layout().get("core", {})
-	if _core_mask == null:
-		_core_mask = _alpha_mask(String(info.get("file", "")))
+	var info: Dictionary = core_info()
+	if _core_mask == null or _core_mask_file != String(info.get("file", "")):
+		_core_mask_file = String(info.get("file", ""))
+		_core_mask = _alpha_mask(_core_mask_file)
 		if _core_mask == null:
 			return false
 	var region: Rect2 = IsoArt.region(info, 0)
@@ -724,6 +733,8 @@ func _process(delta: float) -> void:
 	if not hold_effects:
 		_dive = maxf(_dive - delta / _dive_seconds, 0.0)
 	_core_flash = maxf(_core_flash - delta / 1.6, 0.0)
+	if not hold_effects:
+		_fm_step(delta)
 	_core_alpha = move_toward(_core_alpha, 0.4 if _see_through_core() else 1.0, delta * 4.0)
 
 	if _pressed and not _panning and not _dragging and not _long_fired \
@@ -973,6 +984,9 @@ func _set_world_band(band: int, fade: bool) -> void:
 	_world_tex = load(String(files[band]))
 	# And its floor: grass and earth at the Surface, flagstone in the
 	# Workings, basalt in the Deep, violet stone in the Abyss.
+	var lands: Array = IsoArt.layout().get("terrain_bands", [])
+	if band < lands.size() and ResourceLoader.exists(String(lands[band])):
+		_terrain = load(String(lands[band]))
 	var floors: Array = IsoArt.layout().get("tiles_bands", [])
 	if band < floors.size() and ResourceLoader.exists(String(floors[band])):
 		_tiles = load(String(floors[band]))
@@ -1203,6 +1217,8 @@ func _draw_tiles(ci: CanvasItem) -> void:
 	var idx := PackedInt32Array()
 	var blocked: Dictionary = Strata.blocked_cells(Sim.depth)
 	var base: Color = Color.WHITE.lerp(_band_tint, 0.35)
+	var paved: Dictionary = _paved()
+	_draw_terrain(ci, blocked, paved)
 	for cell in range(Grid.W * Grid.H):
 		var p: PackedVector2Array = Iso.cell_points(cell)
 		var uv: Rect2 = IsoArt.tile_uv(IsoArt.tile_variant(cell, Sim.depth))
@@ -1228,6 +1244,10 @@ func _draw_tiles(ci: CanvasItem) -> void:
 			# the yard has yet to reach.
 			c = Color(0.52, 0.53, 0.60) * (0.92 + 0.08 * k)
 			c.a = 1.0
+		elif _terrain != null and not blocked.has(cell) and not paved.has(cell):
+			# Land: the yard's own that nothing stands on yet, and the land
+			# it has not reached -- drawn below, as land.
+			continue
 		elif not Sim.is_open(cell):
 			# Ground the yard has not reached yet: marked out, not laid. The
 			# slabs are drawn faint and grey over the island's own rock, so
@@ -1244,6 +1264,77 @@ func _draw_tiles(ci: CanvasItem) -> void:
 		idx.append_array([i0, i0 + 1, i0 + 2, i0, i0 + 2, i0 + 3])
 	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), idx, pts,
 		cols, uvs, PackedInt32Array(), PackedFloat32Array(), _tiles.get_rid())
+
+
+## The yard's paved ground: the Core's foundation and every tile a
+## machine stands on, with an apron of one tile round them. The rest of the
+## yard stays land until something is built on it, as a base in the
+## reference games is grass until a building goes down -- except under the
+## heat overlay, which paints every tile the yard owns.
+func _paved() -> Dictionary:
+	var out: Dictionary = {}
+	for cell in range(Grid.W * Grid.H):
+		if not Sim.is_open(cell) or overlay == Overlay.HEAT:
+			if Sim.is_open(cell):
+				out[cell] = true
+			continue
+		if not (BuildArea.is_core(cell) or Sim.grid.cells.has(cell)):
+			continue
+		var xy: Vector2i = Grid.xy(cell)
+		for dy in range(-1, 2):
+			for dx in range(-1, 2):
+				var q := Vector2i(xy.x + dx, xy.y + dy)
+				if q.x < 0 or q.y < 0 or q.x >= Grid.W or q.y >= Grid.H:
+					continue
+				var n: int = Grid.idx(q.x, q.y)
+				if Sim.is_open(n):
+					out[n] = true
+	return out
+
+
+## The land: every cell neither paved nor the Core's, one seamless picture
+## across them all (the texture repeats, so its UVs run past 1), darker
+## towards the board's far corner and beyond the yard. The yard's own land
+## is marked out by a faint line along each tile's back edges, so where a
+## machine can go still reads at a glance.
+func _draw_terrain(ci: CanvasItem, blocked: Dictionary, paved: Dictionary) -> void:
+	if _terrain == null:
+		return
+	var pts := PackedVector2Array()
+	var uvs := PackedVector2Array()
+	var cols := PackedColorArray()
+	var idx := PackedInt32Array()
+	var marks := Tris.new()
+	var mark := Color(1.0, 1.0, 1.0, 0.09)
+	var base: Color = Color.WHITE.lerp(_band_tint, 0.3)
+	for cell in range(Grid.W * Grid.H):
+		if paved.has(cell) or BuildArea.is_core(cell) or blocked.has(cell):
+			continue
+		var xy: Vector2i = Grid.xy(cell)
+		var p: PackedVector2Array = Iso.cell_points(cell)
+		var u0 := Vector2(float(xy.x), float(xy.y)) / TERRAIN_CELLS
+		var u1 := Vector2(float(xy.x + 1), float(xy.y + 1)) / TERRAIN_CELLS
+		var tuv := PackedVector2Array([Vector2(u0.x, u0.y), Vector2(u1.x, u0.y),
+			Vector2(u1.x, u1.y), Vector2(u0.x, u1.y)])
+		var shade: float = 1.0 - 0.08 * float(xy.x + xy.y) / float(Grid.W + Grid.H)
+		var open: bool = Sim.is_open(cell)
+		if not open:
+			shade *= 0.86
+		var c := Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
+		var i0: int = pts.size()
+		for j in range(4):
+			pts.append(p[(j + 3) % 4])
+			uvs.append(tuv[j])
+			cols.append(c)
+		idx.append_array([i0, i0 + 1, i0 + 2, i0, i0 + 2, i0 + 3])
+		if open:
+			marks.band(p[0], p[1], 1.4, mark)
+			marks.band(p[3], p[0], 1.4, mark)
+	if pts.is_empty():
+		return
+	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), idx, pts,
+		cols, uvs, PackedInt32Array(), PackedFloat32Array(), _terrain.get_rid())
+	marks.flush(ci)
 
 
 ## The iron frame around the board: the edge of what the factory owns.
@@ -1549,8 +1640,22 @@ static func core_level() -> int:
 	return clampi(int(Sim.core_level), 1, CORE_LEVELS)
 
 
+## The Core's picture for its level: four stages -- a young furnace-drum
+## (Cores 1-3), the tower (4-6), the tower with rings and pylons (7-9), the
+## citadel (10 and up) -- so a player sees from across the board how far the
+## factory has come. Within a stage it still grows a little a level.
+const CORE_STAGES := ["core_t1", "core", "core_t3", "core_t4"]
+
+
+func core_info() -> Dictionary:
+	var lvl: int = core_level()
+	var stage: int = 0 if lvl <= 3 else (1 if lvl <= 6 else (2 if lvl <= 9 else 3))
+	var info: Dictionary = IsoArt.layout().get(CORE_STAGES[stage], {})
+	return info if not info.is_empty() else IsoArt.layout().get("core", {})
+
+
 func core_rect() -> Rect2:
-	var info: Dictionary = IsoArt.layout().get("core", {})
+	var info: Dictionary = core_info()
 	if info.is_empty():
 		return Rect2(core_center(), Vector2.ZERO)
 	var n: float = float(IsoArt.placement().get("core_size", 3))
@@ -1563,7 +1668,7 @@ func core_rect() -> Rect2:
 
 
 func _draw_core(ci: CanvasItem) -> void:
-	var info: Dictionary = IsoArt.layout().get("core", {})
+	var info: Dictionary = core_info()
 	var tex: Texture2D = IsoArt.texture(String(info.get("file", "")))
 	if tex == null:
 		return
@@ -2343,6 +2448,100 @@ func _draw_galleries(ci: CanvasItem) -> void:
 	for r: Array in _rigs_to_draw:
 		_sprite(ci, crew, String(r[0]), r[1], RIG_SCALE, bool(r[2]))
 	_rigs_to_draw.clear()
+	_draw_walker(ci)
+
+
+## --- the Foreman on the board -----------------------------------------------
+##
+## The Foreman walks the yard: to the Core when it grows, to a machine the
+## moment it is laid, to the Core again when a machine is found; now and
+## then to a working machine, to look it over. He stands where he was sent
+## in the pose of what he came for, then goes back to his place at the
+## front of the Core's plate. The HUD's Foreman is his voice; this is him.
+
+var _fm_at := Vector2.INF
+var _fm_to := Vector2.ZERO
+var _fm_pose: int = Foreman.Pose.IDLE
+var _fm_hold: float = 0.0
+var _fm_idle: float = 0.0
+var _fm_walking: bool = false
+## How fast he walks, in tiles a second; how long he stays idle before he
+## goes to look a machine over; his size against the sheet.
+const FM_SPEED := 1.4
+const FM_WANDER := 16.0
+const FM_SCALE := 0.15
+
+
+## Send the Foreman to `cell` (-1: the Core) to stand there in `pose` for
+## `hold` seconds.
+func foreman_visit(cell: int, pose: int, hold: float = 3.0) -> void:
+	_fm_to = _fm_home() if cell < 0 else Iso.cell_center(cell) + Vector2(0.0, Iso.TH * 0.32)
+	_fm_pose = pose
+	_fm_hold = hold
+	_fm_idle = 0.0
+
+
+## His place: on the Core's plate, at its front corner, a step in. The
+## Core does not move: found once.
+var _fm_home_at := Vector2.INF
+
+
+func _fm_home() -> Vector2:
+	if _fm_home_at == Vector2.INF:
+		_fm_home_at = _fm_find_home()
+	return _fm_home_at
+
+
+func _fm_find_home() -> Vector2:
+	var front: int = -1
+	for cell in range(Grid.W * Grid.H):
+		if BuildArea.is_core(cell):
+			var xy: Vector2i = Grid.xy(cell)
+			if front < 0 or xy.x + xy.y > Grid.xy(front).x + Grid.xy(front).y:
+				front = cell
+	if front < 0:
+		return Iso.board_rect().get_center()
+	return Iso.cell_center(front) + Vector2(-Iso.TW * 0.18, Iso.TH * 0.22)
+
+
+func _fm_step(delta: float) -> void:
+	var home: Vector2 = _fm_home()
+	if _fm_at == Vector2.INF:
+		_fm_at = home
+		_fm_to = home
+	var d: Vector2 = _fm_to - _fm_at
+	var step: float = FM_SPEED * Iso.TW * delta
+	if d.length() > step:
+		_fm_at += d.normalized() * step
+		_fm_walking = true
+		return
+	_fm_at = _fm_to
+	_fm_walking = false
+	if _fm_hold > 0.0:
+		_fm_hold -= delta
+		if _fm_hold <= 0.0 and not _fm_to.is_equal_approx(home):
+			_fm_to = home
+			_fm_pose = Foreman.Pose.IDLE
+		return
+	_fm_idle += delta
+	if _fm_idle > FM_WANDER and not Sim.grid.cells.is_empty():
+		# A working machine, looked over.
+		var cells: Array = Sim.grid.cells.keys()
+		var cell: int = int(cells[int(_anim * 7919.0) % cells.size()])
+		if Sim.sim.status_of(cell) == Simulation.Status.RUNNING:
+			foreman_visit(cell, Foreman.Pose.POINT, 2.5)
+		else:
+			_fm_idle = FM_WANDER * 0.5
+
+
+func _draw_walker(ci: CanvasItem) -> void:
+	if _fm_at == Vector2.INF:
+		return
+	var sz := Vector2(252.0, 420.0) * FM_SCALE
+	var pose: int = Foreman.Pose.IDLE if _fm_walking else _fm_pose
+	# A walk is a bob; standing, the sheet's own slow breathing.
+	var bob: float = 0.0 if calm_motion or not _fm_walking else -absf(sin(_anim * 9.0)) * 3.0
+	Foreman.draw_at(ci, Rect2(_fm_at - Vector2(sz.x * 0.5, sz.y - bob), sz), pose, _anim * 0.45)
 
 
 ## One Rig on `at`: the pose for what it is doing -- standing, driving,

@@ -50,6 +50,17 @@ shaft (`world/surface.jpg`, `deep.jpg`, `abyss.jpg`; `tiles/floor_surface.jpg`,
 `floor.jpg`). `tools/art_build.py --only crew,galleries,worlds,tiles_bands`
 builds them without re-encoding the rest.
 
+**Added 27 September 2026:** the Factory Core's other three stages, on the
+same plate as `world/core.webp` (`world/core_t1.webp` for Cores 1-3, a
+young furnace-drum under scaffolding; `core_t3.webp` for 7-9, the tower
+with rings and pylons; `core_t4.webp` for 10 and up, the citadel), built
+like the Core (`build_machine_atlas`, `CORE_BASE_PX`); and a seamless land
+for each band (`tiles/land_surface.jpg`, `land_workings.jpg`,
+`land_deep.jpg`, `land_abyss.jpg`, 1024 square, laid seven cells to a
+repeat, mirrored at its edges) that covers everything beyond the yard and
+the yard's own unbuilt tiles; only a machine's tile and a one-tile apron
+round it are paved with the band's floor. `--only core_t1,core_t3,core_t4,terrain_bands`.
+
 ## 2. Camera and projection
 
 - **2:1 isometric**, cell 128 x 64 world units (`Iso.TW`, `Iso.TH`). Board x

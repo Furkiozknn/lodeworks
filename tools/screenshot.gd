@@ -214,6 +214,16 @@ func _apply_build(kind: String) -> void:
 	Sim.upgrade_levels = {}
 	Sim.tutorial_moves = 0
 	Sim.tutorial_saw_heat = false
+	# The Core, its store and its crew too: the save this machine last wrote
+	# (a journey's, say) put a Core 8 citadel and twelve Rigs on the "first
+	# minute" shot.
+	Sim.core_level = 1
+	Sim.stock = {}
+	Sim.machine_levels = {}
+	Sim.overdrive = {}
+	Sim.doctrine = ""
+	Sim.clear_ops()
+	Sim._recompute()
 	match kind:
 		"new":
 			# A fresh install: nothing on the board and nothing in the purse.
@@ -296,6 +306,9 @@ func _apply_build(kind: String) -> void:
 	_main.call("_refresh")
 	if _main.has_method("_refresh_hint"):
 		_main.call("_refresh_hint")
+	# The band's own world: the depth was set here, not by a descent.
+	var gv: IsoView = _main.get("iso_view")
+	gv.call("_set_world_band", int(Palette.band_at(Sim.depth)[0]), false)
 
 
 func _place(list: Array) -> void:
@@ -456,6 +469,11 @@ func _run_rigs() -> void:
 	gv.deliver({"kind": "pumphouse", "salvage": 2})
 	await _settle(0.45)
 	await _capture("rigs_board")
+	# The galleries, with the team a site takes picked on its row.
+	_main.call("_show_galleries")
+	await _settle(0.8)
+	await _capture("rigs_galleries")
+	_clear_transient()
 	_main.call("_show_core")
 	await _settle(0.8)
 	await _capture("rigs_core_card")
@@ -491,7 +509,11 @@ func _run_bands() -> void:
 	_apply_build("full")
 	_clear_transient()
 	var gv: IsoView = _main.get("iso_view")
+	# A Core of each stage with them (IsoView.core_info): young, the tower,
+	# the ringed tower, the citadel.
+	var cores := {2: 2, 6: 5, 12: 8, 20: 10}
 	for d: int in [2, 6, 12, 20]:
+		Sim.core_level = int(cores[d])
 		Sim.depth = d
 		Sim.max_depth = d
 		Sim._recompute()
@@ -500,6 +522,16 @@ func _run_bands() -> void:
 		_clear_transient()
 		await _settle(0.3)
 		await _capture("band_%02d" % d)
+	# The shaft's map, from the side menu, on the last of them.
+	_main.call("_show_map")
+	await _settle(0.8)
+	await _capture("map")
+	_main.call("_close_overlay")
+	# The Core's new level, as the reward card shows it.
+	_main.call("_show_core_up", Sim.core_level, "The Core is level %d." % Sim.core_level)
+	await _settle(0.8)
+	await _capture("core_up")
+	_main.call("_close_overlay")
 
 
 ## Alt text, up to 140 characters each, written next to the images so whoever

@@ -622,6 +622,23 @@ func haul_rate() -> float:
 ## What machine `cell` would be hauled, from the store: the inputs it takes
 ## that the store keeps -- for a Lab, which learns from any one of them, the
 ## one it learns most from that the store holds.
+## What a posted Rig leaves of `res` in the store: what the Core's next
+## level asks the store for. The crew feeds the machines from what is over
+## (measured: two posted Rigs carried every Ingot to the Presses beside the
+## Core, and the Core 6 row's 8,000 Ingots stood at 0 for three hours).
+func haul_floor(res: int) -> int:
+	var keep: int = 0
+	for r: Array in CoreLevels.requirements(core_level + 1):
+		if int(r[0]) == CoreLevels.Req.STOCK and int(r[1]) == res:
+			keep = maxi(keep, int(r[2]))
+	return keep
+
+
+## What the crew may haul of `res`: the store's, over its floor.
+func haulable(res: int) -> int:
+	return maxi(stock_of(res) - haul_floor(res), 0)
+
+
 func haul_inputs(cell: int) -> Array[int]:
 	var out: Array[int] = []
 	if grid.is_empty(cell):
@@ -632,7 +649,7 @@ func haul_inputs(cell: int) -> Array[int]:
 		var best: int = -1
 		var learns: Dictionary = m.get("learns", {})
 		for res: int in ins:
-			if MachineDB.STOCKED.has(res) and stock_of(res) > 0 \
+			if MachineDB.STOCKED.has(res) and haulable(res) > 0 \
 					and (best < 0 or float(learns.get(res, 0.0)) > float(learns.get(best, 0.0))):
 				best = res
 		if best >= 0:
@@ -704,6 +721,9 @@ func _haul(dt: float) -> void:
 		return
 	var limit: int = sim.cap()
 	var rate: float = haul_rate()
+	var floors: Dictionary = {}
+	for res: int in MachineDB.STOCKED:
+		floors[int(res)] = haul_floor(int(res))
 	for cell: int in posts.keys():
 		if grid.is_empty(cell) or not sim.core_touching().has(cell):
 			recall_rig(cell)
@@ -717,7 +737,7 @@ func _haul(dt: float) -> void:
 			for res: int in ins:
 				if budget < 1.0:
 					break
-				if stock_of(res) <= 0 or int(buf.get(res, 0)) >= limit:
+				if stock_of(res) <= int(floors.get(res, 0)) or int(buf.get(res, 0)) >= limit:
 					continue
 				buf[res] = int(buf.get(res, 0)) + 1
 				stock[res] = stock_of(res) - 1
