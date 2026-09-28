@@ -3741,6 +3741,11 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Post a Rig to the %s") % MachineDB.name_of(Sim.grid.machine_at(pc))
 			sub = Loc.t("It is starved, and the store holds what it takes.")
 			go = _show_bay
+		"refit":
+			pic = _sheet_picture("crew", "work", 52.0)
+			title = Loc.t("Refit a Rig as a Breaker")
+			sub = Loc.t("Rock in the galleries: a Rig does half there, a Breaker two and a half Rigs' work.")
+			go = _show_bay
 		"sortie":
 			var si: int = int(e["i"])
 			var sk: Dictionary = Operations.KINDS[String(Sim.site(si)["kind"])]

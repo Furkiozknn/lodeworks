@@ -534,15 +534,19 @@ func test_a_rig_refitted_as_a_breaker_goes_to_rock() -> void:
 	Sim._recompute()
 	var room: int = int(Sim.sim.core_wants.get(RIG, 0))
 	var c: Dictionary = Operations.refit_cost(Sim.core_level)
+	var refits := func() -> int:
+		return Worklist.of(Sim).filter(func(e: Dictionary) -> bool: return String(e["kind"]) == "refit").size()
+	Sim.ops_board = [{"kind": "drift", "tier": 0, "need": 20.0, "left": 20.0, "hazard": 0.2, "serial": 90,
+		"core": Sim.core_level, "depth": 15, "armor": true}]
+	runner.eq(int(refits.call()), 1, "rock on the board: What now? says to refit a Rig")
 	runner.check(Sim.refit_rig(), "a Rig at the Bay refitted")
+	runner.eq(int(refits.call()), 0, "and not again once there is a Breaker")
 	runner.eq(Sim.rigs_home(), 3, "one Rig fewer")
 	runner.eq(Sim.breakers, 1, "one Breaker more")
 	runner.eq(Sim.salvage, 20 - int(c["salvage"]), "paid in salvage")
 	runner.eq(Sim.stock_of(MachineDB.Res.COMPONENT), 1000 - int(c["components"]), "and Components")
 	runner.eq(int(Sim.sim.core_wants.get(RIG, 0)), room, "the crew's room is what it was")
-	# A drift: Breakers first.
-	Sim.ops_board = [{"kind": "drift", "tier": 0, "need": 20.0, "left": 20.0, "hazard": 0.2, "serial": 90,
-		"core": Sim.core_level, "depth": 15, "armor": true}]
+	# The drift: Breakers first.
 	var team: Vector2i = Sim.sortie_team(0)
 	runner.eq(team.y, 1, "the Breaker goes to rock")
 	runner.gte(Sim.team_strength(Sim.site(0), team.x, team.y), 20.0, "and the team clears it")

@@ -735,6 +735,7 @@ TR = {
     "Job: %s (%s). %s %s": "İş: %s (%s). %s %s",
     "Set it to %s: that job takes up to %.1f": "%s işine geçir: o iş %.1f ısıya dayanır",
     "Tasks": "Görevler",
+    "Rock in the galleries: a Rig does half there, a Breaker two and a half Rigs' work.": "Galerilerde kaya var: orada Robot yarım iş görür, Kırıcı iki buçuk Robotun işini.",
     "Fuel: %d %s, and the store has %d": "Yakıt: %d %s, depoda %d var",
     "At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half.": "Çekirdek %d. seviyede: Robotları Kırıcıya dönüştür -- bir Robotun yarım iş gördüğü kaya için.",
     "Breakers: %d at the Bay, %d out. A Breaker does %.1f Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, burns twice the fuel and is never posted.": "Kırıcılar: garajda %d, dışarıda %d. Bir Kırıcı kayada %.1f Robotun işini görür (orada Robot yarım iş görür), suda birinden azını; alanın aşındırmasını üstlenir, iki kat yakıt yakar ve görevlendirilemez.",

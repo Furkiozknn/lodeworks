@@ -95,6 +95,12 @@ static func of(state: Object) -> Array:
 				if held:
 					out.append({"kind": "post", "cell": cell})
 					break
+	# Rock in the galleries and no Breaker yet: a Rig refitted for it.
+	if state.has_method("refit_rig") and String(state.call("refit_blocker")) == "" 			and int(state.get("breakers")) + int(state.call("breakers_out")) == 0:
+		for s: Dictionary in (state.get("ops_board") as Array):
+			if Operations.armored(s):
+				out.append({"kind": "refit"})
+				break
 	# A site the Rigs at home clear, and can go to now; or, when none can be
 	# cleared, the one they take the most of -- a third or more -- which
 	# pays that share and is weaker for the next sortie ("share").

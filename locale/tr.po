@@ -1088,6 +1088,10 @@ msgid "It is starved, and the store holds what it takes."
 msgstr "Aç kalmış; aldığı malzeme depoda var."
 
 #: res://scripts/ui/main.gd
+msgid "Rock in the galleries: a Rig does half there, a Breaker two and a half Rigs' work."
+msgstr "Galerilerde kaya var: orada Robot yarım iş görür, Kırıcı iki buçuk Robotun işini."
+
+#: res://scripts/ui/main.gd
 msgid "Too strong to clear at once: they bring home %d%% of it and leave it weaker."
 msgstr "Bir seferde temizlenemeyecek kadar güçlü: %%%d kadarını getirir, alanı zayıflatırlar."
 
