@@ -1471,6 +1471,15 @@ above), played on twice:
   Both are the player's layout: its Frame Jig chains break and it does not grow the factory past about 245 machines. So Core 10 now asks for four Assay Benches and stable 130. That is still new work for the era, and the next play will say whether it is enough.
 - **The Assay Bench did what it was for.** Research made over the stage went from 941K to 5.05M. Research stopped being the last row.
 
+**Reached from a new game (27 September 2026).** With the crew posted to
+the machines beside the Core (`docs/GAME-LOOP.md`, sections 10 and 11) --
+a Rig hauls from the store into a Bench, leaving the Core's row its
+Frames, or the top of a full store while the Vault is short -- the
+scripted player reached Core 10 in 12 h 32 min of one new game: Core 9 at
+10 h 16 min, the four Benches at work after the first was moved beside
+the Core, the 300,000 Frames last (2 h 00 of the 2 h 16 stage). The
+formula for Core 11 and after is unchanged and unplayed.
+
 ---
 
 ## Plan P0-P8

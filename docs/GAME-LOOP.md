@@ -547,3 +547,163 @@ A rival factory later is one more kind of target: its need and hazard come
 from a blueprint's machines (a share code, V4), and `resolve` stays the
 encounter. Nothing in it needs a server; raids that take anything from a
 player still do (V1/D3), and stay out.
+
+## 11. Posts, a second kind of Rig, and Core 10 from a new game (27 September 2026)
+
+The owner's brief for this round: robots that do real work in the factory,
+the Core 10 blocker solved with a system a player understands, salvage a
+choice, the Core and the ground that grow, a game's menu, the Foreman in
+the world, sorties that are a strategy -- and every step measured.
+
+### What a new game found, and whose it was
+
+A new game played by the scripted player with posts and the Rig Bay (run
+P) stood at Core 5 for four hours. Every cause, found by probing its Core 5
+save, and whether the game or the scripted player owned it:
+
+| cause | whose | the change |
+|---|---|---|
+| Two posted Rigs carried every Ingot to the Presses beside the Core; the Core 6 row's 8,000 Ingots stood at 0 | **the game** | A posted Rig leaves in the store what the Core's next level asks for (`Sim.haul_floor`); the Bay's screen says how much is kept |
+| Sorties burnt the same Ingots as fuel | the player | Fuel the Core's rows keep is not burnt, at every level (it was from Core 7) |
+| A blocked machine's Vault was sold for a new Vault 55 times in five minutes | the player | A blocked machine is given the time to show its Vault worked; a Vault is never sold for another |
+| The Drills a Duplicator served were sold for room, and the Duplicator row fell to two of three | the player | What a Duplicator or Amplifier stands beside is not built "for income alone" |
+| 67 tiles sold for heat were never built on again | the player | A tile is left bare for an hour, not for good |
+| Smelters beside the Core counted as feeders while their Crushers were gone | the player | A feeder starved most of the time is not one, at every level |
+
+Three more, found on the way to Core 10:
+
+| cause | whose | the change |
+|---|---|---|
+| In the Core 8 era a maker laid beside the Core was read as starved before its first cycle and sold on the next beat, 120 times in five minutes; every placement disturbed its neighbours' heat, and the stability row stood at 0 | the player | A maker laid there is given five minutes |
+| The Core 10 row asks the store for 300,000 Frames; a Vault 9 holds 274,878, and the floor kept all of them from the crew: no Rig fed an Assay Bench, and the row of four Benches at work stood at one for thirteen hours (run Q) | **the game** | A row the store cannot hold yet leaves the top 5% of a full store to the crew (`Sim.HAUL_TOP`): the Core takes nothing more until the Vault grows |
+| Eight Benches laid with their chains, seven starved, none beside the Core; every dock fed Presses | the player | A starved machine a row asks for is moved beside the Core, and a Rig on a machine no row asks for is called home for it |
+
+From the same Core 9 save after these: three Benches moved and posted in
+an hour, the Benches' row met, and only the stability row left.
+
+### Core 1 -> 10 in one new game
+
+**Core 10 in 12 h 32 min of a new game** (run X: the code of this round,
+salvage on Gearing first). The first to get there was run S, at 14 h 12
+min, before Plates were fuel and before the Breaker; run R, with the
+floor kept whole, stopped at Core 9 for fourteen hours. What each stage of
+run X was, from the journey's own report (`tools/core_journey.gd`; the
+table from its stage blocks):
+
+| stage | length | only credits left | minutes with a decision | the row that came last | the crew: out / posted / at the Bay | sites an hour | salvage earned / spent | hauled | store at its limit |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 -> 2 | 0:06:30 | 4% | 7 of 7 | research throughput_1 1 (0:06:15) | 1% / 0% / 99% of 1.0 | 0.0 | 0 / 0 | 0 | 9% |
+| 2 -> 3 | 0:06:25 | 22% | 7 of 7 | research throughput_1 3 (0:04:50) | 83% / 0% / 17% of 1.0 | 74.8 | 8 / 6 | 0 | 38% |
+| 3 -> 4 | 0:12:24 | 48% | 13 of 14 | stock Plate 800 (0:06:29) | 100% / 0% / 0% of 1.0 | 87.0 | 18 / 10 | 0 | 59% |
+| 4 -> 5 | 0:10:59 | 33% | 12 of 12 | stock Plate 2500 (0:07:19) | 81% / 0% / 19% of 4.9 | 76.4 | 14 / 16 | 0 | 49% |
+| 5 -> 6 | 1:01:45 | 0% | 62 of 63 | stable 60 (1:01:45) | 57% / 17% / 26% of 9.4 | 67.0 | 83 / 85 | 5356 | 84% |
+| 6 -> 7 | 3:26:10 | 5% | 188 of 207 | stable 80 (3:15:35) | 35% / 27% / 38% of 11.0 | 65.2 | 284 / 229 | 42528 | 76% |
+| 7 -> 8 | 1:39:29 | 20% | 92 of 100 | machine smelter 8 (1:19:09) | 31% / 35% / 34% of 12.0 | 71.2 | 153 / 114 | 21469 | 40% |
+| 8 -> 9 | 3:32:22 | 16% | 190 of 214 | stock Alloy 100000 (2:58:39) | 33% / 35% / 31% of 12.0 | 61.3 | 276 / 352 | 63081 | 37% |
+| 9 -> 10 | 2:15:49 | 9% | 125 of 136 | stock Frame 300000 (1:59:49) | 40% / 41% / 19% of 12.0 | 59.6 | 169 / 0 | 72122 | 19% |
+
+What it says:
+
+- **No stage is a wait with nothing to do.** Every stage from Core 5 has a
+  decision in 90% or more of its minutes; sorties are 229 of the Core 6
+  stage's 601 decisions. The crew is out on sorties a third of the time
+  or more at every stage but the first, and from Core 6 a third of it is
+  posted.
+- **Credits alone are the last third of Cores 3 -> 5** (48%, 33% of the
+  stage), with the crew's sorties the decisions of that wait; a quarter
+  of an hour each.
+- **The long stages are the eras' own work:** Core 6 -> 7 is 3 h 26 min,
+  its last rows the Resonant Frames research (3 h 05) and stability 80
+  (3 h 16); Core 8 -> 9 is 3 h 32 min, the last row 100,000 Alloy in the
+  store.
+- **Core 9 -> 10 took 2 h 16 min.** The four Assay Benches were at work
+  after the first was moved beside the Core at 10 h 31 min; the Frames in
+  the store were the last row. The Core 10 blocker of section 9 is gone.
+- **Before Plates were fuel (run S)** the crew was out 2% of the Core 6
+  era and cleared 1.9 sites an hour for 4 h 50 min; now 35% and 65 sites
+  an hour, and the era took 3 h 26 min.
+
+The same new game, salvage on Rig Plating first (run V; without this
+round's last two scripted-player fixes; **Core 10 at 14 h 30 min**):
+
+| stage | length | only credits left | minutes with a decision | the row that came last | the crew: out / posted / at the Bay | sites an hour | salvage earned / spent | hauled | store at its limit |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 -> 2 | 0:06:30 | 4% | 7 of 7 | research throughput_1 1 (0:06:15) | 1% / 0% / 99% of 1.0 | 0.0 | 0 / 0 | 0 | 9% |
+| 2 -> 3 | 0:06:30 | 23% | 8 of 8 | research throughput_1 3 (0:04:50) | 83% / 0% / 17% of 1.0 | 73.8 | 8 / 0 | 0 | 38% |
+| 3 -> 4 | 0:12:59 | 48% | 13 of 13 | stock Plate 800 (0:06:44) | 100% / 0% / 0% of 1.0 | 87.7 | 19 / 0 | 0 | 60% |
+| 4 -> 5 | 0:11:54 | 30% | 12 of 13 | stock Plate 2500 (0:08:19) | 70% / 0% / 30% of 4.9 | 85.6 | 17 / 10 | 0 | 46% |
+| 5 -> 6 | 1:04:05 | 1% | 65 of 66 | stable 60 (1:02:50) | 72% / 6% / 22% of 9.6 | 115.2 | 147 / 42 | 1643 | 82% |
+| 6 -> 7 | 3:09:55 | 3% | 180 of 190 | stable 80 (3:04:55) | 54% / 9% / 37% of 11.0 | 119.1 | 488 / 75 | 8316 | 49% |
+| 7 -> 8 | 2:30:19 | 0% | 150 of 152 | doctrine 4 (2:30:14) | 34% / 32% / 34% of 12.0 | 75.4 | 232 / 41 | 48392 | 18% |
+| 8 -> 9 | 2:23:29 | 22% | 132 of 144 | stock Alloy 100000 (1:47:29) | 31% / 46% / 23% of 13.0 | 59.4 | 177 / 479 | 30423 | 31% |
+| 9 -> 10 | 4:44:44 | 0% | 273 of 286 | doctrine 9 (3:22:14) | 33% / 49% / 19% of 13.0 | 59.4 | 357 / 655 | 140324 | 5% |
+
+- **The two ways reach Core 10 two hours apart** (12 h 32 min with Gearing,
+  14 h 30 min with Plating), and they leave different crews: Plating first
+  held 300 to 780 salvage unspent from the 3 h mark to the 11 h mark and
+  put it into the Bay late; Gearing first never held more than 160 at an hourly mark.
+- **Salvage on nothing (run X, `none`) did not get past Core 5 in 15 h**:
+  the Core 6 row's 8,000 Ingots stood at 6,780. That is a scripted-player
+  gap, not measured further.
+- **What the bot measures is not what a player feels.** The scripted
+  player tears down and lays again what a person would leave (hundreds of
+  machines sold a stage); it never collapses, though a collapse at the
+  start of Core 9 would have paid more than two hundred Cores; it plays
+  every minute. Its hours are an upper bound on the systems' sense, not a
+  forecast of a person's evening.
+
+### Salvage: three sinks and a fourth
+
+Salvage now pays for four things: the Rig Bay's levels, Salvaged Gearing,
+Rig Plating, and (from Core 6) refitting a Rig as a Breaker. At one a
+cleared site and two from the nest, the game that bought Gearing first
+had earned 969 by the 12 h mark and never held more than 157 at an hourly mark
+(run X) -- against a thousand and more unspent in every scenario of
+section 9. No line can be bought to its end: ten levels of Gearing alone
+cost about 1,100. The game that bought Plating first did hold salvage
+(up to 780) and reached Core 10 two hours later: what salvage buys is a
+choice with a price.
+
+### The second kind of Rig: the Breaker (built)
+
+| | a Rig | a Breaker |
+|---|---|---|
+| made | an Assembler on the Rig Frame job, from Plates | a Rig at the Bay refitted, 30 Components (growing with the Core) and 4 salvage, from Core 6 |
+| rock (a drift's cave-in, a nest's shell; dealt from Core 6) | half its strength | 2.5 Rigs' |
+| water (a flooded gallery) | whole | 1.0 Rig's (0.4 of its own) |
+| a hall (the pump house) | whole | 2.5 Rigs' |
+| the wear it brings home | the site's | the team's falls by half the share of strength its Breakers brought |
+| fuel, repair | one | two |
+| posted to a machine | yes | never: too heavy to haul |
+
+- **The decision it makes.** Which Rigs to refit (a Breaker is a Rig not
+  hauling and not cheap in water), and which team to send: the galleries'
+  screen has a - and a + for each kind; the default is the fewest that
+  clear the site, Breakers first on rock.
+- **The reference games.** Boom Beach's Heavies and Tanks against
+  defences, its Riflemen against the rest (**UYARLA**: two kinds, each
+  good against one property of the target); Rise of Kingdoms' troop
+  counters (**UYARLA**, one axis only); Clash of Clans' army composition
+  (**UYARLA**: the team is chosen per target, not per battle-plan).
+- **What it does not do yet.** No third kind, no losses, no attack on the
+  factory: defence stays **ALMA** until something attacks (section 10).
+
+### What it costs to draw
+
+`tools/perf_probe.tscn` on this machine (Intel UHD, the compatibility
+renderer, 1440x720, nothing else running), the round's first commit
+(8eb9dbd) against this round's code, each in a checkout of its own with
+no save:
+
+| | before | after |
+|---|---|---|
+| idle, the default view | 7.05 ms median, 186 draw calls | 7.32 ms, 196 draw calls |
+| the crew out | 8.07 ms, 188 | 7.80 ms, 197 |
+| a 20 s soak | 8.15 ms, 206 | 7.79 ms, 212 |
+| the late board, stratum 16, the whole yard in view | 21.4 ms, 229 | 20.7 ms, 232 |
+| texture memory | 36.0 MB | 40.7 MB |
+
+Ten more draw calls for the side menu's words and pictures, the land and
+the Foreman on the board; 4.7 MB more for the Core's stage, the land (now
+VRAM-compressed: 682 KB, not 5.5 MB) and the menu's pictures. A phone:
+not measured.
