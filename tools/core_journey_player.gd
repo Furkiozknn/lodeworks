@@ -790,9 +790,12 @@ func _pursue(st: Dictionary) -> void:
 				if S.sim.overheated_at(cell):
 					if not _hot_since.has(cell):
 						_hot_since[cell] = t
-					# From Core 7, one still overheating after HOT_FOR of fixes
-					# is beyond them: a player stops fixing and decides.
-					var tried: bool = S.core_level >= MachineDB.OVERDRIVE_CORE \
+					# From Core 6, one still overheating after HOT_FOR of fixes
+					# is beyond them: a player stops fixing and decides
+					# (measured: a Core 6 Crusher and Lab, fixed every five
+					# minutes and never cooled, held the Core 7 row's stability
+					# at 0 from 1 h 38 min to past 9 h).
+					var tried: bool = S.core_level >= KEEP_FROM \
 						and t - float(_hot_since[cell]) > HOT_FOR
 					# From the Core's level KEEP_FROM a machine being cooled is
 					# given the time to show it before it is judged beyond help.
