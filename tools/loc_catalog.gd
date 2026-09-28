@@ -102,6 +102,10 @@ static func _tables() -> Array:
 		var o: Dictionary = Operations.KINDS[kind]
 		for k: String in ["name", "line"]:
 			add.call(o.get(k, ""), "res://scripts/core/operations.gd")
+	for r: String in Operations.REGIONS:
+		var reg: Dictionary = Operations.REGIONS[r]
+		for k: String in ["name", "short", "advantage"]:
+			add.call(reg.get(k, ""), "res://scripts/core/operations.gd")
 	var codex: Dictionary = (load("res://scripts/ui/codex.gd") as GDScript).get_script_constant_map()
 	for p: Dictionary in codex["PAGES"]:
 		for k: String in ["title", "short", "watch", "body"]:
@@ -109,6 +113,9 @@ static func _tables() -> Array:
 	var main: Dictionary = (load("res://scripts/ui/main.gd") as GDScript).get_script_constant_map()
 	for b in main["BAND_NAMES"]:
 		add.call(b, "res://scripts/ui/main.gd")
+	for role: String in main["ROLE_WORDS"]:
+		for w in main["ROLE_WORDS"][role]:
+			add.call(w, "res://scripts/ui/main.gd")
 	for t: Dictionary in main["SETTINGS_TABS"]:
 		add.call(t.get("name", ""), "res://scripts/ui/main.gd")
 	for w in (main["BLUEPRINT_WORDS"] as Dictionary).values():

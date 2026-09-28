@@ -122,6 +122,9 @@ func _new_work(level: int, r: Array) -> bool:
 			return int(r[2]) > (0 if first else CoreLevels.overdrive_cap(before))
 		CoreLevels.Req.DOCTRINE:
 			return int(r[1]) > (0 if first else CoreLevels.doctrine_cap(before))
+		CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES:
+			# The deep map's: new work while the era before had no map.
+			return CoreLevels.available_at(r) > before
 		CoreLevels.Req.OPERATIONS:
 			# Sites cleared: work once the era before could not yet send a crew,
 			# and after it, more than any level before asked.
@@ -245,8 +248,9 @@ func test_the_level_after_core_7_asks_for_what_core_7_opened() -> void:
 	var o: Dictionary = CoreLevels.opens(8)
 	runner.eq(int(o["overdrive"]), MachineDB.OVERDRIVE_PER_CORE, "Core 8 opens three more steps")
 	runner.eq(CoreLevels.overdrive_from(8), CoreLevels.machine_cap(7), "for types at Core 7's limit")
-	# Every level past the table keeps asking for a step of Overdrive.
-	for level in range(9, 14):
+	# Every level to Core 10 keeps asking for a step of Overdrive; from Core
+	# 11 the deep map asks for other work (test_regions.gd).
+	for level in range(9, 11):
 		runner.check(not _row(level, CoreLevels.Req.OVERDRIVE).is_empty(), "Core %d asks for Overdrive" % level)
 
 

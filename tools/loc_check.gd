@@ -170,6 +170,33 @@ func _run() -> void:
 	await _settle(0.4)
 	await _screen("37_core_6")
 	_main.call("_close_overlay")
+	# The deep map (Operations, "regions"): a Core 10 with the Caverns open
+	# and all three kinds of crew -- the map, the galleries, the Bay and the
+	# card of a region opened.
+	var kept_stock: Dictionary = Sim.stock.duplicate()
+	Sim.core_level = Operations.REGION_CORE
+	Sim.clear_ops()
+	Sim.stock[MachineDB.Res.RIG] = 6
+	Sim.stock[MachineDB.Res.FRAME] = 20000
+	Sim.stock[MachineDB.Res.RESONITE] = 900
+	Sim.stock[MachineDB.Res.LENS] = 120
+	Sim.breakers = 3
+	Sim.surveyors = 3
+	Sim.regions_open = ["caverns"]
+	Sim._recompute()
+	Sim._deal_ops()
+	for deep: Array in [["_show_map", "38_deep_map"], ["_show_galleries", "38_deep_galleries"],
+			["_show_bay", "38_deep_bay"]]:
+		_main.call(String(deep[0]))
+		await _settle(0.4)
+		await _screen(String(deep[1]))
+		_main.call("_close_overlay")
+	_main.call("_on_region_opened", "caverns")
+	await _settle(0.4)
+	await _screen("38_region_opened")
+	_main.call("_close_overlay")
+	Sim.clear_ops()
+	Sim.stock = kept_stock
 	Sim.core_level = int(kept[0])
 	Sim.machine_levels = kept[1]
 	Sim.max_depth = int(kept[2])

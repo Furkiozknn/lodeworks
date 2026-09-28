@@ -255,6 +255,62 @@ msgstr "Galeriler: %d alan açık, toplam %d temizlendi"
 msgid "Map"
 msgstr "Harita"
 
+#: res://scripts/ui/main.gd res://scripts/core/economy.gd
+msgid "The deep map"
+msgstr "Derin harita"
+
+#: res://scripts/ui/main.gd
+msgid "At the Core's level %d, three regions past the galleries open to expeditions: water, rock and danger, each with its own sites, research and gift to the factory."
+msgstr "Çekirdek %d. seviyede galerilerin ötesindeki üç bölge keşiflere açılır: su, kaya ve tehlike; her birinin kendi alanları, araştırması ve fabrikaya armağanı var."
+
+#: res://scripts/ui/main.gd
+msgid "Regions open: %d of the %d the Core has room for. Which first is yours to choose."
+msgstr "Açık bölgeler: Çekirdeğin yer verdiği %d bölgeden %d. Hangisinin önce açılacağı senin seçimin."
+
+#: res://scripts/ui/main.gd
+msgid "For good: %s"
+msgstr "Kalıcı olarak: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Research: %s"
+msgstr "Araştırma: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Open: its sites are on the galleries' board."
+msgstr "Açık: alanları galeri panosunda."
+
+#: res://scripts/ui/main.gd
+msgid "An expedition is out."
+msgstr "Bir keşif yolda."
+
+#: res://scripts/ui/main.gd
+msgid "The Core's next level has room for it."
+msgstr "Çekirdeğin sonraki seviyesi buna yer açar."
+
+#: res://scripts/ui/main.gd
+msgid "An expedition: %d s out and back, three times the fuel"
+msgstr "Keşif: gidiş dönüş %d sn, üç kat yakıt"
+
+#: res://scripts/ui/main.gd
+msgid ", and %d Lenses"
+msgstr " ve %d Mercek"
+
+#: res://scripts/ui/main.gd
+msgid "Its sites are on the galleries' board, and its research line is open: %s."
+msgstr "Alanları galeri panosunda ve araştırma dalı açık: %s."
+
+#: res://scripts/ui/main.gd
+msgid "The Resonite the crew brings home becomes Lenses in a Lens Grinder -- an Assembler on its new job, beside the Core, with a Rig posted to feed it."
+msgstr "Ekibin getirdiği Rezonit, Mercek Taşlayıcıda Merceğe dönüşür: Çekirdeğin yanında yeni işine ayarlanmış bir Montajcı ve onu besleyen görevli bir Robot."
+
+#: res://scripts/ui/main.gd
+msgid "A region opened!"
+msgstr "Bir bölge açıldı!"
+
+#: res://scripts/ui/main.gd
+msgid "Onward"
+msgstr "Devam"
+
 #: res://scripts/ui/main.gd
 msgid "The yard grows to %d x %d."
 msgstr "Saha %d x %d olur."
@@ -364,16 +420,16 @@ msgid "It opens strata %d to %d, machine level %d and a store of %d."
 msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
 
 #: res://scripts/ui/main.gd
+msgid "And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."
+msgstr "Ve derin harita: galerilerin ötesinde üç bölge. Bir Kâşifin önderlik ettiği keşif birini açar; hangisinin önce açılacağı kuyunun seçimi."
+
+#: res://scripts/ui/main.gd
 msgid "Next, for level %d:"
 msgstr "Sıradaki, %d. seviye için:"
 
 #: res://scripts/ui/main.gd
 msgid "Core level %d!"
 msgstr "Çekirdek %d. seviyede!"
-
-#: res://scripts/ui/main.gd
-msgid "Onward"
-msgstr "Devam"
 
 #: res://scripts/ui/main.gd
 msgid "Helped here: %s. %s"
@@ -784,18 +840,6 @@ msgid "No machine beside the Core takes anything the store keeps. A Press, an As
 msgstr "Çekirdeğin yanında depodaki bir şeyi alan makine yok. Çekirdeğe değen bir Pres, Montajcı, Laboratuvar ya da Çerçeve Kalıbı bir Robot alabilir."
 
 #: res://scripts/ui/main.gd
-msgid "At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half."
-msgstr "Çekirdek %d. seviyede: Robotları Kırıcıya dönüştür -- bir Robotun yarım iş gördüğü kaya için."
-
-#: res://scripts/ui/main.gd
-msgid "Breakers: %d at the Bay, %d out. A Breaker does %.1f Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, burns twice the fuel and is never posted."
-msgstr "Kırıcılar: garajda %d, dışarıda %d. Bir Kırıcı kayada %.1f Robotun işini görür (orada Robot yarım iş görür), suda birinden azını; alanın aşındırmasını üstlenir, iki kat yakıt yakar ve görevlendirilemez."
-
-#: res://scripts/ui/main.gd
-msgid "Refit a Rig as a Breaker"
-msgstr "Robotu Kırıcıya dönüştür"
-
-#: res://scripts/ui/main.gd
 msgid "(%s kept for the Core)"
 msgstr "(%s Çekirdek için ayrılır)"
 
@@ -832,6 +876,10 @@ msgid "Breakers: %d at the Bay, %d out"
 msgstr "Kırıcılar: garajda %d, dışarıda %d"
 
 #: res://scripts/ui/main.gd
+msgid "Surveyors: %d at the Bay, %d out"
+msgstr "Kâşifler: garajda %d, dışarıda %d"
+
+#: res://scripts/ui/main.gd
 msgid "%d more sites cleared, room for another Rig"
 msgstr "%d alan daha temizlenince bir Robota daha yer açılır"
 
@@ -864,32 +912,60 @@ msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes wal
 msgstr "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür."
 
 #: res://scripts/ui/main.gd
-msgid "rock: a Rig does half"
-msgstr "kaya: Robot yarım iş görür"
-
-#: res://scripts/ui/main.gd
-msgid "water: too deep for a Breaker"
-msgstr "su: Kırıcı için fazla derin"
-
-#: res://scripts/ui/main.gd
 msgid "pays %s credits, %s research, %d %s, %d salvage"
 msgstr "%s kredi, %s araştırma, %d %s, %d hurda öder"
+
+#: res://scripts/ui/main.gd
+msgid "Brought home: room for one more Rig, and the crew mended."
+msgstr "Eve getirilirse: bir Robotluk daha yer ve ekip onarılmış olur."
 
 #: res://scripts/ui/main.gd
 msgid "Rigs out"
 msgstr "Robotlar dışarıda"
 
 #: res://scripts/ui/main.gd
+msgid "rock: a Rig does half"
+msgstr "kaya: Robot yarım iş görür"
+
+#: res://scripts/ui/main.gd
+msgid "danger: with no Breaker to lead, half the pay"
+msgstr "tehlike: önde Kırıcı yoksa ödülün yarısı"
+
+#: res://scripts/ui/main.gd
+msgid "water: too deep for a Breaker"
+msgstr "su: Kırıcı için fazla derin"
+
+#: res://scripts/ui/main.gd
 msgid "needs %d · sending %d: strength %d, %s, wear +%d%%"
 msgstr "%d güç gerekir · %d gönderilirse: güç %d, %s, aşınma +%%%d"
 
 #: res://scripts/ui/main.gd
-msgid "needs %d · %d Rigs and %d Breakers: strength %d, %s, wear +%d%%"
-msgstr "%d güç gerekir · %d Robot ve %d Kırıcı: güç %d, %s, aşınma +%%%d"
+msgid "needs %d · %d Rigs, %d Breakers, %d Surveyors: strength %d, %s, wear +%d%%"
+msgstr "%d güç gerekir · %d Robot, %d Kırıcı, %d Kâşif: güç %d, %s, aşınma +%%%d"
+
+#: res://scripts/ui/main.gd
+msgid "No Breaker to lead it: half the pay."
+msgstr "Önde Kırıcı yok: ödülün yarısı."
+
+#: res://scripts/ui/main.gd
+msgid "Surveyors: %d%% more Resonite."
+msgstr "Kâşifler: %%%d daha fazla Rezonit."
 
 #: res://scripts/ui/main.gd
 msgid "Fuel: %d %s, and the store has %d"
 msgstr "Yakıt: %d %s, depoda %d var"
+
+#: res://scripts/ui/main.gd
+msgid "An expedition goes only with a Surveyor."
+msgstr "Keşfe yalnızca bir Kâşifle gidilir."
+
+#: res://scripts/ui/main.gd
+msgid "Lenses: %d, and the store has %d"
+msgstr "Mercek: %d, depoda %d var"
+
+#: res://scripts/ui/main.gd
+msgid "Not strong enough for the survey."
+msgstr "Keşif için yeterince güçlü değil."
 
 #: res://scripts/ui/main.gd
 msgid "Send %d"
@@ -910,6 +986,10 @@ msgstr "Robotlar"
 #: res://scripts/ui/main.gd
 msgid "Breakers"
 msgstr "Kırıcılar"
+
+#: res://scripts/ui/main.gd
+msgid "Surveyors"
+msgstr "Kâşifler"
 
 #: res://scripts/ui/main.gd
 msgid "too easy"
@@ -978,6 +1058,18 @@ msgstr "%d seviye %s araştırması"
 #: res://scripts/ui/main.gd
 msgid "%d sites in the galleries cleared since the Core last grew"
 msgstr "Çekirdek son büyüdüğünden beri temizlenen %d galeri alanı"
+
+#: res://scripts/ui/main.gd
+msgid "Regions of the deep map opened: %d, whichever"
+msgstr "Derin haritada açılmış bölge: %d, hangisi olursa"
+
+#: res://scripts/ui/main.gd
+msgid "Levels of the open regions' research: %d, whichever"
+msgstr "Açık bölgelerin araştırmasında seviye: %d, hangisi olursa"
+
+#: res://scripts/ui/main.gd
+msgid "A crew with at least %d Rigs, %d Breakers and %d Surveyors"
+msgstr "En az %d Robot, %d Kırıcı ve %d Kâşiften oluşan bir ekip"
 
 #: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
@@ -1088,8 +1180,28 @@ msgid "It is starved, and the store holds what it takes."
 msgstr "Aç kalmış; aldığı malzeme depoda var."
 
 #: res://scripts/ui/main.gd
+msgid "Refit a Rig as a Surveyor"
+msgstr "Robotu Kâşife dönüştür"
+
+#: res://scripts/ui/main.gd
+msgid "The deep map is open: an expedition into a region goes only with a Surveyor."
+msgstr "Derin harita açık: bir bölgeye keşfe yalnızca bir Kâşifle gidilir."
+
+#: res://scripts/ui/main.gd
+msgid "Refit a Rig as a Breaker"
+msgstr "Robotu Kırıcıya dönüştür"
+
+#: res://scripts/ui/main.gd
 msgid "Rock in the galleries: a Rig does half there, a Breaker two and a half Rigs' work."
 msgstr "Galerilerde kaya var: orada Robot yarım iş görür, Kırıcı iki buçuk Robotun işini."
+
+#: res://scripts/ui/main.gd
+msgid "Send an expedition into %s"
+msgstr "%s bölgesine keşif gönder"
+
+#: res://scripts/ui/main.gd
+msgid "It opens the region: its sites, its research, and for good: %s"
+msgstr "Bölgeyi açar: alanlarını, araştırmasını ve kalıcı olarak: %s"
 
 #: res://scripts/ui/main.gd
 msgid "Too strong to clear at once: they bring home %d%% of it and leave it weaker."
@@ -1210,6 +1322,10 @@ msgstr "İzle"
 #: res://scripts/ui/main.gd
 msgid "MAX"
 msgstr "MAKS"
+
+#: res://scripts/ui/main.gd
+msgid "Opens with %s"
+msgstr "%s ile açılır"
 
 #: res://scripts/ui/main.gd
 msgid "%s only"
@@ -1664,6 +1780,14 @@ msgid "Rig"
 msgstr "Robot"
 
 #: res://scripts/core/machine_db.gd
+msgid "Resonite"
+msgstr "Rezonit"
+
+#: res://scripts/core/machine_db.gd
+msgid "Lens"
+msgstr "Mercek"
+
+#: res://scripts/core/machine_db.gd
 msgid "Deep Bore"
 msgstr "Derin Sondaj"
 
@@ -1702,6 +1826,14 @@ msgstr "Çerçeve Kalıbı"
 #: res://scripts/core/machine_db.gd
 msgid "Joins alloy and parts into frames."
 msgstr "Alaşımı ve parçaları çerçeveye birleştirir."
+
+#: res://scripts/core/machine_db.gd
+msgid "Lens Grinder"
+msgstr "Mercek Taşlayıcı"
+
+#: res://scripts/core/machine_db.gd
+msgid "Grinds Resonite onto a Frame: a Lens."
+msgstr "Rezoniti bir Çerçeveye taşlar: bir Mercek."
 
 #: res://scripts/core/machine_db.gd
 msgid "Rig Frame"
@@ -1892,6 +2024,42 @@ msgid "One more blueprint slot for saved layouts."
 msgstr "Kayıtlı yerleşimler için bir plan yuvası daha."
 
 #: res://scripts/core/economy.gd
+msgid "Brine Coils"
+msgstr "Tuzlu Su Serpantinleri"
+
+#: res://scripts/core/economy.gd
+msgid "Cooling runs on the Sunken Works' brine."
+msgstr "Soğutma Batık Tesislerin tuzlu suyuyla çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "Every Coolant Cell and Condenser cools 10% harder, for each level."
+msgstr "Her seviye, her Soğutucu Hücreyi ve Yoğuşturucuyu %10 daha güçlü soğutur."
+
+#: res://scripts/core/economy.gd
+msgid "Resonite Sounding"
+msgstr "Rezonit Sondajı"
+
+#: res://scripts/core/economy.gd
+msgid "Every site gives up more Resonite."
+msgstr "Her alan daha fazla Rezonit verir."
+
+#: res://scripts/core/economy.gd
+msgid "The crew brings home 25% more Resonite from every site, for each level."
+msgstr "Her seviye, ekibin her alandan %25 daha fazla Rezonit getirmesini sağlar."
+
+#: res://scripts/core/economy.gd
+msgid "Reclaimed Hammers"
+msgstr "Kurtarılmış Çekiçler"
+
+#: res://scripts/core/economy.gd
+msgid "Breakers hit harder."
+msgstr "Kırıcılar daha sert vurur."
+
+#: res://scripts/core/economy.gd
+msgid "Every Breaker brings 15% more strength to a sortie, for each level."
+msgstr "Her seviye, her Kırıcının sefere %15 daha fazla güç getirmesini sağlar."
+
+#: res://scripts/core/economy.gd
 msgid "Rig Plating"
 msgstr "Robot Zırhı"
 
@@ -2060,8 +2228,12 @@ msgid "The Forge"
 msgstr "Dökümhane"
 
 #: res://scripts/core/core_levels.gd
-msgid "The Exchange"
-msgstr "Borsa"
+msgid "The Frontier"
+msgstr "Sınır"
+
+#: res://scripts/core/core_levels.gd
+msgid "The Expedition"
+msgstr "Keşif"
 
 #: res://scripts/core/strata.gd
 msgid "Thermal Vent"
@@ -2275,6 +2447,82 @@ msgstr "Azgın Matkap Yuvası"
 msgid "Old drills gone feral down here. They fight back."
 msgstr "Burada vahşileşmiş eski matkaplar. Karşılık veriyorlar."
 
+#: res://scripts/core/operations.gd
+msgid "Flooded Cistern"
+msgstr "Su Basmış Sarnıç"
+
+#: res://scripts/core/operations.gd
+msgid "Resonite settled in black water, and pumps that still turn."
+msgstr "Kara suya çökmüş Rezonit ve hâlâ dönen pompalar."
+
+#: res://scripts/core/operations.gd
+msgid "Stranded Rigs"
+msgstr "Mahsur Robotlar"
+
+#: res://scripts/core/operations.gd
+msgid "A crew lost down here long ago. Bring them home."
+msgstr "Uzun zaman önce burada kaybolmuş bir ekip. Onları eve getir."
+
+#: res://scripts/core/operations.gd
+msgid "Resonite Vein"
+msgstr "Rezonit Damarı"
+
+#: res://scripts/core/operations.gd
+msgid "A seam of Resonite in hard rock. It will not come out for Rigs."
+msgstr "Sert kayada bir Rezonit damarı. Robotlara teslim olmaz."
+
+#: res://scripts/core/operations.gd
+msgid "Rogue Forge"
+msgstr "Azgın Dökümhane"
+
+#: res://scripts/core/operations.gd
+msgid "An old forge that runs itself, and does not want visitors."
+msgstr "Kendi kendine çalışan ve ziyaretçi istemeyen eski bir dökümhane."
+
+#: res://scripts/core/operations.gd
+msgid "Survey"
+msgstr "Keşif"
+
+#: res://scripts/core/operations.gd
+msgid "The way into a region of the deep map."
+msgstr "Derin haritada bir bölgeye giden yol."
+
+#: res://scripts/core/operations.gd
+msgid "The Sunken Works"
+msgstr "Batık Tesisler"
+
+#: res://scripts/core/operations.gd
+msgid "Water. Resonite cisterns, and Rigs to rescue."
+msgstr "Su. Rezonit sarnıçları ve kurtarılacak Robotlar."
+
+#: res://scripts/core/operations.gd
+msgid "Every Coolant Cell and Condenser cools a quarter harder."
+msgstr "Her Soğutucu Hücre ve Yoğuşturucu dörtte bir daha güçlü soğutur."
+
+#: res://scripts/core/operations.gd
+msgid "The Resonite Caverns"
+msgstr "Rezonit Mağaraları"
+
+#: res://scripts/core/operations.gd
+msgid "Rock. The richest Resonite, for Breakers."
+msgstr "Kaya. En zengin Rezonit, Kırıcılar için."
+
+#: res://scripts/core/operations.gd
+msgid "Every site pays half again its Resonite."
+msgstr "Her alan Rezonitini bir buçuk kat verir."
+
+#: res://scripts/core/operations.gd
+msgid "The Rogue Foundry"
+msgstr "Azgın Döküm Atölyesi"
+
+#: res://scripts/core/operations.gd
+msgid "Danger. Forges that fight back, and salvage."
+msgstr "Tehlike. Karşı koyan dökümhaneler ve hurda."
+
+#: res://scripts/core/operations.gd
+msgid "Every cleared site pays twice its salvage."
+msgstr "Her temizlenen alan iki kat hurda verir."
+
 #: res://scripts/ui/codex.gd
 msgid "Side by side"
 msgstr "Yan yana"
@@ -2480,6 +2728,22 @@ msgid "The Deep"
 msgstr "Derinlik"
 
 #: res://scripts/ui/main.gd
+msgid "At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half."
+msgstr "Çekirdek %d. seviyede: Robotları Kırıcıya dönüştür -- bir Robotun yarım iş gördüğü kaya için."
+
+#: res://scripts/ui/main.gd
+msgid "Breakers: %d at the Bay, %d out. A Breaker does 2.5 Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, leads a team into danger, burns twice the fuel and is never posted."
+msgstr "Kırıcılar: garajda %d, dışarıda %d. Bir Kırıcı kayada 2,5 Robotun işini görür (orada Robot yarım iş görür), suda birinden azını; alanın aşındırmasını üstlenir, ekibi tehlikeye önden götürür, iki kat yakıt yakar ve görevlendirilemez."
+
+#: res://scripts/ui/main.gd
+msgid "At the Core's level %d: refit Rigs as Surveyors -- they lead the expeditions that open the deep map."
+msgstr "Çekirdek %d. seviyede: Robotları Kâşife dönüştür -- derin haritayı açan keşiflere onlar önderlik eder."
+
+#: res://scripts/ui/main.gd
+msgid "Surveyors: %d at the Bay, %d out. An expedition into the deep map goes only with one; each finds a quarter more Resonite, and a team of Surveyors alone is back sooner. On a site a Surveyor does less than a Rig, and it wears twice as fast in danger."
+msgstr "Kâşifler: garajda %d, dışarıda %d. Derin haritaya keşfe yalnızca bir Kâşifle gidilir; her biri dörtte bir daha fazla Rezonit bulur ve yalnız Kâşiflerden oluşan ekip daha çabuk döner. Bir alanda Kâşif bir Robottan az iş görür ve tehlikede iki kat hızlı aşınır."
+
+#: res://scripts/ui/main.gd
 msgid "Game"
 msgstr "Oyun"
 
@@ -2626,3 +2890,4 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
+

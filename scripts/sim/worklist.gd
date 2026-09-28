@@ -67,6 +67,9 @@ static func of(state: Object) -> Array:
 		var need: Dictionary = core_need(state)
 		if not need.is_empty():
 			out.append({"kind": "core_need", "st": need})
+		# The deep map right after the Core's own row: from Core 10 it is the
+		# era's work.
+		_deep_map(state, out)
 		var up: String = upgrade_ready(state)
 		if up != "":
 			out.append({"kind": "upgrade", "id": up,
@@ -96,10 +99,11 @@ static func of(state: Object) -> Array:
 					out.append({"kind": "post", "cell": cell})
 					break
 	# Rock in the galleries and no Breaker yet: a Rig refitted for it.
-	if state.has_method("refit_rig") and String(state.call("refit_blocker")) == "" 			and int(state.get("breakers")) + int(state.call("breakers_out")) == 0:
+	if state.has_method("refit_rig") and String(state.call("refit_blocker", "breaker")) == "" \
+			and int(state.get("breakers")) + int(state.call("breakers_out")) == 0:
 		for s: Dictionary in (state.get("ops_board") as Array):
 			if Operations.armored(s):
-				out.append({"kind": "refit"})
+				out.append({"kind": "refit", "role": "breaker"})
 				break
 	# A site the Rigs at home clear, and can go to now; or, when none can be
 	# cleared, the one they take the most of -- a third or more -- which
@@ -108,12 +112,12 @@ static func of(state: Object) -> Array:
 		var board: Array = state.get("ops_board")
 		var best: Dictionary = {}
 		for i in range(board.size()):
-			var team: Vector2i = state.call("sortie_team", i)
+			var team: Vector3i = state.call("sortie_team", i)
 			var s: Dictionary = board[i]
-			if not s.has("kind") or not bool(state.call("can_send", i, team.x, team.y)):
+			if not s.has("kind") or not bool(state.call("can_send", i, team.x, team.y, team.z)):
 				continue
-			var part: float = float(state.call("team_strength", s, team.x, team.y)) / maxf(float(s["left"]), 1.0)
-			var n: int = team.x + team.y
+			var part: float = float(state.call("team_strength", s, team.x, team.y, team.z)) / maxf(float(s["left"]), 1.0)
+			var n: int = team.x + team.y + team.z
 			if part >= 1.0:
 				best = {"kind": "sortie", "i": i, "n": n, "share": false, "part": 1.0}
 				break
@@ -358,3 +362,23 @@ static func best_placement(state: Object) -> Dictionary:
 				return {"id": id, "cells": n, "cell": first}
 			sink = {"id": id, "cells": n, "cell": first}
 	return sink
+
+
+## The deep map's lines (Operations, "regions"): the expedition that opens a
+## region the Core has room for, or, with no Surveyor in the crew, the
+## refit it needs.
+static func _deep_map(state: Object, out: Array) -> void:
+	if state.has_method("send_expedition") and int(state.get("core_level")) >= Operations.REGION_CORE \
+			and (state.get("regions_open") as Array).size() + int(state.call("expeditions_out")) 				< Operations.region_slots(int(state.get("core_level"))):
+		var sent: bool = false
+		for r: String in Operations.REGION_ORDER:
+			if bool(state.call("region_open", r)):
+				continue
+			var t: Vector3i = state.call("expedition_team", r)
+			if String(state.call("expedition_blocker", r, t.x, t.y, t.z)) == "":
+				out.append({"kind": "expedition", "region": r, "n": t.x + t.y + t.z})
+				sent = true
+				break
+		if not sent and int(state.get("surveyors")) + int(state.call("surveyors_out")) == 0 \
+				and String(state.call("refit_blocker", "surveyor")) == "":
+			out.append({"kind": "refit", "role": "surveyor"})

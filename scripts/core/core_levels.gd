@@ -34,6 +34,14 @@ extends RefCounted
 ##   DOCTRINE  levels bought in the lines of the doctrine this shaft follows
 ##             (Economy.DOCTRINES, from the Core's level DOCTRINE_CORE) --
 ##             whichever it is: the row asks for a strategy, not for one.
+##   REGIONS   regions of the deep map this shaft has opened (Operations,
+##             "regions", from Operations.REGION_CORE) -- whichever they
+##             are: the row asks for the world to be explored, not where.
+##   REGION_LINES levels bought in the lines the open regions' research
+##             opens -- whichever region's: the research path follows the
+##             map.
+##   ROLES     the crew with at least that many of each kind: Rigs,
+##             Breakers and Surveyors.
 ##
 ## The graph has no cycles by construction -- everything level L asks for is
 ## possible at level L-1 -- and `validate()` checks it, with every
@@ -41,7 +49,7 @@ extends RefCounted
 ## never ask for the impossible.
 
 enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE, DOCTRINE,
-	OPERATIONS }
+	OPERATIONS, REGIONS, REGION_LINES, ROLES }
 
 ## A support machine touches four machines at most (Grid.serves).
 const MAX_SERVES := 4
@@ -191,7 +199,7 @@ const LEVELS := [
 	# by 4 h 14 min: the rows ask for four and 130. The
 	# formula this level had asked for Crusher 10 and nine Overdrive steps:
 	# 521M credits and 1.7M research.
-	{"level": 10, "era": "The Exchange", "depth_cap": 34, "machine_cap": 11, "requires": [
+	{"level": 10, "era": "The Frontier", "depth_cap": 34, "machine_cap": 11, "requires": [
 		[Req.CREDITS, 50000000.0],
 		[Req.STOCK, MachineDB.Res.FRAME, 300000],
 		[Req.WORKING, "lab", 4, "assay"],
@@ -199,6 +207,20 @@ const LEVELS := [
 		[Req.DOCTRINE, 9],
 		[Req.STABLE, 130],
 		[Req.DEPTH, 27],
+	]},
+	# The Core 10 era is the deep map's (docs/GAME-LOOP.md, section 12):
+	# not more of the Core 9 era's rows, each a new kind of work -- the
+	# world explored (a region opened by an expedition), the new chain run
+	# (Lenses, ground from the Resonite the crew brings home, in the store),
+	# the research the region opened (whichever region), a crew of three
+	# kinds, and the price. Which region, which research and which crew are
+	# the shaft's choice; the row asks that there is one.
+	{"level": 11, "era": "The Expedition", "depth_cap": 39, "machine_cap": 12, "requires": [
+		[Req.CREDITS, 75000000.0],
+		[Req.STOCK, MachineDB.Res.LENS, 10000],
+		[Req.REGIONS, 1],
+		[Req.REGION_LINES, 2],
+		[Req.ROLES, 2],
 	]},
 ]
 
@@ -270,6 +292,14 @@ static func _entry(level: int) -> Dictionary:
 				# three steps a level opens would be 3.2 times a level (1.75M
 				# research at Core 11, 57M at Core 14).
 				reqs.append([Req.OVERDRIVE, r[1], mini(int(r[2]) + n, overdrive_cap(level - 1))])
+			Req.REGIONS:
+				# One more region a level, while the map has one.
+				reqs.append([Req.REGIONS, mini(int(r[1]) + n, mini(Operations.region_slots(level - 1),
+					Operations.REGION_ORDER.size()))])
+			Req.REGION_LINES:
+				reqs.append([Req.REGION_LINES, int(r[1]) + 2 * n])
+			Req.ROLES:
+				reqs.append([Req.ROLES, mini(int(r[1]) + n, 4)])
 	var line: String = String(LATE_RESEARCH[n % LATE_RESEARCH.size()])
 	reqs.append([Req.RESEARCH, line, mini(3 + n / LATE_RESEARCH.size(),
 		Economy.research_cap(line, level - 1))])
@@ -381,6 +411,7 @@ static func opens(level: int) -> Dictionary:
 			lines.append(id)
 	return {"strata": [from, to], "machines": machines, "materials": materials, "jobs": jobs,
 		"doctrine": level == Economy.DOCTRINE_CORE, "export": level == EXPORT_CORE,
+		"regions": level == Operations.REGION_CORE,
 		"operations": level == MachineDB.RIG_CORE or level == Operations.FIRST_SITE_CORE,
 		"machine_cap": machine_cap(level), "research": lines,
 		"stock_cap": MachineDB.stock_cap(machine_cap(level)),
@@ -431,6 +462,18 @@ static func status(state: Object) -> Array:
 				need = float(r[1])
 			Req.OPERATIONS:
 				have = float(int(state.get("ops_cleared")))
+				need = float(r[1])
+			Req.REGIONS:
+				var ro: Variant = state.get("regions_open")
+				have = float((ro as Array).size()) if ro != null else 0.0
+				need = float(r[1])
+			Req.REGION_LINES:
+				have = float(int(state.call("region_lines"))) if state.has_method("region_lines") else 0.0
+				need = float(r[1])
+			Req.ROLES:
+				if state.has_method("crew_roles"):
+					var roles: Dictionary = state.call("crew_roles")
+					have = float(mini(int(roles["rig"]), mini(int(roles["breaker"]), int(roles["surveyor"]))))
 				need = float(r[1])
 		row.merge({"req": r, "met": have >= need, "have": have, "need": need})
 		out.append(row)
@@ -590,6 +633,16 @@ static func available_at(r: Array) -> int:
 			# Sites cleared by the crew: the first gallery opens to the
 			# Foreman's Rig.
 			return Operations.FIRST_SITE_CORE
+		Req.REGIONS:
+			if int(r[1]) > Operations.REGION_ORDER.size():
+				return -1
+			return Operations.REGION_CORE + int(r[1]) - 1
+		Req.REGION_LINES:
+			# A line's levels are capped by the Core, RESEARCH_PER_CORE a
+			# level, and one region's line is enough.
+			return Operations.REGION_CORE + int(ceil(float(r[1]) / float(Economy.RESEARCH_PER_CORE))) - 1
+		Req.ROLES:
+			return Operations.REGION_CORE
 	return -1
 
 

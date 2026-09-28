@@ -1480,6 +1480,61 @@ scripted player reached Core 10 in 12 h 32 min of one new game: Core 9 at
 the Core, the 300,000 Frames last (2 h 00 of the 2 h 16 stage). The
 formula for Core 11 and after is unchanged and unplayed.
 
+## Core 11: the Expedition
+
+The Core 10 era is now called the Frontier: from Core 10 the deep map
+opens (`GAME-LOOP.md`, section 12). The whole design, its decisions and
+its measurements are there; here, the rows.
+
+### Measured first
+
+The formula Core 11 had asked for Core 10's rows grown: credits 1.5
+times, the store 1.6 times, two more Assay Benches, one more Overdrive
+step, one more doctrine level, stability +20 and the next five strata. No
+row asked for anything Core 10 opened, and Core 10 opened only the export.
+
+### What changed
+
+**Core 11, written out** (`CoreLevels.LEVELS`): five rows, each a kind of
+work of its own.
+
+| row | kind | why this row |
+|---|---|---|
+| **75M credits** | economy | the Core's price, about half an hour of the Core 10 factory (42K/s over the stage) |
+| **10,000 Lenses in the store** | production | the new chain: an Assembler on the Lens job beside the Core, a Rig posted to feed it Resonite from the store, a Frame and 2 Resonite a Lens |
+| **1 region of the deep map open** | the world | an expedition, led by a Surveyor; which region is the shaft's choice |
+| **2 levels of the open regions' research** | research | the line the region opened: Brine Coils, Resonite Sounding or Reclaimed Hammers |
+| **a crew of at least 2 Rigs, 2 Breakers and 2 Surveyors** | the crew | all three kinds kept |
+
+**Past the table** (`CoreLevels`): the rows Core 10 and 11 asked
+for, each grown in its own way -- one more region while the map has one
+(Core 12: 2, Core 13: 3), two more levels of the regions' research, one
+more of each kind of crew (to 4), credits 1.5 times, the store 1.6 times.
+`CoreLevels.available_at` knows the new kinds: a region row can be met
+from the Core that has room for it, a research row from the Core that
+lets the line go that far.
+
+**In the economy:** Resonite is worth what the deep chain's third tier
+is; a Lens 200. The region's research costs 400K and twice as much a
+level, four levels. A region site is dealt from the lower tier only, and
+pays 0.15 Resonite for each point of the strength it needs (0.4 in the
+first design: see "Played, after").
+
+### Played, after
+
+From the Core 10 save of a new game (12 h 31 min 57 s), each region first:
+the Caverns **0:54:19**, the Sunken Works **1:58:24**, the Foundry
+**1:26:04**, with credits the only row left for 0%, 0% and 12% of them (`GAME-LOOP.md`, section
+12, "Played"). The first design (0.4 Resonite a point, 500 Lenses,
+research at 150K) fell in 38 minutes with the Lens row met in the first
+twenty: the rows are now what they are above.
+
+**From a new game** (`GAME-LOOP.md`, section 12, run W): Core 10 at
+12:31:57, Core 11 at 13:26:02, Core 12 at 17:20:37. Core 11 -> 12 took 3 h
+55 min, its last row the regions' research (1.21M made in the stage): the
+research the factory makes, not the map, is what holds Core 12 for the
+scripted player.
+
 ---
 
 ## Plan P0-P8

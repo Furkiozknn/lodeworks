@@ -500,7 +500,7 @@ func _run_rigs() -> void:
 	Sim._sync_core()
 	for i in range(Sim.ops_board.size()):
 		if Operations.armored(Sim.site(i)):
-			var tm: Vector2i = Sim.sortie_team(i)
+			var tm: Vector3i = Sim.sortie_team(i)
 			Sim.send_sortie(i, 0, mini(tm.y, 1))
 			(Sim.sorties[0] as Dictionary)["left"] = float(Sim.sorties[0]["trip"]) * 0.7
 			break
@@ -516,6 +516,53 @@ func _run_rigs() -> void:
 	await _settle(0.8)
 	await _capture("rigs_bay")
 	_clear_transient()
+	# The deep map (Operations, "regions"): a Core 10 with the Caverns open,
+	# an expedition out, Surveyors and Breakers at the Bay.
+	Sim.core_level = Operations.REGION_CORE
+	Sim.clear_ops()
+	Sim.machine_levels["vault"] = 10
+	Sim.upgrade_levels["rig_plating"] = 8
+	Sim._recompute()
+	Sim.stock[MachineDB.Res.RIG] = 6
+	Sim.breakers = 3
+	Sim.surveyors = 3
+	Sim.stock[MachineDB.Res.ALLOY] = 20000
+	Sim.stock[MachineDB.Res.FRAME] = 20000
+	Sim.stock[MachineDB.Res.RESONITE] = 900
+	Sim.stock[MachineDB.Res.LENS] = 120
+	Sim.salvage = 40
+	Sim.regions_open = ["caverns"]
+	Sim._recompute()
+	Sim._deal_ops()
+	Sim._sync_core()
+	# Out far enough to see the three ways into the deep map.
+	var gv3: IsoView = _main.get("iso_view")
+	gv3.cam.focus(gv3.core_center(), gv3.default_zoom() * 0.5)
+	await _settle(1.5)
+	await _capture("deep_board")
+	_main.call("_show_map")
+	await _settle(0.8)
+	var scroll2: ScrollContainer = _main.get("_overlay_scroll")
+	if scroll2 != null:
+		scroll2.scroll_vertical = 100000
+	await _settle(0.6)
+	await _capture("deep_map")
+	_clear_transient()
+	_main.call("_show_galleries")
+	await _settle(0.8)
+	var scroll3: ScrollContainer = _main.get("_overlay_scroll")
+	if scroll3 != null:
+		scroll3.scroll_vertical = 100000
+	await _settle(0.6)
+	await _capture("deep_galleries")
+	_clear_transient()
+	_main.call("_on_region_opened", "caverns")
+	await _settle(0.8)
+	await _capture("deep_region_opened")
+	_clear_transient()
+	Sim.regions_open = []
+	Sim.surveyors = 0
+	Sim.breakers = 0
 	# Before the crew is made: the Foreman's Rig in the one gallery Core 2
 	# opens, the other two mouths boarded up.
 	Sim.core_level = 2

@@ -544,10 +544,10 @@ func test_a_rig_refitted_as_a_breaker_goes_to_rock() -> void:
 	runner.eq(Sim.rigs_home(), 3, "one Rig fewer")
 	runner.eq(Sim.breakers, 1, "one Breaker more")
 	runner.eq(Sim.salvage, 20 - int(c["salvage"]), "paid in salvage")
-	runner.eq(Sim.stock_of(MachineDB.Res.COMPONENT), 1000 - int(c["components"]), "and Components")
+	runner.eq(Sim.stock_of(MachineDB.Res.COMPONENT), 1000 - int(c["n"]), "and Components")
 	runner.eq(int(Sim.sim.core_wants.get(RIG, 0)), room, "the crew's room is what it was")
 	# The drift: Breakers first.
-	var team: Vector2i = Sim.sortie_team(0)
+	var team: Vector3i = Sim.sortie_team(0)
 	runner.eq(team.y, 1, "the Breaker goes to rock")
 	runner.gte(Sim.team_strength(Sim.site(0), team.x, team.y), 20.0, "and the team clears it")
 	var wear_rigs: float = float(Operations.resolve(Sim.site(0), Sim.team_strength(Sim.site(0), 3, 0))["wear"])

@@ -21,6 +21,8 @@ signal offline_earnings(report: Dictionary)
 ## A sortie left (site slot, Rigs), and one came home (Sim._sortie_home).
 signal sortie_sent(slot: int, rigs: int)
 signal sortie_back(report: Dictionary)
+## A region of the deep map opened by an expedition (Operations, "regions").
+signal region_opened(region: String)
 
 const AUTOSAVE_SECONDS := 20.0
 
@@ -384,7 +386,7 @@ func _collect_stock() -> void:
 	for res: int in sim.core_took:
 		# Rigs are the crew, kept up to the crew's limit, not the store's.
 		var limit: int = crew_cap() - rigs_out() - rigs_posted() - breakers - breakers_out() \
-			if res == MachineDB.Res.RIG else cap
+			- surveyors - surveyors_out() if res == MachineDB.Res.RIG else cap
 		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), limit)
 		units += int(sim.core_took[res])
 	sim.core_took.clear()
@@ -411,7 +413,8 @@ func _sync_core() -> void:
 		if stock_of(int(res)) < cap:
 			room[int(res)] = cap - stock_of(int(res))
 	# The crew: Rigs, up to the limit the Core's level sets, less those out.
-	var crew: int = crew_cap() - rigs_home() - rigs_out() - rigs_posted() - breakers - breakers_out()
+	var crew: int = crew_cap() - rigs_home() - rigs_out() - rigs_posted() - breakers - breakers_out() \
+		- surveyors - surveyors_out()
 	if crew > 0 and core_level >= MachineDB.RIG_CORE:
 		room[MachineDB.Res.RIG] = crew
 	sim.core_wants = room
@@ -575,7 +578,7 @@ var rig_wear: float = 0.0
 func crew_cap() -> int:
 	if core_level < MachineDB.RIG_CORE:
 		return Operations.crew_cap(core_level)
-	return Operations.crew_cap(core_level) + Operations.earned_rigs(ops_lifetime)
+	return Operations.crew_cap(core_level) + Operations.earned_rigs(ops_lifetime) + rescued
 
 
 ## Sites still to clear before the crew earns room for another Rig; 0 when
@@ -608,35 +611,159 @@ func breakers_out() -> int:
 	return b
 
 
-## Why a Rig at the Bay cannot be refitted as a Breaker now, or "": "core"
-## (the Core's level has not reached Operations.BREAKER_CORE), "rigs" (none
-## at the Bay), "salvage", "components".
-func refit_blocker() -> String:
-	if core_level < Operations.BREAKER_CORE:
+## Surveyors (Operations, "the Surveyor"): Rigs refitted, at the Bay, and out.
+var surveyors: int = 0
+
+
+func surveyors_out() -> int:
+	var v: int = 0
+	for s: Dictionary in sorties:
+		v += int(s.get("v", 0))
+	return v
+
+
+## The crew by kind, at the Bay, out and posted: {"rig", "breaker",
+## "surveyor"}.
+func crew_roles() -> Dictionary:
+	return {"rig": rigs_home() + rigs_out() + rigs_posted(), "breaker": breakers + breakers_out(),
+		"surveyor": surveyors + surveyors_out()}
+
+
+## Why a Rig at the Bay cannot be refitted as a `role` ("breaker",
+## "surveyor") now, or "": "core" (the Core's level has not reached
+## Operations.role_core), "rigs" (none at the Bay), "salvage", "materials".
+func refit_blocker(role: String = "breaker") -> String:
+	if core_level < Operations.role_core(role):
 		return "core"
 	if rigs_home() <= 0:
 		return "rigs"
-	var c: Dictionary = Operations.refit_cost(core_level)
+	var c: Dictionary = Operations.refit_cost(core_level, role)
 	if salvage < int(c["salvage"]):
 		return "salvage"
-	if stock_of(MachineDB.Res.COMPONENT) < int(c["components"]):
-		return "components"
+	if stock_of(int(c["res"])) < int(c["n"]):
+		return "materials"
 	return ""
 
 
-## Refit a Rig at the Bay as a Breaker.
-func refit_rig() -> bool:
-	if refit_blocker() != "":
+## Refit a Rig at the Bay as a `role`.
+func refit_rig(role: String = "breaker") -> bool:
+	if refit_blocker(role) != "":
 		return false
-	var c: Dictionary = Operations.refit_cost(core_level)
+	var c: Dictionary = Operations.refit_cost(core_level, role)
 	salvage -= int(c["salvage"])
-	_take_stock({MachineDB.Res.COMPONENT: int(c["components"])})
+	_take_stock({int(c["res"]): int(c["n"])})
 	stock[MachineDB.Res.RIG] = rigs_home() - 1
-	breakers += 1
+	if role == "surveyor":
+		surveyors += 1
+	else:
+		breakers += 1
 	_sync_core()
 	stats_changed.emit()
 	Save.save_game(self)
 	return true
+
+
+## --- the deep map: regions (Operations, "regions") --------------------------------
+
+## The regions this shaft has opened, in the order it opened them.
+var regions_open: Array = []
+## Stranded Rigs brought home in this shaft: room for one more Rig each.
+var rescued: int = 0
+
+
+func region_open(r: String) -> bool:
+	return regions_open.has(r)
+
+
+## Levels bought in the research lines the regions open (Economy, "region").
+func region_lines() -> int:
+	var n: int = 0
+	for id: String in Economy.RESEARCH_TREE:
+		if String((Economy.RESEARCH_TREE[id] as Dictionary).get("region", "")) != "":
+			n += upgrade_level(id)
+	return n
+
+
+## What an expedition into region `r` has to be strong enough for now.
+func survey_site(r: String) -> Dictionary:
+	return Operations.survey_site(r, core_level, depth + 100 * collapses)
+
+
+## Expeditions out now.
+func expeditions_out() -> int:
+	var n: int = 0
+	for s: Dictionary in sorties:
+		if String((s["site"] as Dictionary).get("kind", "")) == "survey":
+			n += 1
+	return n
+
+
+## Lenses an expedition into another region costs now.
+func expedition_lenses() -> int:
+	return Operations.EXPEDITION_LENS * regions_open.size()
+
+
+## Why `n` Rigs, `b` Breakers and `v` Surveyors cannot go on an expedition
+## into region `r` now, or "": "core", "open" (it is), "room" (the Core has
+## no room for another open region), "busy" (one is out to it), "surveyor"
+## (none in the team), "rigs", "lens", "fuel", "weak" (not strong enough
+## for its survey).
+func expedition_blocker(r: String, n: int, b: int, v: int) -> String:
+	if core_level < Operations.REGION_CORE or not Operations.REGIONS.has(r):
+		return "core"
+	if region_open(r):
+		return "open"
+	if site_busy(Operations.region_slot(r)):
+		return "busy"
+	if regions_open.size() + expeditions_out() >= Operations.region_slots(core_level):
+		return "room"
+	if v < 1:
+		return "surveyor"
+	if n < 0 or b < 0 or n > rigs_home() or b > breakers or v > surveyors:
+		return "rigs"
+	if stock_of(MachineDB.Res.LENS) < expedition_lenses():
+		return "lens"
+	if stock_of(Operations.fuel_res(core_level)) < expedition_fuel(n, b, v):
+		return "fuel"
+	var s: Dictionary = survey_site(r)
+	if team_strength(s, n, b, v) < float(s["need"]):
+		return "weak"
+	return ""
+
+
+func expedition_fuel(n: int, b: int, v: int) -> int:
+	return int(ceil(float(Operations.fuel(n, core_level, b, v)) * Operations.EXPEDITION_FUEL))
+
+
+## Send an expedition into region `r`: when it is home, the region is open.
+func send_expedition(r: String, n: int, b: int, v: int) -> bool:
+	if expedition_blocker(r, n, b, v) != "":
+		return false
+	_take_stock({MachineDB.Res.LENS: expedition_lenses()})
+	var fuel_extra: int = expedition_fuel(n, b, v) - Operations.fuel(n, core_level, b, v)
+	_take_stock({Operations.fuel_res(core_level): fuel_extra})
+	return _send(Operations.region_slot(r), survey_site(r), n, b, v)
+
+
+## The fewest that clear an expedition into region `r`, with a Surveyor --
+## every Surveyor at home first -- or everyone at home.
+func expedition_team(r: String) -> Vector3i:
+	var s: Dictionary = survey_site(r)
+	for size in range(1, rigs_home() + breakers + surveyors + 1):
+		for t: Vector3i in _splits(s, size):
+			if t.z >= 1 and team_strength(s, t.x, t.y, t.z) >= float(s["need"]):
+				return t
+	return Vector3i(rigs_home(), breakers, surveyors)
+
+
+## Open region `r`: its slot dealt, its advantage on the factory.
+func _open_region(r: String) -> void:
+	if region_open(r):
+		return
+	regions_open.append(r)
+	_recompute()
+	_deal_ops()
+	region_opened.emit(r)
 
 
 ## --- posts: Rigs at work in the factory (Operations, "Posts") -------------------
@@ -809,9 +936,10 @@ func crew_strength(n: int) -> float:
 	return float(n) * Operations.RIG_POWER * float(_mult.get("rig_power", 1.0)) * (1.0 - rig_wear)
 
 
-## What `n` Rigs and `b` Breakers bring to site `s` (Operations.team_factor).
-func team_strength(s: Dictionary, n: int, b: int) -> float:
-	return crew_strength(1) * Operations.team_factor(s, n, b)
+## What `n` Rigs, `b` Breakers and `v` Surveyors bring to site `s`
+## (Operations.team_factor).
+func team_strength(s: Dictionary, n: int, b: int, v: int = 0) -> float:
+	return crew_strength(1) * Operations.team_factor(s, n, b, v, float(_mult.get("breaker_power", 1.0)))
 
 
 func site(i: int) -> Dictionary:
@@ -834,43 +962,68 @@ func site_busy(i: int) -> bool:
 ## gallery is open yet), "site" (nothing dealt there), "busy" (a sortie is
 ## already out to it), "rigs" (not that many at home), "fuel" (not the
 ## Ingots).
-func sortie_blocker(i: int, n: int, b: int = 0) -> String:
+func sortie_blocker(i: int, n: int, b: int = 0, v: int = 0) -> String:
 	if Operations.slots(core_level) == 0:
 		return "core"
 	if not site(i).has("kind"):
 		return "site"
 	if site_busy(i):
 		return "busy"
-	if n < 0 or b < 0 or n + b < 1 or n > rigs_home() or b > breakers:
+	if n < 0 or b < 0 or v < 0 or n + b + v < 1 or n > rigs_home() or b > breakers or v > surveyors:
 		return "rigs"
-	if stock_of(Operations.fuel_res(core_level)) < Operations.fuel(n, core_level, b):
+	if stock_of(Operations.fuel_res(core_level)) < Operations.fuel(n, core_level, b, v):
 		return "fuel"
 	return ""
 
 
-func can_send(i: int, n: int, b: int = 0) -> bool:
-	return sortie_blocker(i, n, b) == ""
+func can_send(i: int, n: int, b: int = 0, v: int = 0) -> bool:
+	return sortie_blocker(i, n, b, v) == ""
 
 
-## The team a sortie to site `i` takes by default, as (Rigs, Breakers): the
-## fewest that clear what is left of it -- Breakers first on rock, Rigs
-## first elsewhere -- or everyone at home when no team does.
-func sortie_team(i: int) -> Vector2i:
+## The team a sortie to site `i` takes by default, as (Rigs, Breakers,
+## Surveyors): the fewest that clear what is left of it -- Breakers first
+## on rock, a Breaker leading into danger, Rigs first elsewhere, Surveyors
+## last (they are weak and fragile) -- or everyone at home when no team does.
+func sortie_team(i: int) -> Vector3i:
 	var s: Dictionary = site(i)
-	var home: int = rigs_home()
+	var all := Vector3i(rigs_home(), breakers, surveyors)
 	if not s.has("kind"):
-		return Vector2i(home, breakers)
+		return all
+	for size in range(1, all.x + all.y + all.z + 1):
+		for t: Vector3i in _splits(s, size):
+			if team_strength(s, t.x, t.y, t.z) >= float(s["left"]):
+				return t
+	return all
+
+
+## Every team of `size` from the crew at home, the site's preferred first.
+func _splits(s: Dictionary, size: int) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for b in range(mini(size, breakers) + 1):
+		for v in range(mini(size - b, surveyors) + 1):
+			var n: int = size - b - v
+			if n <= rigs_home():
+				out.append(Vector3i(n, b, v))
 	var rock: bool = Operations.armored(s)
-	for size in range(1, home + breakers + 1):
-		# Every split of `size`, the preferred kind first.
-		for k in range(size + 1):
-			var b: int = size - k if rock else k
-			var n: int = size - b
-			if n > home or b > breakers:
-				continue
-			if team_strength(s, n, b) >= float(s["left"]):
-				return Vector2i(n, b)
-	return Vector2i(home, breakers)
+	var wet: bool = Operations.watery(s)
+	var danger: bool = Operations.dangerous(s)
+	var survey: bool = String(s.get("kind", "")) == "survey"
+	var key := func(t: Vector3i) -> float:
+		var k: float = 0.0
+		if survey:
+			k -= 100.0 * float(t.z)
+		if danger and t.y >= 1:
+			k -= 50.0
+		if rock:
+			k -= 10.0 * float(t.y)
+		elif wet:
+			k += 10.0 * float(t.y)
+		# Surveyors last: weak, fragile.
+		if not survey:
+			k += 5.0 * float(t.z)
+		return k
+	out.sort_custom(func(a: Vector3i, c: Vector3i) -> bool: return float(key.call(a)) < float(key.call(c)))
+	return out
 
 
 ## How many Rigs a sortie to site `i` takes by default: the fewest at home
@@ -888,17 +1041,30 @@ func sortie_size(i: int) -> int:
 
 ## Send `n` Rigs to site `i`: they leave the Core with their fuel, and what
 ## they will do there is decided now (Operations.resolve).
-func send_sortie(i: int, n: int, b: int = 0) -> bool:
-	if not can_send(i, n, b):
+func send_sortie(i: int, n: int, b: int = 0, v: int = 0) -> bool:
+	if not can_send(i, n, b, v):
 		return false
-	var s: Dictionary = site(i)
-	var out: Dictionary = Operations.resolve(s, team_strength(s, n, b))
-	# The Breakers take the brunt.
-	out["wear"] = float(out["wear"]) * (1.0 - Operations.BREAKER_SHIELD * Operations.breaker_share(s, n, b))
-	_take_stock({Operations.fuel_res(core_level): Operations.fuel(n, core_level, b), MachineDB.Res.RIG: n})
+	return _send(i, site(i), n, b, v)
+
+
+## A team out to site `s` in board slot `i`: what it will do there decided
+## now, from who is in it.
+func _send(i: int, s: Dictionary, n: int, b: int, v: int) -> bool:
+	var out: Dictionary = Operations.resolve(s, team_strength(s, n, b, v))
+	# The Breakers take the brunt; the Surveyors are fragile.
+	out["wear"] = float(out["wear"]) * (1.0 - Operations.BREAKER_SHIELD * Operations.breaker_share(s, n, b, v)) \
+		* (1.0 + Operations.SURVEYOR_FRAGILE * Operations.surveyor_share(s, n, b, v) * (2.0 if Operations.dangerous(s) else 1.0))
+	# Danger: with no Breaker to lead it, the team brings home half.
+	out["half"] = Operations.dangerous(s) and b == 0 and String(s.get("kind", "")) != "survey"
+	# The Surveyors find more of the Resonite.
+	out["find"] = minf(Operations.SURVEYOR_FIND * float(v), Operations.SURVEYOR_FIND_MAX)
+	_take_stock({Operations.fuel_res(core_level): Operations.fuel(n, core_level, b, v), MachineDB.Res.RIG: n})
 	breakers -= b
+	surveyors -= v
 	var trip: float = Operations.trip(s)
-	sorties.append({"slot": i, "n": n, "b": b, "left": trip, "trip": trip, "site": s.duplicate(),
+	if n == 0 and b == 0 and v > 0 and String(s.get("kind", "")) != "survey":
+		trip *= Operations.SURVEYOR_TRIP
+	sorties.append({"slot": i, "n": n, "b": b, "v": v, "left": trip, "trip": trip, "site": s.duplicate(),
 		"out": out, "wear": rig_wear})
 	# Rigs out still count against the crew.
 	_sync_core()
@@ -927,45 +1093,64 @@ func advance_ops(dt: float) -> void:
 func _sortie_home(s: Dictionary) -> void:
 	var n: int = int(s["n"])
 	var b: int = int(s.get("b", 0))
+	var v: int = int(s.get("v", 0))
 	var out: Dictionary = s["out"]
-	var home: int = rigs_home() + breakers
+	var site_was: Dictionary = s["site"]
+	var kind: String = String(site_was["kind"])
+	var home: int = rigs_home() + breakers + surveyors
 	var worn: float = minf(float(s["wear"]) + float(out["wear"]), Operations.WEAR_MAX)
-	rig_wear = clampf((rig_wear * float(home) + worn * float(n + b)) / float(maxi(home + n + b, 1)),
+	rig_wear = clampf((rig_wear * float(home) + worn * float(n + b + v)) / float(maxi(home + n + b + v, 1)),
 		0.0, Operations.WEAR_MAX)
 	stock[MachineDB.Res.RIG] = rigs_home() + n
 	breakers += b
-	var r: Dictionary = Operations.reward(s["site"], offline_rate())
+	surveyors += v
+	var r: Dictionary = Operations.reward(site_was, offline_rate())
 	var share: float = float(out["share"])
-	var paid: float = float(r["credits"]) * share
+	# Danger: a team with no Breaker to lead it brought home half.
+	var pay: float = share * (0.5 if bool(out.get("half", false)) else 1.0)
+	var paid: float = float(r["credits"]) * pay
 	credits += paid
 	lifetime_credits += paid
-	research += float(r["research"]) * share
+	research += float(r["research"]) * pay
 	var res: int = int(r["res"])
-	var units: int = int(floor(float(r["n"]) * share))
+	var units: float = float(r["n"]) * pay
+	if res == MachineDB.Res.RESONITE:
+		# More with Surveyors, in the Caverns, and with the Lens research.
+		units *= (1.0 + float(out.get("find", 0.0))) * float(_mult.get("resonite", 1.0)) \
+			* (Operations.CAVERN_RESONITE if region_open("caverns") else 1.0)
+	var got: int = int(floor(units))
 	if MachineDB.STOCKED.has(res):
-		stock[res] = mini(stock_of(res) + units, stock_cap())
+		stock[res] = mini(stock_of(res) + got, stock_cap())
 	var slot: int = int(s["slot"])
+	var salv: int = int(r["salvage"]) * (Operations.FOUNDRY_SALVAGE if region_open("foundry") else 1)
 	if bool(out["cleared"]):
-		salvage += int(r["salvage"])
-		salvage_earned += int(r["salvage"])
+		salvage += salv
+		salvage_earned += salv
 		ops_cleared += 1
 		ops_lifetime += 1
-		if slot < ops_board.size():
+		if kind == "stranded":
+			# A rescue: room for one more Rig, and the crew mended.
+			rescued = mini(rescued + 1, Operations.RESCUE_MAX)
+			rig_wear = 0.0
+		if kind == "survey":
+			_open_region(String(site_was.get("region", "")))
+		elif slot < ops_board.size():
 			ops_board[slot] = {}
 		_deal_ops()
-	elif slot < ops_board.size() and site(slot).get("serial", -1) == (s["site"] as Dictionary).get("serial", -2):
+	elif kind != "survey" and slot < ops_board.size() \
+			and site(slot).get("serial", -1) == site_was.get("serial", -2):
 		ops_board[slot]["left"] = float(out["left"])
 	_sync_core()
-	sortie_back.emit({"kind": String((s["site"] as Dictionary)["kind"]), "cleared": bool(out["cleared"]),
-		"credits": paid, "research": float(r["research"]) * share, "res": res, "n": units,
-		"wear": float(out["wear"]), "rigs": n, "breakers": b, "slot": slot,
-		"salvage": int(r["salvage"]) if bool(out["cleared"]) else 0})
+	sortie_back.emit({"kind": kind, "cleared": bool(out["cleared"]),
+		"credits": paid, "research": float(r["research"]) * pay, "res": res, "n": got,
+		"wear": float(out["wear"]), "rigs": n, "breakers": b, "surveyors": v, "slot": slot,
+		"salvage": salv if bool(out["cleared"]) else 0, "region": String(site_was.get("region", ""))})
 	stats_changed.emit()
 
 
 ## Plates that repair the Rigs at home.
 func repair_cost() -> int:
-	return int(ceil(float(Operations.repair_cost(rigs_home(), rig_wear, core_level))
+	return int(ceil(float(Operations.repair_cost(rigs_home() + surveyors, rig_wear, core_level))
 		+ float(Operations.repair_cost(breakers, rig_wear, core_level)) * Operations.BREAKER_REPAIR))
 
 
@@ -989,10 +1174,18 @@ func repair_rigs() -> bool:
 func _deal_ops() -> void:
 	while ops_board.size() < Operations.slots(core_level):
 		ops_board.append({})
+	# The regions' own slots, after the galleries', once one is open.
+	if not regions_open.is_empty():
+		while ops_board.size() < Operations.SLOTS + Operations.REGION_ORDER.size():
+			ops_board.append({})
 	for i in range(ops_board.size()):
 		if (ops_board[i] as Dictionary).has("kind"):
 			continue
-		ops_board[i] = Operations.deal(core_level, depth + 100 * collapses, ops_serial)
+		var r: String = Operations.slot_region(i)
+		if r != "" and not region_open(r):
+			continue
+		ops_board[i] = Operations.deal(core_level, depth + 100 * collapses, ops_serial) if r == "" \
+			else Operations.deal_region(r, core_level, depth + 100 * collapses, ops_serial)
 		ops_serial += 1
 
 
@@ -1007,6 +1200,9 @@ func clear_ops() -> void:
 	posts = {}
 	bay_level = 1
 	breakers = 0
+	surveyors = 0
+	regions_open = []
+	rescued = 0
 
 
 ## The Bay's next level: why it cannot be bought now, or "": "max" (the
@@ -1220,7 +1416,8 @@ func collapse() -> int:
 	# the next shaft chooses -- and pays -- again.
 	doctrine = ""
 	for id: String in Economy.RESEARCH_TREE:
-		if Economy.doctrine_of(id) != "":
+		if Economy.doctrine_of(id) != "" \
+				or String((Economy.RESEARCH_TREE[id] as Dictionary).get("region", "")) != "":
 			upgrade_levels.erase(id)
 	blueprint_pending = []
 	machine_levels = {}
@@ -1302,6 +1499,10 @@ func can_buy_upgrade(id: String) -> bool:
 	# A doctrine's line only in a shaft that follows it.
 	if Economy.doctrine_of(id) != "" and Economy.doctrine_of(id) != doctrine:
 		return false
+	# A region's line only once the region is open.
+	var reg: String = String(u.get("region", ""))
+	if reg != "" and not region_open(reg):
+		return false
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
 	return research >= float(c["research"]) and cores >= int(c["cores"]) and salvage >= int(c["salvage"])
 
@@ -1354,6 +1555,9 @@ func _recompute() -> void:
 		sim = Simulation.new(grid, 20260923)
 	_stratum = Strata.describe(depth)
 	_mult = Economy.multipliers(upgrade_levels, doctrine)
+	# The Sunken Works' brine (Operations, "regions").
+	if region_open("sunken"):
+		_mult["cooling"] = float(_mult.get("cooling", 1.0)) * Operations.BRINE_COOLING
 
 	# One entry point, so a stratum field can never again be wired in the game
 	# and forgotten in the five tools that measure it. `richness` is folded
@@ -1796,6 +2000,9 @@ func to_dict() -> Dictionary:
 		"sorties": sorties,
 		"rig_wear": rig_wear,
 		"breakers": breakers,
+		"surveyors": surveyors,
+		"regions_open": regions_open,
+		"rescued": rescued,
 		"posts": posts.keys(),
 		"bay_level": bay_level,
 		"hauled": hauled,
@@ -1872,6 +2079,12 @@ func from_dict(d: Dictionary) -> void:
 	ops_lifetime = int(d.get("ops_lifetime", 0))
 	rig_wear = clampf(float(d.get("rig_wear", 0.0)), 0.0, Operations.WEAR_MAX)
 	breakers = maxi(int(d.get("breakers", 0)), 0)
+	surveyors = maxi(int(d.get("surveyors", 0)), 0)
+	rescued = clampi(int(d.get("rescued", 0)), 0, Operations.RESCUE_MAX)
+	regions_open = []
+	for r in (d.get("regions_open", []) as Array):
+		if Operations.REGIONS.has(String(r)) and not regions_open.has(String(r)):
+			regions_open.append(String(r))
 	bay_level = clampi(int(d.get("bay_level", 1)), 1, Operations.BAY_MAX)
 	hauled = int(d.get("hauled", 0))
 	salvage_earned = int(d.get("salvage_earned", 0))
@@ -1916,10 +2129,12 @@ func from_dict(d: Dictionary) -> void:
 		if not sd.has("out") or not sd.has("site"):
 			continue
 		var o: Dictionary = sd["out"]
-		_sortie_home({"slot": int(sd.get("slot", 0)), "n": int(sd.get("n", 0)), "b": int(sd.get("b", 0)), "left": 0.0,
+		_sortie_home({"slot": int(sd.get("slot", 0)), "n": int(sd.get("n", 0)), "b": int(sd.get("b", 0)),
+			"v": int(sd.get("v", 0)), "left": 0.0,
 			"trip": float(sd.get("trip", 0.0)), "site": _site_from(sd["site"]),
 			"out": {"cleared": bool(o.get("cleared", false)), "share": float(o.get("share", 0.0)),
-				"wear": float(o.get("wear", 0.0)), "left": float(o.get("left", 0.0))},
+				"wear": float(o.get("wear", 0.0)), "left": float(o.get("left", 0.0)),
+				"half": bool(o.get("half", false)), "find": float(o.get("find", 0.0))},
 			"wear": float(sd.get("wear", 0.0))})
 
 
@@ -1932,7 +2147,8 @@ func _site_from(raw: Variant) -> Dictionary:
 		"need": float(e.get("need", 1.0)), "left": float(e.get("left", e.get("need", 1.0))),
 		"hazard": float(e.get("hazard", 0.1)), "serial": int(e.get("serial", 0)),
 		"core": int(e.get("core", core_level)), "depth": int(e.get("depth", 0)),
-		"armor": bool(e.get("armor", false))}
+		"armor": bool(e.get("armor", false)), "region": String(e.get("region", "")),
+		"terrain": String(e.get("terrain", ""))}
 
 
 ## Blueprint entries as saved: [[cell, id, mode, job], ...], the numbers

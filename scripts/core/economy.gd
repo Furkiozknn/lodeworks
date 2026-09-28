@@ -164,6 +164,53 @@ const RESEARCH_TREE := {
 	# The crew's research (Operations): every Rig stronger on a sortie. Its
 	# own branch, the first of the robots' tree; opened with the crew, two
 	# levels a Core level, so it grows with the sites it is for.
+	# The deep map's lines (Operations, "regions"): each opens with its
+	# region, so which region a shaft opens first is which of these it can
+	# research -- a production shaft and a crew shaft do not follow the same
+	# tree. A region's line goes with the shaft at a collapse, as the
+	# regions do.
+	"brine_1": {
+		"name": "Brine Coils",
+		"short": "Cooling runs on the Sunken Works' brine.",
+		"desc": "Every Coolant Cell and Condenser cools 10% harder, for each level.",
+		"cost_research": 400000.0,
+		"cost_cores": 0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "cooling",
+		"branch": "frontier",
+		"per_level": 0.1,
+		"core": Operations.REGION_CORE,
+		"region": "sunken",
+	},
+	"lens_1": {
+		"name": "Resonite Sounding",
+		"short": "Every site gives up more Resonite.",
+		"desc": "The crew brings home 25% more Resonite from every site, for each level.",
+		"cost_research": 400000.0,
+		"cost_cores": 0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "resonite",
+		"branch": "frontier",
+		"per_level": 0.25,
+		"core": Operations.REGION_CORE,
+		"region": "caverns",
+	},
+	"forge_1": {
+		"name": "Reclaimed Hammers",
+		"short": "Breakers hit harder.",
+		"desc": "Every Breaker brings 15% more strength to a sortie, for each level.",
+		"cost_research": 400000.0,
+		"cost_cores": 0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "breaker_power",
+		"branch": "frontier",
+		"per_level": 0.15,
+		"core": Operations.REGION_CORE,
+		"region": "foundry",
+	},
 	"rig_plating": {
 		"name": "Rig Plating",
 		"short": "Every Rig is stronger.",
@@ -288,7 +335,7 @@ const RESEARCH_TREE := {
 const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resonance",
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
 	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1", "rig_plating",
-	"salvage_gearing"]
+	"salvage_gearing", "brine_1", "lens_1", "forge_1"]
 
 ## What each line of the tree is about: the research grid shows it branch by
 ## branch, in this order.
@@ -300,6 +347,7 @@ const BRANCHES := {
 	"logistics": "Logistics",
 	"core": "Core",
 	"robotics": "Robotics",
+	"frontier": "The deep map",
 }
 
 
@@ -451,6 +499,8 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		"fine_value": 1.0,
 		"deep_learn": 1.0,
 		"rig_power": 1.0,
+		"resonite": 1.0,
+		"breaker_power": 1.0,
 	}
 	for id: String in RESEARCH_TREE:
 		var lvl: int = int(levels.get(id, 0))
@@ -463,7 +513,7 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		var effect: String = String(u["effect"])
 		match effect:
 			"speed", "yield", "value", "research", "resonance", "vein", "cooling", "fine_value", "deep_learn", \
-					"rig_power":
+					"rig_power", "resonite", "breaker_power":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"quota":
 				m[effect] = maxf(float(m[effect]) - per * float(lvl), 0.2)

@@ -15,6 +15,8 @@ extends SceneTree
 ##     shaft, measured against the first.
 ##   LODEWORKS_CORE_SALVAGE=gearing|crew|none ... what the scripted player
 ##     spends the galleries' salvage on (its salvage_mode).
+##   LODEWORKS_CORE_REGION=sunken|caverns|foundry ... the region of the deep
+##     map the player opens first (from Core 10; the caverns when not given).
 ##   LODEWORKS_CORE_DOCTRINE=deep|thermal|precision ... the doctrine the
 ##     player follows from the Core's level 7 (Economy.DOCTRINES); deep when
 ##     not given.
@@ -87,6 +89,9 @@ func _initialize() -> void:
 	if OS.get_environment("LODEWORKS_CORE_SALVAGE") != "":
 		P.salvage_mode = OS.get_environment("LODEWORKS_CORE_SALVAGE")
 		print("  (salvage goes to: %s)" % P.salvage_mode)
+	if Operations.REGIONS.has(OS.get_environment("LODEWORKS_CORE_REGION")):
+		P.region_first = OS.get_environment("LODEWORKS_CORE_REGION")
+		print("  (the first region of the deep map: %s)" % P.region_first)
 	var collapse_at: int = int(OS.get_environment("LODEWORKS_CORE_COLLAPSE"))
 	var carry: String = OS.get_environment("LODEWORKS_CORE_CARRY")
 	if carry != "":
@@ -280,9 +285,9 @@ func _close_stage(reached: bool) -> void:
 func _record(level_before: int) -> void:
 	var S: Node = P.S
 	stage["beats"] = int(stage["beats"]) + 1
-	stage["rigs_out"] = int(stage["rigs_out"]) + S.rigs_out() + S.breakers_out()
+	stage["rigs_out"] = int(stage["rigs_out"]) + S.rigs_out() + S.breakers_out() + S.surveyors_out()
 	stage["rigs_posted"] = int(stage["rigs_posted"]) + S.rigs_posted()
-	stage["rigs_home"] = int(stage["rigs_home"]) + S.rigs_home() + S.breakers
+	stage["rigs_home"] = int(stage["rigs_home"]) + S.rigs_home() + S.breakers + S.surveyors
 	stage["breakers"] = maxi(int(stage.get("breakers", 0)), S.breakers + S.breakers_out())
 	for res: int in MachineDB.STOCKED:
 		if S.stock_of(int(res)) > 0:
@@ -529,13 +534,13 @@ func _print_stages() -> void:
 
 func _row_text(r: Array) -> String:
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive", "doctrine", "operations"][int(r[0])]
+		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles"][int(r[0])]
 	match int(r[0]):
 		CoreLevels.Req.CREDITS:
 			return "credits %s" % Economy.fmt(float(r[1]))
 		CoreLevels.Req.STOCK:
 			return "stock %s %d" % [String(MachineDB.RES_NAME[int(r[1])]), int(r[2])]
-		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE, CoreLevels.Req.OPERATIONS:
+		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE, CoreLevels.Req.OPERATIONS, 				CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES:
 			return "%s %d" % [name, int(r[1])]
 	var job: String = " (%s)" % CoreLevels.row_job(r) if CoreLevels.row_job(r) != "" else ""
 	return "%s %s %d%s" % [name, str(r[1]), int(r[2]), job]
@@ -560,9 +565,12 @@ func _snapshot(s: Dictionary) -> void:
 	if not (s["hot"] as Array).is_empty():
 		print("  overheating: %s" % "; ".join(s["hot"]))
 	print("  contracts filled: %d" % int(s["contracts"]))
-	print("  the galleries: %d Rigs (%d posted, Bay %d) and %d Breakers, %d sites cleared in all, salvage %d earned / %d unspent, %d units hauled"
+	print("  the galleries: %d Rigs (%d posted, Bay %d), %d Breakers and %d Surveyors, %d sites cleared in all, salvage %d earned / %d unspent, %d units hauled"
 		% [int(s.get("crew", 0)), int(s.get("posted", 0)), int(s.get("bay", 1)), int(s.get("breakers", 0)),
-		int(s.get("sites", 0)), int(s.get("salvage_earned", 0)), int(s.get("salvage", 0)), int(s.get("hauled", 0))])
+		int(s.get("surveyors", 0)), int(s.get("sites", 0)), int(s.get("salvage_earned", 0)), int(s.get("salvage", 0)),
+		int(s.get("hauled", 0))])
+	if not (s.get("regions", []) as Array).is_empty():
+		print("  the deep map: %s open; %d rescued" % [", ".join(s["regions"]), int(s.get("rescued", 0))])
 	var sp: Array[String] = []
 	for k: String in (s.get("spend", {}) as Dictionary):
 		sp.append("%s %s" % [k, Economy.fmt(float(s["spend"][k]))])

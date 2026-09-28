@@ -191,6 +191,11 @@ func act() -> void:
 	_research()
 	_contracts()
 	c0 = S.credits
+	# A Core row waiting on a posted Rig is served before the galleries take
+	# the Rigs at home (measured: in the Sunken Works, whose water wants
+	# Rigs, the sorties took every one and the Lens Grinder never had one).
+	if _rows_wait_on_posts():
+		_posting()
 	_operations()
 	c0 = _spent("the galleries", c0)
 	_posting()
@@ -312,8 +317,14 @@ func _operations() -> void:
 		if S.grid.job_at(cell) == "rig" and S.sim.overheated_at(cell):
 			S.sell(cell)
 			_rig_hot_core = S.core_level
-	if S.core_level >= MachineDB.RIG_CORE and S.rigs_home() + S.rigs_out() < S.crew_cap() \
-			and _rig_makers() < 1 and _rig_hot_core < S.core_level and t - _last_rig >= LAB_BEAT:
+			_rig_hot_t = t
+	# From the deep map, where the crew is what opens a region, another is
+	# tried an hour on (measured: a Rig Frame overheated once at Core 11 and
+	# the crew stood at 12 of 16 for good).
+	var rig_again: bool = _rig_hot_core < S.core_level \
+		or S.core_level >= Operations.REGION_CORE and t - _rig_hot_t >= 3600.0
+	if S.core_level >= MachineDB.RIG_CORE and _crew_total() < S.crew_cap() \
+			and _rig_makers() < 1 and rig_again and t - _last_rig >= LAB_BEAT:
 		_last_rig = t
 		# Only the first Rig Frame may clear a patch of the yard for itself;
 		# later ones go beside a Plate maker or wait (measured: with sites
@@ -326,7 +337,7 @@ func _operations() -> void:
 	# until the Core's next level makes room for another Rig (measured: one
 	# laid on stratum 9 overheated the Press beside it on stratum 12, and the
 	# Core 5 stage was not over in two hours).
-	if S.rigs_home() + S.rigs_out() >= S.crew_cap():
+	if _crew_total() >= S.crew_cap():
 		for cell: int in S.grid.cells.keys():
 			if S.grid.job_at(cell) == "rig":
 				S.sell(cell)
@@ -338,7 +349,7 @@ func _operations() -> void:
 	var stuck: bool = S.rig_wear > 0.0
 	for i in range(S.ops_board.size()):
 		stuck = stuck and not (S.site(i).has("kind")
-			and S.team_strength(S.site(i), S.rigs_home(), S.breakers) >= float(S.site(i)["left"]))
+			and S.team_strength(S.site(i), S.rigs_home(), S.breakers, S.surveyors) >= float(S.site(i)["left"]))
 	# Plates kept for a row the store cannot yet hold (the Vault's level
 	# comes first) are not kept from a repair that is a sliver of them
 	# (measured: 20 Plates of 8,389 were kept for a row of 25,000, and a worn
@@ -365,21 +376,30 @@ func _operations() -> void:
 	var rock: bool = false
 	for i in range(S.ops_board.size()):
 		rock = rock or Operations.armored(S.site(i))
-	if rock and S.refit_blocker() == "" and (S.breakers + S.breakers_out()) * 3 < S.crew_cap():
-		S.refit_rig()
+	# A shaft whose first region is water keeps its Rigs: Breakers there
+	# only as many as the Core's rows ask for.
+	var breakers_wanted: int = (S.crew_cap() + 2) / 3
+	if region_first == "sunken" and S.core_level >= Operations.REGION_CORE:
+		breakers_wanted = 2
+	if rock and S.refit_blocker("breaker") == "" and S.breakers + S.breakers_out() < breakers_wanted:
+		S.refit_rig("breaker")
 		_event("breaker", "first Rig refitted as a Breaker")
+	if _deep_map() or _hold_sorties:
+		return
 	var weakest: int = -1
 	for i in range(S.ops_board.size()):
-		var tm: Vector2i = S.sortie_team(i)
-		if tm.x + tm.y <= 0 or not S.can_send(i, tm.x, tm.y):
+		var tm: Vector3i = S.sortie_team(i)
+		if tm.x + tm.y + tm.z <= 0 or not S.can_send(i, tm.x, tm.y, tm.z):
 			continue
-		if not asked and ingots < Operations.fuel(tm.x, S.core_level, tm.y) and not kept_past_store:
+		if not asked and ingots < Operations.fuel(tm.x, S.core_level, tm.y, tm.z) and not kept_past_store:
 			continue
-		if S.team_strength(S.site(i), tm.x, tm.y) >= float(S.site(i)["left"]):
-			S.send_sortie(i, tm.x, tm.y)
+		if S.team_strength(S.site(i), tm.x, tm.y, tm.z) >= float(S.site(i)["left"]):
+			S.send_sortie(i, tm.x, tm.y, tm.z)
 			_event("sortie", "first sortie")
 			if tm.y > 0:
 				_event("breaker_sortie", "first sortie with Breakers")
+			if String(S.site(i).get("region", "")) != "" or Operations.slot_region(i) != "":
+				_event("region_sortie", "first sortie into a region of the deep map")
 			return
 		if weakest < 0 or float(S.site(i)["left"]) < float(S.site(weakest)["left"]):
 			weakest = i
@@ -390,14 +410,104 @@ func _operations() -> void:
 	# galleries for seven hours; a sortie of 80 takes 70% of one).
 	if weakest < 0:
 		return
-	var all: Vector2i = S.sortie_team(weakest)
-	if S.rigs_out() + S.breakers_out() == 0 and (asked
-			or S.team_strength(S.site(weakest), all.x, all.y) * 3.0 >= float(S.site(weakest)["left"])
-			and (ingots >= Operations.fuel(all.x, S.core_level, all.y) or kept_past_store)):
-		S.send_sortie(weakest, all.x, all.y)
+	var all: Vector3i = S.sortie_team(weakest)
+	if S.rigs_out() + S.breakers_out() + S.surveyors_out() == 0 and (asked
+			or S.team_strength(S.site(weakest), all.x, all.y, all.z) * 3.0 >= float(S.site(weakest)["left"])
+			and (ingots >= Operations.fuel(all.x, S.core_level, all.y, all.z) or kept_past_store)):
+		S.send_sortie(weakest, all.x, all.y, all.z)
 
 
 var _last_rig: float = -1.0e9
+
+
+## The region a player following this plan opens first (the journey's
+## LODEWORKS_CORE_REGION); the others after it, in the map's order.
+var region_first: String = "caverns"
+
+
+## The deep map, from the Core's level Operations.REGION_CORE, as a player
+## reads it: Surveyors refitted to lead expeditions and to make the crew of
+## three kinds the Core's rows ask for, Breakers likewise; an expedition
+## into the chosen region when the Core has room for one. True when it
+## sent one.
+func _deep_map() -> bool:
+	if S.core_level < Operations.REGION_CORE:
+		return false
+	var roles: int = 1
+	for st: Dictionary in S.core_status():
+		if int(st["req"][0]) == CoreLevels.Req.ROLES:
+			roles = maxi(roles, int(st["need"]))
+	var crew: Dictionary = S.crew_roles()
+	# Surveyors: the row's number, and one for an expedition while one waits.
+	var want_v: int = roles + (1 if S.regions_open.size() < Operations.region_slots(S.core_level) else 0)
+	if int(crew["surveyor"]) < want_v and int(crew["rig"]) > roles and S.refit_blocker("surveyor") == "":
+		S.refit_rig("surveyor")
+		_event("surveyor", "first Rig refitted as a Surveyor")
+	elif int(crew["breaker"]) < roles and int(crew["rig"]) > roles and S.refit_blocker("breaker") == "":
+		S.refit_rig("breaker")
+	if S.regions_open.size() >= Operations.region_slots(S.core_level):
+		return false
+	# The chosen region first; after it, the one the whole crew is best
+	# matched to (a crew of Breakers is weak in water).
+	var rest: Array = []
+	for r: String in Operations.REGION_ORDER:
+		if r != region_first:
+			rest.append(r)
+	rest.sort_custom(func(a: String, b: String) -> bool: return _whole_crew(a) > _whole_crew(b))
+	var order: Array = [region_first] + rest
+	for r: String in order:
+		if S.region_open(r) or S.site_busy(Operations.region_slot(r)):
+			continue
+		var t: Vector3i = S.expedition_team(r)
+		var why: String = S.expedition_blocker(r, t.x, t.y, t.z)
+		if why == "" and S.send_expedition(r, t.x, t.y, t.z):
+			_hold_posts = false
+			_hold_sorties = false
+			_event("expedition_%s" % r, "expedition into %s" % String(Operations.REGIONS[r]["name"]))
+			return true
+		# Too weak with the crew at home: Rigs called home from their posts,
+		# one a beat, none posted again and Rig Plating wanted until it has
+		# gone; and, strong enough with the whole crew, no sorties either.
+		# Too weak even with the whole crew: a Rig at home refitted as a
+		# Surveyor, who counts twice on a survey (measured: at Core 11 six
+		# Breakers and three Surveyors were 330 of the Sunken Works' 409,
+		# and the crew went on sorties for hours).
+		var whole: bool = _whole_crew(r) >= 1.0
+		_hold_posts = why == "weak"
+		_hold_sorties = why == "weak" and whole
+		if _hold_posts and not S.posts.is_empty():
+			var rows: Array = _row_machines()
+			var cells: Array = S.posts.keys()
+			cells.sort_custom(func(a: int, c: int) -> bool: return not _in_rows(a, rows) and _in_rows(c, rows))
+			S.recall_rig(int(cells[0]))
+		if why == "weak" and not whole and int(crew["rig"]) > roles and S.refit_blocker("surveyor") == "":
+			S.refit_rig("surveyor")
+		# The first choice waits for its team: the plan is the plan.
+		return false
+	return false
+
+
+## The whole crew -- at the Bay, out and posted -- against region `r`'s
+## survey: its strength over the survey's need.
+func _whole_crew(r: String) -> float:
+	var c: Dictionary = S.crew_roles()
+	var s: Dictionary = S.survey_site(r)
+	return S.team_strength(s, int(c["rig"]), int(c["breaker"]), int(c["surveyor"])) / maxf(float(s["need"]), 1.0)
+
+
+## Posts, and sorties, held while an expedition waits for its team
+## (`_deep_map`).
+var _hold_posts: bool = false
+var _hold_sorties: bool = false
+
+
+## The crew a Rig Frame is laid for: the Rigs at the Bay and out, as the
+## Core 1-10 journeys were measured with (posted Rigs and Breakers not
+## counted: the Rig Frame waits on its own), and the Surveyors, who are
+## Rigs refitted -- without them every refit asked for a Rig Frame beside
+## the Core, where the Lens Grinder was to go.
+func _crew_total() -> int:
+	return S.rigs_home() + S.rigs_out() + S.surveyors + S.surveyors_out()
 
 
 ## Rigs posted like a player posts them (Operations, "Posts"): to a machine
@@ -406,7 +516,7 @@ var _last_rig: float = -1.0e9
 ## machine; the Bay a level up when every dock is in use and another is
 ## wanted. From the Core's level RIG_CORE, when the crew is made.
 func _posting() -> void:
-	if S.core_level < MachineDB.RIG_CORE or not operations_on:
+	if S.core_level < MachineDB.RIG_CORE or not operations_on or _hold_posts:
 		return
 	var wanted: Array[int] = _post_candidates()
 	if wanted.is_empty():
@@ -528,7 +638,22 @@ func _row_machines() -> Array:
 		var r: Array = st["req"]
 		if int(r[0]) == CoreLevels.Req.WORKING and not bool(st["met"]):
 			out.append([String(r[1]), CoreLevels.row_job(r)])
+		# A store row whose maker only the store can feed (the Lens
+		# Grinder): its makers are the row's machines too.
+		if int(r[0]) == CoreLevels.Req.STOCK and not bool(st["met"]):
+			var mk: Array = _maker(int(r[1]))
+			if not mk.is_empty() and _store_only(String(mk[0]), String(mk[1])):
+				out.append([String(mk[0]), String(mk[1])])
 	return out
+
+
+## Does machine `id` on `job` take something no machine makes: fed only from
+## the store, by a posted Rig?
+func _store_only(id: String, job: String) -> bool:
+	for res: int in (MachineDB.job_machine(id, job).get("inputs", {}) as Dictionary):
+		if MachineDB.makers_of(res).is_empty():
+			return true
+	return false
 
 
 func _in_rows(cell: int, rows: Array) -> bool:
@@ -540,10 +665,8 @@ func _in_rows(cell: int, rows: Array) -> bool:
 
 ## Does an open row of the Core ask for machines on a job the store feeds?
 func _rows_wait_on_posts() -> bool:
-	for st: Dictionary in S.core_status():
-		var r: Array = st["req"]
-		if int(r[0]) == CoreLevels.Req.WORKING and not bool(st["met"]) and CoreLevels.row_job(r) != "" \
-				and _store_feeds(String(r[1]), CoreLevels.row_job(r)):
+	for m: Array in _row_machines():
+		if String(m[1]) != "" and _store_feeds(String(m[0]), String(m[1])):
 			return true
 	return false
 
@@ -582,8 +705,9 @@ func _build_core_side(id: String, job: String) -> bool:
 	_line[spot] = true
 	_cool_if_needed(spot)
 	return true
-## The Core's level under which a Rig Frame last overheated.
+## The Core's level under which a Rig Frame last overheated, and when.
 var _rig_hot_core: int = 0
+var _rig_hot_t: float = -1.0e9
 ## Off, the player never touches the crew (for measuring what it changes).
 var operations_on: bool = true
 
@@ -681,6 +805,9 @@ func _research() -> void:
 		if int(st["req"][0]) == CoreLevels.Req.DOCTRINE and not bool(st["met"]) and S.doctrine != "":
 			for id: String in Economy.DOCTRINES[S.doctrine]["lines"]:
 				want.append(id)
+		if int(st["req"][0]) == CoreLevels.Req.REGION_LINES and not bool(st["met"]):
+			for r: String in S.regions_open:
+				want.append(String(Operations.REGIONS[r]["research"]))
 	for id: String in Economy.TREE_ORDER:
 		if not want.has(id):
 			want.append(id)
@@ -713,7 +840,8 @@ func _research() -> void:
 func _researching() -> bool:
 	for st: Dictionary in S.core_status():
 		var k: int = int(st["req"][0])
-		if (k == CoreLevels.Req.RESEARCH or k == CoreLevels.Req.DOCTRINE) and not bool(st["met"]):
+		if (k == CoreLevels.Req.RESEARCH or k == CoreLevels.Req.DOCTRINE or k == CoreLevels.Req.REGION_LINES) \
+				and not bool(st["met"]):
 			return true
 	return false
 
@@ -728,6 +856,9 @@ func _plating_wanted() -> bool:
 	# Unasked, only on research no row of the Core is waiting for (measured:
 	# bought whenever the crew fell short, it took the Core 4 and 5 eras'
 	# research); and not before the Rig Frame makes a crew worth plating.
+	# An expedition waiting on a crew too weak for its survey.
+	if _hold_posts:
+		return true
 	if not asked and (_researching() or S.core_level < MachineDB.RIG_CORE):
 		return false
 	# The crew as it would be repaired: wear is the Plates' to fix, not
@@ -1304,6 +1435,14 @@ func _feed_core(res: int) -> bool:
 	if mk.is_empty():
 		return false
 	var maker: String = String(mk[0])
+	# A job only the store can feed (the Lens Grinder, on Resonite the crew
+	# brings home): beside the Core, where a Rig feeds it.
+	if String(mk[1]) != "" and _store_only(maker, String(mk[1])) and _store_feeds(maker, String(mk[1])):
+		if _build_core_side(maker, String(mk[1])):
+			_event("store_fed_%s" % String(mk[1]), "first %s beside the Core, fed from the store"
+				% MachineDB.job_name(maker, String(mk[1])))
+			return true
+		return false
 	var best: int = -1
 	var room: int = -1
 	for cell: int in S.sim.core_touching():
@@ -2314,6 +2453,7 @@ func snapshot() -> Dictionary:
 		"contracts": S.contracts_lifetime, "research_banked": S.research, "working": _working_all(),
 		"sites": S.ops_lifetime, "salvage": S.salvage, "crew": S.rigs_home() + S.rigs_out() + S.rigs_posted(),
 		"breakers": S.breakers + S.breakers_out(),
+		"surveyors": S.surveyors + S.surveyors_out(), "regions": S.regions_open.duplicate(), "rescued": S.rescued,
 		"posted": S.rigs_posted(), "bay": S.bay_level, "hauled": S.hauled, "salvage_earned": S.salvage_earned,
 		"hot": _hot(), "held": CoreLevels.holding_back(S)["why"], "doctrine": S.doctrine,
 		"deep": _deep_units(), "research_per_s": S.sim.last_research, "spend": _take_spend()}
@@ -2366,7 +2506,7 @@ func _working_all() -> Dictionary:
 func _req_text(st: Dictionary) -> String:
 	var r: Array = st["req"]
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive", "doctrine", "operations"][int(r[0])]
+		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles"][int(r[0])]
 	if r.size() > 2:
 		var what: String = String(MachineDB.RES_NAME[int(r[1])]) if int(r[0]) == CoreLevels.Req.STOCK else str(r[1])
 		name += " " + what

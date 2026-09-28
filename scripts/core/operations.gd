@@ -68,7 +68,7 @@ const SALVAGE_NEST := 1
 static func salvage(s: Dictionary) -> int:
 	if s.is_empty():
 		return 0
-	return 1 + (SALVAGE_NEST if String(s["kind"]) == "nest" else 0)
+	return 1 + (SALVAGE_NEST if String(s["kind"]) in ["nest", "forge"] else 0)
 
 
 ## Posts: a Rig at the Bay can be posted to a machine touching the Core,
@@ -146,6 +146,38 @@ const KINDS := {
 		"hazard": 0.25,
 		"res": MachineDB.Res.COMPONENT,
 	},
+	# The deep map's (REGIONS): dealt only in the region that holds them.
+	"cistern": {
+		"name": "Flooded Cistern",
+		"line": "Resonite settled in black water, and pumps that still turn.",
+		"hazard": 0.10,
+		"res": MachineDB.Res.RESONITE,
+	},
+	"stranded": {
+		"name": "Stranded Rigs",
+		"line": "A crew lost down here long ago. Bring them home.",
+		"hazard": 0.08,
+		"res": MachineDB.Res.PLATE,
+	},
+	"vein": {
+		"name": "Resonite Vein",
+		"line": "A seam of Resonite in hard rock. It will not come out for Rigs.",
+		"hazard": 0.14,
+		"res": MachineDB.Res.RESONITE,
+	},
+	"forge": {
+		"name": "Rogue Forge",
+		"line": "An old forge that runs itself, and does not want visitors.",
+		"hazard": 0.30,
+		"res": MachineDB.Res.RESONITE,
+	},
+	# An expedition's target: a region, sealed until surveyed.
+	"survey": {
+		"name": "Survey",
+		"line": "The way into a region of the deep map.",
+		"hazard": 0.12,
+		"res": MachineDB.Res.RESONITE,
+	},
 }
 const KIND_ORDER := ["flooded", "drift", "pumphouse", "nest"]
 
@@ -221,22 +253,189 @@ static func armored(s: Dictionary) -> bool:
 	return bool(s.get("armor", false))
 
 
-## What `n` Rigs and `b` Breakers bring to site `s`, in whole Rigs.
-static func team_factor(s: Dictionary, n: int, b: int) -> float:
-	var rig: float = ARMOR_RIG if armored(s) else 1.0
-	var breaker: float = BREAKER_POWER * (FLOOD_BREAKER if String(s.get("kind", "")) == "flooded" else 1.0)
-	return float(maxi(n, 0)) * rig + float(maxi(b, 0)) * breaker
+## Is site `s` under water: too deep for a Breaker?
+static func watery(s: Dictionary) -> bool:
+	return String(s.get("kind", "")) in WATER or String(s.get("terrain", "")) == "water"
+
+
+## Is site `s` dangerous: a team with no Breaker to lead it brings home half?
+static func dangerous(s: Dictionary) -> bool:
+	return String(s.get("kind", "")) == "forge" or String(s.get("terrain", "")) == "danger"
+
+
+const WATER := ["flooded", "cistern", "stranded"]
+
+
+## --- the Surveyor: the crew's third kind (Core 10) --------------------------------
+##
+## From REGION_CORE a Rig at the Bay can be refitted as a Surveyor, paid in
+## Frames and salvage (refit_cost): a light frame, lamps and sounding gear.
+## It is the Breaker's opposite:
+##
+##   * an expedition into a region of the deep map (REGIONS) goes only with
+##     a Surveyor, and there each counts SURVEY_POWER Rigs;
+##   * on a site it does SURVEYOR_POWER of a Rig's work -- half that on rock;
+##   * each Surveyor on a sortie finds SURVEYOR_FIND more of the Resonite a
+##     site holds, up to SURVEYOR_FIND_MAX more;
+##   * a team of Surveyors alone is back in SURVEYOR_TRIP of the time;
+##   * it is fragile: the wear a sortie brings home grows by SURVEYOR_FRAGILE
+##     of the share of the team's strength the Surveyors brought;
+##   * it is never posted.
+const SURVEYOR_POWER := 0.8
+const SURVEY_POWER := 2.0
+const SURVEYOR_FIND := 0.25
+const SURVEYOR_FIND_MAX := 1.0
+const SURVEYOR_TRIP := 0.6
+const SURVEYOR_FRAGILE := 1.0
+const REFIT_FRAMES := 60.0
+const SURVEYOR_SALVAGE := 6
+
+
+## What `n` Rigs, `b` Breakers and `v` Surveyors bring to site `s`, in whole
+## Rigs. `bpow` is the Breakers' research (Economy, "breaker_power").
+static func team_factor(s: Dictionary, n: int, b: int, v: int = 0, bpow: float = 1.0) -> float:
+	var rock: bool = armored(s)
+	var rig: float = ARMOR_RIG if rock else 1.0
+	var breaker: float = BREAKER_POWER * bpow * (FLOOD_BREAKER if watery(s) else 1.0)
+	var surveyor: float = SURVEY_POWER if String(s.get("kind", "")) == "survey" \
+		else SURVEYOR_POWER * (ARMOR_RIG if rock else 1.0)
+	return float(maxi(n, 0)) * rig + float(maxi(b, 0)) * breaker + float(maxi(v, 0)) * surveyor
 
 
 ## The share of a team's strength its Breakers bring.
-static func breaker_share(s: Dictionary, n: int, b: int) -> float:
-	var all: float = team_factor(s, n, b)
-	return 0.0 if all <= 0.0 else team_factor(s, 0, b) / all
+static func breaker_share(s: Dictionary, n: int, b: int, v: int = 0) -> float:
+	var all: float = team_factor(s, n, b, v)
+	return 0.0 if all <= 0.0 else team_factor(s, 0, b, 0) / all
 
 
-## What a refit costs under a Core of `level`: {"components", "salvage"}.
-static func refit_cost(level: int) -> Dictionary:
-	return {"components": int(ceil(REFIT_COMPONENTS * growth(level))), "salvage": REFIT_SALVAGE}
+## The share of a team's strength its Surveyors bring.
+static func surveyor_share(s: Dictionary, n: int, b: int, v: int) -> float:
+	var all: float = team_factor(s, n, b, v)
+	return 0.0 if all <= 0.0 else team_factor(s, 0, 0, v) / all
+
+
+## What a refit costs under a Core of `level`: {"res", "n", "salvage"} --
+## a Breaker in Components, a Surveyor in Frames.
+static func refit_cost(level: int, role: String = "breaker") -> Dictionary:
+	if role == "surveyor":
+		return {"res": MachineDB.Res.FRAME, "n": int(ceil(REFIT_FRAMES * growth(level))),
+			"salvage": SURVEYOR_SALVAGE}
+	return {"res": MachineDB.Res.COMPONENT, "n": int(ceil(REFIT_COMPONENTS * growth(level))),
+		"salvage": REFIT_SALVAGE}
+
+
+## The Core's level that refits each kind of crew.
+static func role_core(role: String) -> int:
+	return REGION_CORE if role == "surveyor" else BREAKER_CORE
+
+
+## --- the deep map: regions (Core 10) ------------------------------------------------
+##
+## Past the galleries lie three regions, sealed. From REGION_CORE the Core
+## has room for one open region, and one more at every level after. A
+## region is opened by an expedition -- a team with a Surveyor in it, strong
+## enough for the region's survey, SURVEY_TRIP seconds out and back -- and,
+## after the first, EXPEDITION_LENS Lenses for each region already open. An
+## open region deals its own sites into a slot of its own (SLOTS + its
+## place in REGION_ORDER), each of its own kinds, and gives the factory its
+## advantage for good; its research line opens (Economy, "region").
+##
+## Which region first is the choice: each asks for a different crew and
+## gives a different factory.
+##
+##   the Sunken Works    water: Breakers are no use there. Cisterns of
+##                       Resonite, and Stranded Rigs -- a rescue: every one
+##                       brought home is room for one more Rig (up to
+##                       RESCUE_MAX), and the crew mended. Its brine makes
+##                       every Coolant Cell and Condenser cool BRINE_COOLING
+##                       harder.
+##   the Resonite Caverns rock: Rigs do half. Veins rich in Resonite; the
+##                       crew brings home CAVERN_RESONITE times the Resonite
+##                       from every site.
+##   the Rogue Foundry   danger: a team with no Breaker brings home half,
+##                       and a Surveyor there wears double. Forges pay more
+##                       salvage; every cleared site pays FOUNDRY_SALVAGE
+##                       times its salvage.
+const REGION_CORE := 10
+const REGION_ORDER := ["sunken", "caverns", "foundry"]
+const REGIONS := {
+	"sunken": {"name": "The Sunken Works", "short": "Water. Resonite cisterns, and Rigs to rescue.",
+		"terrain": "water", "kinds": ["cistern", "cistern", "stranded"], "survey": 1.0, "research": "brine_1",
+		"advantage": "Every Coolant Cell and Condenser cools a quarter harder."},
+	"caverns": {"name": "The Resonite Caverns", "short": "Rock. The richest Resonite, for Breakers.",
+		"terrain": "rock", "kinds": ["vein"], "survey": 1.3, "research": "lens_1",
+		"advantage": "Every site pays half again its Resonite."},
+	"foundry": {"name": "The Rogue Foundry", "short": "Danger. Forges that fight back, and salvage.",
+		"terrain": "danger", "kinds": ["forge"], "survey": 1.6, "research": "forge_1",
+		"advantage": "Every cleared site pays twice its salvage."},
+}
+const SURVEY_NEED := 2.0
+const SURVEY_TRIP := 150.0
+const EXPEDITION_FUEL := 3.0
+const EXPEDITION_LENS := 200
+const RESCUE_MAX := 3
+const BRINE_COOLING := 1.25
+const CAVERN_RESONITE := 1.5
+const FOUNDRY_SALVAGE := 2
+## Resonite a cleared site holds, a unit of its strength (UNITS_PER_NEED
+## for the other materials): rarer than what the factory makes. At 0.4 a
+## Core 10 crew in the Caverns brought home 28,000 in 35 minutes and the
+## Core 11 row's Lenses were a formality.
+const RESONITE_PER_NEED := 0.15
+
+
+## Regions a Core of `level` has room to have open.
+static func region_slots(level: int) -> int:
+	return clampi(level - REGION_CORE + 1, 0, REGION_ORDER.size())
+
+
+## The board slot of region `r`'s sites.
+static func region_slot(r: String) -> int:
+	return SLOTS + REGION_ORDER.find(r)
+
+
+## The region a board slot belongs to, or "" for the galleries' own.
+static func slot_region(slot: int) -> String:
+	var k: int = slot - SLOTS
+	return String(REGION_ORDER[k]) if k >= 0 and k < REGION_ORDER.size() else ""
+
+
+## Region `r`'s survey under a Core of `level`: the site an expedition goes to.
+## Its strength is the region's own, as at REGION_CORE: the way in does not
+## grow with the Core; what grows is its price in Lenses (measured: grown
+## with the Core, the Sunken Works' survey was 409 at Core 11 against a
+## whole crew of 330 in water, and Core 12 was never reached).
+static func survey_site(r: String, level: int, depth: int) -> Dictionary:
+	var reg: Dictionary = REGIONS[r]
+	var need: float = snappedf(NEED_BASE * growth(REGION_CORE) * SURVEY_NEED * float(reg["survey"]), 1.0)
+	var terrain: String = String(reg["terrain"])
+	return {"kind": "survey", "region": r, "tier": 0, "need": need, "left": need,
+		"hazard": minf(float(KINDS["survey"]["hazard"]) * (1.0 + 0.02 * float(depth)), 0.6),
+		"serial": -1, "core": level, "depth": depth, "armor": terrain == "rock", "terrain": terrain}
+
+
+## Site number `serial` of region `r`: one of its own kinds, dealt as the
+## galleries' sites are (deal), on the region's terrain.
+static func deal_region(r: String, core_level: int, depth: int, serial: int) -> Dictionary:
+	var reg: Dictionary = REGIONS[r]
+	var s: Dictionary = deal(core_level, depth, serial)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("lodeworks-region-%s-%d-%d" % [r, core_level, serial])
+	var kinds: Array = reg["kinds"]
+	var kind: String = String(kinds[rng.randi_range(0, kinds.size() - 1)])
+	s["kind"] = kind
+	s["region"] = r
+	# A region's sites are its bread and butter, not its walls: the first
+	# two tiers only (measured: tier-3 cisterns of 378 against a Core 10
+	# crew in water of about 300 were never cleared).
+	if int(s["tier"]) > 1:
+		s["tier"] = 1
+		s["need"] = snappedf(NEED_BASE * growth(core_level) * float(TIERS[1]), 1.0)
+		s["left"] = s["need"]
+	s["terrain"] = String(reg["terrain"])
+	s["armor"] = String(reg["terrain"]) == "rock"
+	s["hazard"] = minf(float(KINDS[kind]["hazard"]) * (1.0 + 0.02 * float(depth)), 0.6)
+	return s
 
 
 ## The crew the Core keeps under a Core of `level`.
@@ -301,11 +500,12 @@ static func reward(s: Dictionary, credits_per_sec: float) -> Dictionary:
 	var need: float = float(s["need"])
 	var tier: float = float(TIERS[int(s["tier"])])
 	var pay: float = EARLY_PAY if int(s.get("core", RIG_CORE)) < RIG_CORE else 1.0
+	var res: int = int(KINDS[String(s["kind"])]["res"])
 	return {
 		"credits": maxf(need * CREDITS_PER_NEED * pay, credits_per_sec * REWARD_SECONDS * tier),
 		"research": need * RESEARCH_PER_NEED * pay,
-		"res": int(KINDS[String(s["kind"])]["res"]),
-		"n": int(ceil(need * UNITS_PER_NEED)),
+		"res": res,
+		"n": int(ceil(need * (RESONITE_PER_NEED if res == MachineDB.Res.RESONITE else UNITS_PER_NEED))),
 		"salvage": salvage(s),
 	}
 
@@ -328,12 +528,14 @@ static func fuel_res(level: int) -> int:
 
 
 ## What a sortie of `n` Rigs burns under a Core of `level`, in fuel_res.
-static func fuel(n: int, level: int, b: int = 0) -> int:
-	return int(ceil((float(n) + float(b) * BREAKER_FUEL) * FUEL_PER_RIG * growth(level)))
+static func fuel(n: int, level: int, b: int = 0, v: int = 0) -> int:
+	return int(ceil((float(n) + float(v) + float(b) * BREAKER_FUEL) * FUEL_PER_RIG * growth(level)))
 
 
 ## Seconds a sortie to site `s` takes, out and back.
 static func trip(s: Dictionary) -> float:
+	if String(s.get("kind", "")) == "survey":
+		return SURVEY_TRIP
 	return TRIP_BASE + TRIP_PER_TIER * float(s.get("tier", 0))
 
 

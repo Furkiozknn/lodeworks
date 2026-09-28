@@ -59,14 +59,14 @@ the second brought a small version of it into the first minutes.
 | Heat | DONE | the game's own constraint, measured every era | no mode mark on the board |
 | Strata | PARTIAL | 12 modifiers, crystal from 16, the Core caps depth | no sites of their own; conductive strata 26, 28, 29 broke the played factory (`PROGRESSION.md`, "Core 10") |
 | Factory expansion | PARTIAL | the yard grows a ring every three strata | area only; no new kind of ground |
-| Workers / robots / characters | **MISSING** → PARTIAL (this round) | the Foreman, in the margin; now Rigs: one at the Core from the first minute, more made on the board from Core 4, walking to the machines levelled (section 7) | one kind; drawn in code, not a sprite |
+| Workers / robots / characters | **MISSING** → PARTIAL (this round) | the Foreman, in the margin; now Rigs: one at the Core from the first minute, more made on the board from Core 4, walking to the machines levelled (section 7); from Core 6 the Breaker, from Core 10 the Surveyor (section 12) | three kinds; the Breaker and the Surveyor are the Rig's sheet tinted |
 | Upgrades | DONE | machine levels, Overdrive, research | -- |
-| Missions / operations | **MISSING** → PARTIAL (this round) | the galleries: one site from Core 2, three from Core 4; sorties, rewards (section 7) | four kinds of site; no chain of sites, no region |
+| Missions / operations | **MISSING** → PARTIAL (this round) | the galleries: one site from Core 2, three from Core 4; sorties, rewards (section 7); from Core 10 expeditions into three regions with sites of their own (section 12) | no chain of sites; three fixed regions |
 | Combat potential | **WRONG-DIRECTION** → PARTIAL | V4 said "no combat"; amended by the owner this round (section 5). The rogue drill nest is the first site that fights back: strength against strength, wear as the cost | no roles, no counters, no defence |
 | Rewards | PARTIAL | a Core level's opens, contracts' pay, Overdrive; what sorties bring home: credits, research, materials, and **salvage**, which only a cleared site pays and which buys Salvaged Gearing (every machine faster) and Rig Plating (section 7) | one currency of its own; no one-time finds (a schematic, a blueprint) |
 | Collapse / prestige | PARTIAL | the tree, Cores, blueprints and half the best Core kept | the second shaft saves for machine levels again (84% of Core 5 → 6) |
 | Blueprint | DONE | save, check, lay from each line's end | no ghost on the board; no share codes |
-| Long-term goals | PARTIAL | the Core's rows give goals of 30 min to 3 h | nothing beyond the next Core: no roadmap, no region, no army to grow |
+| Long-term goals | PARTIAL | the Core's rows give goals of 30 min to 3 h; from Core 10 a region to open each level to Core 12, and a crew of three kinds to grow (section 12) | no roadmap screen; the map is spent at Core 12 |
 | Return loop | PARTIAL | offline earnings, the Away report | no reason to come back except the factory; daily and streak loops are out by decision (D2) |
 | Social architecture | MISSING by decision | V1/D3: single-player, no server; `BENCHMARK.md` §8 | -- |
 | Monetization | PARTIAL | rewarded double-offline; two one-time purchases; tested | nothing live |
@@ -707,3 +707,195 @@ Ten more draw calls for the side menu's words and pictures, the land and
 the Foreman on the board; 4.7 MB more for the Core's stage, the land (now
 VRAM-compressed: 682 KB, not 5.5 MB) and the menu's pictures. A phone:
 not measured.
+
+## 12. The deep map: why a player goes on after Core 10 (28 September 2026)
+
+The owner's brief for this round: Core 10 must not read as the end. What
+comes after it is to open a new region, a new chain, a new kind of robot,
+a new kind of sortie, a new resource, new research, a new danger and a
+new decision, and each Core after it is to ask for at least five kinds of
+work (economy, production, research, the crew, the world) -- not the same
+rows with bigger numbers. Not Core 11 as a goal: one playable slice that
+proves the loop, measured.
+
+### Measured first
+
+- **Core 10 -> 11 was the same rows with bigger numbers.** The formula
+  past the table (`PROGRESSION.md`, "Core 10") asked for credits 1.5
+  times, the store 1.6 times, two more Assay Benches, one more Overdrive
+  step, one more doctrine level, stability +20 and the next five strata:
+  every row a row Core 10 had already asked.
+- **Core 10 opened one thing:** the Core's export. No region, resource,
+  kind of robot, kind of sortie or research line came with it.
+- **The crew at Core 10:** two kinds (the Rig and, from Core 6, the
+  Breaker); three gallery slots dealt from the same table since Core 6.
+- **The map:** the shaft's four bands, top to bottom. Nothing on it to
+  choose or to open.
+
+### What was built: one vertical slice
+
+| the brief asked for | built | where |
+|---|---|---|
+| a new region | **the deep map**: three regions past the galleries -- the Sunken Works (water), the Resonite Caverns (rock), the Rogue Foundry (danger). Core 10 has room for one, Core 11 for two, Core 12 for all three | `Operations.REGIONS`, `region_slots` |
+| a new kind of sortie | **the expedition**: a survey site in the region's mouth. Only a team with a Surveyor may go; it needs the region's own strength, the same at every Core (303 in the Sunken Works, 393 in the Caverns, 484 in the Foundry), is out 150 s, burns three times the fuel, and from the second region costs 200 Lenses for each region already open. It opens the region for good | `Operations.survey_site`, `Sim.send_expedition` |
+| a new kind of robot | **the Surveyor**: a Rig refitted at the Bay from Core 10, for 60 Frames (growing with the Core) and 6 salvage. It alone leads an expedition (2 Rigs' strength there); each finds a quarter more Resonite (to double); a team of Surveyors alone is back sooner. On a site it does 0.8 of a Rig (half that on rock), and in danger it wears twice as fast. It is not posted | `Operations` "the Surveyor", `Sim.refit_rig` |
+| a new resource | **Resonite**: only the regions' sites bring it home | `MachineDB.Res.RESONITE` |
+| a new production chain | **the Lens**: an Assembler on its new job, the Lens Grinder, grinds 2 Resonite onto a Frame. Nothing on the board makes Resonite, so a Lens Grinder is fed from the store: beside the Core, with a Rig posted to it | `MachineDB` job "lens", `Res.LENS` |
+| a new danger | **forges that fight back**: in the Foundry a team with no Breaker to lead it takes half the pay; Surveyors wear twice as fast there | `Operations.dangerous`, `Sim._send` |
+| new research | **one line a region**, sealed until the region is open: Brine Coils (cooling +10% a level), Resonite Sounding (Resonite +25% a level), Reclaimed Hammers (a Breaker's strength +15% a level); 400K research, twice a level, four levels | `Economy`, branch "frontier" |
+| a gift to the factory | each region, for good once open: the Sunken Works' brine cools every Coolant Cell and Condenser a quarter harder, and its Stranded Rigs, brought home, are room for one more Rig each (to three) and a mended crew; the Caverns pay half again every site's Resonite; the Foundry pays twice every cleared site's salvage | `Sim._recompute`, `Sim._sortie_home` |
+| a new map target | the regions' mouths on the board, boarded until opened; the map's region cards with their ground, gift, research and state; a sealed mouth tapped opens the map, an open one the galleries | `IsoView.region_pos`, `Main._regions_box` |
+| a reward that is seen | "A region opened!": the region's picture, its gift, its research, and what its Resonite is for, with the Foreman | `Main._on_region_opened` |
+
+What now? from Core 10: a Surveyor refit while none is in the crew, then
+an expedition into the next sealed region, right after the Core's own
+rows (`Worklist._deep_map`).
+
+### Core 11: five kinds of row
+
+| row | kind | what it asks the player to do |
+|---|---|---|
+| 75M credits | economy | the Core's price |
+| 10,000 Lenses in the store | production | build the new chain: a Lens Grinder beside the Core, a posted Rig, and Resonite coming home |
+| a region open, whichever | the world | send an expedition |
+| 2 levels of the open regions' research, whichever | research | buy the line the chosen region opened |
+| a crew of at least 2 Rigs, 2 Breakers and 2 Surveyors | the crew | refit, and keep all three kinds |
+
+Past the table the formula grows each kind in its own way, not only its
+number: one more region a level while the map has one (Core 12 asks for
+two, Core 13 for three), two more levels of the regions' research, one
+more of each kind of crew (to four), and the rows of before
+(`CoreLevels`; `test_deep.gd`, `test_regions.gd`).
+
+### The loop after Core 10
+
+The Core asks for Lenses. A Lens is ground from a Frame and Resonite.
+Resonite comes only from a region's sites, and a region opens only to an
+expedition led by a Surveyor, who is a Rig refitted for Frames. The
+region's sites need the team their ground asks for: Rigs in water,
+Breakers on rock and to lead into danger, Surveyors for more Resonite.
+What comes home goes to the store; a Rig posted beside the Core feeds the
+Lens Grinder from it; the Lenses fill the Core's row -- and are the price
+of the next region's expedition. The region's research line opens with
+it and strengthens the path chosen, and its gift changes the factory
+(cooling, crew room, Resonite or salvage). Credits alone do not move any
+of it.
+
+### The decisions it adds
+
+| decision | the choices | what changes |
+|---|---|---|
+| which region first | water, rock or danger | measured below: the Caverns fill the Lens row in 24 min, the Foundry in 36, the Sunken Works in two hours -- but the Works bring three Rigs home and cool the factory, and the Foundry doubles salvage (395 earned in the stage, against 65) |
+| which Rigs to refit | a Rig hauls, is posted, goes out; a Breaker opens rock and leads into danger; a Surveyor opens regions and finds Resonite | every refit is a Rig less to post beside the Core, where the Lens Grinder needs one |
+| the team for each site | Rigs, Breakers and Surveyors, each with a - and a + | on rock a Rig does half; in water a Breaker less than one Rig; in danger no Breaker is half the pay; Surveyors, more Resonite and faster home, but fragile |
+| where the Frames go | the Core's store, the Assay Benches (research), Lenses, refits | a Surveyor costs 60 Frames; each Lens one |
+| where the Lenses go | the Core's row or the next expedition | the second region costs 200, the third 400 |
+| which research | only the open regions' lines | the path follows the map |
+
+### Played
+
+From the same Core 10 save of a new game (Core 10 at 12 h 31 min 57 s),
+the scripted player took each region first
+(`LODEWORKS_CORE_REGION=caverns|sunken|foundry`):
+
+| | the Caverns first | the Sunken Works first | the Foundry first |
+|---|---|---|---|
+| Core 10 -> 11 | **0:54:19** | **1:58:24** | **1:26:04** |
+| a region open | 0:03:19 | 0:03:19 | 0:04:19 |
+| a crew of 2, 2 and 2 | 0:00:04 | 0:00:04 | 0:00:04 |
+| 10,000 Lenses | 0:23:34 | 1:58:24 (last) | 0:36:29 |
+| 75M credits | 0:39:54 | 0:53:39 | 0:40:19 |
+| 2 levels of the region's research | 0:54:14 (last) | 1:04:24 | 1:15:39 (last) |
+| only credits left | 0% | 0% | 12% |
+| minutes with a decision | 54 of 56 | 118 of 120 | 85 of 88 |
+| the crew: out / posted / at the Bay | 44% / 31% / 25% | 53% / 28% / 19% | 38% / 24% / 38% |
+| sites an hour | 69.6 | 47.1 | 70.4 |
+| salvage earned | 65 | 102 | 395 |
+| Rigs rescued | 0 | 3 | 0 |
+
+- **The three regions play differently.** Rock (with the Caverns' half
+  again) is the fast way to Lenses; water is slow for Resonite but grows
+  the crew and cools the factory; danger's way in is the hardest (the
+  scripted player refitted a fourth Surveyor for it and bought Rig
+  Plating) and doubles salvage. A player who wants salvage, crew or speed
+  has a reason for each.
+- **No stage of it is a wait.** Credits were the only row left for 0%,
+  0% and 12% of the three stages, and a decision was taken in 96% or more
+  of their minutes.
+- **The first design was trivial and was changed:** at 0.4 Resonite for
+  each point of a site's strength, 500 Lenses and research at 150K, the
+  Caverns crew brought home 28,000 Resonite in 35 minutes and Core 11 fell
+  in 38. Resonite is now 0.15 a point, the row 10,000 Lenses, the research
+  400K; a region site is dealt from the lower tier only.
+- **Two gaps of the scripted player were found and fixed on the way:** it
+  sent every Rig on sorties and none was left to post to the Lens Grinder
+  (now a Core row waiting on a post is served first), and it never sent an
+  expedition while every Rig at home was posted (now it recalls one).
+
+**From a new game (run W, the final code), Core 1 -> 12 in 17 h 21 min:**
+
+| stage | length | the row that came last | only credits left | minutes with a decision |
+|---|---|---|---|---|
+| Cores 1 -> 10 | 12:31:57 | as in section 11 (run X), to the second | -- | -- |
+| 10 -> 11 | 0:54:04 | 2 levels of the region's research (0:53:59) | 0% | 52 of 56 |
+| 11 -> 12 | 3:54:34 | 4 levels of the regions' research (3:54:29) | 0% | 233 of 235 |
+
+- **Cores 1 -> 10 did not move.** The scripted player's play before the
+  deep map is kept as it was measured (its hourly marks match run X's to
+  the credit): what this round adds starts at Core 10.
+- **Core 11 -> 12:** the second region (the Foundry: the whole crew, six
+  of them Breakers, matched its survey best) was open after 3 minutes,
+  16,000 Lenses were in the store from the start, the credits after 30
+  minutes, and the regions' research came last: 1.21M research made in
+  the stage, all of it spent on those four levels. The store held 604,000
+  Frames by the end and four of eight Assay Benches stood starved: a
+  player who feeds them turns Frames into that research; the scripted
+  player does not.
+- **The crew grew from 12 to 16** once a Rig Frame was tried again on the
+  hot rock of stratum 27, and cleared 287 sites in the stage (73 an hour).
+
+**Three gaps of the scripted player, and one of the game, found on the way
+to Core 12:**
+
+| cause | whose | the change |
+|---|---|---|
+| A Rig Frame that overheated once kept any other off the board for the whole Core: at Core 11 the crew stood at 12 of 16 | the player | from Core 10 another is tried an hour later |
+| With an expedition too weak, the crew kept going on sorties, so it was never home together | the player | the posts are held, and the sorties too when the whole crew would be strong enough; when it would not, a Rig at home is refitted as a Surveyor |
+| The second region was chosen by the map's order, not by the crew | the player | the one the whole crew matches best |
+| The survey grew with the Core (1.35 times a level): the Sunken Works' was 409 at Core 11 against a whole crew of 330 in water, and Core 12 was never reached | **the game** | a region's way in is its own and does not grow; what grows is its price in Lenses |
+
+### What it still is not
+
+- **Three regions, fixed.** No fog, no region generated per shaft, no
+  region that grows (levels, a boss, a chain of sites). The Core 12 and 13
+  rows ask for the second and third region; after that the map is spent.
+- **No art of its own.** The Surveyor is the Rig's sheet in sea-glass
+  paint at 0.85 scale, as the Breaker is the Rig's in rust-red; the
+  regions' mouths are the galleries' pictures tinted. The Higgsfield
+  connector was not connected this round, so no picture was generated.
+- **Resonite has one use** (Lenses) and the Lens two (the Core's row, an
+  expedition): by Core 12 the store held 191,000 Lenses against a row of
+  16,000. A second sink (a machine, an Overdrive tier) is the obvious
+  next step.
+- **Core 11 -> 12 is held by research** (the regions' lines, 400K and
+  twice as much a level) while Frames pile up for Assay Benches the
+  scripted player leaves starved.
+
+### What it costs to draw
+
+`tools/perf_probe.tscn` (1440x720, Intel UHD, the compatibility
+renderer), the round's first commit (a57152a) against this round's code,
+in the same checkout one after the other:
+
+| | before | after |
+|---|---|---|
+| draw calls: idle / a 20 s soak / the late board | 196 / 212 / 232 | 196 / 211 / 232 |
+| texture memory | 38.8 MB | 38.8 MB |
+| static memory over the soak | 52.5 MB | 53.1 MB |
+| a sim tick, the reference board | 0.376 ms | 0.384-0.387 ms |
+
+Frame times were not comparable this time: other sessions were running
+on the machine, and the same code's idle p50 read 8.5 and 10.3 ms on two
+runs. A phone: not measured (no device connected).
+- **The bot is not a player** (section 11): its hours are an upper bound
+  on the systems' sense. Human pace and anything on a phone: not measured.

@@ -2290,6 +2290,9 @@ const WALK_SHARE := 0.42
 ## the yard's edges -- the upper left, the upper right, the lower right, the
 ## three a phone's panels leave in view -- most of a cell out.
 func site_pos(i: int) -> Vector2:
+	var reg: String = Operations.slot_region(i)
+	if reg != "":
+		return region_pos(reg)
 	var yc: PackedVector2Array = yard_corners()
 	if yc.size() < 4:
 		return core_center()
@@ -2298,6 +2301,31 @@ func site_pos(i: int) -> Vector2:
 	var e: Array = edges[i % edges.size()]
 	var edge: Vector2 = (yc[int(e[0])] + yc[int(e[1])]) * 0.5
 	return edge + (edge - mid).normalized() * Iso.TW * 0.9
+
+
+## Where region `r`'s way in stands: past the yard's corners, further out
+## than the galleries -- the top corner, the right, and the bottom-left
+## edge -- the deep map around the factory.
+func region_pos(r: String) -> Vector2:
+	var yc: PackedVector2Array = yard_corners()
+	if yc.size() < 4:
+		return core_center()
+	var mid: Vector2 = (yc[0] + yc[1] + yc[2] + yc[3]) * 0.25
+	var at: Vector2
+	match Operations.REGION_ORDER.find(r):
+		0:
+			at = yc[0]
+		1:
+			at = yc[1]
+		_:
+			at = yc[2].lerp(yc[3], 0.5)
+	return at + (at - mid).normalized() * Iso.TW * 1.5
+
+
+## How each region's way in is drawn: the galleries' picture, tinted for its
+## ground.
+const REGION_LOOK := {"sunken": ["open", Color(0.62, 0.82, 1.0)], "caverns": ["open", Color(0.86, 0.66, 1.0)],
+	"foundry": ["nest", Color(1.0, 0.62, 0.45)]}
 
 
 ## The Rig Bay, the crew's garage and charging pad: past the yard's upper
@@ -2328,6 +2356,11 @@ func site_at(w: Vector2) -> int:
 			continue
 		if site_pos(i).distance_to(w) < Iso.TW * 0.45:
 			return i
+	# The deep map's ways in, from the Core that opens it.
+	if Sim.core_level >= Operations.REGION_CORE:
+		for r: String in Operations.REGION_ORDER:
+			if region_pos(r).distance_to(w) < Iso.TW * 0.5:
+				return Operations.region_slot(r)
 	return -1
 
 
@@ -2345,6 +2378,14 @@ func _draw_galleries(ci: CanvasItem) -> void:
 			art = "nest" if String(s["kind"]) == "nest" else "open"
 		# The upper-right mouth faces the yard, down and to the left.
 		_sprite(ci, gal, art, site_pos(i) + Vector2(0, Iso.TH * 0.3), MOUTH_SCALE, i == 1, tint)
+	# The deep map's ways in: sealed until an expedition opens them.
+	if Sim.core_level >= Operations.REGION_CORE:
+		for r: String in Operations.REGION_ORDER:
+			var look: Array = REGION_LOOK[r]
+			var open: bool = Sim.region_open(r)
+			var rt: Color = (look[1] as Color) * (Color.WHITE if open else Color(0.55, 0.55, 0.6))
+			_sprite(ci, gal, String(look[0]) if open else "boarded", region_pos(r) + Vector2(0, Iso.TH * 0.3),
+				MOUTH_SCALE * 1.15, Operations.REGION_ORDER.find(r) == 1, Color(rt.r, rt.g, rt.b, 1.0))
 	_sprite(ci, gal, "bay", bay_pos(), MOUTH_SCALE, false, tint)
 	# What is left of each open site, as a bar under its mouth.
 	for i in range(Sim.ops_board.size()):
@@ -2394,6 +2435,10 @@ func _draw_galleries(ci: CanvasItem) -> void:
 	for kb in range(mini(Sim.breakers, RIGS_SHOWN)):
 		_draw_rig(rig_home(home - busy + kb, home), float(kb) * 1.7, false, 0.0 if mending else Sim.rig_wear,
 			false, Vector2.ZERO, true)
+	# The Surveyors past them: lighter, smaller, in sea-glass paint.
+	for kv in range(mini(Sim.surveyors, RIGS_SHOWN)):
+		_draw_rig(rig_home(home - busy + mini(Sim.breakers, RIGS_SHOWN) + kv, home), float(kv) * 2.1, false,
+			0.0 if mending else Sim.rig_wear, false, Vector2.ZERO, false, true)
 	for j in range(busy):
 		var call: Dictionary = calls[j]
 		var k2: int = home - busy + j
@@ -2423,8 +2468,9 @@ func _draw_galleries(ci: CanvasItem) -> void:
 		var p: float = clampf(1.0 - float(so["left"]) / trip, 0.0, 1.0)
 		var n: int = mini(int(so["n"]), RIGS_SHOWN)
 		var nb: int = mini(int(so.get("b", 0)), RIGS_SHOWN)
+		var nv: int = mini(int(so.get("v", 0)), RIGS_SHOWN)
 		var target: Vector2 = site_pos(int(so["slot"]))
-		for k in range(n + nb):
+		for k in range(n + nb + nv):
 			var start: Vector2 = rig_home(k, n)
 			var q: float = clampf(p - 0.015 * float(k), 0.0, 1.0)
 			var at: Vector2
@@ -2440,7 +2486,8 @@ func _draw_galleries(ci: CanvasItem) -> void:
 			else:
 				at = target.lerp(start, (q - (1.0 - WALK_SHARE)) / WALK_SHARE)
 				heading = start - target
-			_draw_rig(at, _anim * 9.0 + float(k), working, float(so["wear"]), q >= 1.0 - WALK_SHARE, heading, k >= n)
+			_draw_rig(at, _anim * 9.0 + float(k), working, float(so["wear"]), q >= 1.0 - WALK_SHARE, heading,
+				k >= n and k < n + nb, k >= n + nb)
 			if working and not calm_motion and fposmod(_anim * 2.0 + float(k) * 0.37, 1.0) < 0.25:
 				# Sparks: the work.
 				for sp in range(3):
@@ -2452,8 +2499,9 @@ func _draw_galleries(ci: CanvasItem) -> void:
 	_rigs_to_draw.sort_custom(func(a: Array, b: Array) -> bool: return (a[1] as Vector2).y < (b[1] as Vector2).y)
 	for r: Array in _rigs_to_draw:
 		# A Breaker: the Rig's frame refitted, bigger, in rust-red plate.
-		_sprite(ci, crew, String(r[0]), r[1], RIG_SCALE * (BREAKER_SCALE if bool(r[3]) else 1.0), bool(r[2]),
-			BREAKER_TINT if bool(r[3]) else Color.WHITE)
+		var scale: float = BREAKER_SCALE if bool(r[3]) else (SURVEYOR_SCALE if bool(r[4]) else 1.0)
+		_sprite(ci, crew, String(r[0]), r[1], RIG_SCALE * scale, bool(r[2]),
+			BREAKER_TINT if bool(r[3]) else (SURVEYOR_TINT if bool(r[4]) else Color.WHITE))
 	_rigs_to_draw.clear()
 	_draw_walker(ci)
 
@@ -2555,7 +2603,7 @@ func _draw_walker(ci: CanvasItem) -> void:
 ## at work, carrying home, or worn -- facing the way it goes (the sheet
 ## faces down and to the left; `heading` right of it is the mirror).
 func _draw_rig(at: Vector2, phase: float, working: bool, wear: float, cargo: bool = false,
-		heading: Vector2 = Vector2.ZERO, heavy: bool = false) -> void:
+		heading: Vector2 = Vector2.ZERO, heavy: bool = false, light: bool = false) -> void:
 	var pose: String = "idle"
 	if working:
 		pose = "work"
@@ -2568,7 +2616,7 @@ func _draw_rig(at: Vector2, phase: float, working: bool, wear: float, cargo: boo
 	var bob: float = 0.0
 	if not calm_motion and pose == "drive":
 		bob = sin(phase) * 1.5
-	_rigs_to_draw.append([pose, at + Vector2(0, bob), heading.x > 0.0, heavy])
+	_rigs_to_draw.append([pose, at + Vector2(0, bob), heading.x > 0.0, heavy, light])
 
 
 ## The Rigs of this frame, drawn after the triangles: [pose, at, mirrored,
@@ -2577,6 +2625,8 @@ var _rigs_to_draw: Array = []
 const RIG_SCALE := 0.34
 const BREAKER_SCALE := 1.3
 const BREAKER_TINT := Color(1.0, 0.62, 0.48)
+const SURVEYOR_SCALE := 0.85
+const SURVEYOR_TINT := Color(0.62, 1.0, 0.92)
 const MOUTH_SCALE := 0.62
 
 

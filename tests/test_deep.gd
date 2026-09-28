@@ -367,13 +367,13 @@ func test_core_10_puts_the_assay_bench_to_work_and_opens_the_cores_export() -> v
 		"a job no machine has can never be had")
 	runner.check(bool(CoreLevels.opens(CoreLevels.EXPORT_CORE)["export"]), "Core 10 opens the Core's export")
 	runner.check(not bool(CoreLevels.opens(9)["export"]), "")
-	# Every level past the table still asks for them, more each level.
+	# From Core 11 the deep map's rows take over from them (test_regions.gd).
 	for level in range(11, 16):
 		var w: Array = []
 		for r: Array in CoreLevels.requirements(level):
-			if CoreLevels.row_job(r) == "assay":
+			if int(r[0]) == CoreLevels.Req.REGIONS:
 				w = r
-		runner.check(not w.is_empty() and int(w[2]) > int(assay[2]), "Core %d asks for more Assay Benches" % level)
+		runner.check(not w.is_empty(), "Core %d asks for regions of the deep map" % level)
 	# A Core past the table costs about what an era's income grows by more
 	# than the one before it, not four times.
 	var p10: float = 0.0

@@ -6,7 +6,7 @@ Survival, Rise of Kingdoms, Hay Day, Township and State of Survival.
 This file takes stock of the game as it is (26 September 2026, branch
 `visual/landscape-iso`) against their player loop. It measures the gaps,
 and it records the problem chosen for each round and what it did. The
-latest round is section 11: the Core 7 era.
+latest round is section 14: the deep map after Core 10.
 
 - **Sources.** The mechanics and their sources are in `research/progression-reference.md`, `research/feature-pool.md` and the five reports in `research/reference-games/`.
 - **Measurements.** They come from `tools/core_journey.gd`: a scripted player on the real game, reporting each Core level as a stage (`PROGRESSION.md`, "Core 7", "How it is measured").
@@ -26,7 +26,10 @@ Status meanings:
 |---|---|---|---|
 | Core 1→7 progression | DONE (this round) | `core_levels.gd`; `test_core_levels.gd`, `test_core7.gd`; played to Core 7 by `core_journey` | human pace unknown |
 | Core 8 | DONE (26 Sep) | asks for the deep chain's Alloy, Components, a driven Smelter, the shaft's doctrine and stability on stratum 19; played to (§11) | human pace unknown |
-| Core 9 and later | PARTIAL | Core 9 written out and graph-checked; 10+ a formula | not played (P5) |
+| Core 9 and 10 | DONE (27 Sep) | written out, played from a new game to Core 10 (`GAME-LOOP.md` §11) | human pace unknown |
+| Core 11 and later | PARTIAL (28 Sep) | Core 11 written out with five kinds of row; 12+ a formula that grows each kind; played from a new game to Core 12 in 17 h 21 min (§14) | past Core 12 the map is spent; Core 13+ unplayed |
+| The deep map (regions) | PARTIAL (28 Sep) | three regions, expeditions, region sites, gifts, research lines; `test_regions.gd`; played three ways (§14) | three fixed regions; no fog; no art of their own |
+| Crew roles | PARTIAL (28 Sep) | Rig, Breaker (Core 6), Surveyor (Core 10), each with its own ground; `test_operations.gd`, `test_regions.gd` | the Breaker and Surveyor are the Rig's sheet tinted |
 | Research tree | PARTIAL | branches; one doctrine a shaft from Core 7, whose research a collapse clears (`test_deep.gd`) | the lines shared by every shaft are still bought to their end by Core 7; Ceramic Lining (heat) is paid in Cores |
 | Strata | PARTIAL | 12 modifiers; the Core caps depth; crystal from stratum 16, more with depth | no stratum band has sites of its own; world nodes still draw nothing (FP-18) |
 | Heat | PARTIAL | safe range, modes, levels, heat card; `test_heat.gd`; `heat_lab` in CI | no mode or cause mark on the board |
@@ -72,7 +75,7 @@ research reports), with Lodeworks' version and its state:
 | Base full of maxed buildings → Supercharge, merges → which to push past the cap → more strength from old buildings → the next cap | Overdrive (Core 7) | DONE, first version |
 | Orders board (Hay Day, Township) → make the goods asked → which order → a premium → the next order | the Dispatch board | first version |
 | Survival pressure (Whiteout's cold) → heat as the constraint → where to heat and cool → working buildings → deeper, colder, harder | heat and strata: rock heat rises with depth; modes; cooling levels | DONE, and the game's own identity |
-| Fog and regions (Boom Beach) → explore for resources → which region → new income → further regions | the world ring (FP-18) | MISSING; waits on the owner (A2, D1) |
+| Fog and regions (Boom Beach) → explore for resources → which region → new income → further regions | the deep map: an expedition opens a region, its sites pay Resonite, its gift changes the factory, the next Core has room for the next (§14) | first slice (28 Sep); no fog, three fixed regions |
 | Prestige layer (idle genre) → reset for a permanent multiplier → when to reset → a faster next run → deeper runs | collapse → Cores → the Core-priced tree | weak (§5) |
 | Layout editor (CoC) → saved layouts → try a configuration → a better base → share | Blueprint (FP-20) | MISSING (P7) |
 | Clan, wars, capital (CoC) → cooperation | none (D3: no server) | out by decision; limits in §8 |
@@ -223,7 +226,7 @@ still a wall that a collapse does not touch.
 | first session | the next Core row is always in reach; every level opens a material or machine through Core 5 | Cores 1-4 in 33 min; "What now?" | the tutorial ends at the first Descend |
 | first day | the Core's rows in several systems; offline banking | Core 7 is about 11 hours of active play | the Core 4-6 waiting (§6) |
 | first week | hot rock: heat and stability at 13-19; the deep chain; a doctrine; Overdrive; the Core 7 era | measured to Core 8 (§11) | Core 9 not played |
-| first month | prestige; records; new material bands | a collapse keeps a Core foundation and blueprints (§11) | Core 10 and up are a formula; no records |
+| first month | prestige; records; new material bands; a map to open | a collapse keeps a Core foundation and blueprints (§11); from Core 10 a region a level to Core 12, a new chain and a third kind of crew (§14) | past Core 12 a formula; no records |
 
 Daily and weekly systems are left out on purpose:
 
@@ -354,3 +357,22 @@ on stratum 12 (`PROGRESSION.md`, "Played, after").
 - **The whole game against the benchmark loop** is taken stock of in `GAME-LOOP.md`: every system classified, the reference games' unit and operation chains, and what Lodeworks takes, adapts, defers and rejects.
 - **Its largest gap -- the base makes an army, the army goes out, what it brings back makes the base stronger -- has a first slice:** Rigs, the galleries and sorties, from Core 4 (`GAME-LOOP.md`, sections 6-7). Binding decision V4 is amended by the owner: fights against the computer are in; raids on players stay out.
 
+## 14. After Core 10: the deep map (28 September 2026)
+
+The brief: prove, as a system, why a player goes on after Core 10. The
+whole round is in `GAME-LOOP.md`, section 12; here, the benchmark's
+questions.
+
+| benchmark question | before | after |
+|---|---|---|
+| does the next level ask for new work, not bigger numbers? | Core 11 was Core 10's rows grown 1.5 times | Core 11 asks for five kinds: credits, 10,000 Lenses, a region, the region's research, a crew of three kinds |
+| does the next level open something new? | Core 10 opened the export | Core 10 opens three regions, the Surveyor, Resonite, the Lens Grinder, three research lines |
+| is there a region to choose? (Boom Beach's map) | no | three, each with its ground, sites, research and gift; the first one's choice moved Core 10 -> 11 from 54 min to 1 h 58 min, and salvage from 65 to 395 |
+| do unit types counter targets? (Boom Beach, Rise of Kingdoms) | two kinds: Rigs, Breakers | three: on rock, in water and in danger each kind counts differently; a Surveyor alone opens a region |
+| is the army made in the base, and does what it brings make the base stronger? | Rigs from Plates; what they bring is money and materials | a Surveyor is refitted for Frames; its Resonite is ground in the factory into what the Core asks for |
+| is there a wait with nothing to do? | -- | only credits left: 0%, 0% and 12% of the three Core 10 -> 11 stages; a decision in 96% or more of their minutes |
+
+**Still not at the reference games' level:** the map is three fixed
+regions with no fog and no growth; the new crew and regions have no art
+of their own; Resonite has one use; the pace of a person and anything on
+a phone are not measured.

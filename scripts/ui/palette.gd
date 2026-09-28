@@ -90,6 +90,8 @@ const RES_COLOR := {
 	6: Color("f08a4b"),   ## alloy — white-hot copper
 	7: Color("5fd0c0"),   ## frame — the deep chain's end, cool teal
 	8: Color("ffb347"),   ## rig — safety orange, the crew's paint
+	9: Color("e05fc8"),   ## resonite — the deep map's magenta
+	10: Color("9fe8ff"),  ## lens — ground glass, pale cyan
 }
 
 ## Machine colours. Grouped by role so the board is legible at a glance:

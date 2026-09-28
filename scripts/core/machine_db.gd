@@ -28,7 +28,13 @@ extends RefCounted
 ## walks to the Core by itself (Simulation._transfer); its Plates and
 ## Components come down the factory's own lines, so the factory is the
 ## crew's supply line.
-enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT, CRYSTAL, ALLOY, FRAME, RIG }
+##
+## Resonite is the deep map's (Operations, "regions"): no machine makes it;
+## the crew brings it home from the regions a Core 10 opens, into the store.
+## A Lens is Resonite ground onto a Frame (the Assembler's Lens Grinder
+## job): what the Core's eleventh level and the next expeditions ask for.
+## Appended, never inserted: a save keeps its materials by number.
+enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT, CRYSTAL, ALLOY, FRAME, RIG, RESONITE, LENS }
 
 const RES_NAME := {
 	Res.ORE: "Ore",
@@ -40,6 +46,8 @@ const RES_NAME := {
 	Res.ALLOY: "Alloy",
 	Res.FRAME: "Frame",
 	Res.RIG: "Rig",
+	Res.RESONITE: "Resonite",
+	Res.LENS: "Lens",
 }
 
 const DEEP_VALUES := [3.0, 12.0, 50.0]
@@ -63,6 +71,11 @@ const RES_VALUE := {
 	# and a little for the work, so a Rig sold is never a loss and never the
 	# reason to make one.
 	Res.RIG: 140.0,
+	# The deep map's: Resonite at a Frame's worth, a Lens at what goes into
+	# it and the grinding -- a Vault pays for them, and never enough to make
+	# selling them the reason to go out for them.
+	Res.RESONITE: DEEP_VALUES[2],
+	Res.LENS: 200.0,
 }
 
 ## Heat is the spatial constraint that makes placement a puzzle rather than a
@@ -352,6 +365,18 @@ const JOBS := {
 		"heat_optimum": 3.0,
 		"heat_tolerance": 6.5,
 		"core": FRAME_CORE,
+	}, "lens": {
+		# The deep map's chain (Operations, "regions"): Resonite the crew
+		# brings home, ground onto a Frame. No line makes Resonite, so a
+		# Lens Grinder is fed from the store -- by a Rig posted to it beside
+		# the Core.
+		"name": "Lens Grinder",
+		"short": "Grinds Resonite onto a Frame: a Lens.",
+		"inputs": {Res.FRAME: 1, Res.RESONITE: 2},
+		"outputs": {Res.LENS: 1},
+		"heat_optimum": 3.0,
+		"heat_tolerance": 6.5,
+		"core": LENS_CORE,
 	}, "rig": {
 		"name": "Rig Frame",
 		"short": "Builds a Rig: a robot the Core sends out into the galleries.",
@@ -382,6 +407,9 @@ const JOBS := {
 ## White Heat, Alloy Parts, a Frame Jig, an Assay Bench (docs/PROGRESSION.md,
 ## "Core 9").
 const ASSAY_CORE := 9
+## The Core's level that opens the deep map, and with it the Lens Grinder
+## (Operations.REGION_CORE is the same level).
+const LENS_CORE := 10
 const ASSAY_LEARNS := 10.0
 
 ## Rig Frame, an Assembler from the Core's level RIG_CORE: a Rig
@@ -793,7 +821,7 @@ const DEEP_LEVEL_GROWTH := 1.5
 ## STOCK_BASE at level 1, STOCK_GROWTH times as much each level. It grows
 ## faster than LEVEL_MATERIAL_GROWTH, so a Vault's next level is always
 ## payable from the store its level before holds.
-const STOCKED := [Res.INGOT, Res.PLATE, Res.COMPONENT, Res.ALLOY, Res.FRAME]
+const STOCKED := [Res.INGOT, Res.PLATE, Res.COMPONENT, Res.ALLOY, Res.FRAME, Res.RESONITE, Res.LENS]
 const STOCK_BASE := 25.0
 const STOCK_GROWTH := 3.2
 

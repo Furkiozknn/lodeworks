@@ -206,6 +206,7 @@ func _ready() -> void:
 		else:
 			_toast_msg(Loc.t("Rigs home from the %s, not cleared: +%s credits, +%s research")
 				% [where, Economy.fmt(float(rep["credits"])), Economy.fmt(float(rep["research"]))]))
+	Sim.region_opened.connect(_on_region_opened)
 	Sim.machine_upgraded.connect(func(id: String, _level: int):
 		# The crew goes out to the machines it levelled (IsoView.service).
 		iso_view.service(id))
@@ -463,7 +464,14 @@ func _build() -> void:
 	iso_view.core_tapped.connect(_on_core_tapped)
 	iso_view.node_tapped.connect(_on_node_tapped)
 	# A gallery mouth: the galleries, where the sites are.
-	iso_view.site_tapped.connect(func(_i: int): _show_galleries())
+	iso_view.site_tapped.connect(func(i: int):
+		# A region's way in: the map while it is sealed, the galleries once
+		# it is open.
+		var reg: String = Operations.slot_region(i)
+		if reg != "" and not Sim.region_open(reg):
+			_show_map()
+		else:
+			_show_galleries())
 	iso_view.bay_tapped.connect(func(): _show_bay())
 	iso_view.machine_moved.connect(func(from_cell: int, to_cell: int):
 		_push_undo({"kind": "move", "cell": to_cell, "from": from_cell})
@@ -849,6 +857,7 @@ func _show_map() -> void:
 		row.add_child(words)
 		card.add_child(row)
 		body.add_child(card)
+	body.add_child(_regions_box())
 	# The galleries under the yard: where the crew goes.
 	if Operations.slots(Sim.core_level) > 0:
 		var sites: int = 0
@@ -860,6 +869,153 @@ func _show_map() -> void:
 		gal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		body.add_child(gal)
 	_open_overlay(Loc.t("Map"), body, [], 820.0)
+
+
+## The picture each region of the deep map is shown with: the band
+## painting whose ground it shares.
+const REGION_ART := {"sunken": 1, "caverns": 3, "foundry": 2}
+
+
+## The deep map on the shaft's map (Operations, "regions"): three regions,
+## what each holds and asks of the crew, what it gives the factory for good,
+## and for one the Core has room to open, the expedition that opens it.
+func _regions_box() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	box.set_meta("regions", true)
+	box.add_child(_label(Loc.t("The deep map"), 26, Palette.CORE))
+	if Sim.core_level < Operations.REGION_CORE:
+		var later := _label(Loc.t("At the Core's level %d, three regions past the galleries open to expeditions: water, rock and danger, each with its own sites, research and gift to the factory.")
+			% Operations.REGION_CORE, TEXT_MIN, Palette.TEXT_DIM)
+		later.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(later)
+		return box
+	var room: int = Operations.region_slots(Sim.core_level) - Sim.regions_open.size()
+	var lead := _label(Loc.t("Regions open: %d of the %d the Core has room for. Which first is yours to choose.")
+		% [Sim.regions_open.size(), Operations.region_slots(Sim.core_level)], TEXT_MIN, Palette.TEXT_DIM)
+	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(lead)
+	var worlds: Array = IsoArt.layout().get("worlds", [])
+	for r: String in Operations.REGION_ORDER:
+		var reg: Dictionary = Operations.REGIONS[r]
+		var open: bool = Sim.region_open(r)
+		var card := PanelContainer.new()
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(Palette.PANEL_HI, 0.95) if open else Color(Palette.PANEL, 0.9)
+		sb.set_corner_radius_all(16)
+		sb.set_border_width_all(4 if open else 0)
+		sb.border_color = Palette.CORE
+		sb.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", sb)
+		card.set_meta("region", r)
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 14)
+		var pic := TextureRect.new()
+		var k: int = int(REGION_ART[r])
+		if k < worlds.size() and ResourceLoader.exists(String(worlds[k])):
+			pic.texture = load(String(worlds[k]))
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.custom_minimum_size = Vector2(200, 112)
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if not open:
+			pic.modulate = Color(0.55, 0.55, 0.6)
+		row.add_child(pic)
+		var words := VBoxContainer.new()
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.add_theme_constant_override("separation", 2)
+		words.add_child(_label(Loc.t(String(reg["name"])), 24, Palette.TEXT))
+		for line: String in [Loc.t(String(reg["short"])), Loc.t("For good: %s") % Loc.t(String(reg["advantage"])),
+				Loc.t("Research: %s") % Loc.t(String(Economy.RESEARCH_TREE[String(reg["research"])]["name"]))]:
+			var l := _label(line, TEXT_MIN, Palette.TEXT_DIM)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			words.add_child(l)
+		row.add_child(words)
+		col.add_child(row)
+		if open:
+			col.add_child(_label(Loc.t("Open: its sites are on the galleries' board."), 20, Palette.CORE))
+		elif Sim.site_busy(Operations.region_slot(r)):
+			col.add_child(_label(Loc.t("An expedition is out."), 20, Palette.CORE))
+		elif room <= 0:
+			col.add_child(_label(Loc.t("The Core's next level has room for it."), 20, Palette.TEXT_DIM))
+		else:
+			col.add_child(_expedition_row(r))
+		card.add_child(col)
+		box.add_child(card)
+	return box
+
+
+## The expedition that opens region `r`: its survey's strength, the team,
+## the cost, and the key that sends it.
+func _expedition_row(r: String) -> Control:
+	var s: Dictionary = Sim.survey_site(r)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.set_meta("expedition", r)
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var cost: String = Loc.t("An expedition: %d s out and back, three times the fuel") % int(Operations.SURVEY_TRIP)
+	if Sim.expedition_lenses() > 0:
+		cost += Loc.t(", and %d Lenses") % Sim.expedition_lenses()
+	var cl := _label(cost, TEXT_MIN, Palette.TEXT_DIM)
+	cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(cl)
+	var tag: String = _terrain_words(s)
+	if tag != "":
+		words.add_child(_label(tag, TEXT_MIN, Palette.WARN))
+	var need := _label("", TEXT_MIN, Palette.TEXT)
+	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(need)
+	row.add_child(words)
+	var start: Vector3i = Sim.expedition_team(r)
+	if _sortie_pick.has(r):
+		start = _sortie_pick[r]
+	_ops_reopen = _show_map
+	return _team_line(row, _team_picker(s, start, r, need,
+			func(n: int, b: int, v: int) -> String: return Sim.expedition_blocker(r, n, b, v),
+			func(n: int, b: int, v: int) -> bool: return Sim.send_expedition(r, n, b, v),
+			func(n: int, b: int, v: int) -> int: return Sim.expedition_fuel(n, b, v)))
+
+
+## A region opened: the reward, as the Core's levels have theirs -- the
+## region, what it gives the factory for good, what it opens, the Foreman.
+func _on_region_opened(r: String) -> void:
+	var reg: Dictionary = Operations.REGIONS[r]
+	iso_view.foreman_visit(-1, Foreman.Pose.JUMP, 5.0)
+	Juice.upgrade()
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	body.set_meta("region_opened", r)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 16)
+	var pic := TextureRect.new()
+	var worlds: Array = IsoArt.layout().get("worlds", [])
+	var k: int = int(REGION_ART[r])
+	if k < worlds.size() and ResourceLoader.exists(String(worlds[k])):
+		pic.texture = load(String(worlds[k]))
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.custom_minimum_size = Vector2(260, 146)
+	top.add_child(pic)
+	var said := VBoxContainer.new()
+	said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	said.add_theme_constant_override("separation", 6)
+	said.add_child(_label(Loc.t(String(reg["name"])), 28, Palette.CORE))
+	for line: String in [Loc.t("For good: %s") % Loc.t(String(reg["advantage"])),
+			Loc.t("Its sites are on the galleries' board, and its research line is open: %s.")
+				% Loc.t(String(Economy.RESEARCH_TREE[String(reg["research"])]["name"])),
+			Loc.t("The Resonite the crew brings home becomes Lenses in a Lens Grinder -- an Assembler on its new job, beside the Core, with a Rig posted to feed it.")]:
+		var l := _label(line, 20, Palette.TEXT_DIM)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		said.add_child(l)
+	top.add_child(said)
+	var badge := Foreman.Badge.new(Foreman.Pose.JUMP, 110.0)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_END
+	top.add_child(badge)
+	body.add_child(top)
+	_open_overlay(Loc.t("A region opened!"), body, [{"text": Loc.t("Onward"), "color": Palette.CORE}], 900.0)
 
 
 ## What lies below: the next stratum before going down to it -- how far the
@@ -1868,6 +2024,11 @@ func _show_core_up(level: int, words: String) -> void:
 	for _id: String in (o["research"] as Array).slice(0, 2):
 		opened.add_child(_icon_rect("research", 34))
 	body.add_child(opened)
+	if bool(o.get("regions", false)):
+		var deep := _label(Loc.t("And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."),
+			20, Palette.CORE)
+		deep.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.add_child(deep)
 	# The next level: its first rows not met, each a tap.
 	var next: Array = []
 	for st: Dictionary in Sim.core_status():
@@ -2571,6 +2732,9 @@ func _fill_job_key(cell: int) -> void:
 	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(word)
 	_sheet_job.add_child(col)
+	# The word sits in a child, which does not widen the key: a longer
+	# language's word would run past its edges.
+	_sheet_job.custom_minimum_size.x = maxf(140.0, word.get_minimum_size().x + 16.0)
 	_sheet_job.disabled = not open
 	_sheet_job.set_meta("job", job)
 	_sheet_job.tooltip_text = Loc.t("What this one machine makes. Deeper rock and the Core's levels open new jobs: crystal from a Drill, alloy from a Smelter at white heat, frames from an Assembler.")
@@ -2826,6 +2990,17 @@ func _core_next() -> Control:
 		jl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		jrow.add_child(jl)
 		box.add_child(jrow)
+	if bool(o.get("regions", false)):
+		var rrow := HBoxContainer.new()
+		rrow.add_theme_constant_override("separation", 10)
+		rrow.set_meta("core_opens_regions", true)
+		rrow.add_child(_icon_rect("descend", 36))
+		var rl := _label(Loc.t("And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."),
+			TEXT_MIN, Palette.TEXT_DIM)
+		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rrow.add_child(rl)
+		box.add_child(rrow)
 	if bool(o.get("export", false)):
 		var erow := HBoxContainer.new()
 		erow.add_theme_constant_override("separation", 10)
@@ -3066,27 +3241,47 @@ func _show_bay() -> void:
 	_open_overlay(Loc.t("Rig Bay"), body, [], 820.0)
 
 
-## The Bay's refit: a Rig at the Bay made a Breaker (Operations, "the
-## Breaker"), what one is for, and its price.
+## The Bay's refits: a Rig at the Bay made a Breaker (Operations, "the
+## Breaker") or a Surveyor ("the Surveyor"), what each is for, and its price.
 func _refit_row() -> Control:
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 6)
 	box.set_meta("refit", true)
-	var why: String = Sim.refit_blocker()
+	for role: String in ["breaker", "surveyor"]:
+		box.add_child(_refit_one(role))
+	return box
+
+
+const ROLE_WORDS := {
+	"breaker": ["Refit a Rig as a Breaker",
+		"At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half.",
+		"Breakers: %d at the Bay, %d out. A Breaker does 2.5 Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, leads a team into danger, burns twice the fuel and is never posted."],
+	"surveyor": ["Refit a Rig as a Surveyor",
+		"At the Core's level %d: refit Rigs as Surveyors -- they lead the expeditions that open the deep map.",
+		"Surveyors: %d at the Bay, %d out. An expedition into the deep map goes only with one; each finds a quarter more Resonite, and a team of Surveyors alone is back sooner. On a site a Surveyor does less than a Rig, and it wears twice as fast in danger."],
+}
+
+
+func _refit_one(role: String) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	var words: Array = ROLE_WORDS[role]
+	var why: String = Sim.refit_blocker(role)
 	if why == "core":
-		var later := _label(Loc.t("At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half.")
-			% Operations.BREAKER_CORE, TEXT_MIN, Palette.TEXT_DIM)
+		var later := _label(Loc.t(String(words[1])) % Operations.role_core(role), TEXT_MIN, Palette.TEXT_DIM)
 		later.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(later)
 		return box
-	var what := _label(Loc.t("Breakers: %d at the Bay, %d out. A Breaker does %.1f Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, burns twice the fuel and is never posted.")
-		% [Sim.breakers, Sim.breakers_out(), Operations.BREAKER_POWER], TEXT_MIN, Palette.TEXT_DIM)
+	var have: int = Sim.breakers if role == "breaker" else Sim.surveyors
+	var out: int = Sim.breakers_out() if role == "breaker" else Sim.surveyors_out()
+	var what := _label(Loc.t(String(words[2])) % [have, out], TEXT_MIN, Palette.TEXT_DIM)
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(what)
-	var c: Dictionary = Operations.refit_cost(Sim.core_level)
+	var c: Dictionary = Operations.refit_cost(Sim.core_level, role)
 	var key := _button("", Palette.CORE if why == "" else Palette.PANEL)
 	key.custom_minimum_size = Vector2(0, MIN_TOUCH)
 	key.disabled = why != ""
+	key.set_meta("refit", role)
 	var price := HBoxContainer.new()
 	price.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	price.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -3094,17 +3289,16 @@ func _refit_row() -> Control:
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Dark words on the lit key, light on the dim one.
 	var ink: Color = Palette.BG if why == "" else Palette.TEXT
-	price.add_child(_label(Loc.t("Refit a Rig as a Breaker"), 22, ink))
+	price.add_child(_label(Loc.t(String(words[0])), 22, ink))
 	price.add_child(_icon_rect("settings", 34))
 	price.add_child(_label(str(int(c["salvage"])), 22, ink if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
-	var gem := Chips.Gem.new(MachineDB.Res.COMPONENT, 1, 30.0)
+	var gem := Chips.Gem.new(int(c["res"]), 1, 30.0)
 	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	price.add_child(gem)
-	price.add_child(_label(str(int(c["components"])), 22,
-		ink if Sim.stock_of(MachineDB.Res.COMPONENT) >= int(c["components"]) else Palette.BAD))
+	price.add_child(_label(str(int(c["n"])), 22, ink if Sim.stock_of(int(c["res"])) >= int(c["n"]) else Palette.BAD))
 	key.add_child(price)
 	key.pressed.connect(func():
-		if Sim.refit_rig():
+		if Sim.refit_rig(role):
 			Juice.upgrade()
 			iso_view.repair_call()
 			_show_bay())
@@ -3182,6 +3376,9 @@ func _ops_rows(box: VBoxContainer) -> void:
 	if Sim.breakers + Sim.breakers_out() > 0:
 		cw.add_child(_label(Loc.t("Breakers: %d at the Bay, %d out") % [Sim.breakers, Sim.breakers_out()],
 			TEXT_MIN, Palette.TEXT))
+	if Sim.surveyors + Sim.surveyors_out() > 0:
+		cw.add_child(_label(Loc.t("Surveyors: %d at the Bay, %d out") % [Sim.surveyors, Sim.surveyors_out()],
+			TEXT_MIN, Palette.TEXT))
 	if Sim.sites_to_next_rig() > 0:
 		cw.add_child(_label(Loc.t("%d more sites cleared, room for another Rig") % Sim.sites_to_next_rig(),
 			TEXT_MIN, Palette.TEXT_DIM))
@@ -3231,26 +3428,18 @@ func _site_row(i: int) -> Control:
 	if not s.has("kind"):
 		return row
 	var kind: Dictionary = Operations.KINDS[String(s["kind"])]
-	row.add_child(_icon_rect("warning" if String(s["kind"]) == "nest" else "descend", 40))
+	row.add_child(_icon_rect("warning" if String(s["kind"]) in ["nest", "forge"] else "descend", 40))
 	var words := VBoxContainer.new()
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.add_theme_constant_override("separation", 0)
 	var head: String = Loc.t(String(kind["name"]))
-	if Operations.armored(s):
-		head += " · " + Loc.t("rock: a Rig does half")
-	elif String(s["kind"]) == "flooded" and Sim.breakers > 0:
-		head += " · " + Loc.t("water: too deep for a Breaker")
+	var reg: String = String(s.get("region", ""))
+	if reg != "":
+		head = Loc.t(String(Operations.REGIONS[reg]["name"])) + " · " + head
 	words.add_child(_label(head, 22, Palette.TEXT))
-	# The team: as many Rigs as clear it, unless the player picks another
-	# number -- more come home less worn and burn more fuel; fewer leave
-	# Rigs at the Bay for a post or another site, and take a share.
-	var team0: Vector2i = Sim.sortie_team(i)
-	var n: int = team0.x
-	var nb: int = team0.y
-	if _sortie_pick.has(i):
-		var picked: Vector2i = _sortie_pick[i]
-		n = clampi(picked.x, 0, Sim.rigs_home())
-		nb = clampi(picked.y, 0, Sim.breakers)
+	var tag: String = _terrain_words(s)
+	if tag != "":
+		words.add_child(_label(tag, TEXT_MIN, Palette.WARN))
 	var need := _label("", TEXT_MIN, Palette.TEXT)
 	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(need)
@@ -3260,80 +3449,159 @@ func _site_row(i: int) -> Control:
 		int(r["salvage"])], TEXT_MIN, Palette.TEXT_DIM)
 	pays.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(pays)
+	if String(s["kind"]) == "stranded":
+		words.add_child(_label(Loc.t("Brought home: room for one more Rig, and the crew mended."), TEXT_MIN, Palette.GOOD))
 	row.add_child(words)
 	if Sim.site_busy(i):
 		row.add_child(_label(Loc.t("Rigs out"), TEXT_MIN, Palette.CORE))
 		return row
+	var start: Vector3i = Sim.sortie_team(i)
+	if _sortie_pick.has(i):
+		start = _sortie_pick[i]
+	return _team_line(row, _team_picker(s, start, i, need,
+			func(n: int, b: int, v: int) -> String: return Sim.sortie_blocker(i, n, b, v),
+			func(n: int, b: int, v: int) -> bool: return Sim.send_sortie(i, n, b, v),
+			func(n: int, b: int, v: int) -> int: return Operations.fuel(n, Sim.core_level, b, v)))
+
+
+## A target's row and its team's keys: beside it, or -- all three kinds of
+## crew being wider than a phone's panel beside the words -- on a line of
+## their own under it.
+func _team_line(row: HBoxContainer, keys: Array[Control]) -> Control:
+	if keys.size() <= 3:
+		for c: Control in keys:
+			row.add_child(c)
+		return row
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	for m: StringName in row.get_meta_list():
+		box.set_meta(m, row.get_meta(m))
+	box.add_child(row)
+	var line := HBoxContainer.new()
+	line.alignment = BoxContainer.ALIGNMENT_END
+	line.add_theme_constant_override("separation", 10)
+	for c: Control in keys:
+		line.add_child(c)
+	box.add_child(line)
+	return box
+
+
+## What the ground of site `s` does to a team, in words, or "".
+func _terrain_words(s: Dictionary) -> String:
+	if Operations.armored(s):
+		return Loc.t("rock: a Rig does half")
+	if Operations.dangerous(s):
+		return Loc.t("danger: with no Breaker to lead, half the pay")
+	if Operations.watery(s) and Sim.breakers + Sim.breakers_out() > 0:
+		return Loc.t("water: too deep for a Breaker")
+	return ""
+
+
+## A team for target `s` (a site, or a region's survey): a - and a + for
+## each kind of crew at the Bay, the words under the target's name -- its
+## strength, the verdict, the wear it brings home, why it cannot go -- and
+## the key that sends it. `blocker`, `send` and `fuel` take the team as
+## (Rigs, Breakers, Surveyors). The team picked is kept under `pick` until
+## it goes.
+func _team_picker(s: Dictionary, start: Vector3i, pick: Variant, need: Label, blocker: Callable,
+		send: Callable, fuel: Callable) -> Array[Control]:
 	var go := _button("", Palette.CORE)
 	go.custom_minimum_size = Vector2(150, MIN_TOUCH)
 	go.size_flags_horizontal = Control.SIZE_SHRINK_END
-	go.set_meta("send", i)
-	var fewer := _button("-", Palette.PANEL_HI)
-	var more := _button("+", Palette.PANEL_HI)
-	var fewer_b := _button("-", Palette.PANEL_HI)
-	var more_b := _button("+", Palette.PANEL_HI)
-	for k: Button in [fewer, more, fewer_b, more_b]:
-		k.custom_minimum_size = Vector2(64, MIN_TOUCH)
-		k.size_flags_horizontal = Control.SIZE_SHRINK_END
-		k.add_theme_font_size_override("font_size", 34)
-		k.add_theme_color_override("font_color", Palette.TEXT)
-	# The row as the team stands: strength against the site, the wear it
-	# brings home, the fuel it burns. (The team in a Dictionary: a lambda
-	# keeps its own copy of a plain local.)
-	var team := {"n": n, "b": nb}
+	go.set_meta("send", pick)
+	var most := {"n": Sim.rigs_home(), "b": Sim.breakers, "v": Sim.surveyors}
+	# The team in a Dictionary: a lambda keeps its own copy of a plain local.
+	var team := {"n": clampi(start.x, 0, int(most["n"])), "b": clampi(start.y, 0, int(most["b"])),
+		"v": clampi(start.z, 0, int(most["v"]))}
+	# Keys only for the kinds the crew has: the rest never reach the screen.
+	var keys: Dictionary = {}
+	for k: String in ["n", "b", "v"]:
+		if int(most[k]) <= 0:
+			continue
+		var fewer := _button("-", Palette.PANEL_HI)
+		var more := _button("+", Palette.PANEL_HI)
+		for key: Button in [fewer, more]:
+			key.custom_minimum_size = Vector2(60, MIN_TOUCH)
+			key.size_flags_horizontal = Control.SIZE_SHRINK_END
+			key.add_theme_font_size_override("font_size", 34)
+			key.add_theme_color_override("font_color", Palette.TEXT)
+		keys[k] = [fewer, more]
+	var survey: bool = String(s.get("kind", "")) == "survey"
+	var target: float = float(s["need"]) if survey else float(s["left"])
 	var show := func() -> void:
-		var sent: int = int(team["n"])
-		var sent_b: int = int(team["b"])
-		var strength: float = Sim.team_strength(s, sent, sent_b)
+		var n: int = int(team["n"])
+		var b: int = int(team["b"])
+		var v: int = int(team["v"])
+		var strength: float = Sim.team_strength(s, n, b, v)
 		var verdict: String = Operations.verdict(s, strength)
 		var wear: float = float(Operations.resolve(s, strength)["wear"]) \
-			* (1.0 - Operations.BREAKER_SHIELD * Operations.breaker_share(s, sent, sent_b))
-		need.text = Loc.t("needs %d · sending %d: strength %d, %s, wear +%d%%") % [int(ceil(float(s["left"]))), sent,
-			int(round(strength)), _verdict_words(verdict), int(round(wear * 100.0))]
-		if sent_b > 0 or Sim.breakers > 0:
-			need.text = Loc.t("needs %d · %d Rigs and %d Breakers: strength %d, %s, wear +%d%%") % [
-				int(ceil(float(s["left"]))), sent, sent_b, int(round(strength)), _verdict_words(verdict),
-				int(round(wear * 100.0))]
-		need.add_theme_color_override("font_color", Palette.GOOD if verdict in ["trivial", "easy", "even"]
-			else (Palette.WARN if verdict == "hard" else Palette.BAD))
-		var why: String = Sim.sortie_blocker(i, sent, sent_b)
-		if why == "fuel":
-			# Said, not only greyed out: a phone has no tooltip.
-			var fr: int = Operations.fuel_res(Sim.core_level)
-			need.text += "
-" + Loc.t("Fuel: %d %s, and the store has %d") % [Operations.fuel(sent, Sim.core_level, sent_b),
-				Loc.t(String(MachineDB.RES_NAME[fr])), Sim.stock_of(fr)]
-			need.add_theme_color_override("font_color", Palette.BAD)
-		go.text = Loc.t("Send %d") % (sent + sent_b) if sent + sent_b > 0 else Loc.t("Send")
+			* (1.0 - Operations.BREAKER_SHIELD * Operations.breaker_share(s, n, b, v)) \
+			* (1.0 + Operations.SURVEYOR_FRAGILE * Operations.surveyor_share(s, n, b, v)
+				* (2.0 if Operations.dangerous(s) else 1.0))
+		if Sim.breakers + Sim.surveyors + b + v == 0:
+			need.text = Loc.t("needs %d · sending %d: strength %d, %s, wear +%d%%") % [int(ceil(target)), n,
+				int(round(strength)), _verdict_words(verdict), int(round(wear * 100.0))]
+		else:
+			need.text = Loc.t("needs %d · %d Rigs, %d Breakers, %d Surveyors: strength %d, %s, wear +%d%%") % [
+				int(ceil(target)), n, b, v, int(round(strength)), _verdict_words(verdict), int(round(wear * 100.0))]
+		var col: Color = Palette.GOOD if verdict in ["trivial", "easy", "even"] else \
+			(Palette.WARN if verdict == "hard" else Palette.BAD)
+		if Operations.dangerous(s) and b == 0 and not survey:
+			need.text += "\n" + Loc.t("No Breaker to lead it: half the pay.")
+			col = Palette.WARN
+		if v > 0 and int(Operations.KINDS[String(s["kind"])]["res"]) == MachineDB.Res.RESONITE:
+			need.text += "\n" + Loc.t("Surveyors: %d%% more Resonite.") \
+				% int(round(100.0 * minf(Operations.SURVEYOR_FIND * float(v), Operations.SURVEYOR_FIND_MAX)))
+		var why: String = String(blocker.call(n, b, v))
+		var fr: int = Operations.fuel_res(Sim.core_level)
+		match why:
+			"fuel":
+				need.text += "\n" + Loc.t("Fuel: %d %s, and the store has %d") % [int(fuel.call(n, b, v)),
+					Loc.t(String(MachineDB.RES_NAME[fr])), Sim.stock_of(fr)]
+				col = Palette.BAD
+			"surveyor":
+				need.text += "\n" + Loc.t("An expedition goes only with a Surveyor.")
+				col = Palette.BAD
+			"lens":
+				need.text += "\n" + Loc.t("Lenses: %d, and the store has %d") % [Sim.expedition_lenses(),
+					Sim.stock_of(MachineDB.Res.LENS)]
+				col = Palette.BAD
+			"weak":
+				need.text += "\n" + Loc.t("Not strong enough for the survey.")
+				col = Palette.BAD
+		need.add_theme_color_override("font_color", col)
+		go.text = Loc.t("Send %d") % (n + b + v) if n + b + v > 0 else Loc.t("Send")
 		go.disabled = why != ""
-		go.tooltip_text = Loc.t("Fuel: %d %s") % [Operations.fuel(sent, Sim.core_level, sent_b),
-			Loc.t(String(MachineDB.RES_NAME[Operations.fuel_res(Sim.core_level)]))]
-		fewer.disabled = sent <= 0 or sent + sent_b <= 1
-		more.disabled = sent >= Sim.rigs_home()
-		fewer_b.disabled = sent_b <= 0 or sent + sent_b <= 1
-		more_b.disabled = sent_b >= Sim.breakers
+		go.tooltip_text = Loc.t("Fuel: %d %s") % [int(fuel.call(n, b, v)), Loc.t(String(MachineDB.RES_NAME[fr]))]
+		for k: String in keys:
+			var total: int = n + b + v
+			(keys[k][0] as Button).disabled = int(team[k]) <= 0 or total <= 1
+			(keys[k][1] as Button).disabled = int(team[k]) >= int(most[k])
 	show.call()
-	var step := func(key: String, by: int, most: int) -> void:
-		team[key] = clampi(int(team[key]) + by, 0, most)
-		_sortie_pick[i] = Vector2i(int(team["n"]), int(team["b"]))
-		Juice.tap()
-		show.call()
-	fewer.pressed.connect(func(): step.call("n", -1, Sim.rigs_home()))
-	more.pressed.connect(func(): step.call("n", 1, Sim.rigs_home()))
-	fewer_b.pressed.connect(func(): step.call("b", -1, Sim.breakers))
-	more_b.pressed.connect(func(): step.call("b", 1, Sim.breakers))
+	for k: String in keys:
+		var key_name: String = k
+		(keys[k][0] as Button).pressed.connect(func():
+			team[key_name] = maxi(int(team[key_name]) - 1, 0)
+			_sortie_pick[pick] = Vector3i(int(team["n"]), int(team["b"]), int(team["v"]))
+			Juice.tap()
+			show.call())
+		(keys[k][1] as Button).pressed.connect(func():
+			team[key_name] = mini(int(team[key_name]) + 1, int(most[key_name]))
+			_sortie_pick[pick] = Vector3i(int(team["n"]), int(team["b"]), int(team["v"]))
+			Juice.tap()
+			show.call())
 	go.pressed.connect(func():
-		if Sim.send_sortie(i, int(team["n"]), int(team["b"])):
-			_sortie_pick.erase(i)
+		if bool(send.call(int(team["n"]), int(team["b"]), int(team["v"]))):
+			_sortie_pick.erase(pick)
 			Juice.place()
 			_close_overlay()
 			_ops_reopen.call())
-	if Sim.rigs_home() > 1:
-		row.add_child(_team_keys(fewer, more, Loc.t("Rigs")))
-	if Sim.breakers > 0:
-		row.add_child(_team_keys(fewer_b, more_b, Loc.t("Breakers")))
-	row.add_child(go)
-	return row
+	var out: Array[Control] = []
+	var words := {"n": Loc.t("Rigs"), "b": Loc.t("Breakers"), "v": Loc.t("Surveyors")}
+	for k: String in keys:
+		out.append(_team_keys(keys[k][0], keys[k][1], String(words[k])))
+	out.append(go)
+	return out
 
 
 ## A "-" and a "+" for one kind of the team, with the kind's word above.
@@ -3447,6 +3715,19 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 			pic = Chips.Gem.new(MachineDB.Res.RIG, 1, 40.0)
 			words = Loc.t("%d sites in the galleries cleared since the Core last grew") % int(st["need"])
 			go = func() -> void: _show_core()
+		CoreLevels.Req.REGIONS:
+			pic = _icon_rect("descend", 44)
+			words = Loc.t("Regions of the deep map opened: %d, whichever") % int(st["need"])
+			go = _show_map
+		CoreLevels.Req.REGION_LINES:
+			pic = _icon_rect("research", 44)
+			words = Loc.t("Levels of the open regions' research: %d, whichever") % int(st["need"])
+			go = _show_research
+		CoreLevels.Req.ROLES:
+			pic = _sheet_picture("crew", "idle", 44.0)
+			words = Loc.t("A crew with at least %d Rigs, %d Breakers and %d Surveyors") % [int(st["need"]),
+				int(st["need"]), int(st["need"])]
+			go = _show_bay
 		_:
 			pic = _icon_rect("heat", 44)
 			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
@@ -3743,9 +4024,19 @@ func _work_row(e: Dictionary) -> Button:
 			go = _show_bay
 		"refit":
 			pic = _sheet_picture("crew", "work", 52.0)
-			title = Loc.t("Refit a Rig as a Breaker")
-			sub = Loc.t("Rock in the galleries: a Rig does half there, a Breaker two and a half Rigs' work.")
+			if String(e.get("role", "breaker")) == "surveyor":
+				title = Loc.t("Refit a Rig as a Surveyor")
+				sub = Loc.t("The deep map is open: an expedition into a region goes only with a Surveyor.")
+			else:
+				title = Loc.t("Refit a Rig as a Breaker")
+				sub = Loc.t("Rock in the galleries: a Rig does half there, a Breaker two and a half Rigs' work.")
 			go = _show_bay
+		"expedition":
+			var reg: Dictionary = Operations.REGIONS[String(e["region"])]
+			pic = _icon_rect("descend", 52)
+			title = Loc.t("Send an expedition into %s") % Loc.t(String(reg["name"]))
+			sub = Loc.t("It opens the region: its sites, its research, and for good: %s") % Loc.t(String(reg["advantage"]))
+			go = _show_map
 		"sortie":
 			var si: int = int(e["i"])
 			var sk: Dictionary = Operations.KINDS[String(Sim.site(si)["kind"])]
@@ -4395,6 +4686,9 @@ func _research_card(id: String) -> Control:
 	# A doctrine's line, in a shaft that does not follow it.
 	var doctrine: String = Economy.doctrine_of(id)
 	var other: bool = doctrine != "" and doctrine != Sim.doctrine
+	# A region's line, before the region is open.
+	var region: String = String(u.get("region", ""))
+	var sealed: bool = region != "" and not Sim.region_open(region)
 	# The Core's level is this line's limit: the level that lets it go on.
 	var core_needed: int = 0
 	if not maxed and lvl >= Sim.research_cap(id):
@@ -4467,6 +4761,19 @@ func _research_card(id: String) -> Control:
 		done.add_child(_icon_rect("ok", 52))
 		done.add_child(_label(Loc.t("MAX"), 26, Palette.CORE))
 		bottom.add_child(done)
+	elif sealed:
+		var only := HBoxContainer.new()
+		only.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		only.alignment = BoxContainer.ALIGNMENT_CENTER
+		only.custom_minimum_size = Vector2(0, MIN_TOUCH)
+		only.add_theme_constant_override("separation", 8)
+		only.add_child(_icon_rect("lock", 40))
+		var only_lbl := _label(Loc.t("Opens with %s") % Loc.t(String(Operations.REGIONS[region]["name"])), 20,
+			Palette.TEXT_DIM)
+		only_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		only_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		only.add_child(only_lbl)
+		bottom.add_child(only)
 	elif other:
 		var only := HBoxContainer.new()
 		only.size_flags_horizontal = Control.SIZE_EXPAND_FILL
