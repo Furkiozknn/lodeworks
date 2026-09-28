@@ -3,21 +3,23 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cgvlwsnc1wb0l"
-path="res://.godot/imported/land_workings.jpg-4aa2cac396016f723c09ecd0fab9020c.ctex"
+path.s3tc="res://.godot/imported/land_workings.jpg-4aa2cac396016f723c09ecd0fab9020c.s3tc.ctex"
+path.etc2="res://.godot/imported/land_workings.jpg-4aa2cac396016f723c09ecd0fab9020c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/art/tiles/land_workings.jpg"
-dest_files=["res://.godot/imported/land_workings.jpg-4aa2cac396016f723c09ecd0fab9020c.ctex"]
+dest_files=["res://.godot/imported/land_workings.jpg-4aa2cac396016f723c09ecd0fab9020c.s3tc.ctex", "res://.godot/imported/land_workings.jpg-4aa2cac396016f723c09ecd0fab9020c.etc2.ctex"]
 
 [params]
 
-compress/mode=1
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.9
+compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

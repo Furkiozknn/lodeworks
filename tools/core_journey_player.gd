@@ -472,6 +472,29 @@ func _move_beside_core(id: String, job: String, need: int) -> bool:
 				S.sell(cell)
 				spot = cell
 				break
+	if spot < 0:
+		# Every side busy: a machine there making nothing the Core's rows ask
+		# for, nor what the row's machine takes, gives its tile up (measured:
+		# Assay Benches starved away from the Core for hours while Presses on
+		# Alloy Sheet held its sides).
+		var wanted: Dictionary = _wanted()
+		for res: int in (MachineDB.job_machine(id, job).get("inputs", {}) as Dictionary):
+			wanted[res] = true
+		for cell: int in S.sim.core_touching():
+			if S.grid.is_empty(cell) or _in_rows(cell, rows) \
+					or t - float(_fed_at.get(cell, -1.0e9)) < SETTLE:
+				continue
+			var outs: Dictionary = S.sim.machine_of(cell).get("outputs", {})
+			var needed: bool = S.grid.machine_at(cell) == "vault"
+			for o: int in outs:
+				needed = needed or wanted.has(o)
+			if outs.is_empty() or needed:
+				continue
+			if S.posts.has(cell):
+				S.recall_rig(cell)
+			S.sell(cell)
+			spot = cell
+			break
 	if spot < 0 or not S.move_machine(from, spot):
 		return false
 	_fed_at[spot] = t
@@ -734,7 +757,15 @@ func _pursue(st: Dictionary) -> void:
 							_feed_core(m)
 				else:
 					S.upgrade_machine("vault")
-			elif _core_feeders(res) < _feeders_wanted(st):
+			# The makers beside the Core too, while the Vault grows: at their
+			# working heat, and enough of them (measured: with Vault 10 on its
+			# way, the Frames stood at 55,899 for two hours, the two Frame
+			# Jigs out of their working heat and nothing laid).
+			for cell: int in S.sim.core_touching():
+				if (S.sim.machine_of(cell).get("outputs", {}) as Dictionary).has(res) \
+						and S.sim.heat_efficiency_at(cell) < CoreLevels.WORKING_HEAT and _fix_heat(cell):
+					return
+			if _core_feeders(res) < _feeders_wanted(st):
 				_feed_core(res)
 		CoreLevels.Req.WORKING:
 			# The ones there are first: warmed, cooled or given an outlet;
@@ -742,6 +773,13 @@ func _pursue(st: Dictionary) -> void:
 			var id: String = String(r[1])
 			var job: String = CoreLevels.row_job(r)
 			if job != "":
+				# The ones on the job first: warmed or cooled to their working
+				# heat (measured: six Assay Benches on stratum 27, five of them
+				# fed and too hot, never cooled, and the Core 10 row at one of
+				# four for four hours).
+				for cell: int in S.grid.cells:
+					if S.grid.machine_at(cell) == id and S.grid.job_at(cell) == job 							and S.sim.heat_efficiency_at(cell) < CoreLevels.WORKING_HEAT and _fix_heat(cell):
+						return
 				# On a job: more of them, one a beat's while -- beside the Core
 				# with a Rig to feed them when the store holds what they take
 				# (Operations, "Posts"), else with their chain.
