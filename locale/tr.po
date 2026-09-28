@@ -784,6 +784,18 @@ msgid "No machine beside the Core takes anything the store keeps. A Press, an As
 msgstr "Çekirdeğin yanında depodaki bir şeyi alan makine yok. Çekirdeğe değen bir Pres, Montajcı, Laboratuvar ya da Çerçeve Kalıbı bir Robot alabilir."
 
 #: res://scripts/ui/main.gd
+msgid "At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half."
+msgstr "Çekirdek %d. seviyede: Robotları Kırıcıya dönüştür -- bir Robotun yarım iş gördüğü kaya için."
+
+#: res://scripts/ui/main.gd
+msgid "Breakers: %d at the Bay, %d out. A Breaker does %.1f Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, burns twice the fuel and is never posted."
+msgstr "Kırıcılar: garajda %d, dışarıda %d. Bir Kırıcı kayada %.1f Robotun işini görür (orada Robot yarım iş görür), suda birinden azını; alanın aşındırmasını üstlenir, iki kat yakıt yakar ve görevlendirilemez."
+
+#: res://scripts/ui/main.gd
+msgid "Refit a Rig as a Breaker"
+msgstr "Robotu Kırıcıya dönüştür"
+
+#: res://scripts/ui/main.gd
 msgid "(%s kept for the Core)"
 msgstr "(%s Çekirdek için ayrılır)"
 
@@ -814,6 +826,10 @@ msgstr "Tahtayla kapatılmış eski galeriler. Çekirdek %d. seviyede ilkini aç
 #: res://scripts/ui/main.gd
 msgid "Rigs: %d at the Bay, %d out, %d posted, room for %d"
 msgstr "Robotlar: Garajda %d, dışarıda %d, görevde %d, yer %d"
+
+#: res://scripts/ui/main.gd
+msgid "Breakers: %d at the Bay, %d out"
+msgstr "Kırıcılar: garajda %d, dışarıda %d"
 
 #: res://scripts/ui/main.gd
 msgid "%d more sites cleared, room for another Rig"
@@ -848,6 +864,14 @@ msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes wal
 msgstr "Henüz Robot yok: bir Montajcıyı Robot Şasisi işine ayarla. Yaptığı her Robot Çekirdeğe kendisi yürür."
 
 #: res://scripts/ui/main.gd
+msgid "rock: a Rig does half"
+msgstr "kaya: Robot yarım iş görür"
+
+#: res://scripts/ui/main.gd
+msgid "water: too deep for a Breaker"
+msgstr "su: Kırıcı için fazla derin"
+
+#: res://scripts/ui/main.gd
 msgid "pays %s credits, %s research, %d %s, %d salvage"
 msgstr "%s kredi, %s araştırma, %d %s, %d hurda öder"
 
@@ -860,6 +884,10 @@ msgid "needs %d · sending %d: strength %d, %s, wear +%d%%"
 msgstr "%d güç gerekir · %d gönderilirse: güç %d, %s, aşınma +%%%d"
 
 #: res://scripts/ui/main.gd
+msgid "needs %d · %d Rigs and %d Breakers: strength %d, %s, wear +%d%%"
+msgstr "%d güç gerekir · %d Robot ve %d Kırıcı: güç %d, %s, aşınma +%%%d"
+
+#: res://scripts/ui/main.gd
 msgid "Send %d"
 msgstr "%d gönder"
 
@@ -870,6 +898,14 @@ msgstr "Gönder"
 #: res://scripts/ui/main.gd
 msgid "Fuel: %d %s"
 msgstr "Yakıt: %d %s"
+
+#: res://scripts/ui/main.gd
+msgid "Rigs"
+msgstr "Robotlar"
+
+#: res://scripts/ui/main.gd
+msgid "Breakers"
+msgstr "Kırıcılar"
 
 #: res://scripts/ui/main.gd
 msgid "too easy"

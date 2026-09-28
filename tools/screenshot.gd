@@ -489,6 +489,26 @@ func _run_rigs() -> void:
 	await _settle(0.6)
 	await _capture("rigs_research")
 	_clear_transient()
+	# Rock: two Breakers, one sortie of them out, the galleries' screen.
+	Sim.core_level = Operations.BREAKER_CORE
+	Sim.clear_ops()
+	Sim._recompute()
+	Sim.stock[MachineDB.Res.RIG] = Sim.crew_cap() - 3
+	Sim.breakers = 3
+	Sim.stock[MachineDB.Res.INGOT] = 2000
+	Sim._sync_core()
+	for i in range(Sim.ops_board.size()):
+		if Operations.armored(Sim.site(i)):
+			var tm: Vector2i = Sim.sortie_team(i)
+			Sim.send_sortie(i, 0, mini(tm.y, 1))
+			(Sim.sorties[0] as Dictionary)["left"] = float(Sim.sorties[0]["trip"]) * 0.7
+			break
+	await _settle(1.0)
+	await _capture("rigs_breakers_board")
+	_main.call("_show_galleries")
+	await _settle(0.8)
+	await _capture("rigs_breakers_galleries")
+	_clear_transient()
 	# Before the crew is made: the Foreman's Rig in the one gallery Core 2
 	# opens, the other two mouths boarded up.
 	Sim.core_level = 2

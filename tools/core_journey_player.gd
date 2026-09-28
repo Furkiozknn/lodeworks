@@ -337,7 +337,8 @@ func _operations() -> void:
 	# crew from every site on the board.
 	var stuck: bool = S.rig_wear > 0.0
 	for i in range(S.ops_board.size()):
-		stuck = stuck and not (S.site(i).has("kind") and S.crew_strength(S.rigs_home()) >= float(S.site(i)["left"]))
+		stuck = stuck and not (S.site(i).has("kind")
+			and S.team_strength(S.site(i), S.rigs_home(), S.breakers) >= float(S.site(i)["left"]))
 	# Plates kept for a row the store cannot yet hold (the Vault's level
 	# comes first) are not kept from a repair that is a sliver of them
 	# (measured: 20 Plates of 8,389 were kept for a row of 25,000, and a worn
@@ -356,16 +357,26 @@ func _operations() -> void:
 	var fuel_res: int = Operations.fuel_res(S.core_level)
 	var ingots: int = S.stock_of(fuel_res) - int(keep.get(fuel_res, 0))
 	var kept_past_store: bool = int(keep.get(fuel_res, 0)) > S.stock_cap()
+	# Rock on the board: a Rig refitted as a Breaker, up to a third of the
+	# crew (Operations, "the Breaker").
+	var rock: bool = false
+	for i in range(S.ops_board.size()):
+		rock = rock or Operations.armored(S.site(i))
+	if rock and S.refit_blocker() == "" and (S.breakers + S.breakers_out()) * 3 < S.crew_cap():
+		S.refit_rig()
+		_event("breaker", "first Rig refitted as a Breaker")
 	var weakest: int = -1
 	for i in range(S.ops_board.size()):
-		var n: int = S.sortie_size(i)
-		if n <= 0 or not S.can_send(i, n):
+		var tm: Vector2i = S.sortie_team(i)
+		if tm.x + tm.y <= 0 or not S.can_send(i, tm.x, tm.y):
 			continue
-		if not asked and ingots < Operations.fuel(n, S.core_level) and not kept_past_store:
+		if not asked and ingots < Operations.fuel(tm.x, S.core_level, tm.y) and not kept_past_store:
 			continue
-		if S.crew_strength(n) >= float(S.site(i)["left"]):
-			S.send_sortie(i, n)
+		if S.team_strength(S.site(i), tm.x, tm.y) >= float(S.site(i)["left"]):
+			S.send_sortie(i, tm.x, tm.y)
 			_event("sortie", "first sortie")
+			if tm.y > 0:
+				_event("breaker_sortie", "first sortie with Breakers")
 			return
 		if weakest < 0 or float(S.site(i)["left"]) < float(S.site(weakest)["left"]):
 			weakest = i
@@ -374,10 +385,13 @@ func _operations() -> void:
 	# for the next sortie -- or, while the Core asks for sites, whatever it
 	# takes (measured: three sites of 114 against a crew of 80 froze the
 	# galleries for seven hours; a sortie of 80 takes 70% of one).
-	if weakest >= 0 and S.rigs_out() == 0 and (asked
-			or S.crew_strength(S.sortie_size(weakest)) * 3.0 >= float(S.site(weakest)["left"])
-			and (ingots >= Operations.fuel(S.sortie_size(weakest), S.core_level) or kept_past_store)):
-		S.send_sortie(weakest, S.sortie_size(weakest))
+	if weakest < 0:
+		return
+	var all: Vector2i = S.sortie_team(weakest)
+	if S.rigs_out() + S.breakers_out() == 0 and (asked
+			or S.team_strength(S.site(weakest), all.x, all.y) * 3.0 >= float(S.site(weakest)["left"])
+			and (ingots >= Operations.fuel(all.x, S.core_level, all.y) or kept_past_store)):
+		S.send_sortie(weakest, all.x, all.y)
 
 
 var _last_rig: float = -1.0e9
@@ -2255,6 +2269,7 @@ func snapshot() -> Dictionary:
 		"locked": locked, "strata_left": S.depth_cap() - S.depth,
 		"contracts": S.contracts_lifetime, "research_banked": S.research, "working": _working_all(),
 		"sites": S.ops_lifetime, "salvage": S.salvage, "crew": S.rigs_home() + S.rigs_out() + S.rigs_posted(),
+		"breakers": S.breakers + S.breakers_out(),
 		"posted": S.rigs_posted(), "bay": S.bay_level, "hauled": S.hauled, "salvage_earned": S.salvage_earned,
 		"hot": _hot(), "held": CoreLevels.holding_back(S)["why"], "doctrine": S.doctrine,
 		"deep": _deep_units(), "research_per_s": S.sim.last_research, "spend": _take_spend()}

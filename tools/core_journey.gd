@@ -280,9 +280,10 @@ func _close_stage(reached: bool) -> void:
 func _record(level_before: int) -> void:
 	var S: Node = P.S
 	stage["beats"] = int(stage["beats"]) + 1
-	stage["rigs_out"] = int(stage["rigs_out"]) + S.rigs_out()
+	stage["rigs_out"] = int(stage["rigs_out"]) + S.rigs_out() + S.breakers_out()
 	stage["rigs_posted"] = int(stage["rigs_posted"]) + S.rigs_posted()
-	stage["rigs_home"] = int(stage["rigs_home"]) + S.rigs_home()
+	stage["rigs_home"] = int(stage["rigs_home"]) + S.rigs_home() + S.breakers
+	stage["breakers"] = maxi(int(stage.get("breakers", 0)), S.breakers + S.breakers_out())
 	for res: int in MachineDB.STOCKED:
 		if S.stock_of(int(res)) > 0:
 			stage["kept"] = int(stage["kept"]) + 1
@@ -515,6 +516,8 @@ func _print_stages() -> void:
 			rigs / beats, int(round(100.0 * float(s["rigs_out"]) / rigs)), int(round(100.0 * float(s["rigs_posted"]) / rigs)),
 			int(round(100.0 * float(s["rigs_home"]) / rigs)), sites, float(sites) / (dur / 3600.0),
 			earned_s, earned_s - (int(s["salvage1"]) - int(s["salvage0"])), int(s["hauled1"]) - int(s["hauled0"])])
+		if int(s.get("breakers", 0)) > 0:
+			print("  Breakers in the crew: up to %d" % int(s["breakers"]))
 		print("  the store: %d%% of the time a material it keeps stood at the Vault's limit" % [
 			int(round(100.0 * float(s["full"]) / maxf(float(s["kept"]), 1.0)))])
 		if float(s.get("research_od", 0.0)) + float(s.get("research_doctrine", 0.0)) > 0.0:
@@ -557,9 +560,9 @@ func _snapshot(s: Dictionary) -> void:
 	if not (s["hot"] as Array).is_empty():
 		print("  overheating: %s" % "; ".join(s["hot"]))
 	print("  contracts filled: %d" % int(s["contracts"]))
-	print("  the galleries: %d Rigs (%d posted, Bay %d), %d sites cleared in all, salvage %d earned / %d unspent, %d units hauled"
-		% [int(s.get("crew", 0)), int(s.get("posted", 0)), int(s.get("bay", 1)), int(s.get("sites", 0)),
-		int(s.get("salvage_earned", 0)), int(s.get("salvage", 0)), int(s.get("hauled", 0))])
+	print("  the galleries: %d Rigs (%d posted, Bay %d) and %d Breakers, %d sites cleared in all, salvage %d earned / %d unspent, %d units hauled"
+		% [int(s.get("crew", 0)), int(s.get("posted", 0)), int(s.get("bay", 1)), int(s.get("breakers", 0)),
+		int(s.get("sites", 0)), int(s.get("salvage_earned", 0)), int(s.get("salvage", 0)), int(s.get("hauled", 0))])
 	var sp: Array[String] = []
 	for k: String in (s.get("spend", {}) as Dictionary):
 		sp.append("%s %s" % [k, Economy.fmt(float(s["spend"][k]))])

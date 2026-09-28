@@ -783,6 +783,18 @@ msgid "No machine beside the Core takes anything the store keeps. A Press, an As
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Breakers: %d at the Bay, %d out. A Breaker does %.1f Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, burns twice the fuel and is never posted."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Refit a Rig as a Breaker"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "(%s kept for the Core)"
 msgstr ""
 
@@ -812,6 +824,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Rigs: %d at the Bay, %d out, %d posted, room for %d"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Breakers: %d at the Bay, %d out"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -847,6 +863,14 @@ msgid "No Rigs yet: set an Assembler to the Rig Frame job. Each Rig it makes wal
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "rock: a Rig does half"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "water: too deep for a Breaker"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "pays %s credits, %s research, %d %s, %d salvage"
 msgstr ""
 
@@ -859,6 +883,10 @@ msgid "needs %d · sending %d: strength %d, %s, wear +%d%%"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "needs %d · %d Rigs and %d Breakers: strength %d, %s, wear +%d%%"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Send %d"
 msgstr ""
 
@@ -868,6 +896,14 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Fuel: %d %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Rigs"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Breakers"
 msgstr ""
 
 #: res://scripts/ui/main.gd

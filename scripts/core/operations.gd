@@ -182,6 +182,63 @@ const TRIP_BASE := 40.0
 const TRIP_PER_TIER := 20.0
 
 
+## --- the Breaker: the crew's second kind ---------------------------------------
+##
+## From BREAKER_CORE a Rig at the Bay can be refitted as a Breaker: heavy
+## plate and a rock hammer, paid in Components and salvage (refit_cost). It
+## answers a property of a site, not only its strength:
+##
+##   * rock -- an armoured site (`armor`: a drift's cave-in, a nest's shell,
+##     dealt from BREAKER_CORE) -- takes a Rig at ARMOR_RIG of its strength
+##     and a Breaker at BREAKER_POWER Rigs;
+##   * water -- a flooded gallery -- takes a Breaker at FLOOD_BREAKER of
+##     that: it is too heavy for it;
+##   * a Breaker takes the brunt of a site: the wear a sortie brings home
+##     falls by BREAKER_SHIELD of the share of its strength the Breakers
+##     brought;
+##   * it burns BREAKER_FUEL a Rig's fuel, costs BREAKER_REPAIR a Rig's
+##     Plates to repair, and is never posted: too heavy to haul.
+##
+## A Breaker is a Rig refitted, so the crew's room is the same: a team is a
+## choice of Rigs and Breakers against the site, and a crew is a choice of
+## how many Rigs to refit (docs/GAME-LOOP.md, section 11).
+const BREAKER_CORE := 6
+const BREAKER_POWER := 2.5
+const ARMOR_RIG := 0.5
+const FLOOD_BREAKER := 0.4
+const BREAKER_SHIELD := 0.5
+const BREAKER_FUEL := 2.0
+const BREAKER_REPAIR := 2.0
+const ARMORED := ["drift", "nest"]
+## A refit: REFIT_COMPONENTS Components, growing with the Core as a site's
+## strength does, and REFIT_SALVAGE salvage.
+const REFIT_COMPONENTS := 30.0
+const REFIT_SALVAGE := 4
+
+
+## Is site `s` armoured: rock a Rig does half its strength against?
+static func armored(s: Dictionary) -> bool:
+	return bool(s.get("armor", false))
+
+
+## What `n` Rigs and `b` Breakers bring to site `s`, in whole Rigs.
+static func team_factor(s: Dictionary, n: int, b: int) -> float:
+	var rig: float = ARMOR_RIG if armored(s) else 1.0
+	var breaker: float = BREAKER_POWER * (FLOOD_BREAKER if String(s.get("kind", "")) == "flooded" else 1.0)
+	return float(maxi(n, 0)) * rig + float(maxi(b, 0)) * breaker
+
+
+## The share of a team's strength its Breakers bring.
+static func breaker_share(s: Dictionary, n: int, b: int) -> float:
+	var all: float = team_factor(s, n, b)
+	return 0.0 if all <= 0.0 else team_factor(s, 0, b) / all
+
+
+## What a refit costs under a Core of `level`: {"components", "salvage"}.
+static func refit_cost(level: int) -> Dictionary:
+	return {"components": int(ceil(REFIT_COMPONENTS * growth(level))), "salvage": REFIT_SALVAGE}
+
+
 ## The crew the Core keeps under a Core of `level`.
 static func crew_cap(level: int) -> int:
 	if level < RIG_CORE:
@@ -230,8 +287,10 @@ static func deal(core_level: int, depth: int, serial: int) -> Dictionary:
 	var need: float = EARLY_NEED if early else snappedf(NEED_BASE * growth(core_level) * float(TIERS[tier]), 1.0)
 	# Deeper galleries are rougher on a Rig.
 	var hazard: float = minf(float(KINDS[kind]["hazard"]) * (1.0 + 0.02 * float(depth)), 0.6)
+	# Rock, from the Core's level that makes Breakers: what they are for.
+	var armor: bool = core_level >= BREAKER_CORE and ARMORED.has(kind)
 	return {"kind": kind, "tier": tier, "need": need, "left": need, "hazard": hazard,
-		"serial": serial, "core": core_level, "depth": depth}
+		"serial": serial, "core": core_level, "depth": depth, "armor": armor}
 
 
 ## What clearing site `s` pays, given the factory's measured credits a
@@ -260,8 +319,8 @@ static func fuel_res(level: int) -> int:
 
 
 ## What a sortie of `n` Rigs burns under a Core of `level`, in fuel_res.
-static func fuel(n: int, level: int) -> int:
-	return int(ceil(float(n) * FUEL_PER_RIG * growth(level)))
+static func fuel(n: int, level: int, b: int = 0) -> int:
+	return int(ceil((float(n) + float(b) * BREAKER_FUEL) * FUEL_PER_RIG * growth(level)))
 
 
 ## Seconds a sortie to site `s` takes, out and back.

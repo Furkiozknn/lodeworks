@@ -2390,6 +2390,10 @@ func _draw_galleries(ci: CanvasItem) -> void:
 			for sp in range(3):
 				var d := Vector2(cos(float(sp) * 2.3 + _anim * 8.0), -absf(sin(float(sp) * 1.9 + _anim * 6.0)))
 				_seg(spot + Vector2(-8, -14), spot + Vector2(-8, -14) + d * 12.0, 2.0, Color(0.6, 0.95, 1.0, 0.9))
+	# The Breakers at home, parked past the Rigs: bigger, in rust-red plate.
+	for kb in range(mini(Sim.breakers, RIGS_SHOWN)):
+		_draw_rig(rig_home(home - busy + kb, home), float(kb) * 1.7, false, 0.0 if mending else Sim.rig_wear,
+			false, Vector2.ZERO, true)
 	for j in range(busy):
 		var call: Dictionary = calls[j]
 		var k2: int = home - busy + j
@@ -2418,8 +2422,9 @@ func _draw_galleries(ci: CanvasItem) -> void:
 		var trip: float = maxf(float(so["trip"]), 1.0)
 		var p: float = clampf(1.0 - float(so["left"]) / trip, 0.0, 1.0)
 		var n: int = mini(int(so["n"]), RIGS_SHOWN)
+		var nb: int = mini(int(so.get("b", 0)), RIGS_SHOWN)
 		var target: Vector2 = site_pos(int(so["slot"]))
-		for k in range(n):
+		for k in range(n + nb):
 			var start: Vector2 = rig_home(k, n)
 			var q: float = clampf(p - 0.015 * float(k), 0.0, 1.0)
 			var at: Vector2
@@ -2435,7 +2440,7 @@ func _draw_galleries(ci: CanvasItem) -> void:
 			else:
 				at = target.lerp(start, (q - (1.0 - WALK_SHARE)) / WALK_SHARE)
 				heading = start - target
-			_draw_rig(at, _anim * 9.0 + float(k), working, float(so["wear"]), q >= 1.0 - WALK_SHARE, heading)
+			_draw_rig(at, _anim * 9.0 + float(k), working, float(so["wear"]), q >= 1.0 - WALK_SHARE, heading, k >= n)
 			if working and not calm_motion and fposmod(_anim * 2.0 + float(k) * 0.37, 1.0) < 0.25:
 				# Sparks: the work.
 				for sp in range(3):
@@ -2446,7 +2451,9 @@ func _draw_galleries(ci: CanvasItem) -> void:
 	var crew: Dictionary = IsoArt.layout().get("crew", {})
 	_rigs_to_draw.sort_custom(func(a: Array, b: Array) -> bool: return (a[1] as Vector2).y < (b[1] as Vector2).y)
 	for r: Array in _rigs_to_draw:
-		_sprite(ci, crew, String(r[0]), r[1], RIG_SCALE, bool(r[2]))
+		# A Breaker: the Rig's frame refitted, bigger, in rust-red plate.
+		_sprite(ci, crew, String(r[0]), r[1], RIG_SCALE * (BREAKER_SCALE if bool(r[3]) else 1.0), bool(r[2]),
+			BREAKER_TINT if bool(r[3]) else Color.WHITE)
 	_rigs_to_draw.clear()
 	_draw_walker(ci)
 
@@ -2548,7 +2555,7 @@ func _draw_walker(ci: CanvasItem) -> void:
 ## at work, carrying home, or worn -- facing the way it goes (the sheet
 ## faces down and to the left; `heading` right of it is the mirror).
 func _draw_rig(at: Vector2, phase: float, working: bool, wear: float, cargo: bool = false,
-		heading: Vector2 = Vector2.ZERO) -> void:
+		heading: Vector2 = Vector2.ZERO, heavy: bool = false) -> void:
 	var pose: String = "idle"
 	if working:
 		pose = "work"
@@ -2561,12 +2568,15 @@ func _draw_rig(at: Vector2, phase: float, working: bool, wear: float, cargo: boo
 	var bob: float = 0.0
 	if not calm_motion and pose == "drive":
 		bob = sin(phase) * 1.5
-	_rigs_to_draw.append([pose, at + Vector2(0, bob), heading.x > 0.0])
+	_rigs_to_draw.append([pose, at + Vector2(0, bob), heading.x > 0.0, heavy])
 
 
-## The Rigs of this frame, drawn after the triangles: [pose, at, mirrored].
+## The Rigs of this frame, drawn after the triangles: [pose, at, mirrored,
+## a Breaker].
 var _rigs_to_draw: Array = []
 const RIG_SCALE := 0.34
+const BREAKER_SCALE := 1.3
+const BREAKER_TINT := Color(1.0, 0.62, 0.48)
 const MOUTH_SCALE := 0.62
 
 

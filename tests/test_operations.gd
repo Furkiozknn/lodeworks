@@ -491,3 +491,67 @@ func test_the_bay_grows_on_salvage_and_credits_under_the_core() -> void:
 	Sim.from_dict(d)
 	runner.eq(Sim.bay_level, 2, "a save keeps it")
 	_done()
+
+
+## --- the Breaker: the crew's second kind ----------------------------------------------
+
+func test_rock_is_dealt_from_the_core_that_makes_breakers() -> void:
+	var before: int = 0
+	var rock: int = 0
+	for serial in range(60):
+		var early: Dictionary = Operations.deal(Operations.BREAKER_CORE - 1, 12, serial)
+		before += 1 if Operations.armored(early) else 0
+		var s: Dictionary = Operations.deal(Operations.BREAKER_CORE, 15, serial)
+		runner.eq(Operations.armored(s), Operations.ARMORED.has(String(s["kind"])), "a drift or a nest is rock")
+		rock += 1 if Operations.armored(s) else 0
+	runner.eq(before, 0, "no rock before the Core makes Breakers")
+	runner.gt(float(rock), 0.0, "and some after")
+
+
+func test_a_team_is_chosen_against_the_site() -> void:
+	var rock := {"kind": "drift", "armor": true}
+	var water := {"kind": "flooded", "armor": false}
+	var hall := {"kind": "pumphouse", "armor": false}
+	runner.near(Operations.team_factor(rock, 2, 0), 1.0, 0.001, "two Rigs do one Rig's work on rock")
+	runner.near(Operations.team_factor(rock, 0, 1), Operations.BREAKER_POWER, 0.001, "a Breaker does its whole")
+	runner.lt(Operations.team_factor(water, 0, 1), 1.01, "in water a Breaker is no better than a Rig")
+	runner.near(Operations.team_factor(hall, 1, 1), 1.0 + Operations.BREAKER_POWER, 0.001, "elsewhere both whole")
+	runner.near(Operations.breaker_share(hall, 0, 2), 1.0, 0.001, "")
+	runner.eq(Operations.fuel(1, MachineDB.RIG_CORE, 1), int(ceil((1.0 + Operations.BREAKER_FUEL) * Operations.FUEL_PER_RIG)),
+		"a Breaker burns twice a Rig's fuel")
+
+
+func test_a_rig_refitted_as_a_breaker_goes_to_rock() -> void:
+	_fresh(Operations.BREAKER_CORE - 1, 12)
+	Sim.stock = {RIG: 4, INGOT: 1000, MachineDB.Res.COMPONENT: 1000}
+	Sim.salvage = 20
+	Sim._recompute()
+	runner.eq(Sim.refit_blocker(), "core", "not before the Core's level 6")
+	_fresh(Operations.BREAKER_CORE, 15)
+	Sim.stock = {RIG: 4, INGOT: 1000, MachineDB.Res.COMPONENT: 1000}
+	Sim.salvage = 20
+	Sim._recompute()
+	var room: int = int(Sim.sim.core_wants.get(RIG, 0))
+	var c: Dictionary = Operations.refit_cost(Sim.core_level)
+	runner.check(Sim.refit_rig(), "a Rig at the Bay refitted")
+	runner.eq(Sim.rigs_home(), 3, "one Rig fewer")
+	runner.eq(Sim.breakers, 1, "one Breaker more")
+	runner.eq(Sim.salvage, 20 - int(c["salvage"]), "paid in salvage")
+	runner.eq(Sim.stock_of(MachineDB.Res.COMPONENT), 1000 - int(c["components"]), "and Components")
+	runner.eq(int(Sim.sim.core_wants.get(RIG, 0)), room, "the crew's room is what it was")
+	# A drift: Breakers first.
+	Sim.ops_board = [{"kind": "drift", "tier": 0, "need": 20.0, "left": 20.0, "hazard": 0.2, "serial": 90,
+		"core": Sim.core_level, "depth": 15, "armor": true}]
+	var team: Vector2i = Sim.sortie_team(0)
+	runner.eq(team.y, 1, "the Breaker goes to rock")
+	runner.gte(Sim.team_strength(Sim.site(0), team.x, team.y), 20.0, "and the team clears it")
+	var wear_rigs: float = float(Operations.resolve(Sim.site(0), Sim.team_strength(Sim.site(0), 3, 0))["wear"])
+	runner.check(Sim.send_sortie(0, team.x, team.y), "sent")
+	runner.eq(Sim.breakers, 0, "the Breaker is out")
+	runner.eq(Sim.breakers_out(), 1, "")
+	runner.lt(float(Sim.sorties[0]["out"]["wear"]), wear_rigs, "and takes the brunt of the wear")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(Sim.to_dict()))
+	Sim.from_dict(d)
+	runner.eq(Sim.breakers, 1, "a save brings the Breaker home")
+	runner.eq(Sim.post_blocker(Grid.idx(20, 20)), "machine", "")
+	_done()

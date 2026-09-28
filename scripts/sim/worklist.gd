@@ -102,11 +102,12 @@ static func of(state: Object) -> Array:
 		var board: Array = state.get("ops_board")
 		var best: Dictionary = {}
 		for i in range(board.size()):
-			var n: int = int(state.call("sortie_size", i))
+			var team: Vector2i = state.call("sortie_team", i)
 			var s: Dictionary = board[i]
-			if not s.has("kind") or not bool(state.call("can_send", i, n)):
+			if not s.has("kind") or not bool(state.call("can_send", i, team.x, team.y)):
 				continue
-			var part: float = float(state.call("crew_strength", n)) / maxf(float(s["left"]), 1.0)
+			var part: float = float(state.call("team_strength", s, team.x, team.y)) / maxf(float(s["left"]), 1.0)
+			var n: int = team.x + team.y
 			if part >= 1.0:
 				best = {"kind": "sortie", "i": i, "n": n, "share": false, "part": 1.0}
 				break

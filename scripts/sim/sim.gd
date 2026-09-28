@@ -383,7 +383,8 @@ func _collect_stock() -> void:
 	var units: int = 0
 	for res: int in sim.core_took:
 		# Rigs are the crew, kept up to the crew's limit, not the store's.
-		var limit: int = crew_cap() - rigs_out() - rigs_posted() if res == MachineDB.Res.RIG else cap
+		var limit: int = crew_cap() - rigs_out() - rigs_posted() - breakers - breakers_out() \
+			if res == MachineDB.Res.RIG else cap
 		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), limit)
 		units += int(sim.core_took[res])
 	sim.core_took.clear()
@@ -410,7 +411,7 @@ func _sync_core() -> void:
 		if stock_of(int(res)) < cap:
 			room[int(res)] = cap - stock_of(int(res))
 	# The crew: Rigs, up to the limit the Core's level sets, less those out.
-	var crew: int = crew_cap() - rigs_home() - rigs_out() - rigs_posted()
+	var crew: int = crew_cap() - rigs_home() - rigs_out() - rigs_posted() - breakers - breakers_out()
 	if crew > 0 and core_level >= MachineDB.RIG_CORE:
 		room[MachineDB.Res.RIG] = crew
 	sim.core_wants = room
@@ -596,6 +597,48 @@ func rigs_out() -> int:
 	return n
 
 
+## Breakers (Operations, "the Breaker"): Rigs refitted, at the Bay, and out.
+var breakers: int = 0
+
+
+func breakers_out() -> int:
+	var b: int = 0
+	for s: Dictionary in sorties:
+		b += int(s.get("b", 0))
+	return b
+
+
+## Why a Rig at the Bay cannot be refitted as a Breaker now, or "": "core"
+## (the Core's level has not reached Operations.BREAKER_CORE), "rigs" (none
+## at the Bay), "salvage", "components".
+func refit_blocker() -> String:
+	if core_level < Operations.BREAKER_CORE:
+		return "core"
+	if rigs_home() <= 0:
+		return "rigs"
+	var c: Dictionary = Operations.refit_cost(core_level)
+	if salvage < int(c["salvage"]):
+		return "salvage"
+	if stock_of(MachineDB.Res.COMPONENT) < int(c["components"]):
+		return "components"
+	return ""
+
+
+## Refit a Rig at the Bay as a Breaker.
+func refit_rig() -> bool:
+	if refit_blocker() != "":
+		return false
+	var c: Dictionary = Operations.refit_cost(core_level)
+	salvage -= int(c["salvage"])
+	_take_stock({MachineDB.Res.COMPONENT: int(c["components"])})
+	stock[MachineDB.Res.RIG] = rigs_home() - 1
+	breakers += 1
+	_sync_core()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
 ## --- posts: Rigs at work in the factory (Operations, "Posts") -------------------
 
 ## The machines Rigs are posted to: cell -> the part of a unit hauled so far.
@@ -766,6 +809,11 @@ func crew_strength(n: int) -> float:
 	return float(n) * Operations.RIG_POWER * float(_mult.get("rig_power", 1.0)) * (1.0 - rig_wear)
 
 
+## What `n` Rigs and `b` Breakers bring to site `s` (Operations.team_factor).
+func team_strength(s: Dictionary, n: int, b: int) -> float:
+	return crew_strength(1) * Operations.team_factor(s, n, b)
+
+
 func site(i: int) -> Dictionary:
 	return ops_board[i] if i >= 0 and i < ops_board.size() else {}
 
@@ -786,22 +834,43 @@ func site_busy(i: int) -> bool:
 ## gallery is open yet), "site" (nothing dealt there), "busy" (a sortie is
 ## already out to it), "rigs" (not that many at home), "fuel" (not the
 ## Ingots).
-func sortie_blocker(i: int, n: int) -> String:
+func sortie_blocker(i: int, n: int, b: int = 0) -> String:
 	if Operations.slots(core_level) == 0:
 		return "core"
 	if not site(i).has("kind"):
 		return "site"
 	if site_busy(i):
 		return "busy"
-	if n < 1 or n > rigs_home():
+	if n < 0 or b < 0 or n + b < 1 or n > rigs_home() or b > breakers:
 		return "rigs"
-	if stock_of(Operations.fuel_res(core_level)) < Operations.fuel(n, core_level):
+	if stock_of(Operations.fuel_res(core_level)) < Operations.fuel(n, core_level, b):
 		return "fuel"
 	return ""
 
 
-func can_send(i: int, n: int) -> bool:
-	return sortie_blocker(i, n) == ""
+func can_send(i: int, n: int, b: int = 0) -> bool:
+	return sortie_blocker(i, n, b) == ""
+
+
+## The team a sortie to site `i` takes by default, as (Rigs, Breakers): the
+## fewest that clear what is left of it -- Breakers first on rock, Rigs
+## first elsewhere -- or everyone at home when no team does.
+func sortie_team(i: int) -> Vector2i:
+	var s: Dictionary = site(i)
+	var home: int = rigs_home()
+	if not s.has("kind"):
+		return Vector2i(home, breakers)
+	var rock: bool = Operations.armored(s)
+	for size in range(1, home + breakers + 1):
+		# Every split of `size`, the preferred kind first.
+		for k in range(size + 1):
+			var b: int = size - k if rock else k
+			var n: int = size - b
+			if n > home or b > breakers:
+				continue
+			if team_strength(s, n, b) >= float(s["left"]):
+				return Vector2i(n, b)
+	return Vector2i(home, breakers)
 
 
 ## How many Rigs a sortie to site `i` takes by default: the fewest at home
@@ -812,21 +881,24 @@ func sortie_size(i: int) -> int:
 	if not s.has("kind"):
 		return home
 	for n in range(1, home + 1):
-		if crew_strength(n) >= float(s["left"]):
+		if team_strength(s, n, 0) >= float(s["left"]):
 			return n
 	return home
 
 
 ## Send `n` Rigs to site `i`: they leave the Core with their fuel, and what
 ## they will do there is decided now (Operations.resolve).
-func send_sortie(i: int, n: int) -> bool:
-	if not can_send(i, n):
+func send_sortie(i: int, n: int, b: int = 0) -> bool:
+	if not can_send(i, n, b):
 		return false
 	var s: Dictionary = site(i)
-	var out: Dictionary = Operations.resolve(s, crew_strength(n))
-	_take_stock({Operations.fuel_res(core_level): Operations.fuel(n, core_level), MachineDB.Res.RIG: n})
+	var out: Dictionary = Operations.resolve(s, team_strength(s, n, b))
+	# The Breakers take the brunt.
+	out["wear"] = float(out["wear"]) * (1.0 - Operations.BREAKER_SHIELD * Operations.breaker_share(s, n, b))
+	_take_stock({Operations.fuel_res(core_level): Operations.fuel(n, core_level, b), MachineDB.Res.RIG: n})
+	breakers -= b
 	var trip: float = Operations.trip(s)
-	sorties.append({"slot": i, "n": n, "left": trip, "trip": trip, "site": s.duplicate(),
+	sorties.append({"slot": i, "n": n, "b": b, "left": trip, "trip": trip, "site": s.duplicate(),
 		"out": out, "wear": rig_wear})
 	# Rigs out still count against the crew.
 	_sync_core()
@@ -854,12 +926,14 @@ func advance_ops(dt: float) -> void:
 ## paid, and its site cleared and dealt again, or left the weaker.
 func _sortie_home(s: Dictionary) -> void:
 	var n: int = int(s["n"])
+	var b: int = int(s.get("b", 0))
 	var out: Dictionary = s["out"]
-	var home: int = rigs_home()
+	var home: int = rigs_home() + breakers
 	var worn: float = minf(float(s["wear"]) + float(out["wear"]), Operations.WEAR_MAX)
-	rig_wear = clampf((rig_wear * float(home) + worn * float(n)) / float(maxi(home + n, 1)),
+	rig_wear = clampf((rig_wear * float(home) + worn * float(n + b)) / float(maxi(home + n + b, 1)),
 		0.0, Operations.WEAR_MAX)
-	stock[MachineDB.Res.RIG] = home + n
+	stock[MachineDB.Res.RIG] = rigs_home() + n
+	breakers += b
 	var r: Dictionary = Operations.reward(s["site"], offline_rate())
 	var share: float = float(out["share"])
 	var paid: float = float(r["credits"]) * share
@@ -884,14 +958,15 @@ func _sortie_home(s: Dictionary) -> void:
 	_sync_core()
 	sortie_back.emit({"kind": String((s["site"] as Dictionary)["kind"]), "cleared": bool(out["cleared"]),
 		"credits": paid, "research": float(r["research"]) * share, "res": res, "n": units,
-		"wear": float(out["wear"]), "rigs": n, "slot": slot,
+		"wear": float(out["wear"]), "rigs": n, "breakers": b, "slot": slot,
 		"salvage": int(r["salvage"]) if bool(out["cleared"]) else 0})
 	stats_changed.emit()
 
 
 ## Plates that repair the Rigs at home.
 func repair_cost() -> int:
-	return Operations.repair_cost(rigs_home(), rig_wear, core_level)
+	return int(ceil(float(Operations.repair_cost(rigs_home(), rig_wear, core_level))
+		+ float(Operations.repair_cost(breakers, rig_wear, core_level)) * Operations.BREAKER_REPAIR))
 
 
 func can_repair() -> bool:
@@ -931,6 +1006,7 @@ func clear_ops() -> void:
 	rig_wear = 0.0
 	posts = {}
 	bay_level = 1
+	breakers = 0
 
 
 ## The Bay's next level: why it cannot be bought now, or "": "max" (the
@@ -1719,6 +1795,7 @@ func to_dict() -> Dictionary:
 		"ops_lifetime": ops_lifetime,
 		"sorties": sorties,
 		"rig_wear": rig_wear,
+		"breakers": breakers,
 		"posts": posts.keys(),
 		"bay_level": bay_level,
 		"hauled": hauled,
@@ -1794,6 +1871,7 @@ func from_dict(d: Dictionary) -> void:
 	ops_cleared = int(d.get("ops_cleared", 0))
 	ops_lifetime = int(d.get("ops_lifetime", 0))
 	rig_wear = clampf(float(d.get("rig_wear", 0.0)), 0.0, Operations.WEAR_MAX)
+	breakers = maxi(int(d.get("breakers", 0)), 0)
 	bay_level = clampi(int(d.get("bay_level", 1)), 1, Operations.BAY_MAX)
 	hauled = int(d.get("hauled", 0))
 	salvage_earned = int(d.get("salvage_earned", 0))
@@ -1838,7 +1916,7 @@ func from_dict(d: Dictionary) -> void:
 		if not sd.has("out") or not sd.has("site"):
 			continue
 		var o: Dictionary = sd["out"]
-		_sortie_home({"slot": int(sd.get("slot", 0)), "n": int(sd.get("n", 0)), "left": 0.0,
+		_sortie_home({"slot": int(sd.get("slot", 0)), "n": int(sd.get("n", 0)), "b": int(sd.get("b", 0)), "left": 0.0,
 			"trip": float(sd.get("trip", 0.0)), "site": _site_from(sd["site"]),
 			"out": {"cleared": bool(o.get("cleared", false)), "share": float(o.get("share", 0.0)),
 				"wear": float(o.get("wear", 0.0)), "left": float(o.get("left", 0.0))},
@@ -1853,7 +1931,8 @@ func _site_from(raw: Variant) -> Dictionary:
 	return {"kind": String(e["kind"]), "tier": clampi(int(e.get("tier", 0)), 0, Operations.TIERS.size() - 1),
 		"need": float(e.get("need", 1.0)), "left": float(e.get("left", e.get("need", 1.0))),
 		"hazard": float(e.get("hazard", 0.1)), "serial": int(e.get("serial", 0)),
-		"core": int(e.get("core", core_level)), "depth": int(e.get("depth", 0))}
+		"core": int(e.get("core", core_level)), "depth": int(e.get("depth", 0)),
+		"armor": bool(e.get("armor", false))}
 
 
 ## Blueprint entries as saved: [[cell, id, mode, job], ...], the numbers

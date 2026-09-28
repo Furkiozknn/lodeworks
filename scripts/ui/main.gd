@@ -3043,6 +3043,7 @@ func _show_bay() -> void:
 				iso_view.repair_call()
 				_show_bay())
 		body.add_child(up)
+	body.add_child(_refit_row())
 	# The machines beside the Core: those with a Rig, then those that could
 	# have one -- starved ones first.
 	var rows: Array = []
@@ -3062,6 +3063,48 @@ func _show_bay() -> void:
 	for r: Array in rows.slice(0, 8):
 		body.add_child(_post_row(int(r[1]), String(r[2])))
 	_open_overlay(Loc.t("Rig Bay"), body, [], 820.0)
+
+
+## The Bay's refit: a Rig at the Bay made a Breaker (Operations, "the
+## Breaker"), what one is for, and its price.
+func _refit_row() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	box.set_meta("refit", true)
+	var why: String = Sim.refit_blocker()
+	if why == "core":
+		var later := _label(Loc.t("At the Core's level %d: refit Rigs as Breakers -- for rock, where a Rig does half.")
+			% Operations.BREAKER_CORE, TEXT_MIN, Palette.TEXT_DIM)
+		later.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(later)
+		return box
+	var what := _label(Loc.t("Breakers: %d at the Bay, %d out. A Breaker does %.1f Rigs' work on rock, where a Rig does half, and less than one in water; it takes the brunt of a site's wear, burns twice the fuel and is never posted.")
+		% [Sim.breakers, Sim.breakers_out(), Operations.BREAKER_POWER], TEXT_MIN, Palette.TEXT_DIM)
+	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(what)
+	var c: Dictionary = Operations.refit_cost(Sim.core_level)
+	var key := _button("", Palette.CORE if why == "" else Palette.PANEL)
+	key.custom_minimum_size = Vector2(0, MIN_TOUCH)
+	key.disabled = why != ""
+	var price := HBoxContainer.new()
+	price.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	price.alignment = BoxContainer.ALIGNMENT_CENTER
+	price.add_theme_constant_override("separation", 6)
+	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price.add_child(_label(Loc.t("Refit a Rig as a Breaker"), 22, Palette.TEXT))
+	price.add_child(_icon_rect("settings", 34))
+	price.add_child(_label(str(int(c["salvage"])), 22, Palette.TEXT if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
+	price.add_child(Chips.Gem.new(MachineDB.Res.COMPONENT, 1, 30.0))
+	price.add_child(_label(str(int(c["components"])), 22,
+		Palette.TEXT if Sim.stock_of(MachineDB.Res.COMPONENT) >= int(c["components"]) else Palette.BAD))
+	key.add_child(price)
+	key.pressed.connect(func():
+		if Sim.refit_rig():
+			Juice.upgrade()
+			iso_view.repair_call()
+			_show_bay())
+	box.add_child(key)
+	return box
 
 
 ## One machine beside the Core, on the Bay's screen.
@@ -3131,6 +3174,9 @@ func _ops_rows(box: VBoxContainer) -> void:
 	cw.add_theme_constant_override("separation", 0)
 	cw.add_child(_label(Loc.t("Rigs: %d at the Bay, %d out, %d posted, room for %d") % [Sim.rigs_home(),
 		Sim.rigs_out(), Sim.rigs_posted(), Sim.crew_cap()], 22, Palette.TEXT))
+	if Sim.breakers + Sim.breakers_out() > 0:
+		cw.add_child(_label(Loc.t("Breakers: %d at the Bay, %d out") % [Sim.breakers, Sim.breakers_out()],
+			TEXT_MIN, Palette.TEXT))
 	if Sim.sites_to_next_rig() > 0:
 		cw.add_child(_label(Loc.t("%d more sites cleared, room for another Rig") % Sim.sites_to_next_rig(),
 			TEXT_MIN, Palette.TEXT_DIM))
@@ -3184,13 +3230,22 @@ func _site_row(i: int) -> Control:
 	var words := VBoxContainer.new()
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.add_theme_constant_override("separation", 0)
-	words.add_child(_label(Loc.t(String(kind["name"])), 22, Palette.TEXT))
+	var head: String = Loc.t(String(kind["name"]))
+	if Operations.armored(s):
+		head += " · " + Loc.t("rock: a Rig does half")
+	elif String(s["kind"]) == "flooded" and Sim.breakers > 0:
+		head += " · " + Loc.t("water: too deep for a Breaker")
+	words.add_child(_label(head, 22, Palette.TEXT))
 	# The team: as many Rigs as clear it, unless the player picks another
 	# number -- more come home less worn and burn more fuel; fewer leave
 	# Rigs at the Bay for a post or another site, and take a share.
-	var n: int = Sim.sortie_size(i)
+	var team0: Vector2i = Sim.sortie_team(i)
+	var n: int = team0.x
+	var nb: int = team0.y
 	if _sortie_pick.has(i):
-		n = clampi(int(_sortie_pick[i]), mini(1, Sim.rigs_home()), Sim.rigs_home())
+		var picked: Vector2i = _sortie_pick[i]
+		n = clampi(picked.x, 0, Sim.rigs_home())
+		nb = clampi(picked.y, 0, Sim.breakers)
 	var need := _label("", TEXT_MIN, Palette.TEXT)
 	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(need)
@@ -3210,7 +3265,9 @@ func _site_row(i: int) -> Control:
 	go.set_meta("send", i)
 	var fewer := _button("-", Palette.PANEL_HI)
 	var more := _button("+", Palette.PANEL_HI)
-	for k: Button in [fewer, more]:
+	var fewer_b := _button("-", Palette.PANEL_HI)
+	var more_b := _button("+", Palette.PANEL_HI)
+	for k: Button in [fewer, more, fewer_b, more_b]:
 		k.custom_minimum_size = Vector2(64, MIN_TOUCH)
 		k.size_flags_horizontal = Control.SIZE_SHRINK_END
 		k.add_theme_font_size_override("font_size", 34)
@@ -3218,45 +3275,69 @@ func _site_row(i: int) -> Control:
 	# The row as the team stands: strength against the site, the wear it
 	# brings home, the fuel it burns. (The team in a Dictionary: a lambda
 	# keeps its own copy of a plain local.)
-	var team := {"n": n}
+	var team := {"n": n, "b": nb}
 	var show := func() -> void:
 		var sent: int = int(team["n"])
-		var strength: float = Sim.crew_strength(maxi(sent, 0))
+		var sent_b: int = int(team["b"])
+		var strength: float = Sim.team_strength(s, sent, sent_b)
 		var verdict: String = Operations.verdict(s, strength)
-		var wear: float = float(Operations.resolve(s, strength)["wear"])
+		var wear: float = float(Operations.resolve(s, strength)["wear"]) \
+			* (1.0 - Operations.BREAKER_SHIELD * Operations.breaker_share(s, sent, sent_b))
 		need.text = Loc.t("needs %d · sending %d: strength %d, %s, wear +%d%%") % [int(ceil(float(s["left"]))), sent,
 			int(round(strength)), _verdict_words(verdict), int(round(wear * 100.0))]
+		if sent_b > 0 or Sim.breakers > 0:
+			need.text = Loc.t("needs %d · %d Rigs and %d Breakers: strength %d, %s, wear +%d%%") % [
+				int(ceil(float(s["left"]))), sent, sent_b, int(round(strength)), _verdict_words(verdict),
+				int(round(wear * 100.0))]
 		need.add_theme_color_override("font_color", Palette.GOOD if verdict in ["trivial", "easy", "even"]
 			else (Palette.WARN if verdict == "hard" else Palette.BAD))
-		var why: String = Sim.sortie_blocker(i, sent)
-		go.text = Loc.t("Send %d") % sent if sent > 0 else Loc.t("Send")
+		var why: String = Sim.sortie_blocker(i, sent, sent_b)
+		go.text = Loc.t("Send %d") % (sent + sent_b) if sent + sent_b > 0 else Loc.t("Send")
 		go.disabled = why != ""
-		go.tooltip_text = Loc.t("Fuel: %d %s") % [Operations.fuel(maxi(sent, 1), Sim.core_level),
+		go.tooltip_text = Loc.t("Fuel: %d %s") % [Operations.fuel(sent, Sim.core_level, sent_b),
 			Loc.t(String(MachineDB.RES_NAME[Operations.fuel_res(Sim.core_level)]))]
-		fewer.disabled = sent <= 1
+		fewer.disabled = sent <= 0 or sent + sent_b <= 1
 		more.disabled = sent >= Sim.rigs_home()
+		fewer_b.disabled = sent_b <= 0 or sent + sent_b <= 1
+		more_b.disabled = sent_b >= Sim.breakers
 	show.call()
-	fewer.pressed.connect(func():
-		team["n"] = maxi(int(team["n"]) - 1, 1)
-		_sortie_pick[i] = team["n"]
+	var step := func(key: String, by: int, most: int) -> void:
+		team[key] = clampi(int(team[key]) + by, 0, most)
+		_sortie_pick[i] = Vector2i(int(team["n"]), int(team["b"]))
 		Juice.tap()
-		show.call())
-	more.pressed.connect(func():
-		team["n"] = mini(int(team["n"]) + 1, Sim.rigs_home())
-		_sortie_pick[i] = team["n"]
-		Juice.tap()
-		show.call())
+		show.call()
+	fewer.pressed.connect(func(): step.call("n", -1, Sim.rigs_home()))
+	more.pressed.connect(func(): step.call("n", 1, Sim.rigs_home()))
+	fewer_b.pressed.connect(func(): step.call("b", -1, Sim.breakers))
+	more_b.pressed.connect(func(): step.call("b", 1, Sim.breakers))
 	go.pressed.connect(func():
-		if Sim.send_sortie(i, int(team["n"])):
+		if Sim.send_sortie(i, int(team["n"]), int(team["b"])):
 			_sortie_pick.erase(i)
 			Juice.place()
 			_close_overlay()
 			_ops_reopen.call())
 	if Sim.rigs_home() > 1:
-		row.add_child(fewer)
-		row.add_child(more)
+		row.add_child(_team_keys(fewer, more, Loc.t("Rigs")))
+	if Sim.breakers > 0:
+		row.add_child(_team_keys(fewer_b, more_b, Loc.t("Breakers")))
 	row.add_child(go)
 	return row
+
+
+## A "-" and a "+" for one kind of the team, with the kind's word above.
+func _team_keys(fewer: Button, more: Button, word: String) -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	col.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var l := _label(word, TEXT_MIN, Palette.TEXT_DIM)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(l)
+	var keys := HBoxContainer.new()
+	keys.add_theme_constant_override("separation", 4)
+	keys.add_child(fewer)
+	keys.add_child(more)
+	col.add_child(keys)
+	return col
 
 
 ## The team the player picked for a site, by the site's place on the board;
