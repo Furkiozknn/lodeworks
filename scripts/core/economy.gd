@@ -211,6 +211,20 @@ const RESEARCH_TREE := {
 		"core": Operations.REGION_CORE,
 		"region": "foundry",
 	},
+	"reach_1": {
+		"name": "Umbral Lamps",
+		"short": "The crew finds more Umbrite in the dark.",
+		"desc": "The crew brings home 25% more Umbrite from every site, for each level.",
+		"cost_research": 400000.0,
+		"cost_cores": 0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "umbrite",
+		"branch": "frontier",
+		"per_level": 0.25,
+		"core": Operations.REACH_CORE,
+		"region": "reach",
+	},
 	"rig_plating": {
 		"name": "Rig Plating",
 		"short": "Every Rig is stronger.",
@@ -335,7 +349,7 @@ const RESEARCH_TREE := {
 const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resonance",
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
 	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1", "rig_plating",
-	"salvage_gearing", "brine_1", "lens_1", "forge_1"]
+	"salvage_gearing", "brine_1", "lens_1", "forge_1", "reach_1"]
 
 ## What each line of the tree is about: the research grid shows it branch by
 ## branch, in this order.
@@ -408,12 +422,12 @@ const CORE_COST_GROWTH := 1.2
 const RESEARCH_PER_CORE := 2
 
 
-static func research_cap(id: String, core_level: int) -> int:
+static func research_cap(id: String, core_level: int, extra: int = 0) -> int:
 	var u: Dictionary = RESEARCH_TREE.get(id, {})
 	if u.is_empty():
 		return 0
 	var open: int = core_level - int(u.get("core", 1)) + 1
-	return clampi(open * RESEARCH_PER_CORE, 0, int(u["max"]))
+	return clampi(open * RESEARCH_PER_CORE, 0, int(u["max"]) + extra)
 
 
 static func upgrade_cost(id: String, level: int) -> Dictionary:
@@ -501,6 +515,7 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		"rig_power": 1.0,
 		"resonite": 1.0,
 		"breaker_power": 1.0,
+		"umbrite": 1.0,
 	}
 	for id: String in RESEARCH_TREE:
 		var lvl: int = int(levels.get(id, 0))
@@ -513,7 +528,7 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		var effect: String = String(u["effect"])
 		match effect:
 			"speed", "yield", "value", "research", "resonance", "vein", "cooling", "fine_value", "deep_learn", \
-					"rig_power", "resonite", "breaker_power":
+					"rig_power", "resonite", "breaker_power", "umbrite":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"quota":
 				m[effect] = maxf(float(m[effect]) - per * float(lvl), 0.2)

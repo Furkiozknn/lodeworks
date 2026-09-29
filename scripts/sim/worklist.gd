@@ -382,3 +382,26 @@ static func _deep_map(state: Object, out: Array) -> void:
 		if not sent and int(state.get("surveyors")) + int(state.call("surveyors_out")) == 0 \
 				and String(state.call("refit_blocker", "surveyor")) == "":
 			out.append({"kind": "refit", "role": "surveyor"})
+	# A Beacon, while the Core's next level asks for one more burning, or the
+	# Dark Reach waits for its light (Operations, "Beacons").
+	if state.has_method("send_beacon") and int(state.get("core_level")) >= Operations.CONTROL_CORE:
+		var want: bool = int(state.get("core_level")) >= Operations.REACH_CORE \
+			and not bool(state.call("region_open", "reach")) \
+			and int(state.call("lit_beacons")) < Operations.REACH_LIGHT
+		for st: Dictionary in state.call("core_status"):
+			if int(st["req"][0]) == CoreLevels.Req.BEACONS and not bool(st["met"]):
+				want = true
+		if want:
+			for r: String in state.get("regions_open"):
+				if (state.get("beacons") as Array).has(r):
+					continue
+				var t: Vector3i = state.call("beacon_team", r)
+				if String(state.call("beacon_blocker", r, t.x, t.y, t.z)) == "":
+					out.append({"kind": "beacon", "region": r})
+					break
+	# A Surveyor at the Bay, and a machine it would tune.
+	if state.has_method("tune") and int(state.get("surveyors")) > 0:
+		for cell: int in (state.get("sim") as Object).call("core_touching"):
+			if String(state.call("tune_blocker", cell)) == "":
+				out.append({"kind": "tune", "cell": cell})
+				break

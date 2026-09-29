@@ -33,8 +33,11 @@ extends RefCounted
 ## the crew brings it home from the regions a Core 10 opens, into the store.
 ## A Lens is Resonite ground onto a Frame (the Assembler's Lens Grinder
 ## job): what the Core's eleventh level and the next expeditions ask for.
+## Umbrite is the Dark Reach's (Operations, "the Dark Reach"), brought home
+## by the crew as Resonite is; a Prism is Umbrite cut with two Lenses (the
+## Assembler's Prism Cutter job), what the Core's thirteenth level asks for.
 ## Appended, never inserted: a save keeps its materials by number.
-enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT, CRYSTAL, ALLOY, FRAME, RIG, RESONITE, LENS }
+enum Res { ORE, GRAVEL, INGOT, PLATE, COMPONENT, CRYSTAL, ALLOY, FRAME, RIG, RESONITE, LENS, UMBRITE, PRISM }
 
 const RES_NAME := {
 	Res.ORE: "Ore",
@@ -48,6 +51,8 @@ const RES_NAME := {
 	Res.RIG: "Rig",
 	Res.RESONITE: "Resonite",
 	Res.LENS: "Lens",
+	Res.UMBRITE: "Umbrite",
+	Res.PRISM: "Prism",
 }
 
 const DEEP_VALUES := [3.0, 12.0, 50.0]
@@ -76,6 +81,10 @@ const RES_VALUE := {
 	# selling them the reason to go out for them.
 	Res.RESONITE: DEEP_VALUES[2],
 	Res.LENS: 200.0,
+	# The Dark Reach's, likewise: Umbrite as Resonite, a Prism at its two
+	# Lenses, its Umbrite and the cutting.
+	Res.UMBRITE: DEEP_VALUES[2],
+	Res.PRISM: 500.0,
 }
 
 ## Heat is the spatial constraint that makes placement a puzzle rather than a
@@ -329,6 +338,18 @@ const JOBS := {
 		"heat_tolerance": 6.5,
 		"depth": CRYSTAL_DEPTH,
 		"vein": true,
+	}, "resonite": {
+		# The Resonite Caverns' seam, brought to the factory (Operations,
+		# "Beacons"): only while a Beacon burns in the Caverns. Before it no
+		# line makes Resonite; after it the Lens chain can be laid on the
+		# board, and the crew is free for other work.
+		"name": "Resonant Bore",
+		"short": "Bores Resonite out of the rock -- while a Beacon burns in the Caverns.",
+		"outputs": {Res.RESONITE: 1},
+		"heat_optimum": 3.0,
+		"heat_tolerance": 7.0,
+		"core": CONTROL_CORE,
+		"control": "caverns",
 	}},
 	"smelter": {"alloy": {
 		"name": "White Heat",
@@ -377,6 +398,21 @@ const JOBS := {
 		"heat_optimum": 3.0,
 		"heat_tolerance": 6.5,
 		"core": LENS_CORE,
+		# With a Surveyor tuning it (Sim.tune): half the Resonite a Lens.
+		"tuned": {Res.FRAME: 1, Res.RESONITE: 1},
+	}, "prism": {
+		# The Dark Reach's (Operations, "the Dark Reach"): Umbrite only the
+		# crew brings home, cut with two Lenses. Fed from the store, beside
+		# the Core, and it runs cold: on the deep rock it wants cooling.
+		"name": "Prism Cutter",
+		"short": "Cuts Umbrite with two Lenses: a Prism.",
+		"inputs": {Res.LENS: 2, Res.UMBRITE: 1},
+		"outputs": {Res.PRISM: 1},
+		"heat_optimum": 1.0,
+		"heat_tolerance": 5.0,
+		"core": PRISM_CORE,
+		"region": "reach",
+		"tuned": {Res.LENS: 1, Res.UMBRITE: 1},
 	}, "rig": {
 		"name": "Rig Frame",
 		"short": "Builds a Rig: a robot the Core sends out into the galleries.",
@@ -410,6 +446,10 @@ const ASSAY_CORE := 9
 ## The Core's level that opens the deep map, and with it the Lens Grinder
 ## (Operations.REGION_CORE is the same level).
 const LENS_CORE := 10
+## The Core's level that lights Beacons (Operations.CONTROL_CORE), and the
+## one that opens the Dark Reach and its Prism Cutter (Operations.REACH_CORE).
+const CONTROL_CORE := 11
+const PRISM_CORE := 12
 const ASSAY_LEARNS := 10.0
 
 ## Rig Frame, an Assembler from the Core's level RIG_CORE: a Rig
@@ -821,7 +861,8 @@ const DEEP_LEVEL_GROWTH := 1.5
 ## STOCK_BASE at level 1, STOCK_GROWTH times as much each level. It grows
 ## faster than LEVEL_MATERIAL_GROWTH, so a Vault's next level is always
 ## payable from the store its level before holds.
-const STOCKED := [Res.INGOT, Res.PLATE, Res.COMPONENT, Res.ALLOY, Res.FRAME, Res.RESONITE, Res.LENS]
+const STOCKED := [Res.INGOT, Res.PLATE, Res.COMPONENT, Res.ALLOY, Res.FRAME, Res.RESONITE, Res.LENS,
+	Res.UMBRITE, Res.PRISM]
 const STOCK_BASE := 25.0
 const STOCK_GROWTH := 3.2
 

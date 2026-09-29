@@ -92,6 +92,8 @@ const RES_COLOR := {
 	8: Color("ffb347"),   ## rig — safety orange, the crew's paint
 	9: Color("e05fc8"),   ## resonite — the deep map's magenta
 	10: Color("9fe8ff"),  ## lens — ground glass, pale cyan
+	11: Color("6a5acd"),  ## umbrite — the Dark Reach's slate violet
+	12: Color("fff0b0"),  ## prism — cut light, warm white
 }
 
 ## Machine colours. Grouped by role so the board is legible at a glance:

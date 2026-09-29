@@ -2317,15 +2317,35 @@ func region_pos(r: String) -> Vector2:
 			at = yc[0]
 		1:
 			at = yc[1]
-		_:
+		2:
 			at = yc[2].lerp(yc[3], 0.5)
+		_:
+			# The Dark Reach: past the far corner, the deepest way out.
+			at = yc[2]
 	return at + (at - mid).normalized() * Iso.TW * 1.5
 
 
 ## How each region's way in is drawn: the galleries' picture, tinted for its
 ## ground.
 const REGION_LOOK := {"sunken": ["open", Color(0.62, 0.82, 1.0)], "caverns": ["open", Color(0.86, 0.66, 1.0)],
-	"foundry": ["nest", Color(1.0, 0.62, 0.45)]}
+	"foundry": ["nest", Color(1.0, 0.62, 0.45)], "reach": ["open", Color(0.45, 0.42, 0.72)]}
+
+
+## A Beacon over a held region's way in: a lamp over the picture's middle,
+## warm while it burns, a cold ember while the store has no Lenses for it.
+func _draw_beacon(ci: CanvasItem, info: Dictionary, at: Vector2, k_scale: float, r: String) -> void:
+	var cell: Array = info.get("cell", [256, 256])
+	var anchor: Array = info.get("anchor", [128, 256])
+	var box := Rect2(at - Vector2(float(anchor[0]), float(anchor[1])) * k_scale,
+		Vector2(float(cell[0]), float(cell[1])) * k_scale)
+	var top: Vector2 = Vector2(box.get_center().x, box.position.y + box.size.y * 0.18)
+	var pulse: float = 0.5 + 0.5 * sin(_anim * 2.4 + float(Operations.REGION_ORDER.find(r)))
+	var lamp: Color = Color(0.45, 0.55, 0.8, 0.30) if Sim.beacons_dark \
+		else Color(1.0, 0.82, 0.42, 0.40 + 0.2 * pulse)
+	var g: Texture2D = IsoArt.glow()
+	ci.draw_texture_rect(g, Rect2(top - Vector2(120, 100), Vector2(240, 200)), false, lamp)
+	var flame: Color = Color(1.0, 0.95, 0.8, 0.9) if not Sim.beacons_dark else Color(0.6, 0.7, 0.95, 0.5)
+	ci.draw_texture_rect(g, Rect2(top - Vector2(26, 26), Vector2(52, 52)), false, flame)
 
 
 ## The Rig Bay, the crew's garage and charging pad: past the yard's upper
@@ -2385,7 +2405,9 @@ func _draw_galleries(ci: CanvasItem) -> void:
 			var open: bool = Sim.region_open(r)
 			var rt: Color = (look[1] as Color) * (Color.WHITE if open else Color(0.55, 0.55, 0.6))
 			_sprite(ci, gal, String(look[0]) if open else "boarded", region_pos(r) + Vector2(0, Iso.TH * 0.3),
-				MOUTH_SCALE * 1.15, Operations.REGION_ORDER.find(r) == 1, Color(rt.r, rt.g, rt.b, 1.0))
+				MOUTH_SCALE * 1.15, false, Color(rt.r, rt.g, rt.b, 1.0))
+			if Sim.beacons.has(r):
+				_draw_beacon(ci, gal, region_pos(r) + Vector2(0, Iso.TH * 0.3), MOUTH_SCALE * 1.15, r)
 	_sprite(ci, gal, "bay", bay_pos(), MOUTH_SCALE, false, tint)
 	# What is left of each open site, as a bar under its mouth.
 	for i in range(Sim.ops_board.size()):

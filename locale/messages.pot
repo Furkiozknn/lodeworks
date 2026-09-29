@@ -211,6 +211,14 @@ msgid "Rigs home from the %s, not cleared: +%s credits, +%s research"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "The Beacons have gone dark: the store has no Lenses for them."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Beacons burn again."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "%s active. Thank you."
 msgstr ""
 
@@ -267,6 +275,14 @@ msgid "Regions open: %d of the %d the Core has room for. Which first is yours to
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Beacons dark: the store has no Lenses for them."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Beacons: %d burning, %d Lenses an hour from the store"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "For good: %s"
 msgstr ""
 
@@ -275,15 +291,19 @@ msgid "Research: %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "Open: its sites are on the galleries' board."
-msgstr ""
-
-#: res://scripts/ui/main.gd
 msgid "An expedition is out."
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "The Core's level %d opens the way, once %d Beacons burn."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "The Core's next level has room for it."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d Beacons must burn to light the way; %d do."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -295,7 +315,67 @@ msgid ", and %d Lenses"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Open: its sites are on the galleries' board."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Its Beacon is dark, with no Lenses in the store: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A Beacon burns: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Put it out"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Hold it with a Beacon: %d Lenses, %d an hour to keep it lit, and a Surveyor stays to keep it."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "While it burns: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Its sites pay half again, from every tier, and its research goes %d levels further."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A Surveyor keeps it, and it burns %d Lenses an hour from the store; with none, every Beacon goes dark."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d Beacons burn: the way into the Dark Reach is lit."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A Beacon burns!"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Onward"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "And Beacons: an open region held by a lamp and a Surveyor pays more, researches further and gives its own work -- while the store has Lenses to burn."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "And the Dark Reach: a fourth region, lit by two Beacons, where only a Surveyor finds the way."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Its sites are on the galleries' board, and its research line is open: %s."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Umbrite the crew brings home becomes Prisms in a Prism Cutter -- an Assembler on its new job, beside the Core, with a Rig posted to feed it two Lenses to each."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -304,10 +384,6 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "A region opened!"
-msgstr ""
-
-#: res://scripts/ui/main.gd
-msgid "Onward"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -416,10 +492,6 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "It opens strata %d to %d, machine level %d and a store of %d."
-msgstr ""
-
-#: res://scripts/ui/main.gd
-msgid "And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -855,6 +927,22 @@ msgid "the store can spare: %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "A Surveyor tunes it: half the Resonite a Lens, half the Lenses a Prism."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A Surveyor could tune it: half the Resonite a Lens, half the Lenses a Prism."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Surveyor home"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Tune"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Call home"
 msgstr ""
 
@@ -876,6 +964,10 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "Surveyors: %d at the Bay, %d out"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d keeping Beacons, %d tuning machines"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -923,7 +1015,11 @@ msgid "Rigs out"
 msgstr ""
 
 #: res://scripts/ui/main.gd
-msgid "rock: a Rig does half"
+msgid "dark: with no Surveyor to guide it a team is lost"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "dark: with no Surveyor to guide it a team is lost, and each head burns %d Lenses for light"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -931,7 +1027,15 @@ msgid "danger: with no Breaker to lead, half the pay"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "rock: a Rig does half"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "water: too deep for a Breaker"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "a Beacon's ground: Breakers hold it, half again their strength"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1071,6 +1175,10 @@ msgid "A crew with at least %d Rigs, %d Breakers and %d Surveyors"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Beacons burning: %d, in whichever regions"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
 msgstr ""
 
@@ -1200,6 +1308,18 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "It opens the region: its sites, its research, and for good: %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Light a Beacon in %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "A Surveyor to tune the %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "While it stays: half the Resonite a Lens, half the Lenses a Prism."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1787,11 +1907,27 @@ msgid "Lens"
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
+msgid "Umbrite"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Prism"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
 msgid "Deep Bore"
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
 msgid "Bores crystal out of the hot rock."
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Resonant Bore"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Bores Resonite out of the rock -- while a Beacon burns in the Caverns."
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
@@ -1832,6 +1968,14 @@ msgstr ""
 
 #: res://scripts/core/machine_db.gd
 msgid "Grinds Resonite onto a Frame: a Lens."
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Prism Cutter"
+msgstr ""
+
+#: res://scripts/core/machine_db.gd
+msgid "Cuts Umbrite with two Lenses: a Prism."
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
@@ -2059,6 +2203,18 @@ msgid "Every Breaker brings 15% more strength to a sortie, for each level."
 msgstr ""
 
 #: res://scripts/core/economy.gd
+msgid "Umbral Lamps"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "The crew finds more Umbrite in the dark."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "The crew brings home 25% more Umbrite from every site, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
 msgid "Rig Plating"
 msgstr ""
 
@@ -2232,6 +2388,14 @@ msgstr ""
 
 #: res://scripts/core/core_levels.gd
 msgid "The Expedition"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "The Beacons"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd res://scripts/core/operations.gd
+msgid "The Dark Reach"
 msgstr ""
 
 #: res://scripts/core/strata.gd
@@ -2487,6 +2651,30 @@ msgid "The way into a region of the deep map."
 msgstr ""
 
 #: res://scripts/core/operations.gd
+msgid "Beacon"
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "A lamp on the region's high ground, and a Surveyor to keep it."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Umbrite Hollow"
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Umbrite in the dark, where only a Surveyor finds the way."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Shade Nest"
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Something lives in the dark down here, and it guards the Umbrite."
+msgstr ""
+
+#: res://scripts/core/operations.gd
 msgid "The Sunken Works"
 msgstr ""
 
@@ -2496,6 +2684,10 @@ msgstr ""
 
 #: res://scripts/core/operations.gd
 msgid "Every Coolant Cell and Condenser cools a quarter harder."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Brine mains: every Coolant Cell and Condenser cools half again harder."
 msgstr ""
 
 #: res://scripts/core/operations.gd
@@ -2511,6 +2703,10 @@ msgid "Every site pays half again its Resonite."
 msgstr ""
 
 #: res://scripts/core/operations.gd
+msgid "The Resonant Bore: a Drill bores Resonite on the board."
+msgstr ""
+
+#: res://scripts/core/operations.gd
 msgid "The Rogue Foundry"
 msgstr ""
 
@@ -2520,6 +2716,22 @@ msgstr ""
 
 #: res://scripts/core/operations.gd
 msgid "Every cleared site pays twice its salvage."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Reclaimed forges: every cleared site pays three times its salvage."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Darkness. Umbrite, for a team a Surveyor guides."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "The Prism Cutter: Umbrite cut with two Lenses."
+msgstr ""
+
+#: res://scripts/core/operations.gd
+msgid "Lit paths: no Lenses for light in the Dark Reach."
 msgstr ""
 
 #: res://scripts/ui/codex.gd

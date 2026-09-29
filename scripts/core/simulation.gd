@@ -179,6 +179,13 @@ var vein_mult: float = 1.0
 ## from it: {res: multiplier}, 1 when absent.
 var res_value_mult: Dictionary = {}
 var res_learn_mult: Dictionary = {}
+## What the outer game changes on single tiles (Sim, "Beacons"): jobs that
+## do not run while their region is not held ({job: true}), and a tile's
+## own inputs where a Surveyor tunes it ({cell: {res: count}}). `job_stamp`
+## moves whenever either does, so the rate cache knows.
+var jobs_off: Dictionary = {}
+var cell_inputs: Dictionary = {}
+var job_stamp: int = 0
 
 
 func _init(g: Grid, seed_value: int = 12345) -> void:
@@ -258,6 +265,8 @@ func effective_rate(i: int) -> float:
 	if id == "":
 		return 0.0
 	var m: Dictionary = machine_of(i)
+	if not jobs_off.is_empty() and jobs_off.has(String(m.get("job", ""))):
+		return 0.0
 	var eff: float = heat_efficiency_at(i) * float(level_mult.get(id, 1.0)) \
 		* float(MachineDB.MODE_SPEED.get(grid.mode_at(i), 1.0))
 	var amp: float = 1.0 + (grid.amplify_at(i) - 1.0) * amplify_mult
@@ -451,7 +460,7 @@ func _work(dt: float) -> void:
 	# "A late board").
 	grid.heat_at(0)
 	var key: Array = [grid.version, grid.heat_stamp, speed_mult, source_speed_mult,
-		amplify_mult, tolerance_bonus, levels_stamp, vein_mult]
+		amplify_mult, tolerance_bonus, levels_stamp, vein_mult, job_stamp]
 	if key != _rate_key:
 		_rate_key = key
 		_rate_cache.clear()
@@ -488,7 +497,7 @@ func _work(dt: float) -> void:
 			# Mid-cycle with nothing wrong is still working. Only classify it
 			# as stuck when the reason is visible right now, so a machine does
 			# not flicker red between two perfectly healthy cycles.
-			status[i] = _settle(i, _stall_reason(cell, m, tags, Status.RUNNING))
+			status[i] = _settle(i, _stall_reason(cell, m, tags, Status.RUNNING, i))
 			_record(i, 0, rate * dt)
 			continue
 		_progress[i] = p - float(cycles)
@@ -503,7 +512,7 @@ func _work(dt: float) -> void:
 			last_cycles += 1
 		if stopped:
 			status[i] = _settle(i, _stall_reason(cell, m, tags,
-				Status.RUNNING if ran > 0 else Status.IDLE))
+				Status.RUNNING if ran > 0 else Status.IDLE, i))
 		else:
 			status[i] = _settle(i, Status.RUNNING)
 		_record(i, ran, rate * dt)
@@ -515,12 +524,13 @@ var _rate_key: Array = []
 
 ## Why a cycle did not happen, expressed as the direction to look in.
 func _stall_reason(cell: Dictionary, m: Dictionary, tags: Array,
-		fallback: int) -> int:
+		fallback: int, i: int = -1) -> int:
 	var buf_in: Dictionary = cell["buf_in"]
 	if tags.has("sink") or tags.has("research"):
 		# A Lab runs on any one of its materials.
 		return Status.STARVED if buf_in.is_empty() else fallback
-	var inputs: Dictionary = m["inputs"]
+	var inputs: Dictionary = cell_inputs.get(i, m["inputs"]) if not cell_inputs.is_empty() \
+		else m["inputs"]
 	if not inputs.is_empty() and not _has_inputs(buf_in, inputs):
 		return Status.STARVED
 	if not tags.has("research") and _buf_total(cell["buf_out"]) >= cap():
@@ -594,7 +604,7 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 			* float(res_learn_mult.get(best, 1.0))
 		return true
 
-	var inputs: Dictionary = m["inputs"]
+	var inputs: Dictionary = cell_inputs.get(i, m["inputs"]) if not cell_inputs.is_empty() else m["inputs"]
 	if not inputs.is_empty():
 		if not _has_inputs(buf_in, inputs):
 			return false

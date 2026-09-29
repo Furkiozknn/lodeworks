@@ -207,6 +207,12 @@ func _ready() -> void:
 			_toast_msg(Loc.t("Rigs home from the %s, not cleared: +%s credits, +%s research")
 				% [where, Economy.fmt(float(rep["credits"])), Economy.fmt(float(rep["research"]))]))
 	Sim.region_opened.connect(_on_region_opened)
+	Sim.beacon_lit.connect(_on_beacon_lit)
+	Sim.beacons_dimmed.connect(func(dark: bool):
+		if dark:
+			_say(Loc.t("The Beacons have gone dark: the store has no Lenses for them."), Foreman.Pose.ALERT, 6.0)
+		else:
+			_say(Loc.t("The Beacons burn again."), Foreman.Pose.POINT, 4.0))
 	Sim.machine_upgraded.connect(func(id: String, _level: int):
 		# The crew goes out to the machines it levelled (IsoView.service).
 		iso_view.service(id))
@@ -873,7 +879,7 @@ func _show_map() -> void:
 
 ## The picture each region of the deep map is shown with: the band
 ## painting whose ground it shares.
-const REGION_ART := {"sunken": 1, "caverns": 3, "foundry": 2}
+const REGION_ART := {"sunken": 1, "caverns": 3, "foundry": 2, "reach": 3}
 
 
 ## The deep map on the shaft's map (Operations, "regions"): three regions,
@@ -895,6 +901,13 @@ func _regions_box() -> Control:
 		% [Sim.regions_open.size(), Operations.region_slots(Sim.core_level)], TEXT_MIN, Palette.TEXT_DIM)
 	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(lead)
+	if not Sim.beacons.is_empty():
+		var lamps := _label(Loc.t("Beacons dark: the store has no Lenses for them.") if Sim.beacons_dark
+			else Loc.t("Beacons: %d burning, %d Lenses an hour from the store") % [Sim.beacons.size(),
+				int(Sim.beacon_upkeep())], 20, Palette.WARN if Sim.beacons_dark else Palette.CORE)
+		lamps.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lamps.set_meta("beacons", Sim.beacons.size())
+		box.add_child(lamps)
 	var worlds: Array = IsoArt.layout().get("worlds", [])
 	for r: String in Operations.REGION_ORDER:
 		var reg: Dictionary = Operations.REGIONS[r]
@@ -935,11 +948,21 @@ func _regions_box() -> Control:
 		row.add_child(words)
 		col.add_child(row)
 		if open:
-			col.add_child(_label(Loc.t("Open: its sites are on the galleries' board."), 20, Palette.CORE))
+			col.add_child(_region_state(r))
 		elif Sim.site_busy(Operations.region_slot(r)):
 			col.add_child(_label(Loc.t("An expedition is out."), 20, Palette.CORE))
+		elif Sim.core_level < Operations.region_core(r):
+			var later2 := _label(Loc.t("The Core's level %d opens the way, once %d Beacons burn.")
+				% [Operations.region_core(r), Operations.REACH_LIGHT], 20, Palette.TEXT_DIM)
+			later2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			col.add_child(later2)
 		elif room <= 0:
 			col.add_child(_label(Loc.t("The Core's next level has room for it."), 20, Palette.TEXT_DIM))
+		elif r == "reach" and Sim.lit_beacons() < Operations.REACH_LIGHT:
+			var dark := _label(Loc.t("%d Beacons must burn to light the way; %d do.")
+				% [Operations.REACH_LIGHT, Sim.lit_beacons()], 20, Palette.WARN)
+			dark.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			col.add_child(dark)
 		else:
 			col.add_child(_expedition_row(r))
 		card.add_child(col)
@@ -964,7 +987,9 @@ func _expedition_row(r: String) -> Control:
 	words.add_child(cl)
 	var tag: String = _terrain_words(s)
 	if tag != "":
-		words.add_child(_label(tag, TEXT_MIN, Palette.WARN))
+		var tl := _label(tag, TEXT_MIN, Palette.WARN)
+		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(tl)
 	var need := _label("", TEXT_MIN, Palette.TEXT)
 	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(need)
@@ -977,6 +1002,131 @@ func _expedition_row(r: String) -> Control:
 			func(n: int, b: int, v: int) -> String: return Sim.expedition_blocker(r, n, b, v),
 			func(n: int, b: int, v: int) -> bool: return Sim.send_expedition(r, n, b, v),
 			func(n: int, b: int, v: int) -> int: return Sim.expedition_fuel(n, b, v)))
+
+
+## An open region's state on its card: explored, or held by a Beacon (and
+## the key that puts it out), or the Beacon that would hold it.
+func _region_state(r: String) -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	col.add_child(_label(Loc.t("Open: its sites are on the galleries' board."), 20, Palette.CORE))
+	if Sim.beacons.has(r):
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		row.set_meta("beacon_lit", r)
+		var tech: String = Loc.t(String(Operations.CONTROL_TECH[r]))
+		var lit := _label((Loc.t("Its Beacon is dark, with no Lenses in the store: %s") if Sim.beacons_dark
+			else Loc.t("A Beacon burns: %s")) % tech, 20, Palette.WARN if Sim.beacons_dark else Palette.CORE)
+		lit.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(lit)
+		var out := _button(Loc.t("Put it out"), Palette.PANEL)
+		out.custom_minimum_size = Vector2(170, MIN_TOUCH)
+		out.set_meta("douse", r)
+		out.pressed.connect(func():
+			if Sim.douse_beacon(r):
+				Juice.tap()
+				_show_map())
+		row.add_child(out)
+		col.add_child(row)
+	elif Sim.core_level >= Operations.CONTROL_CORE:
+		col.add_child(_beacon_row(r))
+	return col
+
+
+## The Beacon that would hold region `r` (Operations, "Beacons"): its
+## ground's strength, the team, the price and the upkeep, what it gives,
+## and the key that sends it.
+func _beacon_row(r: String) -> Control:
+	var s: Dictionary = Sim.beacon_site(r)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.set_meta("beacon", r)
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for line: String in [
+			Loc.t("Hold it with a Beacon: %d Lenses, %d an hour to keep it lit, and a Surveyor stays to keep it.")
+				% [Sim.beacon_lenses(), int(Operations.BEACON_UPKEEP)],
+			Loc.t("While it burns: %s") % Loc.t(String(Operations.CONTROL_TECH[r])),
+			Loc.t("Its sites pay half again, from every tier, and its research goes %d levels further.")
+				% Operations.CONTROL_LINE]:
+		var l := _label(line, TEXT_MIN, Palette.TEXT_DIM)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(l)
+	var tag: String = _terrain_words(s)
+	if tag != "":
+		var tg := _label(tag, TEXT_MIN, Palette.WARN)
+		tg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(tg)
+	var need := _label("", TEXT_MIN, Palette.TEXT)
+	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_child(need)
+	row.add_child(words)
+	var pick: String = "beacon:" + r
+	var start: Vector3i = Sim.beacon_team(r)
+	if _sortie_pick.has(pick):
+		start = _sortie_pick[pick]
+	_ops_reopen = _show_map
+	return _team_line(row, _team_picker(s, start, pick, need,
+			func(n: int, b: int, v: int) -> String: return Sim.beacon_blocker(r, n, b, v),
+			func(n: int, b: int, v: int) -> bool: return Sim.send_beacon(r, n, b, v),
+			func(n: int, b: int, v: int) -> int: return Sim.expedition_fuel(n, b, v)))
+
+
+## A Beacon lit: its reward card -- what the held region gives, what it
+## burns, and, with the second, the way into the Dark Reach.
+func _on_beacon_lit(r: String) -> void:
+	var reg: Dictionary = Operations.REGIONS[r]
+	iso_view.foreman_visit(-1, Foreman.Pose.JUMP, 5.0)
+	Juice.upgrade()
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	body.set_meta("beacon_lit", r)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 16)
+	var pic := TextureRect.new()
+	var worlds: Array = IsoArt.layout().get("worlds", [])
+	var k: int = int(REGION_ART[r])
+	if k < worlds.size() and ResourceLoader.exists(String(worlds[k])):
+		pic.texture = load(String(worlds[k]))
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.custom_minimum_size = Vector2(260, 146)
+	pic.modulate = Color(1.15, 1.05, 0.85)
+	top.add_child(pic)
+	var said := VBoxContainer.new()
+	said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	said.add_theme_constant_override("separation", 6)
+	said.add_child(_label(Loc.t(String(reg["name"])), 28, Palette.CORE))
+	var lines: Array[String] = [Loc.t("While it burns: %s") % Loc.t(String(Operations.CONTROL_TECH[r])),
+		Loc.t("Its sites pay half again, from every tier, and its research goes %d levels further.")
+			% Operations.CONTROL_LINE,
+		Loc.t("A Surveyor keeps it, and it burns %d Lenses an hour from the store; with none, every Beacon goes dark.")
+			% int(Operations.BEACON_UPKEEP)]
+	if Sim.lit_beacons() >= Operations.REACH_LIGHT and not Sim.region_open("reach"):
+		lines.append(Loc.t("%d Beacons burn: the way into the Dark Reach is lit.") % Sim.lit_beacons())
+	for line: String in lines:
+		var l := _label(line, 20, Palette.TEXT_DIM)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		said.add_child(l)
+	top.add_child(said)
+	var badge := Foreman.Badge.new(Foreman.Pose.JUMP, 110.0)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_END
+	top.add_child(badge)
+	body.add_child(top)
+	_open_overlay(Loc.t("A Beacon burns!"), body, [{"text": Loc.t("Onward"), "color": Palette.CORE}], 900.0)
+
+
+## What a Core level opens on the deep map, in words.
+func _deep_opens(o: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	if bool(o.get("regions", false)):
+		out.append(Loc.t("And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."))
+	if bool(o.get("beacons", false)):
+		out.append(Loc.t("And Beacons: an open region held by a lamp and a Surveyor pays more, researches further and gives its own work -- while the store has Lenses to burn."))
+	if bool(o.get("reach", false)):
+		out.append(Loc.t("And the Dark Reach: a fourth region, lit by two Beacons, where only a Surveyor finds the way."))
+	return out
 
 
 ## A region opened: the reward, as the Core's levels have theirs -- the
@@ -1006,6 +1156,8 @@ func _on_region_opened(r: String) -> void:
 	for line: String in [Loc.t("For good: %s") % Loc.t(String(reg["advantage"])),
 			Loc.t("Its sites are on the galleries' board, and its research line is open: %s.")
 				% Loc.t(String(Economy.RESEARCH_TREE[String(reg["research"])]["name"])),
+			Loc.t("The Umbrite the crew brings home becomes Prisms in a Prism Cutter -- an Assembler on its new job, beside the Core, with a Rig posted to feed it two Lenses to each.")
+				if r == "reach" else
 			Loc.t("The Resonite the crew brings home becomes Lenses in a Lens Grinder -- an Assembler on its new job, beside the Core, with a Rig posted to feed it.")]:
 		var l := _label(line, 20, Palette.TEXT_DIM)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2024,9 +2176,8 @@ func _show_core_up(level: int, words: String) -> void:
 	for _id: String in (o["research"] as Array).slice(0, 2):
 		opened.add_child(_icon_rect("research", 34))
 	body.add_child(opened)
-	if bool(o.get("regions", false)):
-		var deep := _label(Loc.t("And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."),
-			20, Palette.CORE)
+	for deep_words: String in _deep_opens(o):
+		var deep := _label(deep_words, 20, Palette.CORE)
 		deep.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		body.add_child(deep)
 	# The next level: its first rows not met, each a tap.
@@ -2990,13 +3141,12 @@ func _core_next() -> Control:
 		jl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		jrow.add_child(jl)
 		box.add_child(jrow)
-	if bool(o.get("regions", false)):
+	for deep_words: String in _deep_opens(o):
 		var rrow := HBoxContainer.new()
 		rrow.add_theme_constant_override("separation", 10)
 		rrow.set_meta("core_opens_regions", true)
 		rrow.add_child(_icon_rect("descend", 36))
-		var rl := _label(Loc.t("And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."),
-			TEXT_MIN, Palette.TEXT_DIM)
+		var rl := _label(deep_words, TEXT_MIN, Palette.TEXT_DIM)
 		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rrow.add_child(rl)
@@ -3331,6 +3481,26 @@ func _post_row(cell: int, why: String) -> Control:
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(line)
 	row.add_child(words)
+	# A job a Surveyor tunes (Sim.tune): a key for that too.
+	if MachineDB.job_info(id, job).has("tuned"):
+		var tuned: bool = Sim.tuners.has(cell)
+		var tb: String = Sim.tune_blocker(cell)
+		var tl := _label(Loc.t("A Surveyor tunes it: half the Resonite a Lens, half the Lenses a Prism.") if tuned
+			else Loc.t("A Surveyor could tune it: half the Resonite a Lens, half the Lenses a Prism."), TEXT_MIN,
+			Palette.CORE if tuned else Palette.TEXT_DIM)
+		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(tl)
+		var tk := _button(Loc.t("Surveyor home") if tuned else Loc.t("Tune"),
+			Palette.PANEL if tuned or tb != "" else Palette.CORE)
+		tk.custom_minimum_size = Vector2(150, MIN_TOUCH)
+		tk.disabled = not tuned and tb != ""
+		tk.set_meta("tune", cell)
+		tk.pressed.connect(func():
+			var done: bool = Sim.untune(cell) if tuned else Sim.tune(cell)
+			if done:
+				Juice.tap()
+				_show_bay())
+		row.add_child(tk)
 	var key := _button(Loc.t("Call home") if why == "posted" else Loc.t("Post a Rig"),
 		Palette.PANEL if why == "posted" else (Palette.CORE if why == "" else Palette.PANEL))
 	key.custom_minimum_size = Vector2(170, MIN_TOUCH)
@@ -3376,9 +3546,12 @@ func _ops_rows(box: VBoxContainer) -> void:
 	if Sim.breakers + Sim.breakers_out() > 0:
 		cw.add_child(_label(Loc.t("Breakers: %d at the Bay, %d out") % [Sim.breakers, Sim.breakers_out()],
 			TEXT_MIN, Palette.TEXT))
-	if Sim.surveyors + Sim.surveyors_out() > 0:
+	if Sim.surveyors + Sim.surveyors_out() + Sim.surveyors_away() > 0:
 		cw.add_child(_label(Loc.t("Surveyors: %d at the Bay, %d out") % [Sim.surveyors, Sim.surveyors_out()],
 			TEXT_MIN, Palette.TEXT))
+	if Sim.surveyors_away() > 0:
+		cw.add_child(_label(Loc.t("%d keeping Beacons, %d tuning machines") % [Sim.beacons.size(), Sim.tuners.size()],
+			TEXT_MIN, Palette.TEXT_DIM))
 	if Sim.sites_to_next_rig() > 0:
 		cw.add_child(_label(Loc.t("%d more sites cleared, room for another Rig") % Sim.sites_to_next_rig(),
 			TEXT_MIN, Palette.TEXT_DIM))
@@ -3439,7 +3612,9 @@ func _site_row(i: int) -> Control:
 	words.add_child(_label(head, 22, Palette.TEXT))
 	var tag: String = _terrain_words(s)
 	if tag != "":
-		words.add_child(_label(tag, TEXT_MIN, Palette.WARN))
+		var tl := _label(tag, TEXT_MIN, Palette.WARN)
+		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_child(tl)
 	var need := _label("", TEXT_MIN, Palette.TEXT)
 	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(need)
@@ -3488,13 +3663,34 @@ func _team_line(row: HBoxContainer, keys: Array[Control]) -> Control:
 
 ## What the ground of site `s` does to a team, in words, or "".
 func _terrain_words(s: Dictionary) -> String:
-	if Operations.armored(s):
-		return Loc.t("rock: a Rig does half")
-	if Operations.dangerous(s):
-		return Loc.t("danger: with no Breaker to lead, half the pay")
-	if Operations.watery(s) and Sim.breakers + Sim.breakers_out() > 0:
-		return Loc.t("water: too deep for a Breaker")
-	return ""
+	var out: String = ""
+	if Operations.dark(s):
+		out = Loc.t("dark: with no Surveyor to guide it a team is lost") if Sim.controlled("reach") \
+			else Loc.t("dark: with no Surveyor to guide it a team is lost, and each head burns %d Lenses for light") \
+				% Operations.DARK_LENS
+		if Operations.dangerous(s):
+			out += " · " + Loc.t("danger: with no Breaker to lead, half the pay")
+	elif Operations.armored(s):
+		out = Loc.t("rock: a Rig does half")
+	elif Operations.dangerous(s):
+		out = Loc.t("danger: with no Breaker to lead, half the pay")
+	elif Operations.watery(s) and Sim.breakers + Sim.breakers_out() > 0:
+		out = Loc.t("water: too deep for a Breaker")
+	if Operations.holding(s):
+		out = (out + " · " if out != "" else "") + Loc.t("a Beacon's ground: Breakers hold it, half again their strength")
+	return out
+
+
+## Lenses the team `n`, `b`, `v` needs for target `s`: an expedition's or a
+## Beacon's price, and light in the dark.
+func _lens_price(s: Dictionary, n: int, b: int, v: int) -> int:
+	var base: int = 0
+	match String(s.get("kind", "")):
+		"survey":
+			base = Sim.expedition_lenses()
+		"beacon":
+			base = Sim.beacon_lenses()
+	return base + Sim.light_lenses(s, n, b, v)
 
 
 ## A team for target `s` (a site, or a region's survey): a - and a + for
@@ -3562,9 +3758,13 @@ func _team_picker(s: Dictionary, start: Vector3i, pick: Variant, need: Label, bl
 			"surveyor":
 				need.text += "\n" + Loc.t("An expedition goes only with a Surveyor.")
 				col = Palette.BAD
-			"lens":
-				need.text += "\n" + Loc.t("Lenses: %d, and the store has %d") % [Sim.expedition_lenses(),
+			"lens", "light":
+				need.text += "\n" + Loc.t("Lenses: %d, and the store has %d") % [_lens_price(s, n, b, v),
 					Sim.stock_of(MachineDB.Res.LENS)]
+				col = Palette.BAD
+			"beacons":
+				need.text += "\n" + Loc.t("%d Beacons must burn to light the way; %d do.") % [Operations.REACH_LIGHT,
+					Sim.lit_beacons()]
 				col = Palette.BAD
 			"weak":
 				need.text += "\n" + Loc.t("Not strong enough for the survey.")
@@ -3728,6 +3928,10 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 			words = Loc.t("A crew with at least %d Rigs, %d Breakers and %d Surveyors") % [int(st["need"]),
 				int(st["need"]), int(st["need"])]
 			go = _show_bay
+		CoreLevels.Req.BEACONS:
+			pic = _icon_rect("descend", 44)
+			words = Loc.t("Beacons burning: %d, in whichever regions") % int(st["need"])
+			go = _show_map
 		_:
 			pic = _icon_rect("heat", 44)
 			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
@@ -4037,6 +4241,18 @@ func _work_row(e: Dictionary) -> Button:
 			title = Loc.t("Send an expedition into %s") % Loc.t(String(reg["name"]))
 			sub = Loc.t("It opens the region: its sites, its research, and for good: %s") % Loc.t(String(reg["advantage"]))
 			go = _show_map
+		"beacon":
+			var reg2: Dictionary = Operations.REGIONS[String(e["region"])]
+			pic = _icon_rect("descend", 52)
+			title = Loc.t("Light a Beacon in %s") % Loc.t(String(reg2["name"]))
+			sub = Loc.t("While it burns: %s") % Loc.t(String(Operations.CONTROL_TECH[String(e["region"])]))
+			go = _show_map
+		"tune":
+			var tc: int = int(e["cell"])
+			pic = _sheet_picture("crew", "work", 52.0)
+			title = Loc.t("A Surveyor to tune the %s") % MachineDB.job_name(Sim.grid.machine_at(tc), Sim.grid.job_at(tc))
+			sub = Loc.t("While it stays: half the Resonite a Lens, half the Lenses a Prism.")
+			go = _show_bay
 		"sortie":
 			var si: int = int(e["i"])
 			var sk: Dictionary = Operations.KINDS[String(Sim.site(si)["kind"])]

@@ -47,6 +47,10 @@ static func reachable(unlocked: Array, max_depth: int = 999, core_level: int = 9
 	for res: int in MachineDB.STOCKED:
 		for mk: Array in MachineDB.makers_of(res):
 			var id: String = String(mk[0])
+			# A job a region or a Beacon gates is no line to count on.
+			var info: Dictionary = MachineDB.job_info(id, String(mk[1]))
+			if info.has("region") or info.has("control"):
+				continue
 			if unlocked.has(id) and max_depth >= int(MachineDB.job_info(id, String(mk[1])).get("depth", 0)) \
 					and core_level >= int(MachineDB.job_info(id, String(mk[1])).get("core", 1)):
 				out.append(res)

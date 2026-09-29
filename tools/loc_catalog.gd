@@ -106,6 +106,7 @@ static func _tables() -> Array:
 		var reg: Dictionary = Operations.REGIONS[r]
 		for k: String in ["name", "short", "advantage"]:
 			add.call(reg.get(k, ""), "res://scripts/core/operations.gd")
+		add.call(Operations.CONTROL_TECH.get(r, ""), "res://scripts/core/operations.gd")
 	var codex: Dictionary = (load("res://scripts/ui/codex.gd") as GDScript).get_script_constant_map()
 	for p: Dictionary in codex["PAGES"]:
 		for k: String in ["title", "short", "watch", "body"]:

@@ -195,6 +195,45 @@ func _run() -> void:
 	await _settle(0.4)
 	await _screen("38_region_opened")
 	_main.call("_close_overlay")
+	# Beacons and the Dark Reach (Operations, "Beacons"): a Core 12 with the
+	# Caverns held, the Sunken Works to hold, the Reach open and dark, a Lens
+	# Grinder beside the Core a Surveyor tunes.
+	Sim.core_level = Operations.REACH_CORE
+	Sim.clear_ops()
+	Sim.stock[MachineDB.Res.RIG] = 6
+	Sim.stock[MachineDB.Res.LENS] = 30000
+	Sim.stock[MachineDB.Res.UMBRITE] = 50
+	Sim.breakers = 3
+	Sim.surveyors = 3
+	Sim.regions_open = ["caverns", "sunken", "reach"]
+	Sim.beacons = ["caverns"]
+	var near: Array = Sim.sim.core_touching().keys()
+	var grinder: int = -1
+	for c: int in near:
+		if Sim.grid.is_empty(c) and not Sim.is_blocked(c):
+			grinder = c
+			break
+	if grinder >= 0 and Sim.try_place(grinder, "assembler"):
+		Sim.set_job(grinder, "lens")
+		Sim.tune(grinder)
+	Sim._recompute()
+	Sim._deal_ops()
+	for deep: Array in [["_show_map", "39_beacons_map"], ["_show_galleries", "39_dark_galleries"],
+			["_show_bay", "39_tuned_bay"]]:
+		_main.call(String(deep[0]))
+		await _settle(0.4)
+		await _screen(String(deep[1]))
+		_main.call("_close_overlay")
+	_main.call("_on_beacon_lit", "sunken")
+	await _settle(0.4)
+	await _screen("39_beacon_lit")
+	_main.call("_close_overlay")
+	_main.call("_on_region_opened", "reach")
+	await _settle(0.4)
+	await _screen("39_reach_opened")
+	_main.call("_close_overlay")
+	if grinder >= 0:
+		Sim.sell(grinder)
 	Sim.clear_ops()
 	Sim.stock = kept_stock
 	Sim.core_level = int(kept[0])

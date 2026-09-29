@@ -560,6 +560,39 @@ func _run_rigs() -> void:
 	await _settle(0.8)
 	await _capture("deep_region_opened")
 	_clear_transient()
+	# Beacons and the Dark Reach: a Core 12 with the Caverns and the Sunken
+	# Works held, the Reach open.
+	Sim.core_level = Operations.REACH_CORE
+	Sim.stock[MachineDB.Res.LENS] = 30000
+	Sim.stock[MachineDB.Res.UMBRITE] = 60
+	Sim.regions_open = ["caverns", "sunken", "reach"]
+	Sim.beacons = ["caverns", "sunken"]
+	Sim._recompute()
+	Sim._deal_ops()
+	gv3.cam.focus(gv3.core_center(), gv3.default_zoom() * 0.5)
+	await _settle(1.5)
+	await _capture("deep_beacons_board")
+	_main.call("_show_map")
+	await _settle(0.8)
+	var scroll5: ScrollContainer = _main.get("_overlay_scroll")
+	if scroll5 != null:
+		scroll5.scroll_vertical = 100000
+	await _settle(0.6)
+	await _capture("deep_beacons_map")
+	_clear_transient()
+	_main.call("_show_galleries")
+	await _settle(0.8)
+	var scroll4: ScrollContainer = _main.get("_overlay_scroll")
+	if scroll4 != null:
+		scroll4.scroll_vertical = 100000
+	await _settle(0.6)
+	await _capture("deep_dark_galleries")
+	_clear_transient()
+	_main.call("_on_beacon_lit", "sunken")
+	await _settle(0.8)
+	await _capture("deep_beacon_lit")
+	_clear_transient()
+	Sim.beacons = []
 	Sim.regions_open = []
 	Sim.surveyors = 0
 	Sim.breakers = 0

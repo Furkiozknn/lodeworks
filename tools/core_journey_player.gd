@@ -199,6 +199,8 @@ func act() -> void:
 	_operations()
 	c0 = _spent("the galleries", c0)
 	_posting()
+	_tuning()
+	_bores()
 	c0 = _spent("the Bay", c0)
 	var reserve: float = _follow_plans()
 	c0 = _spent("plans", c0)
@@ -315,6 +317,11 @@ func _operations() -> void:
 	# stability row stood at 0 for 24 hours).
 	for cell: int in S.grid.cells.keys():
 		if S.grid.job_at(cell) == "rig" and S.sim.overheated_at(cell):
+			# From the deep map the crew is what opens regions: cooled first
+			# (measured: at Core 11 every Rig Frame overheated on stratum 27
+			# and the crew stood at 12 of 16 for five hours).
+			if S.core_level >= Operations.REGION_CORE and _fix_heat(cell):
+				continue
 			S.sell(cell)
 			_rig_hot_core = S.core_level
 			_rig_hot_t = t
@@ -388,6 +395,8 @@ func _operations() -> void:
 		return
 	var weakest: int = -1
 	for i in range(S.ops_board.size()):
+		if i == _keep_slot:
+			continue
 		var tm: Vector3i = S.sortie_team(i)
 		if tm.x + tm.y + tm.z <= 0 or not S.can_send(i, tm.x, tm.y, tm.z):
 			continue
@@ -431,6 +440,11 @@ var region_first: String = "caverns"
 ## into the chosen region when the Core has room for one. True when it
 ## sent one.
 func _deep_map() -> bool:
+	# What the crew waits for is worked out again every beat.
+	_hold_posts = false
+	_hold_sorties = false
+	_crew_short = false
+	_keep_slot = -1
 	if S.core_level < Operations.REGION_CORE:
 		return false
 	var roles: int = 1
@@ -446,7 +460,7 @@ func _deep_map() -> bool:
 	elif int(crew["breaker"]) < roles and int(crew["rig"]) > roles and S.refit_blocker("breaker") == "":
 		S.refit_rig("breaker")
 	if S.regions_open.size() >= Operations.region_slots(S.core_level):
-		return false
+		return _beacon()
 	# The chosen region first; after it, the one the whole crew is best
 	# matched to (a crew of Breakers is weak in water).
 	var rest: Array = []
@@ -465,6 +479,9 @@ func _deep_map() -> bool:
 			_hold_sorties = false
 			_event("expedition_%s" % r, "expedition into %s" % String(Operations.REGIONS[r]["name"]))
 			return true
+		# Not this one yet (the Core's level, the Dark Reach's light): the next.
+		if why in ["core", "room", "beacons"]:
+			continue
 		# Too weak with the crew at home: Rigs called home from their posts,
 		# one a beat, none posted again and Rig Plating wanted until it has
 		# gone; and, strong enough with the whole crew, no sorties either.
@@ -473,32 +490,145 @@ func _deep_map() -> bool:
 		# Breakers and three Surveyors were 330 of the Sunken Works' 409,
 		# and the crew went on sorties for hours).
 		var whole: bool = _whole_crew(r) >= 1.0
+		if why == "weak" and not whole:
+			# Too weak even whole (measured: at Core 11 the second region's
+			# survey was 0.73 to 0.86 of the whole crew, and waiting for it
+			# held every post for hours): the crew grows -- a tuner home, or a
+			# Rig refitted as a Surveyor, who counts twice on a survey -- and
+			# meanwhile a Beacon may be lit.
+			_crew_short = true
+			if not S.tuners.is_empty():
+				S.untune(int(S.tuners.keys()[0]))
+			elif int(crew["rig"]) > roles and S.refit_blocker("surveyor") == "":
+				S.refit_rig("surveyor")
+			return _beacon()
 		_hold_posts = why == "weak"
-		_hold_sorties = why == "weak" and whole
+		_hold_sorties = _hold_posts
 		if _hold_posts and not S.posts.is_empty():
 			var rows: Array = _row_machines()
 			var cells: Array = S.posts.keys()
 			cells.sort_custom(func(a: int, c: int) -> bool: return not _in_rows(a, rows) and _in_rows(c, rows))
 			S.recall_rig(int(cells[0]))
-		if why == "weak" and not whole and int(crew["rig"]) > roles and S.refit_blocker("surveyor") == "":
-			S.refit_rig("surveyor")
 		# The first choice waits for its team: the plan is the plan.
 		return false
-	return false
+	return _beacon()
 
 
 ## The whole crew -- at the Bay, out and posted -- against region `r`'s
-## survey: its strength over the survey's need.
-func _whole_crew(r: String) -> float:
+## survey (or `s`): its strength over the need.
+func _whole_crew(r: String, s: Dictionary = {}) -> float:
 	var c: Dictionary = S.crew_roles()
-	var s: Dictionary = S.survey_site(r)
-	return S.team_strength(s, int(c["rig"]), int(c["breaker"]), int(c["surveyor"])) / maxf(float(s["need"]), 1.0)
+	if s.is_empty():
+		s = S.survey_site(r)
+	# Keepers and tuners stay where they are.
+	var v: int = int(c["surveyor"]) - S.surveyors_away()
+	return S.team_strength(s, int(c["rig"]), int(c["breaker"]), v) / maxf(float(s["need"]), 1.0)
+
+
+## A Beacon, while the Core's next level asks for one more or the Dark
+## Reach waits for its light: in the open region the whole crew is best
+## matched to, the crew gathered as for an expedition. True when one went.
+func _beacon() -> bool:
+	if S.core_level < Operations.CONTROL_CORE:
+		return false
+	var want: bool = S.core_level >= Operations.REACH_CORE and not S.region_open("reach") \
+		and S.lit_beacons() < Operations.REACH_LIGHT
+	for st: Dictionary in S.core_status():
+		if int(st["req"][0]) == CoreLevels.Req.BEACONS and not bool(st["met"]):
+			want = true
+	if not want:
+		return false
+	for so: Dictionary in S.sorties:
+		if String((so["site"] as Dictionary).get("kind", "")) == "beacon":
+			return false
+	var best: String = ""
+	var fit: float = -1.0
+	for r: String in S.regions_open:
+		if S.beacons.has(r):
+			continue
+		var f: float = _whole_crew(r, S.beacon_site(r))
+		if f > fit:
+			fit = f
+			best = r
+	if best == "":
+		return false
+	# The region's own sites keep its slot busy: no more sorties there until
+	# the Beacon has gone (measured: the Caverns' slot was never free for an
+	# hour, and no Beacon was lit).
+	if S.site_busy(Operations.region_slot(best)):
+		_keep_slot = Operations.region_slot(best)
+		return false
+	var t: Vector3i = S.beacon_team(best)
+	var why: String = S.beacon_blocker(best, t.x, t.y, t.z)
+	if why == "" and S.send_beacon(best, t.x, t.y, t.z):
+		_hold_posts = false
+		_hold_sorties = false
+		_event("beacon_%s" % best, "Beacon lit in %s" % String(Operations.REGIONS[best]["name"]))
+		return true
+	var roles: int = 1
+	for st: Dictionary in S.core_status():
+		if int(st["req"][0]) == CoreLevels.Req.ROLES:
+			roles = maxi(roles, int(st["need"]))
+	var crew: Dictionary = S.crew_roles()
+	# Gathered only when the whole crew is enough (measured: posts held for
+	# a Beacon no crew could light left the Lens Grinder unfed for hours);
+	# short even whole, the crew grows: Rig Plating, a Surveyor refitted.
+	_hold_posts = why == "weak" and fit >= 1.0
+	_hold_sorties = _hold_posts
+	_crew_short = _crew_short or why == "weak" and fit < 1.0
+	if _hold_posts and not S.posts.is_empty():
+		var rows: Array = _row_machines()
+		var cells: Array = S.posts.keys()
+		cells.sort_custom(func(a: int, c: int) -> bool: return not _in_rows(a, rows) and _in_rows(c, rows))
+		S.recall_rig(int(cells[0]))
+	# A keeper wanted: a Surveyor. Short of strength: a Breaker, who holds
+	# a Beacon's ground (a Surveyor there is weaker than the Rig it was).
+	if why == "surveyor" and int(crew["rig"]) > roles and S.refit_blocker("surveyor") == "":
+		S.refit_rig("surveyor")
+	elif why == "weak" and fit < 1.0 and int(crew["rig"]) > roles and S.refit_blocker("breaker") == "":
+		S.refit_rig("breaker")
+	return false
+
+
+## Surveyors at the Bay past what the deep map waits on tune the Lens
+## Grinders and Prism Cutters beside the Core; the Resonant Bore, once the
+## Caverns are held, feeds the store from beside it (_bores).
+func _tuning() -> void:
+	if S.core_level < Operations.REGION_CORE or _crew_short or _hold_posts:
+		return
+	var reserve: int = 1 if S.regions_open.size() < Operations.region_slots(S.core_level) \
+		or S.beacons.size() < S.regions_open.size() else 0
+	if S.surveyors <= reserve:
+		return
+	for cell: int in S.sim.core_touching():
+		if S.tune_blocker(cell) == "":
+			S.tune(cell)
+			_event("tune", "first machine a Surveyor tunes")
+			return
+
+
+func _bores() -> void:
+	if not S.controlled("caverns") or t - _last_bore < LAB_BEAT:
+		return
+	_last_bore = t
+	if _count_job("resonite") >= BORES:
+		return
+	if _build_core_side("drill", "resonite"):
+		_event("bore", "first Resonant Bore beside the Core")
+
+
+## Resonant Bores laid beside the Core once the Caverns are held.
+const BORES := 2
+var _last_bore: float = -1.0e9
 
 
 ## Posts, and sorties, held while an expedition waits for its team
-## (`_deep_map`).
+## (`_deep_map`); a Beacon no whole crew is strong enough for.
 var _hold_posts: bool = false
 var _hold_sorties: bool = false
+var _crew_short: bool = false
+## A region's slot kept free for its Beacon (_beacon).
+var _keep_slot: int = -1
 
 
 ## The crew a Rig Frame is laid for: the Rigs at the Bay and out, as the
@@ -651,7 +781,13 @@ func _row_machines() -> Array:
 ## the store, by a posted Rig?
 func _store_only(id: String, job: String) -> bool:
 	for res: int in (MachineDB.job_machine(id, job).get("inputs", {}) as Dictionary):
-		if MachineDB.makers_of(res).is_empty():
+		# A maker only a region or a Beacon allows is no line to build: the
+		# Resonant Bore feeds the store beside the Core (_bores), not a chain.
+		var lines: bool = false
+		for mk: Array in MachineDB.makers_of(res):
+			var info: Dictionary = MachineDB.job_info(String(mk[0]), String(mk[1]))
+			lines = lines or not (info.has("control") or info.has("region"))
+		if not lines:
 			return true
 	return false
 
@@ -696,6 +832,19 @@ func _build_core_side(id: String, job: String) -> bool:
 	if spot < 0:
 		for cell: int in S.sim.core_touching():
 			if _income_only(cell):
+				S.sell(cell)
+				spot = cell
+				break
+	# From the deep map: a machine beside the Core that stands starved, with
+	# no Rig posted to it and no row asking for it, makes way (measured: the
+	# Core 12 row's second Lens Grinder found every side taken, two of them by
+	# starved Assay Benches, and was laid away from the Core with no outlet).
+	if spot < 0 and S.core_level >= Operations.REGION_CORE:
+		var rows: Array = _row_machines()
+		for cell: int in S.sim.core_touching():
+			if S.grid.is_empty(cell) or S.posts.has(cell) or S.tuners.has(cell) or _in_rows(cell, rows):
+				continue
+			if S.sim.status_of(cell) == Simulation.Status.STARVED:
 				S.sell(cell)
 				spot = cell
 				break
@@ -856,8 +1005,9 @@ func _plating_wanted() -> bool:
 	# Unasked, only on research no row of the Core is waiting for (measured:
 	# bought whenever the crew fell short, it took the Core 4 and 5 eras'
 	# research); and not before the Rig Frame makes a crew worth plating.
-	# An expedition waiting on a crew too weak for its survey.
-	if _hold_posts:
+	# An expedition waiting on a crew too weak for its survey; a Beacon on
+	# a crew too weak even whole.
+	if _hold_posts or _crew_short:
 		return true
 	if not asked and (_researching() or S.core_level < MachineDB.RIG_CORE):
 		return false
@@ -916,7 +1066,8 @@ func _pursue(st: Dictionary) -> void:
 				# (Operations, "Posts"), else with their chain.
 				if _count_job(job) < int(st["need"]) + 1 and t - _last_lab >= LAB_BEAT:
 					_last_lab = t
-					if not (_store_feeds(id, job) and _build_core_side(id, job)):
+					if not (_store_feeds(id, job) and _build_core_side(id, job)) \
+							and not (S.core_level >= Operations.REGION_CORE and _store_only(id, job)):
 						_build_job(id, job)
 				elif _store_feeds(id, job) and t - _last_lab >= LAB_BEAT:
 					# Enough of them, starved away from the Core while the store
@@ -2453,7 +2604,9 @@ func snapshot() -> Dictionary:
 		"contracts": S.contracts_lifetime, "research_banked": S.research, "working": _working_all(),
 		"sites": S.ops_lifetime, "salvage": S.salvage, "crew": S.rigs_home() + S.rigs_out() + S.rigs_posted(),
 		"breakers": S.breakers + S.breakers_out(),
-		"surveyors": S.surveyors + S.surveyors_out(), "regions": S.regions_open.duplicate(), "rescued": S.rescued,
+		"surveyors": S.surveyors + S.surveyors_out() + S.surveyors_away(), "regions": S.regions_open.duplicate(),
+		"rescued": S.rescued, "beacons": S.beacons.duplicate(), "dark": S.beacons_dark, "tuners": S.tuners.size(),
+		"lens": S.stock_of(MachineDB.Res.LENS), "lens_spent": S.lens_spent.duplicate(),
 		"posted": S.rigs_posted(), "bay": S.bay_level, "hauled": S.hauled, "salvage_earned": S.salvage_earned,
 		"hot": _hot(), "held": CoreLevels.holding_back(S)["why"], "doctrine": S.doctrine,
 		"deep": _deep_units(), "research_per_s": S.sim.last_research, "spend": _take_spend()}
@@ -2506,7 +2659,7 @@ func _working_all() -> Dictionary:
 func _req_text(st: Dictionary) -> String:
 	var r: Array = st["req"]
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles"][int(r[0])]
+		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles", "beacons"][int(r[0])]
 	if r.size() > 2:
 		var what: String = String(MachineDB.RES_NAME[int(r[1])]) if int(r[0]) == CoreLevels.Req.STOCK else str(r[1])
 		name += " " + what

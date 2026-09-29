@@ -250,6 +250,14 @@ func set_job(i: int, job: String) -> bool:
 		cells[i]["job"] = job
 	# What it takes and makes changed: every cache keyed on the board goes.
 	(cells[i]["buf_in"] as Dictionary).clear()
+	# And what it made under the old recipe that the new one does not: left
+	# in the tile it had nowhere to go (measured: a Drill beside the Core set
+	# to the Resonant Bore held seven Ore and stood blocked for good).
+	var outs: Dictionary = MachineDB.job_machine(machine_at(i), job).get("outputs", {})
+	var made: Dictionary = cells[i]["buf_out"]
+	for res: int in made.keys():
+		if not outs.has(res):
+			made.erase(res)
 	version += 1
 	return true
 

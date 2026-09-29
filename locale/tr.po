@@ -212,6 +212,14 @@ msgid "Rigs home from the %s, not cleared: +%s credits, +%s research"
 msgstr "Robotlar döndü (%s, temizlenmedi): +%s kredi, +%s araştırma"
 
 #: res://scripts/ui/main.gd
+msgid "The Beacons have gone dark: the store has no Lenses for them."
+msgstr "Fenerler karardı: depoda onlar için Mercek yok."
+
+#: res://scripts/ui/main.gd
+msgid "The Beacons burn again."
+msgstr "Fenerler yeniden yanıyor."
+
+#: res://scripts/ui/main.gd
 msgid "%s active. Thank you."
 msgstr "%s etkin. Teşekkürler."
 
@@ -268,6 +276,14 @@ msgid "Regions open: %d of the %d the Core has room for. Which first is yours to
 msgstr "Açık bölgeler: Çekirdeğin yer verdiği %d bölgeden %d. Hangisinin önce açılacağı senin seçimin."
 
 #: res://scripts/ui/main.gd
+msgid "Beacons dark: the store has no Lenses for them."
+msgstr "Fenerler karanlık: depoda onlar için Mercek yok."
+
+#: res://scripts/ui/main.gd
+msgid "Beacons: %d burning, %d Lenses an hour from the store"
+msgstr "Fenerler: %d yanıyor, depodan saatte %d Mercek"
+
+#: res://scripts/ui/main.gd
 msgid "For good: %s"
 msgstr "Kalıcı olarak: %s"
 
@@ -276,16 +292,20 @@ msgid "Research: %s"
 msgstr "Araştırma: %s"
 
 #: res://scripts/ui/main.gd
-msgid "Open: its sites are on the galleries' board."
-msgstr "Açık: alanları galeri panosunda."
-
-#: res://scripts/ui/main.gd
 msgid "An expedition is out."
 msgstr "Bir keşif yolda."
 
 #: res://scripts/ui/main.gd
+msgid "The Core's level %d opens the way, once %d Beacons burn."
+msgstr "Çekirdek %d. seviyede, %d Fener yandığında yolu açar."
+
+#: res://scripts/ui/main.gd
 msgid "The Core's next level has room for it."
 msgstr "Çekirdeğin sonraki seviyesi buna yer açar."
+
+#: res://scripts/ui/main.gd
+msgid "%d Beacons must burn to light the way; %d do."
+msgstr "Yolu aydınlatmak için %d Fener yanmalı; %d yanıyor."
 
 #: res://scripts/ui/main.gd
 msgid "An expedition: %d s out and back, three times the fuel"
@@ -296,8 +316,68 @@ msgid ", and %d Lenses"
 msgstr " ve %d Mercek"
 
 #: res://scripts/ui/main.gd
+msgid "Open: its sites are on the galleries' board."
+msgstr "Açık: alanları galeri panosunda."
+
+#: res://scripts/ui/main.gd
+msgid "Its Beacon is dark, with no Lenses in the store: %s"
+msgstr "Feneri karanlık, depoda Mercek yok: %s"
+
+#: res://scripts/ui/main.gd
+msgid "A Beacon burns: %s"
+msgstr "Bir Fener yanıyor: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Put it out"
+msgstr "Söndür"
+
+#: res://scripts/ui/main.gd
+msgid "Hold it with a Beacon: %d Lenses, %d an hour to keep it lit, and a Surveyor stays to keep it."
+msgstr "Bir Fenerle tut: %d Mercek, yanık tutmak için saatte %d, ve başında bir Kâşif kalır."
+
+#: res://scripts/ui/main.gd
+msgid "While it burns: %s"
+msgstr "Yandığı sürece: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Its sites pay half again, from every tier, and its research goes %d levels further."
+msgstr "Alanları bir buçuk kat öder ve her kademeden gelir; araştırması %d seviye daha ilerler."
+
+#: res://scripts/ui/main.gd
+msgid "A Surveyor keeps it, and it burns %d Lenses an hour from the store; with none, every Beacon goes dark."
+msgstr "Başında bir Kâşif bekler ve depodan saatte %d Mercek yakar; Mercek kalmazsa bütün Fenerler kararır."
+
+#: res://scripts/ui/main.gd
+msgid "%d Beacons burn: the way into the Dark Reach is lit."
+msgstr "%d Fener yanıyor: Karanlık Yarık'a giden yol aydınlandı."
+
+#: res://scripts/ui/main.gd
+msgid "A Beacon burns!"
+msgstr "Bir Fener yandı!"
+
+#: res://scripts/ui/main.gd
+msgid "Onward"
+msgstr "Devam"
+
+#: res://scripts/ui/main.gd
+msgid "And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."
+msgstr "Ve derin harita: galerilerin ötesinde üç bölge. Bir Kâşifin önderlik ettiği keşif birini açar; hangisinin önce açılacağı kuyunun seçimi."
+
+#: res://scripts/ui/main.gd
+msgid "And Beacons: an open region held by a lamp and a Surveyor pays more, researches further and gives its own work -- while the store has Lenses to burn."
+msgstr "Ve Fenerler: bir lamba ve bir Kâşifle tutulan açık bölge daha çok öder, daha ileri araştırır ve kendine özgü işini verir -- depoda yakacak Mercek olduğu sürece."
+
+#: res://scripts/ui/main.gd
+msgid "And the Dark Reach: a fourth region, lit by two Beacons, where only a Surveyor finds the way."
+msgstr "Ve Karanlık Yarık: iki Fenerle aydınlanan dördüncü bölge; yolu orada yalnızca bir Kâşif bulur."
+
+#: res://scripts/ui/main.gd
 msgid "Its sites are on the galleries' board, and its research line is open: %s."
 msgstr "Alanları galeri panosunda ve araştırma dalı açık: %s."
+
+#: res://scripts/ui/main.gd
+msgid "The Umbrite the crew brings home becomes Prisms in a Prism Cutter -- an Assembler on its new job, beside the Core, with a Rig posted to feed it two Lenses to each."
+msgstr "Ekibin getirdiği Gölgetaş, Prizma Kesicide Prizmaya dönüşür: Çekirdeğin yanında yeni işine ayarlanmış bir Montajcı ve onu her birine iki Mercekle besleyen görevli bir Robot."
 
 #: res://scripts/ui/main.gd
 msgid "The Resonite the crew brings home becomes Lenses in a Lens Grinder -- an Assembler on its new job, beside the Core, with a Rig posted to feed it."
@@ -306,10 +386,6 @@ msgstr "Ekibin getirdiği Rezonit, Mercek Taşlayıcıda Merceğe dönüşür: �
 #: res://scripts/ui/main.gd
 msgid "A region opened!"
 msgstr "Bir bölge açıldı!"
-
-#: res://scripts/ui/main.gd
-msgid "Onward"
-msgstr "Devam"
 
 #: res://scripts/ui/main.gd
 msgid "The yard grows to %d x %d."
@@ -418,10 +494,6 @@ msgstr "Çekirdek büyüdü: sahada bak."
 #: res://scripts/ui/main.gd
 msgid "It opens strata %d to %d, machine level %d and a store of %d."
 msgstr "Açtıkları: %d-%d. katmanlar, makine sınırı seviye %d, depo %d."
-
-#: res://scripts/ui/main.gd
-msgid "And the deep map: three regions past the galleries. An expedition led by a Surveyor opens one; which first is the shaft's choice."
-msgstr "Ve derin harita: galerilerin ötesinde üç bölge. Bir Kâşifin önderlik ettiği keşif birini açar; hangisinin önce açılacağı kuyunun seçimi."
 
 #: res://scripts/ui/main.gd
 msgid "Next, for level %d:"
@@ -856,6 +928,22 @@ msgid "the store can spare: %s"
 msgstr "depodan verilebilir: %s"
 
 #: res://scripts/ui/main.gd
+msgid "A Surveyor tunes it: half the Resonite a Lens, half the Lenses a Prism."
+msgstr "Bir Kâşif ayarlıyor: Mercek başına yarı Rezonit, Prizma başına yarı Mercek."
+
+#: res://scripts/ui/main.gd
+msgid "A Surveyor could tune it: half the Resonite a Lens, half the Lenses a Prism."
+msgstr "Bir Kâşif ayarlayabilir: Mercek başına yarı Rezonit, Prizma başına yarı Mercek."
+
+#: res://scripts/ui/main.gd
+msgid "Surveyor home"
+msgstr "Kâşif eve"
+
+#: res://scripts/ui/main.gd
+msgid "Tune"
+msgstr "Ayarla"
+
+#: res://scripts/ui/main.gd
 msgid "Call home"
 msgstr "Geri çağır"
 
@@ -878,6 +966,10 @@ msgstr "Kırıcılar: garajda %d, dışarıda %d"
 #: res://scripts/ui/main.gd
 msgid "Surveyors: %d at the Bay, %d out"
 msgstr "Kâşifler: garajda %d, dışarıda %d"
+
+#: res://scripts/ui/main.gd
+msgid "%d keeping Beacons, %d tuning machines"
+msgstr "%d Fener bekliyor, %d makine ayarlıyor"
 
 #: res://scripts/ui/main.gd
 msgid "%d more sites cleared, room for another Rig"
@@ -924,16 +1016,28 @@ msgid "Rigs out"
 msgstr "Robotlar dışarıda"
 
 #: res://scripts/ui/main.gd
-msgid "rock: a Rig does half"
-msgstr "kaya: Robot yarım iş görür"
+msgid "dark: with no Surveyor to guide it a team is lost"
+msgstr "karanlık: yol gösterecek Kâşif yoksa ekip kaybolur"
+
+#: res://scripts/ui/main.gd
+msgid "dark: with no Surveyor to guide it a team is lost, and each head burns %d Lenses for light"
+msgstr "karanlık: yol gösterecek Kâşif yoksa ekip kaybolur ve her üye ışık için %d Mercek yakar"
 
 #: res://scripts/ui/main.gd
 msgid "danger: with no Breaker to lead, half the pay"
 msgstr "tehlike: önde Kırıcı yoksa ödülün yarısı"
 
 #: res://scripts/ui/main.gd
+msgid "rock: a Rig does half"
+msgstr "kaya: Robot yarım iş görür"
+
+#: res://scripts/ui/main.gd
 msgid "water: too deep for a Breaker"
 msgstr "su: Kırıcı için fazla derin"
+
+#: res://scripts/ui/main.gd
+msgid "a Beacon's ground: Breakers hold it, half again their strength"
+msgstr "Fener zemini: Kırıcılar tutar, güçlerinin bir buçuk katıyla"
 
 #: res://scripts/ui/main.gd
 msgid "needs %d · sending %d: strength %d, %s, wear +%d%%"
@@ -1072,6 +1176,10 @@ msgid "A crew with at least %d Rigs, %d Breakers and %d Surveyors"
 msgstr "En az %d Robot, %d Kırıcı ve %d Kâşiften oluşan bir ekip"
 
 #: res://scripts/ui/main.gd
+msgid "Beacons burning: %d, in whichever regions"
+msgstr "Yanan Fener: %d, hangi bölgede olursa"
+
+#: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
 msgstr "%d makine çalışma ısısında, hiçbiri aşırı ısınmıyor"
 
@@ -1202,6 +1310,18 @@ msgstr "%s bölgesine keşif gönder"
 #: res://scripts/ui/main.gd
 msgid "It opens the region: its sites, its research, and for good: %s"
 msgstr "Bölgeyi açar: alanlarını, araştırmasını ve kalıcı olarak: %s"
+
+#: res://scripts/ui/main.gd
+msgid "Light a Beacon in %s"
+msgstr "%s bölgesinde bir Fener yak"
+
+#: res://scripts/ui/main.gd
+msgid "A Surveyor to tune the %s"
+msgstr "%s için bir Kâşif ayarı"
+
+#: res://scripts/ui/main.gd
+msgid "While it stays: half the Resonite a Lens, half the Lenses a Prism."
+msgstr "Kaldığı sürece: Mercek başına yarı Rezonit, Prizma başına yarı Mercek."
 
 #: res://scripts/ui/main.gd
 msgid "Too strong to clear at once: they bring home %d%% of it and leave it weaker."
@@ -1788,12 +1908,28 @@ msgid "Lens"
 msgstr "Mercek"
 
 #: res://scripts/core/machine_db.gd
+msgid "Umbrite"
+msgstr "Gölgetaş"
+
+#: res://scripts/core/machine_db.gd
+msgid "Prism"
+msgstr "Prizma"
+
+#: res://scripts/core/machine_db.gd
 msgid "Deep Bore"
 msgstr "Derin Sondaj"
 
 #: res://scripts/core/machine_db.gd
 msgid "Bores crystal out of the hot rock."
 msgstr "Sıcak kayadan kristal çıkarır."
+
+#: res://scripts/core/machine_db.gd
+msgid "Resonant Bore"
+msgstr "Rezonans Delgisi"
+
+#: res://scripts/core/machine_db.gd
+msgid "Bores Resonite out of the rock -- while a Beacon burns in the Caverns."
+msgstr "Kayadan Rezonit deler -- Mağaralarda bir Fener yandığı sürece."
 
 #: res://scripts/core/machine_db.gd
 msgid "White Heat"
@@ -1834,6 +1970,14 @@ msgstr "Mercek Taşlayıcı"
 #: res://scripts/core/machine_db.gd
 msgid "Grinds Resonite onto a Frame: a Lens."
 msgstr "Rezoniti bir Çerçeveye taşlar: bir Mercek."
+
+#: res://scripts/core/machine_db.gd
+msgid "Prism Cutter"
+msgstr "Prizma Kesici"
+
+#: res://scripts/core/machine_db.gd
+msgid "Cuts Umbrite with two Lenses: a Prism."
+msgstr "Gölgetaşı iki Mercekle keser: bir Prizma."
 
 #: res://scripts/core/machine_db.gd
 msgid "Rig Frame"
@@ -2033,7 +2177,7 @@ msgstr "Soğutma Batık Tesislerin tuzlu suyuyla çalışır."
 
 #: res://scripts/core/economy.gd
 msgid "Every Coolant Cell and Condenser cools 10% harder, for each level."
-msgstr "Her seviye, her Soğutucu Hücreyi ve Yoğuşturucuyu %10 daha güçlü soğutur."
+msgstr "Her seviye, her Soğutma Hücresini ve Yoğuşturucuyu %10 daha güçlü soğutur."
 
 #: res://scripts/core/economy.gd
 msgid "Resonite Sounding"
@@ -2058,6 +2202,18 @@ msgstr "Kırıcılar daha sert vurur."
 #: res://scripts/core/economy.gd
 msgid "Every Breaker brings 15% more strength to a sortie, for each level."
 msgstr "Her seviye, her Kırıcının sefere %15 daha fazla güç getirmesini sağlar."
+
+#: res://scripts/core/economy.gd
+msgid "Umbral Lamps"
+msgstr "Gölge Lambaları"
+
+#: res://scripts/core/economy.gd
+msgid "The crew finds more Umbrite in the dark."
+msgstr "Ekip karanlıkta daha çok Gölgetaş bulur."
+
+#: res://scripts/core/economy.gd
+msgid "The crew brings home 25% more Umbrite from every site, for each level."
+msgstr "Her seviye, ekibin her alandan %25 daha fazla Gölgetaş getirmesini sağlar."
 
 #: res://scripts/core/economy.gd
 msgid "Rig Plating"
@@ -2234,6 +2390,14 @@ msgstr "Sınır"
 #: res://scripts/core/core_levels.gd
 msgid "The Expedition"
 msgstr "Keşif"
+
+#: res://scripts/core/core_levels.gd
+msgid "The Beacons"
+msgstr "Fenerler"
+
+#: res://scripts/core/core_levels.gd res://scripts/core/operations.gd
+msgid "The Dark Reach"
+msgstr "Karanlık Yarık"
 
 #: res://scripts/core/strata.gd
 msgid "Thermal Vent"
@@ -2488,6 +2652,30 @@ msgid "The way into a region of the deep map."
 msgstr "Derin haritada bir bölgeye giden yol."
 
 #: res://scripts/core/operations.gd
+msgid "Beacon"
+msgstr "Fener"
+
+#: res://scripts/core/operations.gd
+msgid "A lamp on the region's high ground, and a Surveyor to keep it."
+msgstr "Bölgenin yüksek zemininde bir lamba ve onu bekleyecek bir Kâşif."
+
+#: res://scripts/core/operations.gd
+msgid "Umbrite Hollow"
+msgstr "Gölgetaş Oyuğu"
+
+#: res://scripts/core/operations.gd
+msgid "Umbrite in the dark, where only a Surveyor finds the way."
+msgstr "Karanlıkta Gölgetaş; yolu yalnızca bir Kâşif bulur."
+
+#: res://scripts/core/operations.gd
+msgid "Shade Nest"
+msgstr "Gölge Yuvası"
+
+#: res://scripts/core/operations.gd
+msgid "Something lives in the dark down here, and it guards the Umbrite."
+msgstr "Aşağıda karanlıkta bir şey yaşıyor ve Gölgetaşı koruyor."
+
+#: res://scripts/core/operations.gd
 msgid "The Sunken Works"
 msgstr "Batık Tesisler"
 
@@ -2497,7 +2685,11 @@ msgstr "Su. Rezonit sarnıçları ve kurtarılacak Robotlar."
 
 #: res://scripts/core/operations.gd
 msgid "Every Coolant Cell and Condenser cools a quarter harder."
-msgstr "Her Soğutucu Hücre ve Yoğuşturucu dörtte bir daha güçlü soğutur."
+msgstr "Her Soğutma Hücresi ve Yoğuşturucu dörtte bir daha güçlü soğutur."
+
+#: res://scripts/core/operations.gd
+msgid "Brine mains: every Coolant Cell and Condenser cools half again harder."
+msgstr "Tuzlu su hatları: her Soğutma Hücresi ve Yoğuşturucu bir buçuk kat daha güçlü soğutur."
 
 #: res://scripts/core/operations.gd
 msgid "The Resonite Caverns"
@@ -2512,6 +2704,10 @@ msgid "Every site pays half again its Resonite."
 msgstr "Her alan Rezonitini bir buçuk kat verir."
 
 #: res://scripts/core/operations.gd
+msgid "The Resonant Bore: a Drill bores Resonite on the board."
+msgstr "Rezonans Delgisi: bir Matkap tahtada Rezonit deler."
+
+#: res://scripts/core/operations.gd
 msgid "The Rogue Foundry"
 msgstr "Azgın Döküm Atölyesi"
 
@@ -2522,6 +2718,22 @@ msgstr "Tehlike. Karşı koyan dökümhaneler ve hurda."
 #: res://scripts/core/operations.gd
 msgid "Every cleared site pays twice its salvage."
 msgstr "Her temizlenen alan iki kat hurda verir."
+
+#: res://scripts/core/operations.gd
+msgid "Reclaimed forges: every cleared site pays three times its salvage."
+msgstr "Geri kazanılmış dökümhaneler: her temizlenen alan üç kat hurda verir."
+
+#: res://scripts/core/operations.gd
+msgid "Darkness. Umbrite, for a team a Surveyor guides."
+msgstr "Karanlık. Gölgetaş, bir Kâşifin yol gösterdiği ekip için."
+
+#: res://scripts/core/operations.gd
+msgid "The Prism Cutter: Umbrite cut with two Lenses."
+msgstr "Prizma Kesici: iki Mercekle kesilen Gölgetaş."
+
+#: res://scripts/core/operations.gd
+msgid "Lit paths: no Lenses for light in the Dark Reach."
+msgstr "Aydınlık yollar: Karanlık Yarık'ta ışık için Mercek gerekmez."
 
 #: res://scripts/ui/codex.gd
 msgid "Side by side"

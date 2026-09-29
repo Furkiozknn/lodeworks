@@ -122,9 +122,17 @@ func _new_work(level: int, r: Array) -> bool:
 			return int(r[2]) > (0 if first else CoreLevels.overdrive_cap(before))
 		CoreLevels.Req.DOCTRINE:
 			return int(r[1]) > (0 if first else CoreLevels.doctrine_cap(before))
-		CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES:
-			# The deep map's: new work while the era before had no map.
-			return CoreLevels.available_at(r) > before
+		CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES, CoreLevels.Req.BEACONS:
+			# The deep map's: new work while the era before had no map, and
+			# after it, more than any level before asked.
+			if CoreLevels.available_at(r) > before:
+				return true
+			var most_map: int = 0
+			for l in range(2, level):
+				for e: Array in CoreLevels.requirements(l):
+					if int(e[0]) == int(r[0]):
+						most_map = maxi(most_map, int(e[1]))
+			return int(r[1]) > most_map
 		CoreLevels.Req.OPERATIONS:
 			# Sites cleared: work once the era before could not yet send a crew,
 			# and after it, more than any level before asked.
@@ -143,7 +151,7 @@ func _new_work(level: int, r: Array) -> bool:
 				continue
 			if int(r[0]) == CoreLevels.Req.STABLE:
 				most = maxi(most, int(e[1]))
-			elif String(e[1]) == String(r[1]):
+			elif String(e[1]) == String(r[1]) and CoreLevels.row_job(e) == CoreLevels.row_job(r):
 				most = maxi(most, int(e[2]))
 	var need: int = int(r[1]) if int(r[0]) == CoreLevels.Req.STABLE else int(r[2])
 	return need > most

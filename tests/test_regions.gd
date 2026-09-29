@@ -246,7 +246,11 @@ func test_the_sunken_works_brine_cools_and_the_foundry_doubles_salvage() -> void
 ## --- the chain, the research, the rows ------------------------------------------------
 
 func test_resonite_becomes_lenses_only_through_the_store_and_a_posted_rig() -> void:
-	runner.check(MachineDB.makers_of(RESONITE).is_empty(), "no machine makes Resonite")
+	# Only the Caverns' Resonant Bore, while a Beacon burns there (test_beacons).
+	for mk: Array in MachineDB.makers_of(RESONITE):
+		runner.eq(String(MachineDB.job_info(String(mk[0]), String(mk[1])).get("control", "")), "caverns",
+			"no machine makes Resonite but under a Beacon")
+	runner.check(not Sim.job_open("drill", "resonite"), "and none here")
 	runner.check(MachineDB.STOCKED.has(RESONITE) and MachineDB.STOCKED.has(LENS), "both kept in the store")
 	var lens: Dictionary = MachineDB.job_machine("assembler", "lens")
 	runner.eq(int((lens["outputs"] as Dictionary).get(LENS, 0)), 1, "")

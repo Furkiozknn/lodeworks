@@ -42,6 +42,8 @@ extends RefCounted
 ##             map.
 ##   ROLES     the crew with at least that many of each kind: Rigs,
 ##             Breakers and Surveyors.
+##   BEACONS   Beacons burning (Operations, "Beacons") -- in whichever
+##             regions: the row asks for ground held, not which.
 ##
 ## The graph has no cycles by construction -- everything level L asks for is
 ## possible at level L-1 -- and `validate()` checks it, with every
@@ -49,7 +51,7 @@ extends RefCounted
 ## never ask for the impossible.
 
 enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE, DOCTRINE,
-	OPERATIONS, REGIONS, REGION_LINES, ROLES }
+	OPERATIONS, REGIONS, REGION_LINES, ROLES, BEACONS }
 
 ## A support machine touches four machines at most (Grid.serves).
 const MAX_SERVES := 4
@@ -222,6 +224,32 @@ const LEVELS := [
 		[Req.REGION_LINES, 2],
 		[Req.ROLES, 2],
 	]},
+	# Core 11 lights Beacons (Operations, "Beacons"); its era's rows hold the
+	# ground: one Beacon burning, a second region, its research, a crew of
+	# three of each kind, a second Lens Grinder at work, and the price.
+	# Measured before it: the formula asked Core 11's rows again, with the
+	# Lens row a formality (a new game held 191,000 Lenses at Core 12); the
+	# Lenses now go to the Beacons.
+	{"level": 12, "era": "The Beacons", "depth_cap": 44, "machine_cap": 13, "requires": [
+		[Req.CREDITS, 113000000.0],
+		[Req.WORKING, "assembler", 2, "lens"],
+		[Req.REGIONS, 2],
+		[Req.BEACONS, 1],
+		[Req.REGION_LINES, 4],
+		[Req.ROLES, 3],
+	]},
+	# Core 12 opens the Dark Reach to a shaft with two Beacons burning; its
+	# era's rows are the Reach's: Prisms cut from its Umbrite and two Lenses
+	# each, two Beacons kept lit, a third region, the regions' research the
+	# Beacons let go further, a crew of four of each kind.
+	{"level": 13, "era": "The Dark Reach", "depth_cap": 49, "machine_cap": 14, "requires": [
+		[Req.CREDITS, 170000000.0],
+		[Req.STOCK, MachineDB.Res.PRISM, 3000],
+		[Req.REGIONS, 3],
+		[Req.BEACONS, 2],
+		[Req.REGION_LINES, 6],
+		[Req.ROLES, 4],
+	]},
 ]
 
 ## From this level the Core sells what its store has no room for, at
@@ -300,6 +328,10 @@ static func _entry(level: int) -> Dictionary:
 				reqs.append([Req.REGION_LINES, int(r[1]) + 2 * n])
 			Req.ROLES:
 				reqs.append([Req.ROLES, mini(int(r[1]) + n, 4)])
+			Req.BEACONS:
+				# One more Beacon a level, as the map has regions to hold.
+				reqs.append([Req.BEACONS, mini(int(r[1]) + n, mini(Operations.region_slots(level - 1),
+					Operations.REGION_ORDER.size()))])
 	var line: String = String(LATE_RESEARCH[n % LATE_RESEARCH.size()])
 	reqs.append([Req.RESEARCH, line, mini(3 + n / LATE_RESEARCH.size(),
 		Economy.research_cap(line, level - 1))])
@@ -412,6 +444,8 @@ static func opens(level: int) -> Dictionary:
 	return {"strata": [from, to], "machines": machines, "materials": materials, "jobs": jobs,
 		"doctrine": level == Economy.DOCTRINE_CORE, "export": level == EXPORT_CORE,
 		"regions": level == Operations.REGION_CORE,
+		"beacons": level == Operations.CONTROL_CORE,
+		"reach": level == Operations.REACH_CORE,
 		"operations": level == MachineDB.RIG_CORE or level == Operations.FIRST_SITE_CORE,
 		"machine_cap": machine_cap(level), "research": lines,
 		"stock_cap": MachineDB.stock_cap(machine_cap(level)),
@@ -474,6 +508,9 @@ static func status(state: Object) -> Array:
 				if state.has_method("crew_roles"):
 					var roles: Dictionary = state.call("crew_roles")
 					have = float(mini(int(roles["rig"]), mini(int(roles["breaker"]), int(roles["surveyor"]))))
+				need = float(r[1])
+			Req.BEACONS:
+				have = float(int(state.call("lit_beacons"))) if state.has_method("lit_beacons") else 0.0
 				need = float(r[1])
 		row.merge({"req": r, "met": have >= need, "have": have, "need": need})
 		out.append(row)
@@ -643,6 +680,11 @@ static func available_at(r: Array) -> int:
 			return Operations.REGION_CORE + int(ceil(float(r[1]) / float(Economy.RESEARCH_PER_CORE))) - 1
 		Req.ROLES:
 			return Operations.REGION_CORE
+		Req.BEACONS:
+			# A Beacon a region: as many regions open first.
+			if int(r[1]) > Operations.REGION_ORDER.size():
+				return -1
+			return maxi(Operations.CONTROL_CORE, Operations.REGION_CORE + int(r[1]) - 1)
 	return -1
 
 

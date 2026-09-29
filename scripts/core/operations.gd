@@ -68,7 +68,7 @@ const SALVAGE_NEST := 1
 static func salvage(s: Dictionary) -> int:
 	if s.is_empty():
 		return 0
-	return 1 + (SALVAGE_NEST if String(s["kind"]) in ["nest", "forge"] else 0)
+	return 1 + (SALVAGE_NEST if String(s["kind"]) in ["nest", "forge", "shade"] else 0)
 
 
 ## Posts: a Rig at the Bay can be posted to a machine touching the Core,
@@ -178,6 +178,26 @@ const KINDS := {
 		"hazard": 0.12,
 		"res": MachineDB.Res.RESONITE,
 	},
+	# A Beacon lit in an open region: the ground held (Beacons).
+	"beacon": {
+		"name": "Beacon",
+		"line": "A lamp on the region's high ground, and a Surveyor to keep it.",
+		"hazard": 0.12,
+		"res": MachineDB.Res.RESONITE,
+	},
+	# The Dark Reach's (REGIONS, "reach").
+	"hollow": {
+		"name": "Umbrite Hollow",
+		"line": "Umbrite in the dark, where only a Surveyor finds the way.",
+		"hazard": 0.10,
+		"res": MachineDB.Res.UMBRITE,
+	},
+	"shade": {
+		"name": "Shade Nest",
+		"line": "Something lives in the dark down here, and it guards the Umbrite.",
+		"hazard": 0.28,
+		"res": MachineDB.Res.UMBRITE,
+	},
 }
 const KIND_ORDER := ["flooded", "drift", "pumphouse", "nest"]
 
@@ -260,7 +280,18 @@ static func watery(s: Dictionary) -> bool:
 
 ## Is site `s` dangerous: a team with no Breaker to lead it brings home half?
 static func dangerous(s: Dictionary) -> bool:
-	return String(s.get("kind", "")) == "forge" or String(s.get("terrain", "")) == "danger"
+	return String(s.get("kind", "")) in ["forge", "shade"] or String(s.get("terrain", "")) == "danger"
+
+
+## Is site `s` in the dark: a team with no Surveyor to guide it is lost, and
+## every sortie burns Lenses for light until a Beacon burns there?
+static func dark(s: Dictionary) -> bool:
+	return String(s.get("terrain", "")) == "dark"
+
+
+## Is `s` a Beacon's ground: Breakers hold it?
+static func holding(s: Dictionary) -> bool:
+	return String(s.get("kind", "")) == "beacon"
 
 
 const WATER := ["flooded", "cistern", "stranded"]
@@ -299,7 +330,20 @@ static func team_factor(s: Dictionary, n: int, b: int, v: int = 0, bpow: float =
 	var breaker: float = BREAKER_POWER * bpow * (FLOOD_BREAKER if watery(s) else 1.0)
 	var surveyor: float = SURVEY_POWER if String(s.get("kind", "")) == "survey" \
 		else SURVEYOR_POWER * (ARMOR_RIG if rock else 1.0)
-	return float(maxi(n, 0)) * rig + float(maxi(b, 0)) * breaker + float(maxi(v, 0)) * surveyor
+	if dark(s):
+		# In the dark a Breaker is only as good as a Rig, and a Surveyor's
+		# lamps are worth more than its frame.
+		breaker = DARK_BREAKER * bpow
+		if String(s.get("kind", "")) != "survey":
+			surveyor = DARK_SURVEYOR
+	# A Beacon's ground is held: Breakers dig in.
+	if holding(s):
+		breaker *= CONTROL_HOLD
+	var all: float = float(maxi(n, 0)) * rig + float(maxi(b, 0)) * breaker + float(maxi(v, 0)) * surveyor
+	# In the dark, with no Surveyor to guide it, a team is lost.
+	if dark(s) and v <= 0:
+		all *= DARK_LOST
+	return all
 
 
 ## The share of a team's strength its Breakers bring.
@@ -357,7 +401,7 @@ static func role_core(role: String) -> int:
 ##                       salvage; every cleared site pays FOUNDRY_SALVAGE
 ##                       times its salvage.
 const REGION_CORE := 10
-const REGION_ORDER := ["sunken", "caverns", "foundry"]
+const REGION_ORDER := ["sunken", "caverns", "foundry", "reach"]
 const REGIONS := {
 	"sunken": {"name": "The Sunken Works", "short": "Water. Resonite cisterns, and Rigs to rescue.",
 		"terrain": "water", "kinds": ["cistern", "cistern", "stranded"], "survey": 1.0, "research": "brine_1",
@@ -368,6 +412,21 @@ const REGIONS := {
 	"foundry": {"name": "The Rogue Foundry", "short": "Danger. Forges that fight back, and salvage.",
 		"terrain": "danger", "kinds": ["forge"], "survey": 1.6, "research": "forge_1",
 		"advantage": "Every cleared site pays twice its salvage."},
+	# Past the three, from REACH_CORE and only once REACH_LIGHT Beacons burn
+	# (the Dark Reach).
+	"reach": {"name": "The Dark Reach", "short": "Darkness. Umbrite, for a team a Surveyor guides.",
+		"terrain": "dark", "kinds": ["hollow", "hollow", "shade"], "survey": 1.4, "research": "reach_1",
+		"core": REACH_CORE,
+		"advantage": "The Prism Cutter: Umbrite cut with two Lenses."},
+}
+
+## What each region gives while a Beacon burns in it (Beacons), besides
+## what every held region gives.
+const CONTROL_TECH := {
+	"sunken": "Brine mains: every Coolant Cell and Condenser cools half again harder.",
+	"caverns": "The Resonant Bore: a Drill bores Resonite on the board.",
+	"foundry": "Reclaimed forges: every cleared site pays three times its salvage.",
+	"reach": "Lit paths: no Lenses for light in the Dark Reach.",
 }
 const SURVEY_NEED := 2.0
 const SURVEY_TRIP := 150.0
@@ -382,6 +441,90 @@ const FOUNDRY_SALVAGE := 2
 ## Core 10 crew in the Caverns brought home 28,000 in 35 minutes and the
 ## Core 11 row's Lenses were a formality.
 const RESONITE_PER_NEED := 0.15
+## Umbrite likewise, rarer still.
+const UMBRITE_PER_NEED := 0.1
+
+
+## --- Beacons: a region held (Core 11) -----------------------------------------------
+##
+## An open region is only explored. From CONTROL_CORE a Beacon can be lit in
+## it: an operation to the region's high ground (beacon_site), a team strong
+## enough for BEACON_NEED times the region's survey (the same ground: at 1.5
+## a Core 11 crew of twelve was 0.6 to 0.74 of it in every region, and no
+## Beacon was lit in an hour), BEACON_LENS Lenses for
+## every Beacon already lit and the first, and one Surveyor who stays to keep
+## the lamp (the keeper: a Surveyor out of the crew until the Beacon is put
+## out). On a Beacon's ground Breakers hold: each counts CONTROL_HOLD of
+## itself -- in water too, where it is weak.
+##
+## A Beacon burns BEACON_UPKEEP Lenses an hour from the store. With none,
+## every Beacon goes dark, and what they give stops until there are Lenses
+## again. What a held region gives:
+##
+##   * its sites pay CONTROL_PAY times, and are dealt from every tier;
+##   * its research line goes CONTROL_LINE levels further;
+##   * its own work (CONTROL_TECH): the Sunken Works' brine cools
+##     BRINE_CONTROL harder; the Caverns' Resonant Bore (MachineDB) makes
+##     Resonite on the board; the Foundry's sites pay FOUNDRY_CONTROL times
+##     their salvage; the Dark Reach needs no Lenses for light.
+##
+## Measured before it (docs/GAME-LOOP.md, section 13): Lenses were ground at
+## about 47,000 an hour in the Core 11 era, the rows asked 10,000 and
+## 16,000, and a new game held 191,000 at Core 12. A Lens now keeps a region
+## -- or goes into the Core, an expedition, or a Prism. At 6,000 an hour a
+## Beacon was a rounding error on a grinder tuned by a Surveyor and fed by
+## Resonant Bores (80,000 to 98,000 an hour): at 20,000, three Beacons ask
+## for most of what a well-fed Lens line grinds, and fewer, or darkness, is
+## a choice.
+const CONTROL_CORE := MachineDB.CONTROL_CORE
+const BEACON_NEED := 1.0
+const BEACON_LENS := 10000
+const BEACON_UPKEEP := 20000.0
+const CONTROL_HOLD := 1.5
+const CONTROL_PAY := 1.5
+const CONTROL_LINE := 2
+const BRINE_CONTROL := 1.5
+const FOUNDRY_CONTROL := 3
+
+
+## --- the Dark Reach (Core 12) -------------------------------------------------------
+##
+## The fourth region lies past the three, in the dark: from REACH_CORE an
+## expedition may go only when REACH_LIGHT Beacons burn. Its ground is dark
+## (dark): a team with no Surveyor to guide it is lost and brings DARK_LOST
+## of its strength; a Breaker there is only DARK_BREAKER of a Rig, a
+## Surveyor, with its lamps, DARK_SURVEYOR; and a sortie burns DARK_LENS
+## Lenses a head for light, until a Beacon burns in the Reach. It holds
+## Umbrite, which only the crew brings home; its gift is the Prism Cutter
+## (MachineDB), which cuts it with two Lenses into what the Core's thirteenth
+## level asks for.
+const REACH_CORE := MachineDB.PRISM_CORE
+const REACH_LIGHT := 2
+const DARK_LOST := 0.5
+const DARK_BREAKER := 1.0
+const DARK_SURVEYOR := 1.5
+const DARK_LENS := 25
+
+
+## The Core's level that opens region `r` to expeditions.
+static func region_core(r: String) -> int:
+	return int((REGIONS[r] as Dictionary).get("core", REGION_CORE))
+
+
+## Lenses a sortie of `n` Rigs, `b` Breakers and `v` Surveyors burns for
+## light in the dark.
+static func dark_lens(n: int, b: int, v: int) -> int:
+	return (maxi(n, 0) + maxi(b, 0) + maxi(v, 0)) * DARK_LENS
+
+
+## Region `r`'s high ground under a Core of `level`: where a Beacon is lit.
+static func beacon_site(r: String, level: int, depth: int) -> Dictionary:
+	var s: Dictionary = survey_site(r, level, depth)
+	s["kind"] = "beacon"
+	s["need"] = snappedf(float(s["need"]) * BEACON_NEED, 1.0)
+	s["left"] = s["need"]
+	s["hazard"] = minf(float(KINDS["beacon"]["hazard"]) * (1.0 + 0.02 * float(depth)), 0.6)
+	return s
 
 
 ## Regions a Core of `level` has room to have open.
@@ -416,7 +559,7 @@ static func survey_site(r: String, level: int, depth: int) -> Dictionary:
 
 ## Site number `serial` of region `r`: one of its own kinds, dealt as the
 ## galleries' sites are (deal), on the region's terrain.
-static func deal_region(r: String, core_level: int, depth: int, serial: int) -> Dictionary:
+static func deal_region(r: String, core_level: int, depth: int, serial: int, held: bool = false) -> Dictionary:
 	var reg: Dictionary = REGIONS[r]
 	var s: Dictionary = deal(core_level, depth, serial)
 	var rng := RandomNumberGenerator.new()
@@ -428,7 +571,7 @@ static func deal_region(r: String, core_level: int, depth: int, serial: int) -> 
 	# A region's sites are its bread and butter, not its walls: the first
 	# two tiers only (measured: tier-3 cisterns of 378 against a Core 10
 	# crew in water of about 300 were never cleared).
-	if int(s["tier"]) > 1:
+	if int(s["tier"]) > 1 and not held:
 		s["tier"] = 1
 		s["need"] = snappedf(NEED_BASE * growth(core_level) * float(TIERS[1]), 1.0)
 		s["left"] = s["need"]
@@ -501,11 +644,16 @@ static func reward(s: Dictionary, credits_per_sec: float) -> Dictionary:
 	var tier: float = float(TIERS[int(s["tier"])])
 	var pay: float = EARLY_PAY if int(s.get("core", RIG_CORE)) < RIG_CORE else 1.0
 	var res: int = int(KINDS[String(s["kind"])]["res"])
+	var per: float = UNITS_PER_NEED
+	if res == MachineDB.Res.RESONITE:
+		per = RESONITE_PER_NEED
+	elif res == MachineDB.Res.UMBRITE:
+		per = UMBRITE_PER_NEED
 	return {
 		"credits": maxf(need * CREDITS_PER_NEED * pay, credits_per_sec * REWARD_SECONDS * tier),
 		"research": need * RESEARCH_PER_NEED * pay,
 		"res": res,
-		"n": int(ceil(need * (RESONITE_PER_NEED if res == MachineDB.Res.RESONITE else UNITS_PER_NEED))),
+		"n": int(ceil(need * per)),
 		"salvage": salvage(s),
 	}
 
@@ -534,7 +682,7 @@ static func fuel(n: int, level: int, b: int = 0, v: int = 0) -> int:
 
 ## Seconds a sortie to site `s` takes, out and back.
 static func trip(s: Dictionary) -> float:
-	if String(s.get("kind", "")) == "survey":
+	if String(s.get("kind", "")) in ["survey", "beacon"]:
 		return SURVEY_TRIP
 	return TRIP_BASE + TRIP_PER_TIER * float(s.get("tier", 0))
 

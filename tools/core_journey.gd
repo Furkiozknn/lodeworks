@@ -84,6 +84,7 @@ func _initialize() -> void:
 	P = load("res://tools/core_journey_player.gd").new(root.get_node("Sim"))
 	P.fresh()
 	P.S.sortie_sent.connect(func(_i: int, _n: int) -> void: _sorties_sent += 1)
+	P.S.sortie_back.connect(_tally)
 	if OS.get_environment("LODEWORKS_CORE_DOCTRINE") != "":
 		P.doctrine = OS.get_environment("LODEWORKS_CORE_DOCTRINE")
 	if OS.get_environment("LODEWORKS_CORE_SALVAGE") != "":
@@ -172,6 +173,7 @@ func _initialize() -> void:
 		if skip:
 			_skip(horizon)
 	_close_stage(false)
+	_print_crew()
 	print("\n== FIRSTS ==")
 	var last: float = 0.0
 	var gap: float = 0.0
@@ -220,6 +222,53 @@ func _collapse() -> void:
 
 ## --- stages: one per Core level ------------------------------------------------------
 
+## The deep map's sorties, from Core 10: {purpose: {"R/B/V": count}} --
+## purpose the region's ground and kind of work -- and {region: [sorties,
+## seconds out, units home]}.
+var _teams: Dictionary = {}
+var _regions_time: Dictionary = {}
+
+
+func _tally(e: Dictionary) -> void:
+	if int(P.S.core_level) < Operations.REGION_CORE:
+		return
+	var kind: String = String(e["kind"])
+	var reg: String = String(e.get("region", ""))
+	var purpose: String = kind if kind in ["survey", "beacon"] else ("region " + kind if reg != "" else "galleries")
+	var combo: String = "%d/%d/%d" % [int(e["rigs"]), int(e["breakers"]), int(e["surveyors"])]
+	var byp: Dictionary = _teams.get(purpose, {})
+	byp[combo] = int(byp.get(combo, 0)) + 1
+	_teams[purpose] = byp
+	var key: String = reg if reg != "" else "galleries"
+	var row: Array = _regions_time.get(key, [0, 0.0, 0])
+	row[0] = int(row[0]) + 1
+	row[1] = float(row[1]) + float(e.get("trip", 0.0))
+	row[2] = int(row[2]) + int(e.get("n", 0))
+	_regions_time[key] = row
+
+
+func _print_crew() -> void:
+	if _teams.is_empty():
+		return
+	print("\n== THE CREW ON THE DEEP MAP, FROM CORE 10 ==")
+	print("  teams (Rigs/Breakers/Surveyors) by what they went for, most used first:")
+	for purpose: String in _teams:
+		var byp: Dictionary = _teams[purpose]
+		var keys: Array = byp.keys()
+		keys.sort_custom(func(a: String, b: String) -> bool: return int(byp[a]) > int(byp[b]))
+		var parts: Array[String] = []
+		var total: int = 0
+		for k: String in keys:
+			total += int(byp[k])
+		for k: String in keys.slice(0, 4):
+			parts.append("%s x%d" % [k, int(byp[k])])
+		print("    %-22s %4d sorties: %s" % [purpose, total, ", ".join(parts)])
+	print("  where the crew spent its time out (sorties, minutes out, units home):")
+	for key: String in _regions_time:
+		var row: Array = _regions_time[key]
+		print("    %-12s %4d  %6.0f min  %d" % [key, int(row[0]), float(row[1]) / 60.0, int(row[2])])
+
+
 func _open_stage() -> void:
 	var S: Node = P.S
 	var level: int = int(S.core_level)
@@ -247,6 +296,7 @@ func _open_stage() -> void:
 		"research_spent": 0.0, "research0": float(S.research), "overdrive": 0,
 		# The crew over the stage: sites, salvage, hauling, and where the
 		# Rigs were, beat by beat; and how much of the store stood full.
+		"lens_spent0": S.lens_spent.duplicate(), "lens0": S.stock_of(MachineDB.Res.LENS),
 		"sites0": int(S.ops_lifetime), "salvage_earned0": int(S.salvage_earned),
 		"salvage0": int(S.salvage), "hauled0": int(S.hauled), "beats": 0,
 		"rigs_out": 0, "rigs_posted": 0, "rigs_home": 0, "full": 0, "kept": 0,
@@ -277,6 +327,8 @@ func _close_stage(reached: bool) -> void:
 	stage["salvage_earned1"] = int(P.S.salvage_earned)
 	stage["salvage1"] = int(P.S.salvage)
 	stage["hauled1"] = int(P.S.hauled)
+	stage["lens_spent1"] = P.S.lens_spent.duplicate()
+	stage["lens1"] = P.S.stock_of(MachineDB.Res.LENS)
 	stages.append(stage)
 
 
@@ -523,6 +575,21 @@ func _print_stages() -> void:
 			earned_s, earned_s - (int(s["salvage1"]) - int(s["salvage0"])), int(s["hauled1"]) - int(s["hauled0"])])
 		if int(s.get("breakers", 0)) > 0:
 			print("  Breakers in the crew: up to %d" % int(s["breakers"]))
+		# The Lenses over the stage: what was ground, and where it went.
+		var ls0: Dictionary = s.get("lens_spent0", {})
+		var ls1: Dictionary = s.get("lens_spent1", {})
+		var went: Array[String] = []
+		var lens_out: int = 0
+		for why: String in ["core", "expedition", "beacon", "upkeep", "light", "factory", "contract"]:
+			var d: int = int(ls1.get(why, 0)) - int(ls0.get(why, 0))
+			lens_out += d
+			if d > 0:
+				went.append("%s %s" % [why, Economy.fmt(float(d))])
+		var made: int = lens_out + int(s.get("lens1", 0)) - int(s.get("lens0", 0))
+		if made > 0 or lens_out > 0:
+			print("  Lenses: %s ground; spent %s (%s); %s in the store at the end" % [Economy.fmt(float(made)),
+				Economy.fmt(float(lens_out)), ", ".join(went) if not went.is_empty() else "none",
+				Economy.fmt(float(int(s.get("lens1", 0))))])
 		print("  the store: %d%% of the time a material it keeps stood at the Vault's limit" % [
 			int(round(100.0 * float(s["full"]) / maxf(float(s["kept"]), 1.0)))])
 		if float(s.get("research_od", 0.0)) + float(s.get("research_doctrine", 0.0)) > 0.0:
@@ -534,7 +601,7 @@ func _print_stages() -> void:
 
 func _row_text(r: Array) -> String:
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles"][int(r[0])]
+		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles", "beacons"][int(r[0])]
 	match int(r[0]):
 		CoreLevels.Req.CREDITS:
 			return "credits %s" % Economy.fmt(float(r[1]))
@@ -570,7 +637,11 @@ func _snapshot(s: Dictionary) -> void:
 		int(s.get("surveyors", 0)), int(s.get("sites", 0)), int(s.get("salvage_earned", 0)), int(s.get("salvage", 0)),
 		int(s.get("hauled", 0))])
 	if not (s.get("regions", []) as Array).is_empty():
-		print("  the deep map: %s open; %d rescued" % [", ".join(s["regions"]), int(s.get("rescued", 0))])
+		print("  the deep map: %s open; Beacons: %s%s; %d Surveyors tuning; %d rescued" % [", ".join(s["regions"]),
+			", ".join(s.get("beacons", [])) if not (s.get("beacons", []) as Array).is_empty() else "none",
+			" (dark)" if bool(s.get("dark", false)) else "", int(s.get("tuners", 0)), int(s.get("rescued", 0))])
+		print("  Lenses: %s in the store; spent in all: %s" % [Economy.fmt(float(int(s.get("lens", 0)))),
+			str(s.get("lens_spent", {}))])
 	var sp: Array[String] = []
 	for k: String in (s.get("spend", {}) as Dictionary):
 		sp.append("%s %s" % [k, Economy.fmt(float(s["spend"][k]))])

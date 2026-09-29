@@ -23,6 +23,10 @@ signal sortie_sent(slot: int, rigs: int)
 signal sortie_back(report: Dictionary)
 ## A region of the deep map opened by an expedition (Operations, "regions").
 signal region_opened(region: String)
+## A Beacon lit in `region` (Operations, "Beacons"); the Beacons gone dark
+## for want of Lenses, or lit again.
+signal beacon_lit(region: String)
+signal beacons_dimmed(dark: bool)
 
 const AUTOSAVE_SECONDS := 20.0
 
@@ -336,7 +340,10 @@ func upgrade_core() -> bool:
 			CoreLevels.Req.CREDITS:
 				credits -= float(r[1])
 			CoreLevels.Req.STOCK:
-				_take_stock({int(r[1]): int(r[2])})
+				if int(r[1]) == MachineDB.Res.LENS:
+					_spend_lens(int(r[2]), "core")
+				else:
+					_take_stock({int(r[1]): int(r[2])})
 	core_level += 1
 	# The Core's rows count the sites cleared since it last grew.
 	ops_cleared = 0
@@ -386,7 +393,7 @@ func _collect_stock() -> void:
 	for res: int in sim.core_took:
 		# Rigs are the crew, kept up to the crew's limit, not the store's.
 		var limit: int = crew_cap() - rigs_out() - rigs_posted() - breakers - breakers_out() \
-			- surveyors - surveyors_out() if res == MachineDB.Res.RIG else cap
+			- surveyors - surveyors_out() - surveyors_away() if res == MachineDB.Res.RIG else cap
 		stock[res] = mini(stock_of(res) + int(sim.core_took[res]), limit)
 		units += int(sim.core_took[res])
 	sim.core_took.clear()
@@ -414,7 +421,7 @@ func _sync_core() -> void:
 			room[int(res)] = cap - stock_of(int(res))
 	# The crew: Rigs, up to the limit the Core's level sets, less those out.
 	var crew: int = crew_cap() - rigs_home() - rigs_out() - rigs_posted() - breakers - breakers_out() \
-		- surveyors - surveyors_out()
+		- surveyors - surveyors_out() - surveyors_away()
 	if crew > 0 and core_level >= MachineDB.RIG_CORE:
 		room[MachineDB.Res.RIG] = crew
 	sim.core_wants = room
@@ -455,6 +462,17 @@ func job_blocker(cell: int, job: String) -> String:
 		return "depth"
 	if core_level < int(MachineDB.job_info(id, job).get("core", 1)):
 		return "core"
+	return _job_gate(id, job)
+
+
+## A job a region opens ("region") or a Beacon keeps ("control"): "region"
+## (not open), "control" (no Beacon lit there), or "".
+func _job_gate(id: String, job: String) -> String:
+	var info: Dictionary = MachineDB.job_info(id, job)
+	if info.has("region") and not region_open(String(info["region"])):
+		return "region"
+	if info.has("control") and not beacons.has(String(info["control"])):
+		return "control"
 	return ""
 
 
@@ -466,7 +484,7 @@ func can_set_job(cell: int, job: String) -> bool:
 ## its Core level grown?
 func job_open(id: String, job: String) -> bool:
 	return max_depth >= int(MachineDB.job_info(id, job).get("depth", 0)) \
-		and core_level >= int(MachineDB.job_info(id, job).get("core", 1))
+		and core_level >= int(MachineDB.job_info(id, job).get("core", 1)) and _job_gate(id, job) == ""
 
 
 func set_job(cell: int, job: String) -> bool:
@@ -485,8 +503,7 @@ func set_job(cell: int, job: String) -> bool:
 func can_make(res: int) -> bool:
 	for mk: Array in MachineDB.makers_of(res):
 		var id: String = String(mk[0])
-		if is_unlocked(id) and max_depth >= int(MachineDB.job_info(id, String(mk[1])).get("depth", 0)) \
-				and core_level >= int(MachineDB.job_info(id, String(mk[1])).get("core", 1)):
+		if is_unlocked(id) and job_open(id, String(mk[1])):
 			return true
 	return false
 
@@ -531,6 +548,8 @@ func fill_contract(i: int) -> bool:
 	var c: Dictionary = contract(i)
 	var paid: float = contract_pay(i)
 	_take_stock({int(c["res"]): int(c["n"])})
+	if int(c["res"]) == MachineDB.Res.LENS:
+		lens_spent["contract"] = int(lens_spent.get("contract", 0)) + int(c["n"])
 	if String(c["pays"]) == "research":
 		research += paid
 	else:
@@ -626,7 +645,7 @@ func surveyors_out() -> int:
 ## "surveyor"}.
 func crew_roles() -> Dictionary:
 	return {"rig": rigs_home() + rigs_out() + rigs_posted(), "breaker": breakers + breakers_out(),
-		"surveyor": surveyors + surveyors_out()}
+		"surveyor": surveyors + surveyors_out() + surveyors_away()}
 
 
 ## Why a Rig at the Bay cannot be refitted as a `role` ("breaker",
@@ -709,7 +728,7 @@ func expedition_lenses() -> int:
 ## (none in the team), "rigs", "lens", "fuel", "weak" (not strong enough
 ## for its survey).
 func expedition_blocker(r: String, n: int, b: int, v: int) -> String:
-	if core_level < Operations.REGION_CORE or not Operations.REGIONS.has(r):
+	if not Operations.REGIONS.has(r) or core_level < Operations.region_core(r):
 		return "core"
 	if region_open(r):
 		return "open"
@@ -717,11 +736,14 @@ func expedition_blocker(r: String, n: int, b: int, v: int) -> String:
 		return "busy"
 	if regions_open.size() + expeditions_out() >= Operations.region_slots(core_level):
 		return "room"
+	# The Dark Reach: only once enough Beacons burn to light the way.
+	if r == "reach" and lit_beacons() < Operations.REACH_LIGHT:
+		return "beacons"
 	if v < 1:
 		return "surveyor"
 	if n < 0 or b < 0 or n > rigs_home() or b > breakers or v > surveyors:
 		return "rigs"
-	if stock_of(MachineDB.Res.LENS) < expedition_lenses():
+	if stock_of(MachineDB.Res.LENS) < expedition_lenses() + light_lenses(survey_site(r), n, b, v):
 		return "lens"
 	if stock_of(Operations.fuel_res(core_level)) < expedition_fuel(n, b, v):
 		return "fuel"
@@ -739,7 +761,7 @@ func expedition_fuel(n: int, b: int, v: int) -> int:
 func send_expedition(r: String, n: int, b: int, v: int) -> bool:
 	if expedition_blocker(r, n, b, v) != "":
 		return false
-	_take_stock({MachineDB.Res.LENS: expedition_lenses()})
+	_spend_lens(expedition_lenses(), "expedition")
 	var fuel_extra: int = expedition_fuel(n, b, v) - Operations.fuel(n, core_level, b, v)
 	_take_stock({Operations.fuel_res(core_level): fuel_extra})
 	return _send(Operations.region_slot(r), survey_site(r), n, b, v)
@@ -764,6 +786,229 @@ func _open_region(r: String) -> void:
 	_recompute()
 	_deal_ops()
 	region_opened.emit(r)
+
+
+## --- Beacons: regions held (Operations, "Beacons") -------------------------------------
+
+## The regions a Beacon burns in, in the order they were lit; a Surveyor
+## keeps each, out of the crew.
+var beacons: Array = []
+## The store could not pay the Beacons' Lenses: every one is dark, and what
+## they give stops until it can.
+var beacons_dark: bool = false
+var _upkeep_due: float = 0.0
+## Machines a Surveyor tunes (tune): cell -> true.
+var tuners: Dictionary = {}
+## Lenses spent, by what for: "core", "expedition", "beacon", "upkeep",
+## "light", "factory" (hauled into a machine), "contract" (Dispatch).
+var lens_spent: Dictionary = {}
+
+
+## Does a Beacon burn in region `r` now?
+func controlled(r: String) -> bool:
+	return beacons.has(r) and not beacons_dark
+
+
+## Beacons burning now.
+func lit_beacons() -> int:
+	return 0 if beacons_dark else beacons.size()
+
+
+## Surveyors out of the crew's reach: keeping Beacons, tuning machines.
+func surveyors_away() -> int:
+	return beacons.size() + tuners.size()
+
+
+func beacon_site(r: String) -> Dictionary:
+	return Operations.beacon_site(r, core_level, depth + 100 * collapses)
+
+
+## Lenses the next Beacon costs to light.
+func beacon_lenses() -> int:
+	return Operations.BEACON_LENS * (beacons.size() + 1)
+
+
+## Lenses an hour the Beacons burn.
+func beacon_upkeep() -> float:
+	return Operations.BEACON_UPKEEP * float(beacons.size())
+
+
+## Lenses a sortie of this team to site `s` burns for light: none but in
+## the dark, and none there once a Beacon burns in the Dark Reach.
+func light_lenses(s: Dictionary, n: int, b: int, v: int) -> int:
+	if not Operations.dark(s) or controlled("reach"):
+		return 0
+	return Operations.dark_lens(n, b, v)
+
+
+## Why `n` Rigs, `b` Breakers and `v` Surveyors cannot light a Beacon in
+## region `r` now, or "": "core", "closed" (not open), "lit" (one burns),
+## "busy" (a team is out there), "surveyor" (none to keep it), "rigs",
+## "lens", "fuel", "weak".
+func beacon_blocker(r: String, n: int, b: int, v: int) -> String:
+	if core_level < Operations.CONTROL_CORE or not Operations.REGIONS.has(r):
+		return "core"
+	if not region_open(r):
+		return "closed"
+	if beacons.has(r):
+		return "lit"
+	if site_busy(Operations.region_slot(r)):
+		return "busy"
+	if v < 1:
+		return "surveyor"
+	if n < 0 or b < 0 or n > rigs_home() or b > breakers or v > surveyors:
+		return "rigs"
+	var s: Dictionary = beacon_site(r)
+	if stock_of(MachineDB.Res.LENS) < beacon_lenses() + light_lenses(s, n, b, v):
+		return "lens"
+	if stock_of(Operations.fuel_res(core_level)) < expedition_fuel(n, b, v):
+		return "fuel"
+	if team_strength(s, n, b, v) < float(s["need"]):
+		return "weak"
+	return ""
+
+
+## Send a team to light a Beacon in region `r`: when it is home, the region
+## is held and one Surveyor stays to keep the lamp.
+func send_beacon(r: String, n: int, b: int, v: int) -> bool:
+	if beacon_blocker(r, n, b, v) != "":
+		return false
+	_spend_lens(beacon_lenses(), "beacon")
+	var fuel_extra: int = expedition_fuel(n, b, v) - Operations.fuel(n, core_level, b, v)
+	_take_stock({Operations.fuel_res(core_level): fuel_extra})
+	return _send(Operations.region_slot(r), beacon_site(r), n, b, v)
+
+
+## The fewest that light a Beacon in region `r`, with a Surveyor, or
+## everyone at home.
+func beacon_team(r: String) -> Vector3i:
+	var s: Dictionary = beacon_site(r)
+	for size in range(1, rigs_home() + breakers + surveyors + 1):
+		for t: Vector3i in _splits(s, size):
+			if t.z >= 1 and team_strength(s, t.x, t.y, t.z) >= float(s["need"]):
+				return t
+	return Vector3i(rigs_home(), breakers, surveyors)
+
+
+func _light_beacon(r: String) -> void:
+	if beacons.has(r) or not region_open(r):
+		return
+	beacons.append(r)
+	# The keeper stays with the lamp.
+	surveyors = maxi(surveyors - 1, 0)
+	_recompute()
+	beacon_lit.emit(r)
+
+
+## Put out the Beacon in region `r`: its keeper comes home, and what the
+## region gave while held stops.
+func douse_beacon(r: String) -> bool:
+	if not beacons.has(r):
+		return false
+	beacons.erase(r)
+	surveyors += 1
+	if beacons.is_empty():
+		beacons_dark = false
+		_upkeep_due = 0.0
+	_recompute()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+## The Beacons' Lenses, as the factory runs: `dt` seconds of them from the
+## store; when the store has none, they go dark until it has.
+func _upkeep(dt: float) -> void:
+	if beacons.is_empty():
+		return
+	if not beacons_dark:
+		_upkeep_due += beacon_upkeep() / 3600.0 * dt
+	var owed: int = int(ceil(_upkeep_due)) if beacons_dark else int(_upkeep_due)
+	if owed <= 0:
+		return
+	if stock_of(MachineDB.Res.LENS) >= owed:
+		_spend_lens(owed, "upkeep")
+		_upkeep_due -= float(owed)
+		if beacons_dark:
+			beacons_dark = false
+			_recompute()
+			beacons_dimmed.emit(false)
+	elif not beacons_dark:
+		beacons_dark = true
+		_recompute()
+		beacons_dimmed.emit(true)
+
+
+func _spend_lens(n: int, why: String) -> void:
+	_take_stock({MachineDB.Res.LENS: n})
+	lens_spent[why] = int(lens_spent.get(why, 0)) + n
+
+
+## Why a Surveyor at the Bay cannot tune machine `cell` now, or "":
+## "machine" (nothing there), "job" (not a job a Surveyor tunes), "tuned"
+## (one does), "surveyors" (none at the Bay).
+func tune_blocker(cell: int) -> String:
+	if grid.is_empty(cell):
+		return "machine"
+	if not MachineDB.job_info(grid.machine_at(cell), grid.job_at(cell)).has("tuned"):
+		return "job"
+	if tuners.has(cell):
+		return "tuned"
+	if surveyors <= 0:
+		return "surveyors"
+	return ""
+
+
+## A Surveyor from the Bay tunes machine `cell`: it takes what its job's
+## "tuned" recipe says -- half the Resonite a Lens, half the Lenses a Prism
+## -- for as long as the Surveyor stays.
+func tune(cell: int) -> bool:
+	if tune_blocker(cell) != "":
+		return false
+	surveyors -= 1
+	tuners[cell] = true
+	_sync_tuners()
+	_sync_core()
+	stats_changed.emit()
+	Save.save_game(self)
+	return true
+
+
+func untune(cell: int) -> bool:
+	if not tuners.has(cell):
+		return false
+	tuners.erase(cell)
+	surveyors += 1
+	_sync_tuners()
+	_sync_core()
+	stats_changed.emit()
+	return true
+
+
+## The simulation's view of the Surveyors and the Beacons: each tuned
+## machine's recipe, and the jobs no Beacon keeps running. A tuner whose
+## machine is gone, or no longer on a job it tunes, comes home.
+func _sync_tuners() -> void:
+	if sim == null:
+		return
+	var ins: Dictionary = {}
+	for cell: int in tuners.keys():
+		var info: Dictionary = {} if grid.is_empty(cell) else MachineDB.job_info(grid.machine_at(cell), grid.job_at(cell))
+		if not info.has("tuned"):
+			tuners.erase(cell)
+			surveyors += 1
+			continue
+		ins[cell] = info["tuned"]
+	var off: Dictionary = {}
+	for id: String in MachineDB.JOBS:
+		for job: String in (MachineDB.JOBS[id] as Dictionary):
+			var c: String = String((MachineDB.JOBS[id][job] as Dictionary).get("control", ""))
+			if c != "" and not controlled(c):
+				off[job] = true
+	if ins != sim.cell_inputs or off != sim.jobs_off:
+		sim.cell_inputs = ins
+		sim.jobs_off = off
+		sim.job_stamp += 1
 
 
 ## --- posts: Rigs at work in the factory (Operations, "Posts") -------------------
@@ -924,6 +1169,8 @@ func _haul(dt: float) -> void:
 				stock[res] = stock_of(res) - 1
 				budget -= 1.0
 				hauled += 1
+				if res == MachineDB.Res.LENS:
+					lens_spent["factory"] = int(lens_spent.get("factory", 0)) + 1
 				moved = true
 		# Nothing to haul now: the Rig waits, and does not bank the time.
 		posts[cell] = minf(budget, 1.0)
@@ -948,7 +1195,13 @@ func site(i: int) -> Dictionary:
 
 ## What clearing site `i` pays, at the factory's measured income now.
 func site_reward(i: int) -> Dictionary:
-	return Operations.reward(site(i), offline_rate())
+	var r: Dictionary = Operations.reward(site(i), offline_rate())
+	var reg: String = String(site(i).get("region", ""))
+	if reg != "" and controlled(reg):
+		for k: String in ["credits", "research"]:
+			r[k] = float(r[k]) * Operations.CONTROL_PAY
+		r["n"] = int(ceil(float(r["n"]) * Operations.CONTROL_PAY))
+	return r
 
 
 func site_busy(i: int) -> bool:
@@ -973,6 +1226,8 @@ func sortie_blocker(i: int, n: int, b: int = 0, v: int = 0) -> String:
 		return "rigs"
 	if stock_of(Operations.fuel_res(core_level)) < Operations.fuel(n, core_level, b, v):
 		return "fuel"
+	if stock_of(MachineDB.Res.LENS) < light_lenses(site(i), n, b, v):
+		return "light"
 	return ""
 
 
@@ -1008,10 +1263,17 @@ func _splits(s: Dictionary, size: int) -> Array[Vector3i]:
 	var wet: bool = Operations.watery(s)
 	var danger: bool = Operations.dangerous(s)
 	var survey: bool = String(s.get("kind", "")) == "survey"
+	var dark: bool = Operations.dark(s)
+	var hold: bool = Operations.holding(s)
 	var key := func(t: Vector3i) -> float:
 		var k: float = 0.0
 		if survey:
 			k -= 100.0 * float(t.z)
+		# In the dark, a Surveyor to guide; on a Beacon's ground, Breakers.
+		if dark and t.z >= 1:
+			k -= 60.0
+		if hold:
+			k -= 20.0 * float(t.y)
 		if danger and t.y >= 1:
 			k -= 50.0
 		if rock:
@@ -1059,6 +1321,10 @@ func _send(i: int, s: Dictionary, n: int, b: int, v: int) -> bool:
 	# The Surveyors find more of the Resonite.
 	out["find"] = minf(Operations.SURVEYOR_FIND * float(v), Operations.SURVEYOR_FIND_MAX)
 	_take_stock({Operations.fuel_res(core_level): Operations.fuel(n, core_level, b, v), MachineDB.Res.RIG: n})
+	# Light for the dark.
+	var light: int = light_lenses(s, n, b, v)
+	if light > 0:
+		_spend_lens(light, "light")
 	breakers -= b
 	surveyors -= v
 	var trip: float = Operations.trip(s)
@@ -1108,6 +1374,10 @@ func _sortie_home(s: Dictionary) -> void:
 	var share: float = float(out["share"])
 	# Danger: a team with no Breaker to lead it brought home half.
 	var pay: float = share * (0.5 if bool(out.get("half", false)) else 1.0)
+	# A held region's sites pay more.
+	var reg: String = String(site_was.get("region", ""))
+	if reg != "" and controlled(reg) and kind != "beacon":
+		pay *= Operations.CONTROL_PAY
 	var paid: float = float(r["credits"]) * pay
 	credits += paid
 	lifetime_credits += paid
@@ -1118,11 +1388,14 @@ func _sortie_home(s: Dictionary) -> void:
 		# More with Surveyors, in the Caverns, and with the Lens research.
 		units *= (1.0 + float(out.get("find", 0.0))) * float(_mult.get("resonite", 1.0)) \
 			* (Operations.CAVERN_RESONITE if region_open("caverns") else 1.0)
+	elif res == MachineDB.Res.UMBRITE:
+		units *= (1.0 + float(out.get("find", 0.0))) * float(_mult.get("umbrite", 1.0))
 	var got: int = int(floor(units))
 	if MachineDB.STOCKED.has(res):
 		stock[res] = mini(stock_of(res) + got, stock_cap())
 	var slot: int = int(s["slot"])
-	var salv: int = int(r["salvage"]) * (Operations.FOUNDRY_SALVAGE if region_open("foundry") else 1)
+	var salv: int = int(r["salvage"]) * (Operations.FOUNDRY_CONTROL if controlled("foundry")
+		else (Operations.FOUNDRY_SALVAGE if region_open("foundry") else 1))
 	if bool(out["cleared"]):
 		salvage += salv
 		salvage_earned += salv
@@ -1134,16 +1407,19 @@ func _sortie_home(s: Dictionary) -> void:
 			rig_wear = 0.0
 		if kind == "survey":
 			_open_region(String(site_was.get("region", "")))
+		elif kind == "beacon":
+			_light_beacon(String(site_was.get("region", "")))
 		elif slot < ops_board.size():
 			ops_board[slot] = {}
 		_deal_ops()
-	elif kind != "survey" and slot < ops_board.size() \
+	elif kind != "survey" and kind != "beacon" and slot < ops_board.size() \
 			and site(slot).get("serial", -1) == site_was.get("serial", -2):
 		ops_board[slot]["left"] = float(out["left"])
 	_sync_core()
 	sortie_back.emit({"kind": kind, "cleared": bool(out["cleared"]),
 		"credits": paid, "research": float(r["research"]) * pay, "res": res, "n": got,
 		"wear": float(out["wear"]), "rigs": n, "breakers": b, "surveyors": v, "slot": slot,
+		"trip": float(s.get("trip", 0.0)),
 		"salvage": salv if bool(out["cleared"]) else 0, "region": String(site_was.get("region", ""))})
 	stats_changed.emit()
 
@@ -1185,7 +1461,7 @@ func _deal_ops() -> void:
 		if r != "" and not region_open(r):
 			continue
 		ops_board[i] = Operations.deal(core_level, depth + 100 * collapses, ops_serial) if r == "" \
-			else Operations.deal_region(r, core_level, depth + 100 * collapses, ops_serial)
+			else Operations.deal_region(r, core_level, depth + 100 * collapses, ops_serial, controlled(r))
 		ops_serial += 1
 
 
@@ -1203,6 +1479,10 @@ func clear_ops() -> void:
 	surveyors = 0
 	regions_open = []
 	rescued = 0
+	beacons = []
+	beacons_dark = false
+	_upkeep_due = 0.0
+	tuners = {}
 
 
 ## The Bay's next level: why it cannot be bought now, or "": "max" (the
@@ -1238,6 +1518,7 @@ func after_tick(dt: float) -> void:
 	_collect_stock()
 	advance_ops(dt)
 	_haul(dt)
+	_upkeep(dt)
 
 
 ## --- machine levels ------------------------------------------------------------
@@ -1494,7 +1775,7 @@ func can_buy_upgrade(id: String) -> bool:
 	if u.is_empty():
 		return false
 	var lvl: int = upgrade_level(id)
-	if lvl >= int(u["max"]) or lvl >= research_cap(id):
+	if lvl >= line_max(id) or lvl >= research_cap(id):
 		return false
 	# A doctrine's line only in a shaft that follows it.
 	if Economy.doctrine_of(id) != "" and Economy.doctrine_of(id) != doctrine:
@@ -1509,7 +1790,15 @@ func can_buy_upgrade(id: String) -> bool:
 
 ## How far research line `id` may go under this shaft's Core.
 func research_cap(id: String) -> int:
-	return Economy.research_cap(id, core_level)
+	return Economy.research_cap(id, core_level, line_max(id) - int(Economy.RESEARCH_TREE.get(id, {}).get("max", 0)))
+
+
+## The most levels line `id` has in this shaft: a held region's line goes
+## Operations.CONTROL_LINE further.
+func line_max(id: String) -> int:
+	var u: Dictionary = Economy.RESEARCH_TREE.get(id, {})
+	var reg: String = String(u.get("region", ""))
+	return int(u.get("max", 0)) + (Operations.CONTROL_LINE if reg != "" and controlled(reg) else 0)
 
 
 func buy_upgrade(id: String) -> bool:
@@ -1557,7 +1846,9 @@ func _recompute() -> void:
 	_mult = Economy.multipliers(upgrade_levels, doctrine)
 	# The Sunken Works' brine (Operations, "regions").
 	if region_open("sunken"):
-		_mult["cooling"] = float(_mult.get("cooling", 1.0)) * Operations.BRINE_COOLING
+		_mult["cooling"] = float(_mult.get("cooling", 1.0)) \
+			* (Operations.BRINE_CONTROL if controlled("sunken") else Operations.BRINE_COOLING)
+	_sync_tuners()
 
 	# One entry point, so a stratum field can never again be wired in the game
 	# and forgotten in the five tools that measure it. `richness` is folded
@@ -2003,6 +2294,11 @@ func to_dict() -> Dictionary:
 		"surveyors": surveyors,
 		"regions_open": regions_open,
 		"rescued": rescued,
+		"beacons": beacons,
+		"beacons_dark": beacons_dark,
+		"upkeep_due": _upkeep_due,
+		"tuners": tuners.keys(),
+		"lens_spent": lens_spent,
 		"posts": posts.keys(),
 		"bay_level": bay_level,
 		"hauled": hauled,
@@ -2085,6 +2381,21 @@ func from_dict(d: Dictionary) -> void:
 	for r in (d.get("regions_open", []) as Array):
 		if Operations.REGIONS.has(String(r)) and not regions_open.has(String(r)):
 			regions_open.append(String(r))
+	# Beacons only in open regions; a save from before them has none.
+	beacons = []
+	for r in (d.get("beacons", []) as Array):
+		if regions_open.has(String(r)) and not beacons.has(String(r)):
+			beacons.append(String(r))
+	beacons_dark = bool(d.get("beacons_dark", false)) and not beacons.is_empty()
+	_upkeep_due = maxf(float(d.get("upkeep_due", 0.0)), 0.0)
+	tuners = {}
+	for c in (d.get("tuners", []) as Array):
+		tuners[int(c)] = true
+	lens_spent = {}
+	var ls: Variant = d.get("lens_spent", {})
+	if typeof(ls) == TYPE_DICTIONARY:
+		for k in (ls as Dictionary):
+			lens_spent[String(k)] = int((ls as Dictionary)[k])
 	bay_level = clampi(int(d.get("bay_level", 1)), 1, Operations.BAY_MAX)
 	hauled = int(d.get("hauled", 0))
 	salvage_earned = int(d.get("salvage_earned", 0))
