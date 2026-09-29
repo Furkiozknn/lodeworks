@@ -437,12 +437,15 @@ const BRINE_COOLING := 1.25
 const CAVERN_RESONITE := 1.5
 const FOUNDRY_SALVAGE := 2
 ## Resonite a cleared site holds, a unit of its strength (UNITS_PER_NEED
-## for the other materials): rarer than what the factory makes. At 0.4 a
-## Core 10 crew in the Caverns brought home 28,000 in 35 minutes and the
-## Core 11 row's Lenses were a formality.
-const RESONITE_PER_NEED := 0.15
-## Umbrite likewise, rarer still.
-const UMBRITE_PER_NEED := 0.1
+## for the other materials): rarer than what the factory makes. At 0.4, with
+## the factory's yield multiplying every Lens, a Core 10 crew in the Caverns
+## brought home 28,000 in 35 minutes and the Core 11 row's Lenses were a
+## formality; at 0.15, with the Lens crafted (no yield), the Sunken Works'
+## cisterns brought about 700 an hour and Core 11's 4,000 Lenses took more
+## than three hours.
+const RESONITE_PER_NEED := 0.5
+## Umbrite likewise, a little rarer.
+const UMBRITE_PER_NEED := 0.3
 
 
 ## --- Beacons: a region held (Core 11) -----------------------------------------------
@@ -502,6 +505,10 @@ const DARK_LOST := 0.5
 const DARK_BREAKER := 1.0
 const DARK_SURVEYOR := 1.5
 const DARK_LENS := 3
+## A Dark Reach site's strength, of what the tier deals elsewhere (measured:
+## a Shade Nest of 441 against a Core 12 team of 218 in the dark stood on
+## the board for an hour, and no Umbrite came home).
+const DARK_NEED := 0.6
 
 
 ## The Core's level that opens region `r` to expeditions.
@@ -591,6 +598,10 @@ static func deal_region(r: String, core_level: int, depth: int, serial: int, hel
 	s["terrain"] = String(reg["terrain"])
 	s["armor"] = String(reg["terrain"]) == "rock"
 	s["hazard"] = minf(float(KINDS[kind]["hazard"]) * (1.0 + 0.02 * float(depth)), 0.6)
+	# In the dark the way is the obstacle, not the strength of the site.
+	if String(reg["terrain"]) == "dark":
+		s["need"] = snappedf(float(s["need"]) * DARK_NEED, 1.0)
+		s["left"] = s["need"]
 	return s
 
 

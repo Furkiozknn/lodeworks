@@ -467,7 +467,7 @@ func _deep_map() -> bool:
 	for r: String in Operations.REGION_ORDER:
 		if r != region_first:
 			rest.append(r)
-	rest.sort_custom(func(a: String, b: String) -> bool: return _whole_crew(a) > _whole_crew(b))
+	rest.sort_custom(func(a: String, b: String) -> bool: return _region_score(a) > _region_score(b))
 	var order: Array = [region_first] + rest
 	for r: String in order:
 		if S.region_open(r) or S.site_busy(Operations.region_slot(r)):
@@ -514,6 +514,34 @@ func _deep_map() -> bool:
 	return _beacon()
 
 
+## How much region `r` is worth going to next: the whole crew's fit, and,
+## while the Lens rows wait on Resonite, the Caverns first -- the richest
+## Resonite, and held, the Resonant Bore (measured: a shaft that opened the
+## Sunken Works first chose the Foundry next for its crew's fit, and the
+## Core 12 row's two Lens Grinders starved for hours).
+func _region_score(r: String, fit: float = -1.0) -> float:
+	if fit < 0.0:
+		fit = _whole_crew(r)
+	if r == "caverns" and fit >= 1.0 and _resonite_short():
+		return fit + 1.0
+	return fit
+
+
+## Do the Core's rows wait on Lenses the store's Resonite cannot make?
+func _resonite_short() -> bool:
+	if S.stock_of(MachineDB.Res.RESONITE) >= 500:
+		return false
+	for st: Dictionary in S.core_status():
+		var q: Array = st["req"]
+		if bool(st["met"]):
+			continue
+		if int(q[0]) == CoreLevels.Req.STOCK and int(q[1]) in [MachineDB.Res.LENS, MachineDB.Res.PRISM]:
+			return true
+		if int(q[0]) == CoreLevels.Req.WORKING and CoreLevels.row_job(q) == "lens":
+			return true
+	return false
+
+
 ## The whole crew -- at the Bay, out and posted -- against region `r`'s
 ## survey (or `s`): its strength over the need.
 func _whole_crew(r: String, s: Dictionary = {}) -> float:
@@ -547,7 +575,7 @@ func _beacon() -> bool:
 		if S.beacons.has(r):
 			continue
 		var f: float = _whole_crew(r, S.beacon_site(r))
-		if f > fit:
+		if best == "" or _region_score(r, f) > _region_score(best, fit):
 			fit = f
 			best = r
 	if best == "":
@@ -598,7 +626,15 @@ func _tuning() -> void:
 		return
 	var reserve: int = 1 if S.regions_open.size() < Operations.region_room(S.core_level) \
 		or S.beacons.size() < S.regions_open.size() else 0
-	if S.surveyors <= reserve:
+	# Guides for the dark, while no Beacon lights it (measured: four
+	# Surveyors tuning and two keeping Beacons left none for the Dark
+	# Reach, and Core 13's Prisms stood at 0 for an hour).
+	if S.region_open("reach") and not S.controlled("reach"):
+		reserve += 2
+	if S.surveyors < reserve and not S.tuners.is_empty():
+		S.untune(int(S.tuners.keys()[0]))
+		return
+	if S.surveyors <= reserve or S.tuners.size() >= TUNERS:
 		return
 	for cell: int in S.sim.core_touching():
 		if S.tune_blocker(cell) == "":
@@ -615,6 +651,10 @@ func _bores() -> void:
 		return
 	if _build_core_side("drill", "resonite"):
 		_event("bore", "first Resonant Bore beside the Core")
+
+
+## Surveyors the scripted player sets to tuning at most.
+const TUNERS := 2
 
 
 ## Resonant Bores laid beside the Core once the Caverns are held.
@@ -672,6 +712,17 @@ func _posting() -> void:
 					return
 		return
 	var keep: int = 0 if _rows_wait_on_posts() else 2
+	# From the deep map: no Rig at the Bay, and a row's machine waiting: one
+	# posted where no row asks is called over (measured: the Core 13 row's
+	# Prism Cutter stood starved beside the Core for an hour, every Rig
+	# posted to Lens Grinders no row asked for any more).
+	if S.rigs_home() <= keep and S.core_level >= Operations.REGION_CORE and _in_rows(wanted[0], rows):
+		for cell: int in S.posts.keys():
+			if not _in_rows(cell, rows):
+				S.recall_rig(cell)
+				S.post_rig(wanted[0])
+				_event("repost", "first Rig called home for a Core row's machine")
+				return
 	if S.rigs_home() > keep and S.post_rig(wanted[0]):
 		_event("post", "first Rig posted")
 
