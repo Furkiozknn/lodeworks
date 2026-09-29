@@ -2518,12 +2518,19 @@ func _draw_galleries(ci: CanvasItem) -> void:
 	_draw_deliveries()
 	_flush_tris(ci)
 	var crew: Dictionary = IsoArt.layout().get("crew", {})
+	# The Breaker's and the Surveyor's own sheets; without them, the Rig's,
+	# scaled and painted.
+	var heavy: Dictionary = IsoArt.layout().get("crew_breaker", {})
+	var light: Dictionary = IsoArt.layout().get("crew_surveyor", {})
 	_rigs_to_draw.sort_custom(func(a: Array, b: Array) -> bool: return (a[1] as Vector2).y < (b[1] as Vector2).y)
 	for r: Array in _rigs_to_draw:
-		# A Breaker: the Rig's frame refitted, bigger, in rust-red plate.
-		var scale: float = BREAKER_SCALE if bool(r[3]) else (SURVEYOR_SCALE if bool(r[4]) else 1.0)
-		_sprite(ci, crew, String(r[0]), r[1], RIG_SCALE * scale, bool(r[2]),
-			BREAKER_TINT if bool(r[3]) else (SURVEYOR_TINT if bool(r[4]) else Color.WHITE))
+		var own: Dictionary = heavy if bool(r[3]) else (light if bool(r[4]) else crew)
+		if own.is_empty():
+			var scale: float = BREAKER_SCALE if bool(r[3]) else (SURVEYOR_SCALE if bool(r[4]) else 1.0)
+			_sprite(ci, crew, String(r[0]), r[1], RIG_SCALE * scale, bool(r[2]),
+				BREAKER_TINT if bool(r[3]) else (SURVEYOR_TINT if bool(r[4]) else Color.WHITE))
+		else:
+			_sprite(ci, own, String(r[0]), r[1], RIG_SCALE, bool(r[2]))
 	_rigs_to_draw.clear()
 	_draw_walker(ci)
 

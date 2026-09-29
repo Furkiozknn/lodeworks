@@ -453,13 +453,13 @@ func _deep_map() -> bool:
 			roles = maxi(roles, int(st["need"]))
 	var crew: Dictionary = S.crew_roles()
 	# Surveyors: the row's number, and one for an expedition while one waits.
-	var want_v: int = roles + (1 if S.regions_open.size() < Operations.region_slots(S.core_level) else 0)
+	var want_v: int = roles + (1 if S.regions_open.size() < Operations.region_room(S.core_level) else 0)
 	if int(crew["surveyor"]) < want_v and int(crew["rig"]) > roles and S.refit_blocker("surveyor") == "":
 		S.refit_rig("surveyor")
 		_event("surveyor", "first Rig refitted as a Surveyor")
 	elif int(crew["breaker"]) < roles and int(crew["rig"]) > roles and S.refit_blocker("breaker") == "":
 		S.refit_rig("breaker")
-	if S.regions_open.size() >= Operations.region_slots(S.core_level):
+	if S.regions_open.size() >= Operations.region_room(S.core_level):
 		return _beacon()
 	# The chosen region first; after it, the one the whole crew is best
 	# matched to (a crew of Breakers is weak in water).
@@ -596,7 +596,7 @@ func _beacon() -> bool:
 func _tuning() -> void:
 	if S.core_level < Operations.REGION_CORE or _crew_short or _hold_posts:
 		return
-	var reserve: int = 1 if S.regions_open.size() < Operations.region_slots(S.core_level) \
+	var reserve: int = 1 if S.regions_open.size() < Operations.region_room(S.core_level) \
 		or S.beacons.size() < S.regions_open.size() else 0
 	if S.surveyors <= reserve:
 		return

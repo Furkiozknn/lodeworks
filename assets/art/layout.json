@@ -967,5 +967,43 @@
   "res://assets/art/tiles/land_workings.jpg",
   "res://assets/art/tiles/land_deep.jpg",
   "res://assets/art/tiles/land_abyss.jpg"
- ]
+ ],
+ "crew_breaker": {
+  "file": "res://assets/art/crew/breaker.webp",
+  "cell": [
+   208,
+   230
+  ],
+  "anchor": [
+   104.0,
+   225.2
+  ],
+  "base_px": 150,
+  "order": [
+   "idle",
+   "drive",
+   "work",
+   "carry",
+   "worn"
+  ]
+ },
+ "crew_surveyor": {
+  "file": "res://assets/art/crew/surveyor.webp",
+  "cell": [
+   293,
+   221
+  ],
+  "anchor": [
+   146.5,
+   213.3
+  ],
+  "base_px": 104,
+  "order": [
+   "idle",
+   "drive",
+   "work",
+   "carry",
+   "worn"
+  ]
+ }
 }

@@ -619,7 +619,8 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 	var dup: float = minf(grid.duplicate_chance_at(i) * duplicate_mult, 0.9)
 	for res: int in m["outputs"].keys():
 		var amount: int = int(m["outputs"][res])
-		var produced: float = float(amount) * yield_mult
+		# A crafted job (a Lens, a Prism) makes what it makes: no yield.
+		var produced: float = float(amount) * (1.0 if bool(m.get("crafted", false)) else yield_mult)
 		var whole: int = int(produced)
 		var frac: float = produced - float(whole)
 		if frac > 0.0 and rng.randf() < frac:

@@ -717,6 +717,20 @@ func expeditions_out() -> int:
 	return n
 
 
+## The Core's room taken: regions open and expeditions out, but the Dark
+## Reach, which takes none.
+func _room_used() -> int:
+	var n: int = 0
+	for r: String in regions_open:
+		if Operations.takes_room(r):
+			n += 1
+	for s: Dictionary in sorties:
+		var site_was: Dictionary = s["site"]
+		if String(site_was.get("kind", "")) == "survey" and Operations.takes_room(String(site_was.get("region", ""))):
+			n += 1
+	return n
+
+
 ## Lenses an expedition into another region costs now.
 func expedition_lenses() -> int:
 	return Operations.EXPEDITION_LENS * regions_open.size()
@@ -734,7 +748,7 @@ func expedition_blocker(r: String, n: int, b: int, v: int) -> String:
 		return "open"
 	if site_busy(Operations.region_slot(r)):
 		return "busy"
-	if regions_open.size() + expeditions_out() >= Operations.region_slots(core_level):
+	if Operations.takes_room(r) and _room_used() >= Operations.region_slots(core_level):
 		return "room"
 	# The Dark Reach: only once enough Beacons burn to light the way.
 	if r == "reach" and lit_beacons() < Operations.REACH_LIGHT:

@@ -400,6 +400,11 @@ const JOBS := {
 		"core": LENS_CORE,
 		# With a Surveyor tuning it (Sim.tune): half the Resonite a Lens.
 		"tuned": {Res.FRAME: 1, Res.RESONITE: 1},
+		# Ground one at a time: the factory's yield does not multiply it
+		# (measured: at a yield of about 6.5, one Grinder turned 3,784
+		# Resonite into 23,464 Lenses in thirty minutes, and a new game held
+		# 191,000 at Core 12 against rows of 10,000 and 16,000).
+		"crafted": true,
 	}, "prism": {
 		# The Dark Reach's (Operations, "the Dark Reach"): Umbrite only the
 		# crew brings home, cut with two Lenses. Fed from the store, beside
@@ -413,6 +418,7 @@ const JOBS := {
 		"core": PRISM_CORE,
 		"region": "reach",
 		"tuned": {Res.LENS: 1, Res.UMBRITE: 1},
+		"crafted": true,
 	}, "rig": {
 		"name": "Rig Frame",
 		"short": "Builds a Rig: a robot the Core sends out into the galleries.",
@@ -495,7 +501,8 @@ static func job_machine(id: String, job: String) -> Dictionary:
 	if info.is_empty():
 		return base
 	var m: Dictionary = base.duplicate(true)
-	for k: String in ["inputs", "outputs", "learns", "rate", "heat_optimum", "heat_tolerance", "vein", "heat_drive"]:
+	for k: String in ["inputs", "outputs", "learns", "rate", "heat_optimum", "heat_tolerance", "vein", "heat_drive",
+			"crafted"]:
 		if info.has(k):
 			m[k] = info[k]
 	m["job"] = job

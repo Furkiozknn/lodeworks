@@ -369,7 +369,8 @@ static func best_placement(state: Object) -> Dictionary:
 ## refit it needs.
 static func _deep_map(state: Object, out: Array) -> void:
 	if state.has_method("send_expedition") and int(state.get("core_level")) >= Operations.REGION_CORE \
-			and (state.get("regions_open") as Array).size() + int(state.call("expeditions_out")) 				< Operations.region_slots(int(state.get("core_level"))):
+			and (state.get("regions_open") as Array).size() + int(state.call("expeditions_out")) \
+				< Operations.region_room(int(state.get("core_level"))):
 		var sent: bool = false
 		for r: String in Operations.REGION_ORDER:
 			if bool(state.call("region_open", r)):

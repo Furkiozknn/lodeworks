@@ -621,5 +621,41 @@
    "assets/art/tiles/land_abyss.jpg"
   ],
   "prompt": "A SEAMLESS TILEABLE ground texture seen EXACTLY from straight above (orthographic top-down, no perspective, no horizon), filling the whole square edge to edge, for the natural ground around a factory in a stylized mobile game, in the painted style and colours of the attached sheet: THE ABYSS, a crystal realm floor -- dark navy and violet stone in natural shapes, veins glowing faintly violet and cyan, small clusters of tiny purple crystals, patches of glowing blue moss, gentle painted shading. Natural and organic: NO tiles, NO grid, NO squares, NO borders, no objects that would repeat noticeably, no text. The left edge must continue seamlessly into the right edge and the top into the bottom."
+ },
+ "crew_breaker": {
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "21:9",
+  "background": "transparent",
+  "refs": [
+   "b90b6221-1fe8-4cc0-a0a5-64c02002fc4d"
+  ],
+  "date": "2026-09-29 03:07 UTC",
+  "session": "Claude Code, 29 Sep 2026 (the crew's other kinds)",
+  "file": "r6_breaker.png",
+  "job": "3da719e1-c306-4734-b7bb-ed99da8c8a1c",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260929_030745_3da719e1-c306-4734-b7bb-ed99da8c8a1c.png",
+  "used_for": [
+   "assets/art/crew/breaker.webp"
+  ],
+  "prompt": "Character pose sheet on a fully transparent background for the mobile game LODEWORKS: a heavier variant of the small robot in the attached sheet, called a BREAKER. Exactly the art style, glossy materials, warm upper-left light, TRUE ISOMETRIC camera and scale of the attached sheet (stylized 3D, chunky, toy-like, premium mobile game art, soft bevels), and clearly the same robot family: the same rounded box body, the same two chunky dark caterpillar treads, the same round brass porthole face with two big friendly glowing eyes. What makes it a Breaker: it is about a third bulkier and lower, its body painted in deep rust red with thick dark iron armour plates bolted over the front and the shoulders, heavy riveted iron shoulder pads, one arm ending in a big iron rock hammer with a brass collar and the other in a wide shovel claw, amber glowing eyes instead of cyan, a short sturdy exhaust stack. Strong clear silhouette readable at 60 pixels, clearly different from the orange Rig at a glance. The same Breaker shown 5 times in a row, evenly spaced, not overlapping, identical design, every one seen from the same high isometric camera facing down and to the LEFT: 1 IDLE standing still, solid and calm; 2 DRIVING forward, leaning slightly, a small puff of dust behind the treads; 3 WORKING, swinging the rock hammer down onto a small grey rock that bursts into chips and warm orange sparks; 4 CARRYING a small brass-bound crate on top of its body; 5 WORN, dented and scratched armour, one plate hanging loose, a thin wisp of dark smoke. No text, no floor, no ground shadow, no background, nothing else in the image."
+ },
+ "crew_surveyor": {
+  "model": "gpt_image_2_5 / flare",
+  "quality": "high, 2k",
+  "aspect": "21:9",
+  "background": "transparent",
+  "refs": [
+   "b90b6221-1fe8-4cc0-a0a5-64c02002fc4d"
+  ],
+  "date": "2026-09-29 03:07 UTC",
+  "session": "Claude Code, 29 Sep 2026 (the crew's other kinds)",
+  "file": "r6_surveyor.png",
+  "job": "ba72862e-b59a-4af6-ad1d-54a64e949cf5",
+  "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39JEr2UlkO5nbSE7R7BKipgvW0K/hf_20260929_030747_ba72862e-b59a-4af6-ad1d-54a64e949cf5.png",
+  "used_for": [
+   "assets/art/crew/surveyor.webp"
+  ],
+  "prompt": "Character pose sheet on a fully transparent background for the mobile game LODEWORKS: a lighter variant of the small robot in the attached sheet, called a SURVEYOR. Exactly the art style, glossy materials, warm upper-left light, TRUE ISOMETRIC camera and scale of the attached sheet (stylized 3D, chunky, toy-like, premium mobile game art, soft bevels), and clearly the same robot family: the same round brass porthole face with two big friendly glowing cyan eyes, the same kind of caterpillar treads but narrower and lighter. What makes it a Surveyor: it is slimmer and a little taller than the Rig, its body painted in pale sea-glass teal with polished brass trim, a tall thin brass mast on its back carrying a bright glowing lantern lamp and a small round sounding dish, a satchel of glinting glass lenses strapped to one side, two slender jointed arms, one holding a small brass surveying scope. Strong clear silhouette readable at 60 pixels, clearly different from the orange Rig at a glance. The same Surveyor shown 5 times in a row, evenly spaced, not overlapping, identical design, every one seen from the same high isometric camera facing down and to the LEFT: 1 IDLE standing still, curious, lamp softly lit; 2 DRIVING forward, leaning slightly, a small puff of dust behind the treads; 3 WORKING, looking through the scope while the lamp casts a cone of pale cyan light forward; 4 CARRYING a small brass-bound crate on top of its body; 5 WORN, scuffed paint, a cracked lamp glass, a thin wisp of dark smoke. No text, no floor, no ground shadow, no background, nothing else in the image."
  }
 }

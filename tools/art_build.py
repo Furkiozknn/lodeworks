@@ -517,6 +517,13 @@ SPRITE_SHEETS = {
         build_tiles(load_raw(src, "tiles_abyss"), "floor_abyss")["file"]],
     "crew": lambda src: build_sprites(load_raw(src, "crew"), "rig", 5, 1, "crew", 120,
                                       ["idle", "drive", "work", "carry", "worn"]),
+    # The Breaker and the Surveyor, each a sheet of its own in the Rig's
+    # poses: a bulkier Rig and a slimmer one, so their base is scaled to
+    # match their build (the Rig's median base is 120 px).
+    "crew_breaker": lambda src: build_sprites(load_raw(src, "crew_breaker"), "breaker", 5, 1, "crew", 150,
+                                              ["idle", "drive", "work", "carry", "worn"]),
+    "crew_surveyor": lambda src: build_sprites(load_raw(src, "crew_surveyor"), "surveyor", 5, 1, "crew", 104,
+                                               ["idle", "drive", "work", "carry", "worn"]),
     "galleries": lambda src: build_sprites(load_raw(src, "galleries"), "galleries", 2, 2, "world", 300,
                                            ["open", "boarded", "nest", "bay"]),
 }

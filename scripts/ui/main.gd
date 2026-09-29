@@ -896,9 +896,9 @@ func _regions_box() -> Control:
 		later.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(later)
 		return box
-	var room: int = Operations.region_slots(Sim.core_level) - Sim.regions_open.size()
+	var room: int = Operations.region_room(Sim.core_level) - Sim.regions_open.size()
 	var lead := _label(Loc.t("Regions open: %d of the %d the Core has room for. Which first is yours to choose.")
-		% [Sim.regions_open.size(), Operations.region_slots(Sim.core_level)], TEXT_MIN, Palette.TEXT_DIM)
+		% [Sim.regions_open.size(), Operations.region_room(Sim.core_level)], TEXT_MIN, Palette.TEXT_DIM)
 	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(lead)
 	if not Sim.beacons.is_empty():
@@ -4227,7 +4227,8 @@ func _work_row(e: Dictionary) -> Button:
 			sub = Loc.t("It is starved, and the store holds what it takes.")
 			go = _show_bay
 		"refit":
-			pic = _sheet_picture("crew", "work", 52.0)
+			pic = _sheet_picture("crew_surveyor" if String(e.get("role", "breaker")) == "surveyor" else "crew_breaker",
+				"idle", 52.0)
 			if String(e.get("role", "breaker")) == "surveyor":
 				title = Loc.t("Refit a Rig as a Surveyor")
 				sub = Loc.t("The deep map is open: an expedition into a region goes only with a Surveyor.")
@@ -4249,7 +4250,7 @@ func _work_row(e: Dictionary) -> Button:
 			go = _show_map
 		"tune":
 			var tc: int = int(e["cell"])
-			pic = _sheet_picture("crew", "work", 52.0)
+			pic = _sheet_picture("crew_surveyor", "work", 52.0)
 			title = Loc.t("A Surveyor to tune the %s") % MachineDB.job_name(Sim.grid.machine_at(tc), Sim.grid.job_at(tc))
 			sub = Loc.t("While it stays: half the Resonite a Lens, half the Lenses a Prism.")
 			go = _show_bay

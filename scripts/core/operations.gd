@@ -471,15 +471,13 @@ const UMBRITE_PER_NEED := 0.1
 ## Measured before it (docs/GAME-LOOP.md, section 13): Lenses were ground at
 ## about 47,000 an hour in the Core 11 era, the rows asked 10,000 and
 ## 16,000, and a new game held 191,000 at Core 12. A Lens now keeps a region
-## -- or goes into the Core, an expedition, or a Prism. At 6,000 an hour a
-## Beacon was a rounding error on a grinder tuned by a Surveyor and fed by
-## Resonant Bores (80,000 to 98,000 an hour): at 20,000, three Beacons ask
-## for most of what a well-fed Lens line grinds, and fewer, or darkness, is
-## a choice.
+## -- or goes into the Core, an expedition, or a Prism. A Lens is now
+## crafted (MachineDB): no yield multiplies it, and a posted, tuned Grinder
+## makes a few thousand an hour; two Beacons burn about what one grinds.
 const CONTROL_CORE := MachineDB.CONTROL_CORE
 const BEACON_NEED := 1.0
-const BEACON_LENS := 10000
-const BEACON_UPKEEP := 20000.0
+const BEACON_LENS := 2000
+const BEACON_UPKEEP := 1500.0
 const CONTROL_HOLD := 1.5
 const CONTROL_PAY := 1.5
 const CONTROL_LINE := 2
@@ -503,7 +501,7 @@ const REACH_LIGHT := 2
 const DARK_LOST := 0.5
 const DARK_BREAKER := 1.0
 const DARK_SURVEYOR := 1.5
-const DARK_LENS := 25
+const DARK_LENS := 3
 
 
 ## The Core's level that opens region `r` to expeditions.
@@ -527,9 +525,24 @@ static func beacon_site(r: String, level: int, depth: int) -> Dictionary:
 	return s
 
 
-## Regions a Core of `level` has room to have open.
+## Regions of the first three a Core of `level` has room to have open. The
+## Dark Reach takes no room: it lies past them, and opens to light, not to
+## the Core's room (measured: with room for three at Core 12 the scripted
+## player opened the third original region, and Core 13's Prisms, which only
+## the Reach's Umbrite makes, could never be had).
 static func region_slots(level: int) -> int:
-	return clampi(level - REGION_CORE + 1, 0, REGION_ORDER.size())
+	return clampi(level - REGION_CORE + 1, 0, REGION_ORDER.size() - 1)
+
+
+## Does region `r` take the Core's room?
+static func takes_room(r: String) -> bool:
+	return r != "reach"
+
+
+## The most regions a Core of `level` can have open: its room, and the
+## Dark Reach from REACH_CORE.
+static func region_room(level: int) -> int:
+	return region_slots(level) + (1 if level >= REACH_CORE else 0)
 
 
 ## The board slot of region `r`'s sites.

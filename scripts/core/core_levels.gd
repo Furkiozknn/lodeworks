@@ -219,7 +219,7 @@ const LEVELS := [
 	# the shaft's choice; the row asks that there is one.
 	{"level": 11, "era": "The Expedition", "depth_cap": 39, "machine_cap": 12, "requires": [
 		[Req.CREDITS, 75000000.0],
-		[Req.STOCK, MachineDB.Res.LENS, 10000],
+		[Req.STOCK, MachineDB.Res.LENS, 4000],
 		[Req.REGIONS, 1],
 		[Req.REGION_LINES, 2],
 		[Req.ROLES, 2],
@@ -244,7 +244,7 @@ const LEVELS := [
 	# Beacons let go further, a crew of four of each kind.
 	{"level": 13, "era": "The Dark Reach", "depth_cap": 49, "machine_cap": 14, "requires": [
 		[Req.CREDITS, 170000000.0],
-		[Req.STOCK, MachineDB.Res.PRISM, 3000],
+		[Req.STOCK, MachineDB.Res.PRISM, 2000],
 		[Req.REGIONS, 3],
 		[Req.BEACONS, 2],
 		[Req.REGION_LINES, 6],
@@ -322,16 +322,14 @@ static func _entry(level: int) -> Dictionary:
 				reqs.append([Req.OVERDRIVE, r[1], mini(int(r[2]) + n, overdrive_cap(level - 1))])
 			Req.REGIONS:
 				# One more region a level, while the map has one.
-				reqs.append([Req.REGIONS, mini(int(r[1]) + n, mini(Operations.region_slots(level - 1),
-					Operations.REGION_ORDER.size()))])
+				reqs.append([Req.REGIONS, mini(int(r[1]) + n, Operations.region_room(level - 1))])
 			Req.REGION_LINES:
 				reqs.append([Req.REGION_LINES, int(r[1]) + 2 * n])
 			Req.ROLES:
 				reqs.append([Req.ROLES, mini(int(r[1]) + n, 4)])
 			Req.BEACONS:
 				# One more Beacon a level, as the map has regions to hold.
-				reqs.append([Req.BEACONS, mini(int(r[1]) + n, mini(Operations.region_slots(level - 1),
-					Operations.REGION_ORDER.size()))])
+				reqs.append([Req.BEACONS, mini(int(r[1]) + n, Operations.region_room(level - 1))])
 	var line: String = String(LATE_RESEARCH[n % LATE_RESEARCH.size()])
 	reqs.append([Req.RESEARCH, line, mini(3 + n / LATE_RESEARCH.size(),
 		Economy.research_cap(line, level - 1))])
@@ -673,6 +671,9 @@ static func available_at(r: Array) -> int:
 		Req.REGIONS:
 			if int(r[1]) > Operations.REGION_ORDER.size():
 				return -1
+			# The first three a Core level each; the Dark Reach from its own.
+			if int(r[1]) > Operations.REGION_ORDER.size() - 1:
+				return maxi(Operations.REACH_CORE, Operations.REGION_CORE + int(r[1]) - 2)
 			return Operations.REGION_CORE + int(r[1]) - 1
 		Req.REGION_LINES:
 			# A line's levels are capped by the Core, RESEARCH_PER_CORE a
@@ -684,7 +685,7 @@ static func available_at(r: Array) -> int:
 			# A Beacon a region: as many regions open first.
 			if int(r[1]) > Operations.REGION_ORDER.size():
 				return -1
-			return maxi(Operations.CONTROL_CORE, Operations.REGION_CORE + int(r[1]) - 1)
+			return maxi(Operations.CONTROL_CORE, available_at([Req.REGIONS, int(r[1])]))
 	return -1
 
 
