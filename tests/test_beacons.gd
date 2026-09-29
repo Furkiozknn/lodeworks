@@ -167,6 +167,9 @@ func test_a_beacon_burns_lenses_and_goes_dark_without_them() -> void:
 	runner.gte(float(burnt), Operations.BEACON_UPKEEP / 100.0 - 2.0, "about a hundredth of an hour's upkeep")
 	runner.lte(float(burnt), Operations.BEACON_UPKEEP / 100.0 + 2.0, "")
 	runner.gte(float(Sim.lens_spent.get("upkeep", 0)), float(burnt), "on the ledger")
+	# A posted Rig leaves the next hour's upkeep in the store.
+	Sim.stock[LENS] = 5000
+	runner.lte(float(Sim.haulable(LENS)), 5000.0 - Operations.BEACON_UPKEEP, "an hour of the Beacon's Lenses is not hauled")
 	Sim.stock[LENS] = 0
 	_run(3.0)
 	runner.check(Sim.beacons_dark, "no Lenses: dark")
@@ -222,6 +225,10 @@ func test_each_region_held_gives_its_own_work() -> void:
 	var r0: int = Sim.stock_of(RESONITE)
 	_run(30.0)
 	runner.gt(float(Sim.stock_of(RESONITE)), float(r0), "into the store, beside the Core")
+	# The deep map's makers are not multiplied by the factory's yield (15.3
+	# on stratum 27): a Bore, a Grinder and a Cutter make what they make.
+	for mk: Array in [["drill", "resonite"], ["assembler", "lens"], ["assembler", "prism"]]:
+		runner.check(bool(MachineDB.job_machine(mk[0], mk[1]).get("crafted", false)), "%s is crafted" % mk[1])
 	# The Foundry: three times a site's salvage.
 	Sim.stock[LENS] = 100000
 	runner.check(_light("foundry"), "")

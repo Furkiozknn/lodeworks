@@ -1066,6 +1066,12 @@ func haul_floor(res: int) -> int:
 	for r: Array in CoreLevels.requirements(core_level + 1):
 		if int(r[0]) == CoreLevels.Req.STOCK and int(r[1]) == res:
 			keep = maxi(keep, int(r[2]))
+	# The Beacons' next hour of Lenses stays too (measured: once the Core 13
+	# row's Prisms were cut, the Rig posted to the Prism Cutter hauled on;
+	# 25,800 Lenses went into Prisms, the store fell to 0 and both Beacons
+	# went dark, with a row only held regions' research meets still open).
+	if res == MachineDB.Res.LENS:
+		keep += int(beacon_upkeep())
 	if keep > stock_cap():
 		keep = int(float(stock_cap()) * (1.0 - HAUL_TOP))
 	return keep

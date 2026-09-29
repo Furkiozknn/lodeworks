@@ -350,6 +350,15 @@ const JOBS := {
 		"heat_tolerance": 7.0,
 		"core": CONTROL_CORE,
 		"control": "caverns",
+		# Not multiplied by the factory's yield, as a Lens is not, and slow
+		# (measured: with the yield at 15.3 on stratum 27, two Bores made
+		# about 180,000 Resonite an hour and the store held 151,000 Lenses at
+		# Core 12; crafted alone, still 30,000 an hour, and 73,500 Lenses --
+		# the Beacons' 1,500 an hour were no cost at all). At a tenth of a
+		# Drill's pace a Bore on stratum 27 makes about 1,500 an hour: two
+		# of them, tuned, keep their own Beacon lit twice over.
+		"rate": 0.1,
+		"crafted": true,
 	}},
 	"smelter": {"alloy": {
 		"name": "White Heat",

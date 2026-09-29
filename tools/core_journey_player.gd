@@ -394,11 +394,34 @@ func _operations() -> void:
 	if _deep_map() or _hold_sorties:
 		return
 	var weakest: int = -1
-	for i in range(S.ops_board.size()):
+	# From the deep map, while the Lens rows wait on Resonite, the sites
+	# that pay it first (measured: with the Resonant Bore slowed, the Core 13
+	# row's Prisms stood at 1,280 for two hours, the store's Lenses all going
+	# to the Beacons' upkeep, while the crew cleared cisterns and galleries).
+	var order: Array = range(S.ops_board.size())
+	if S.core_level >= Operations.REGION_CORE and _resonite_short():
+		var first: Array = []
+		var rest: Array = []
+		for i: int in order:
+			var k: String = String(S.site(i).get("kind", ""))
+			if k != "" and int(Operations.KINDS[k]["res"]) == MachineDB.Res.RESONITE:
+				first.append(i)
+			else:
+				rest.append(i)
+		order = first + rest
+	# No light burnt in the dark while the Beacons' hour is short and the
+	# store holds the Umbrite the Prisms want (measured: 1,300 Lenses an
+	# hour went on light with 15,000 Umbrite in the store, the Beacons ate
+	# the rest, and the Core 13 row's Prisms stood at 1,704 for an hour).
+	var no_light: bool = S.core_level >= Operations.REGION_CORE and not S.beacons.is_empty() \
+		and S.stock_of(MachineDB.Res.LENS) < int(S.beacon_upkeep()) and not _umbrite_short()
+	for i: int in order:
 		if i == _keep_slot:
 			continue
 		var tm: Vector3i = S.sortie_team(i)
 		if tm.x + tm.y + tm.z <= 0 or not S.can_send(i, tm.x, tm.y, tm.z):
+			continue
+		if no_light and S.light_lenses(S.site(i), tm.x, tm.y, tm.z) > 0:
 			continue
 		if not asked and ingots < Operations.fuel(tm.x, S.core_level, tm.y, tm.z) and not kept_past_store:
 			continue
@@ -527,10 +550,22 @@ func _region_score(r: String, fit: float = -1.0) -> float:
 	return fit
 
 
+## Does the Core's next level want Umbrite the store does not hold?
+func _umbrite_short() -> bool:
+	for st: Dictionary in S.core_status():
+		var q: Array = st["req"]
+		if not bool(st["met"]) and int(q[0]) == CoreLevels.Req.STOCK and int(q[1]) == MachineDB.Res.PRISM:
+			return S.stock_of(MachineDB.Res.UMBRITE) < int(st["need"]) - int(st["have"])
+	return false
+
+
 ## Do the Core's rows wait on Lenses the store's Resonite cannot make?
 func _resonite_short() -> bool:
 	if S.stock_of(MachineDB.Res.RESONITE) >= 500:
 		return false
+	# The Beacons' next hour not in the store is a Lens row too.
+	if not S.beacons.is_empty() and S.stock_of(MachineDB.Res.LENS) < int(S.beacon_upkeep()):
+		return true
 	for st: Dictionary in S.core_status():
 		var q: Array = st["req"]
 		if bool(st["met"]):
@@ -629,7 +664,9 @@ func _tuning() -> void:
 	# Guides for the dark, while no Beacon lights it (measured: four
 	# Surveyors tuning and two keeping Beacons left none for the Dark
 	# Reach, and Core 13's Prisms stood at 0 for an hour).
-	if S.region_open("reach") and not S.controlled("reach"):
+	# (Only while the Prisms still want Umbrite: after that the Surveyors
+	# tune the Grinders the Beacons live on.)
+	if S.region_open("reach") and not S.controlled("reach") and _umbrite_short():
 		reserve += 2
 	if S.surveyors < reserve and not S.tuners.is_empty():
 		S.untune(int(S.tuners.keys()[0]))
@@ -705,7 +742,7 @@ func _posting() -> void:
 		# machine no row asks for is called home for one a row does.
 		if _in_rows(wanted[0], rows):
 			for cell: int in S.posts.keys():
-				if not _in_rows(cell, rows):
+				if not _in_rows(cell, rows) or S.core_level >= Operations.REGION_CORE and _idle_post(cell):
 					S.recall_rig(cell)
 					S.post_rig(wanted[0])
 					_event("repost", "first Rig called home for a Core row's machine")
@@ -718,13 +755,24 @@ func _posting() -> void:
 	# posted to Lens Grinders no row asked for any more).
 	if S.rigs_home() <= keep and S.core_level >= Operations.REGION_CORE and _in_rows(wanted[0], rows):
 		for cell: int in S.posts.keys():
-			if not _in_rows(cell, rows):
+			if not _in_rows(cell, rows) or _idle_post(cell):
 				S.recall_rig(cell)
 				S.post_rig(wanted[0])
 				_event("repost", "first Rig called home for a Core row's machine")
 				return
 	if S.rigs_home() > keep and S.post_rig(wanted[0]):
 		_event("post", "first Rig posted")
+
+
+## Is the Rig posted at `cell` idle: nothing the store may haul for it?
+## (Measured: with the Beacons' Grinders posted as a row's, every dock
+## stood at a Grinder with no Resonite in the store, and the Core 13 row's
+## Prism Cutter, with 7,850 Lenses and 12,000 Umbrite to cut, got none.)
+func _idle_post(cell: int) -> bool:
+	for res: int in S.haul_inputs(cell):
+		if S.haulable(res) > 0:
+			return false
+	return true
 
 
 ## A starved machine `id` on `job` away from the Core moved to a tile beside
@@ -825,6 +873,20 @@ func _row_machines() -> Array:
 			var mk: Array = _maker(int(r[1]))
 			if not mk.is_empty() and _store_only(String(mk[0]), String(mk[1])):
 				out.append([String(mk[0]), String(mk[1])])
+		# From the deep map, a research row waits on the Assay Benches: the
+		# research comes from the Frames a posted Rig hauls to them (measured:
+		# Rigs called over to the Lens Grinders left all four Benches starved,
+		# and the Core 11 row's research took three hours, not one).
+		if int(r[0]) in [CoreLevels.Req.REGION_LINES, CoreLevels.Req.RESEARCH] and not bool(st["met"]) \
+				and S.core_level >= Operations.REGION_CORE:
+			out.append(["lab", "assay"])
+	# Beacons burning: their Lenses come from the Grinders, row or no row
+	# (measured: once the Core 12 row's Grinders were met, every dock went to
+	# the Prism Cutter and the Assay Benches; with 32,000 Resonite in the
+	# store the Lenses fell to 0, both Beacons went dark and Core 13's
+	# Beacon row stood unmet).
+	if not S.beacons.is_empty():
+		out.append(["assembler", "lens"])
 	return out
 
 
@@ -872,7 +934,10 @@ func _store_feeds(id: String, job: String) -> bool:
 
 ## Machine `id` on `job` on a tile touching the Core -- a free one, or one a
 ## machine built for income alone gives up -- where a Rig will feed it.
-func _build_core_side(id: String, job: String) -> bool:
+## `evict`: for a Core row, a deep-map machine there (fed from the store,
+## or one only a region allows) making nothing a row asks for gives its
+## tile up too.
+func _build_core_side(id: String, job: String, evict: bool = false) -> bool:
 	if not S.can_afford(id):
 		return false
 	var spot: int = -1
@@ -896,6 +961,57 @@ func _build_core_side(id: String, job: String) -> bool:
 			if S.grid.is_empty(cell) or S.posts.has(cell) or S.tuners.has(cell) or _in_rows(cell, rows):
 				continue
 			if S.sim.status_of(cell) == Simulation.Status.STARVED:
+				S.sell(cell)
+				spot = cell
+				break
+	# Every side at work: a deep-map machine making nothing the rows ask
+	# for, nor what the job takes, makes way (measured: a shaft that opened
+	# the Sunken Works first had every side held by Resonant Bores and Lens
+	# Grinders, the Core 13 row's Prism Cutter was never laid, and Prisms
+	# stood at 0 for nine hours with 19,000 Umbrite and 500,000 Lenses in
+	# the store). Only those: let any machine make way, and the Frame line's
+	# Presses beside the Core went for a Lens Grinder, the store's Frames
+	# fell to 0 and the Core 11 row's Lenses stood at 1,280 for five hours.
+	if spot < 0 and evict and S.core_level >= Operations.REGION_CORE:
+		var rows: Array = _row_machines()
+		var wanted: Dictionary = _wanted()
+		var feeds: Dictionary = MachineDB.job_machine(id, job).get("inputs", {})
+		# Two of a kind are kept beside the Core; more are spare (measured: at
+		# Core 12 seven Lens Grinders, laid for the Core 11 row, held seven of
+		# the sides, and the Prism Cutter found none).
+		var kinds: Dictionary = {}
+		for cell: int in S.sim.core_touching():
+			var k: String = S.grid.machine_at(cell) + "/" + S.grid.job_at(cell)
+			kinds[k] = int(kinds.get(k, 0)) + 1
+		# A spare only when nothing else makes way (measured: a Grinder taken
+		# before the Resonant Bore beside it, the Caverns' Prisms took five
+		# hours, not two).
+		# And only for the first of its kind (measured: a second Prism Cutter
+		# took a busy Grinder's side, the Lenses fell under the Beacons' hour
+		# and both Cutters starved: the Caverns' Prisms took five hours).
+		for pass_spare: bool in [false, true]:
+			if spot >= 0 or pass_spare and int(kinds.get(id + "/" + job, 0)) > 0:
+				break
+			for cell: int in S.sim.core_touching():
+				if S.grid.is_empty(cell) or S.tuners.has(cell) or t - float(_fed_at.get(cell, -1.0e9)) < SETTLE:
+					continue
+				var at: String = S.grid.machine_at(cell)
+				var jb: String = S.grid.job_at(cell)
+				if jb == "":
+					continue
+				var spare: bool = pass_spare and int(kinds[at + "/" + jb]) > 2
+				if _in_rows(cell, rows) and not spare:
+					continue
+				var info: Dictionary = MachineDB.job_info(at, jb)
+				if not (_store_only(at, jb) or info.has("control") or info.has("region")):
+					continue
+				var needed: bool = false
+				for o: int in (S.sim.machine_of(cell).get("outputs", {}) as Dictionary):
+					needed = needed or wanted.has(o) or feeds.has(o) and not spare
+				if needed:
+					continue
+				if S.posts.has(cell):
+					S.recall_rig(cell)
 				S.sell(cell)
 				spot = cell
 				break
@@ -1006,8 +1122,16 @@ func _research() -> void:
 			for id: String in Economy.DOCTRINES[S.doctrine]["lines"]:
 				want.append(id)
 		if int(st["req"][0]) == CoreLevels.Req.REGION_LINES and not bool(st["met"]):
+			# The cheapest level first: any line's level counts (measured: a
+			# held Foundry's third Reclaimed Hammers, 1.6M, was saved for while
+			# the Caverns' first, 400K, waited, and Core 11 -> 12 took an hour
+			# longer).
+			var lines: Array[String] = []
 			for r: String in S.regions_open:
-				want.append(String(Operations.REGIONS[r]["research"]))
+				lines.append(String(Operations.REGIONS[r]["research"]))
+			lines.sort_custom(func(a: String, b: String) -> bool:
+				return _next_research(a) < _next_research(b))
+			want.append_array(lines)
 	for id: String in Economy.TREE_ORDER:
 		if not want.has(id):
 			want.append(id)
@@ -1034,6 +1158,14 @@ func _research() -> void:
 		if S.can_buy_upgrade(id):
 			S.buy_upgrade(id)
 			return
+
+
+## The research line `id`'s next level's price; INF when it can go no further.
+func _next_research(id: String) -> float:
+	var lvl: int = S.upgrade_level(id)
+	if lvl >= mini(S.line_max(id), S.research_cap(id)):
+		return INF
+	return float(Economy.upgrade_cost(id, lvl)["research"])
 
 
 ## Does a research row of the Core's next level still wait?
@@ -1640,7 +1772,7 @@ func _feed_core(res: int) -> bool:
 	# A job only the store can feed (the Lens Grinder, on Resonite the crew
 	# brings home): beside the Core, where a Rig feeds it.
 	if String(mk[1]) != "" and _store_only(maker, String(mk[1])) and _store_feeds(maker, String(mk[1])):
-		if _build_core_side(maker, String(mk[1])):
+		if _build_core_side(maker, String(mk[1]), true):
 			_event("store_fed_%s" % String(mk[1]), "first %s beside the Core, fed from the store"
 				% MachineDB.job_name(maker, String(mk[1])))
 			return true

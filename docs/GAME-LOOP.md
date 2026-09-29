@@ -48,25 +48,25 @@ the second brought a small version of it into the first minutes.
 
 | system | status | evidence | gap |
 |---|---|---|---|
-| Core progression | PARTIAL | Cores 1-9 played by `tools/core_journey.gd` (Core 9 at 12 h 14 min); Core 10 written out and being played; 11 and up a formula grown 1.5 times a level (`PROGRESSION.md`, "Core 10") | human pace; Core 11+ unplayed, and past stratum 30 the rock alone overheats a Deep Bore |
+| Core progression | PARTIAL | Cores 1-13 written out and played by `tools/core_journey.gd` from a new game (section 13, "Played"); 14 and up a formula that grows each kind of row in its own way (`PROGRESSION.md`, "Cores 12 and 13") | human pace; Core 14+ unplayed, and past stratum 30 the rock alone overheats a Deep Bore |
 | Factory Core | PARTIAL | levels, card, store, and from Core 10 its own export | its picture grows to level 5 only; no level-up card |
 | Machines | DONE | 12 types, jobs, levels, modes, Overdrive | -- |
 | Production chains | DONE | ore to Components; crystal to Alloy to Frames; Frames to research (Assay Bench) | -- |
-| Resources | DONE | 8 materials, credits, research, Cores; each tied to two systems or more | -- |
+| Resources | DONE | 12 materials (with Resonite, the Lens, Umbrite and the Prism of the deep map), credits, research, Cores; each tied to two systems or more; the Lens now has six uses (section 13) | -- |
 | Storage | DONE | Vault levels, store rows, export (Core 10) | no "store full" badge |
 | Contracts (Dispatch) | PARTIAL | `dispatch.gd`, tested | first version |
 | Research / doctrine / Assay | PARTIAL | tree, branches, one doctrine a shaft, Assay Bench | the doctrine rows of Cores 8 and 9 ask for every level the shaft may have; research is spent by a fixed rule, not weighed |
 | Heat | DONE | the game's own constraint, measured every era | no mode mark on the board |
 | Strata | PARTIAL | 12 modifiers, crystal from 16, the Core caps depth | no sites of their own; conductive strata 26, 28, 29 broke the played factory (`PROGRESSION.md`, "Core 10") |
 | Factory expansion | PARTIAL | the yard grows a ring every three strata | area only; no new kind of ground |
-| Workers / robots / characters | **MISSING** → PARTIAL (this round) | the Foreman, in the margin; now Rigs: one at the Core from the first minute, more made on the board from Core 4, walking to the machines levelled (section 7); from Core 6 the Breaker, from Core 10 the Surveyor (section 12) | three kinds; the Breaker and the Surveyor are the Rig's sheet tinted |
+| Workers / robots / characters | **MISSING** → PARTIAL (this round) | the Foreman, in the margin; now Rigs: one at the Core from the first minute, more made on the board from Core 4, walking to the machines levelled (section 7); from Core 6 the Breaker, from Core 10 the Surveyor (section 12), each with a pose sheet of its own (section 13); a Surveyor also keeps a Beacon, guides in the dark and tunes a machine | three kinds |
 | Upgrades | DONE | machine levels, Overdrive, research | -- |
-| Missions / operations | **MISSING** → PARTIAL (this round) | the galleries: one site from Core 2, three from Core 4; sorties, rewards (section 7); from Core 10 expeditions into three regions with sites of their own (section 12) | no chain of sites; three fixed regions |
+| Missions / operations | **MISSING** → PARTIAL (this round) | the galleries: one site from Core 2, three from Core 4; sorties, rewards (section 7); from Core 10 expeditions into three regions with sites of their own (section 12); from Core 11 a region is held by a Beacon and gives work of its own, from Core 12 a fourth, the Dark Reach (section 13) | no chain of sites; four fixed regions |
 | Combat potential | **WRONG-DIRECTION** → PARTIAL | V4 said "no combat"; amended by the owner this round (section 5). The rogue drill nest is the first site that fights back: strength against strength, wear as the cost | no roles, no counters, no defence |
 | Rewards | PARTIAL | a Core level's opens, contracts' pay, Overdrive; what sorties bring home: credits, research, materials, and **salvage**, which only a cleared site pays and which buys Salvaged Gearing (every machine faster) and Rig Plating (section 7) | one currency of its own; no one-time finds (a schematic, a blueprint) |
 | Collapse / prestige | PARTIAL | the tree, Cores, blueprints and half the best Core kept | the second shaft saves for machine levels again (84% of Core 5 → 6) |
 | Blueprint | DONE | save, check, lay from each line's end | no ghost on the board; no share codes |
-| Long-term goals | PARTIAL | the Core's rows give goals of 30 min to 3 h; from Core 10 a region to open each level to Core 12, and a crew of three kinds to grow (section 12) | no roadmap screen; the map is spent at Core 12 |
+| Long-term goals | PARTIAL | the Core's rows give goals of 30 min to 3 h; from Core 10 a region to open each level to Core 12, and a crew of three kinds to grow (section 12); from Core 11 Beacons to light and keep, from Core 12 the Dark Reach and its Prisms; Core 14 asks for all four regions and three Beacons (section 13) | no roadmap screen; after the fourth region the formula asks for more of the same kinds |
 | Return loop | PARTIAL | offline earnings, the Away report | no reason to come back except the factory; daily and streak loops are out by decision (D2) |
 | Social architecture | MISSING by decision | V1/D3: single-player, no server; `BENCHMARK.md` §8 | -- |
 | Monetization | PARTIAL | rewarded double-offline; two one-time purchases; tested | nothing live |
@@ -899,3 +899,231 @@ on the machine, and the same code's idle p50 read 8.5 and 10.3 ms on two
 runs. A phone: not measured (no device connected).
 - **The bot is not a player** (section 11): its hours are an upper bound
   on the systems' sense. Human pace and anything on a phone: not measured.
+
+## 13. Beacons: the Lens's second use, and the map past Core 12 (29 September 2026)
+
+The owner's brief for this round: give the Lens a second, real use that
+is a decision rather than a bonus; keep the map from running out at Core
+12; make each region progress on its own (explored, held, its work);
+make the crew's roles depend on the ground, the danger, the purpose and
+the reward, so "send the strongest" stops being the answer; keep the
+factory and the galleries competing for the same crew and materials; and
+measure Cores 10 -> 13 against the round before.
+
+### Measured first
+
+- **The Lens was ground far past its use.** From a Core 11 save, one
+  Lens Grinder, posted and fed, ground 23,464 Lenses in thirty minutes
+  from 3,784 Resonite brought home: the factory's yield multiplies every
+  output, a Lens too. The rows asked for 10,000 (Core 11) and 16,000
+  (Core 12); a new game held 191,000 at Core 12 and 175,000 at Core 13.
+- **Its only uses were one-offs:** the Core's row and 200 Lenses for
+  each region already open, at an expedition.
+- **The map was three regions**, each opened once and then only a board
+  slot; Core 12's formula asked for the third, and after it nothing new.
+- **Core 12 -> 13 under the formula** (from the new game's Core 11 save):
+  1:21:09, "placed 2" machines in the stage -- the factory did not change
+  -- and the rows the formula grew: credits, 25,601 Lenses (met at the
+  start), a third region, two more research levels, a fourth of each
+  crew.
+
+### What was built: one vertical slice
+
+| the brief asked for | built | where |
+|---|---|---|
+| the Lens's second use | **the Beacon** (Core 11): a lamp lit on an open region's high ground holds it. It costs 2,000 Lenses for each Beacon already lit and the first, one Surveyor who stays to keep it, and **1,500 Lenses an hour** from the store; with none, every Beacon goes dark and what they give stops until there are Lenses again. A Rig posted to a Grinder or a Cutter leaves the next hour of it in the store | `Operations` "Beacons", `Sim.send_beacon`, `Sim._upkeep`, `Sim.haul_floor` |
+| a factory use as well | **the Prism Cutter** (Core 12): an Assembler job that cuts one Umbrite with two Lenses; Core 13 asks for 2,000 Prisms | `MachineDB` job "prism" |
+| a Lens that is worth something | **the deep map's makers are crafted**: the factory's yield (15.3 on stratum 27) no longer multiplies a Lens, a Prism or the Resonant Bore's Resonite, so the Lenses a shaft has are the Resonite its crew and its Bores bring; a Lens and a Prism are no Dispatch good | `MachineDB` "crafted" |
+| region progress, explored -> held -> its work | a held region's sites pay half again and are dealt from every tier, its research line goes two levels further, and it gives **its own work**: the Sunken Works' brine mains (cooling half again, not a quarter), the Caverns' **Resonant Bore** (a Drill job that makes Resonite on the board, at a tenth of a Drill's pace: about 1,500 an hour on stratum 27), the Foundry's reclaimed forges (three times a site's salvage, not two), the Dark Reach's lit paths (no Lenses for light) | `Operations.CONTROL_TECH`, `Sim.controlled` |
+| a new region past Core 12 | **the Dark Reach** (Core 12, once two Beacons burn): new ground (dark), a new resource (**Umbrite**), a new danger (a team with no Surveyor to guide it is lost: half its strength; Shade Nests are danger and dark at once), a new crew need (a Surveyor to guide; Lenses for light, 3 a head a sortie, until a Beacon burns there); it takes none of the Core's room, new research (Umbral Lamps), a new factory result (the Prism Cutter, beside the Core, running cold on hot rock) | `Operations` "the Dark Reach" |
+| roles by purpose, not strength | see the table below | `Operations.team_factor` |
+| the factory against the galleries for the crew | **tuning**: a Surveyor from the Bay tunes a Lens Grinder or Prism Cutter to half its Resonite or Lenses -- and is then no keeper, no guide and no expedition leader | `Sim.tune` |
+| the Lenses measured | a ledger by use: the Core, expeditions, Beacons, upkeep, light, the factory, contracts | `Sim.lens_spent` |
+
+### Roles by what the team is for
+
+| purpose | ground | Rig | Breaker | Surveyor |
+|---|---|---|---|---|
+| a site | open | 1 | 2.5 | 0.8 |
+| | rock | 0.5 | 2.5 | 0.4 |
+| | water | 1 | 1 (0.4 of its own) | 0.8 |
+| | danger | 1; no Breaker to lead: half the pay | 2.5 | 0.8, wears twice as fast |
+| | **dark** | 1; no Surveyor to guide: the team at half | 1 | **1.5** |
+| an expedition | any | 1 | as its ground | **2** (and one is needed) |
+| **a Beacon** | any | 1 | **its ground's, half again** | as on a site; one stays |
+| tuning | the factory | -- | -- | **halves** a Lens's Resonite or a Prism's Lenses |
+| a harvest | Resonite, Umbrite | -- | -- | a quarter more each (to double) |
+
+So a Beacon in the Sunken Works wants Breakers that water makes weak,
+the Dark Reach wants the Surveyors a Beacon, an expedition and a tuned
+Grinder also want, and the Caverns reward Breakers everywhere.
+
+### Where a Lens goes now
+
+| use | how much | what it buys |
+|---|---|---|
+| the Core's row | 4,000 at Core 11 | the next level |
+| an expedition | 200 for each region open | a region |
+| a Beacon, lit | 2,000, 4,000, 6,000 | a region held: its pay, its tiers, its research, its work |
+| a Beacon, kept | 1,500 an hour each | the same, for as long as the store pays |
+| light in the dark | 3 a head a sortie | a sortie into the Dark Reach, until a Beacon burns there |
+| the Prism Cutter | 2 a cycle (1 tuned) | Prisms: Core 13's row, and a Vault's 500 credits each |
+
+### Cores 12 and 13
+
+| Core 12 (era: The Beacons) | kind | Core 13 (era: The Dark Reach) | kind |
+|---|---|---|---|
+| 113M credits | economy | 170M credits | economy |
+| 2 Lens Grinders at working heat | production | 2,000 Prisms in the store | production |
+| 2 regions open | the world | 3 regions open | the world |
+| 1 Beacon burning | the world, the crew, the Lenses | 2 Beacons burning | the world, the crew, the Lenses |
+| 4 levels of the regions' research | research | 6 levels (the held regions' lines go further) | research |
+| a crew of 3 of each kind | the crew | 4 of each kind | the crew |
+
+Past Core 13 the formula grows each kind: Core 14 asks for all four
+regions and three Beacons.
+
+### Played
+
+From the same Core 10 save of a new game (Core 10 at 12 h 31 min 57 s),
+the scripted player took each region first
+(`LODEWORKS_CORE_REGION=caverns|sunken|foundry`, `LODEWORKS_CORE_SKIP=1`),
+to Core 13:
+
+| | the Caverns first | the Sunken Works first | the Foundry first |
+|---|---|---|---|
+| Core 10 -> 11 | **1:02:19** | **2:02:39** | **2:34:34** |
+| the row that came last | credits (4,000 Lenses at 0:57:49) | 4,000 Lenses | 4,000 Lenses (2:21:54) |
+| Core 11 -> 12 | **1:58:54** | **3:37:24** | **2:05:44** |
+| the row that came last | the Beacon (1:58:49) | the regions' research (3:37:14) | the regions' research (2:05:19) |
+| Core 12 -> 13 | **3:20:35** | **1:43:30** | **2:41:15** |
+| 2,000 Prisms | 2:06:19 | 1:35:35 | 1:14:34 |
+| the row that came last | credits | the regions' research (1:43:25) | the regions' research (2:41:10) |
+| Core 13 at | **18:53:47** | **19:55:32** | **19:53:32** |
+| only credits left, the three stages | 7%, 0%, 37% | 0%, 0%, 0% | 8%, 0%, 0% |
+| minutes with a decision, the three stages | 62 of 64, 117 of 120, 146 of 201 | 122 of 124, 213 of 219, 101 of 104 | 148 of 156, 125 of 127, 157 of 162 |
+
+**From a new game, the same code** (no save; `LODEWORKS_CORE_SKIP=1`):
+
+| stage | length | the row that came last | only credits left | minutes with a decision |
+|---|---|---|---|---|
+| Cores 1 -> 10 | 12:35:02 | as in section 11, to Core 9 (10:16:07) to the second | -- | -- |
+| 10 -> 11 | 1:42:24 | 4,000 Lenses | 0% | 101 of 103 |
+| 11 -> 12 | 1:50:44 | the regions' research (1:50:24) | 0% | 107 of 112 |
+| 12 -> 13 | 2:57:50 | credits (2,000 Prisms at 2:11:34) | 26% | 149 of 179 |
+
+Core 13 at **19:06:02**. The round before, the same new game reached Core
+11 at 13:26:02 and Core 12 at 17:20:37, and Core 12 -> 13 under the
+formula took 1:21:09 from its Core 11 save with two machines placed. Core
+9 -> 10 took 3 min 5 s longer than run X's (12:31:57), not traced: two of
+this round's changes run before Core 10 (a retasked machine drops what its
+new job does not make; Dispatch no longer offers what only a region or a
+Beacon makes). The hour mark at 1:00 is run X's, 6.63K/s.
+
+**The Lenses, Core 10 -> 13** (the ledger `Sim.lens_spent`):
+
+| | the Caverns first | the Sunken Works first | the Foundry first |
+|---|---|---|---|
+| ground | 28,200 | 33,000 | 35,400 |
+| the Core's row | 4,000 (16%) | 4,000 (13%) | 4,000 (12%) |
+| expeditions | 1,200 (5%) | 1,200 (4%) | 1,200 (4%) |
+| Beacons lit | 6,000 (24%) | 6,000 (20%) | 6,000 (19%) |
+| Beacons kept | 6,600 (26%) | 9,550 (32%) | 10,600 (33%) |
+| light in the dark | 1,720 (7%) | 1,820 (6%) | 2,680 (8%) |
+| the Prism Cutter | 5,700 (23%) | 7,400 (25%) | 7,830 (24%) |
+| in the store at Core 13 | 3,000 | 2,990 | 3,070 |
+
+The round before, a new game held 191,000 Lenses at Core 12 and 175,000 at
+Core 13, against rows of 16,000 and 25,601. Now none of the six uses takes
+more than a third, and the store ends each of these runs at the Beacons'
+next hour, the floor a posted Rig leaves (the new game: 13,800).
+
+**The crew on the deep map, from Core 10** (teams as Rigs/Breakers/
+Surveyors, the most used first; minutes out by region):
+
+| | the Caverns first | the Sunken Works first | the Foundry first |
+|---|---|---|---|
+| rock (veins, forges) | 0/4/0, 0/5/0, 0/6/0 | 0/5/0, 0/1/0 | 0/3/0, 0/4/0, 0/5/0 |
+| water (cisterns, Stranded Rigs) | 0/6/1 (4 sorties) | 0/5/3, 0/2/3, 4/5/2 | 0/6/3, 0/6/2 |
+| the dark (hollows, Shade Nests) | 0/6/2, 0/0/1, 0/5/1 | 2/5/3, 0/4/3, 0/4/2 | 0/6/3, 0/5/1, 0/6/2 |
+| a Beacon | 0/5/1, 0/6/1 | 3/5/1 | 0/4/1 |
+| minutes out: the first region, the Reach, the other two | 177, 81, 48 | 281, 65, 42 | 182, 115, 50 |
+
+- **"Send the strongest" is not what the teams are.** On rock the team is
+  Breakers alone; in water Surveyors go with them, and in the Sunken Works
+  Rigs too (water halves a Breaker); in the dark a Surveyor always goes, or
+  the team is at half; a Beacon's team is Breakers and its keeper. The
+  Rigs, meanwhile, are at the posts: 29-50% of them posted in every stage.
+- **The first region decides the run.** The Caverns first: the Lenses come
+  easily (1:02 to Core 11), but the Beacon, not the Lenses, holds Core 12.
+  The Sunken Works first: Lenses are slow, and the regions' research holds
+  Core 12 for three and a half hours (the Assay Benches stood starved; see
+  "What it still is not"). The Foundry first: salvage, and the research
+  last again.
+- **Where it is a wait:** only in the Caverns' Core 12 -> 13, 37% credits
+  alone (the scripted player bought 181M of machine levels in the stage),
+  and from the new game, Core 12 -> 13, 26%; elsewhere 0-8%.
+
+**Found on the way, and whose it was.** Each was measured, changed, and
+the journeys run again from the same Core 10 save:
+
+| cause | whose | the change |
+|---|---|---|
+| The factory's yield multiplied Lenses: one posted Grinder ground 23,464 in thirty minutes from 3,784 Resonite | **the game** | a Lens and a Prism are crafted |
+| The same for the Resonant Bore: at a yield of 15.3, two Bores made about 180,000 Resonite an hour and the store held 151,000 Lenses at Core 12; crafted alone, still 30,000 an hour | **the game** | crafted, and a tenth of a Drill's pace |
+| Once the Core 13 row's Prisms were cut, the Rig posted to the Cutter hauled on: 25,800 Lenses into Prisms, the store at 0, both Beacons dark | **the game** | a posted Rig leaves the Beacons' next hour of Lenses in the store |
+| The Dark Reach needed a third slot of the Core's room, already taken: no Core 13 | **the game** | the Reach takes none of the Core's room |
+| A Shade Nest of 441 against a team of 218 in the dark stood an hour on the board | **the game** | a dark site's strength is 0.6 of its tier's |
+| A Beacon at half again a site's strength was out of a Core 11 crew's reach; the Sunken Works paid too little Resonite (0.15 a point) to keep one | **the game** | a Beacon at a site's strength; 0.5 Resonite a point, Umbrite 0.3 |
+| A Drill retasked as a Resonant Bore kept 7 Ore it could not hand on, and stood jammed | **the game** | a new job drops what it does not make |
+| Every side of the Core held: the Prism Cutter was never laid, Prisms at 0 for nine hours with 19,000 Umbrite in the store; later, seven Lens Grinders laid for the Core 11 row held seven sides | the player | a deep-map machine no row asks for makes way, and, for the first of its kind when nothing else can, one of a kind with more than two there (only deep-map machines: letting any machine go took the Frame line's Presses, and Lenses stood at 1,280 for five hours) |
+| With the Lens rows short, the crew cleared cisterns and galleries while the Prisms stood at 1,280 for two hours | the player | sites that pay Resonite first while a Lens row waits on it |
+| Once the Core 12 row's Grinders were met, every dock went to the Prism Cutter and the Assay Benches: with 32,000 Resonite in the store the Lenses fell to 0 and both Beacons went dark | the player | while a Beacon burns, its Grinders are posted as a row's are, and a store short of an hour's upkeep sends the crew for Resonite |
+| Then every dock stood at a Grinder with no Resonite to haul, and the Prism Cutter, with 7,850 Lenses and 12,000 Umbrite in the store, got no Rig | the player | a Rig posted where the store has nothing to haul is called over to a row's machine |
+| 1,300 Lenses an hour went on light in the dark with 15,000 Umbrite in the store; the Beacons took the rest, and the Prisms stood at 1,704 for an hour | the player | no light burnt while the Beacons' hour is short and the store holds the Umbrite the Prisms want; the Surveyors kept as guides tune the Grinders instead |
+| A held Foundry's third research level (the dearest) was saved for while the Caverns' first waited | the player | the cheapest level of the regions' lines first |
+| Posts and sorties held for a Beacon no crew could reach; Surveyors refitted for roles they are weak in; four Surveyors tuning and none left to guide in the dark | the player | holds only when the whole crew is strong enough; Breakers for a Beacon's ground; two tuners at most and two guides kept |
+| Assay Benches beside the Core starved while Rigs fed Lens Grinders, and the research rows took three hours, not one | the player | a research row's Assay Benches are row machines for the posts |
+
+### What it still is not
+
+- **The research the factory makes still holds the Sunken Works' and the
+  Foundry's runs.** In four of the nine stages the regions' research came
+  last, and in those runs the Assay Benches beside the Core stood at 0 of
+  4 working for most of the hours: the scripted player feeds the Lens
+  Grinders and the Prism Cutter first. A player who feeds the Benches turns
+  the Frames in the store (50,000-280,000 at the hourly marks) into that
+  research.
+- **The Lens is tight now, perhaps too tight for a person.** Every run ends
+  Core 13 with the Beacons' next hour in the store and no more; the
+  Beacons' upkeep is the largest use. Whether that reads as a decision or
+  a squeeze is for a playtest; the knobs are `BEACON_UPKEEP`, the Resonant
+  Bore's rate and `RESONITE_PER_NEED`.
+- **The scripted player needed the changes in the table above to get
+  here**; each is a rule a player follows without thinking. Its hours are
+  an upper bound, and the order it does things in is one of many.
+- **The regions still have no art of their own**; a Beacon is a light
+  drawn over the region's mouth and the Dark Reach's mouth is the
+  galleries' tinted. The Breaker and the Surveyor now have sheets of
+  their own.
+- **The Dark Reach is one region**; after Core 14 the formula asks for
+  more of the same kinds.
+
+### What it costs to draw
+
+`tools/perf_probe.tscn` (1440x720, Intel UHD, the compatibility
+renderer), the round's base (2ebb397) against this round's code, in two
+checkouts one after the other:
+
+| | 2ebb397 | now |
+|---|---|---|
+| draw calls: idle / a 20 s soak / the late board | 195 / 212 / 232 | 195 / 212 / 232 |
+| texture memory | 37.3 MB | 37.3 MB |
+| static memory over the soak | 52.7 MB | 53.2 MB |
+| a sim tick on the late board (308 machines), headless, the best of 11 runs each, alternating | 1.81 ms | 1.85 ms |
+
+Frame times, and single tick readings, were noise this time: other
+sessions loaded the machine, and the same code's late-board tick read
+anywhere from 1.8 to 9.3 ms; with the order of the checkouts reversed,
+neither was consistently faster. `tests/test_performance.gd` passes
+(8 of 8). A phone: not measured (no device connected).

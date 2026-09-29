@@ -1501,7 +1501,7 @@ work of its own.
 | row | kind | why this row |
 |---|---|---|
 | **75M credits** | economy | the Core's price, about half an hour of the Core 10 factory (42K/s over the stage) |
-| **10,000 Lenses in the store** | production | the new chain: an Assembler on the Lens job beside the Core, a Rig posted to feed it Resonite from the store, a Frame and 2 Resonite a Lens |
+| **10,000 Lenses in the store** (4,000 since 29 September, once the factory's yield stopped multiplying Lenses: "Cores 12 and 13") | production | the new chain: an Assembler on the Lens job beside the Core, a Rig posted to feed it Resonite from the store, a Frame and 2 Resonite a Lens |
 | **1 region of the deep map open** | the world | an expedition, led by a Surveyor; which region is the shaft's choice |
 | **2 levels of the open regions' research** | research | the line the region opened: Brine Coils, Resonite Sounding or Reclaimed Hammers |
 | **a crew of at least 2 Rigs, 2 Breakers and 2 Surveyors** | the crew | all three kinds kept |
@@ -1518,7 +1518,8 @@ lets the line go that far.
 is; a Lens 200. The region's research costs 400K and twice as much a
 level, four levels. A region site is dealt from the lower tier only, and
 pays 0.15 Resonite for each point of the strength it needs (0.4 in the
-first design: see "Played, after").
+first design: see "Played, after"; 0.5 since 29 September, when a Lens
+stopped being multiplied by the factory's yield).
 
 ### Played, after
 
@@ -1534,6 +1535,70 @@ twenty: the rows are now what they are above.
 55 min, its last row the regions' research (1.21M made in the stage): the
 research the factory makes, not the map, is what holds Core 12 for the
 scripted player.
+
+## Cores 12 and 13: the Beacons and the Dark Reach
+
+The whole design, its decisions and its measurements are in `GAME-LOOP.md`,
+section 13; here, the rows.
+
+### Measured first
+
+- Under the formula, Core 12 asked for Core 11's rows grown: 25,601
+  Lenses (a new game held 191,000 when it got there), a third region, two
+  more research levels, a fourth of each crew. Core 12 -> 13 took 1:21:09
+  from the new game's Core 11 save and placed 2 machines: the factory did
+  not change.
+- After the third region the map had nothing more to ask for.
+
+### What changed
+
+**Core 12, "The Beacons"** (`CoreLevels.LEVELS`):
+
+| row | kind | why this row |
+|---|---|---|
+| **113M credits** | economy | the Core's price, 1.5 times Core 11's |
+| **2 Lens Grinders at working heat** | production | the Lens is crafted now (the factory's yield does not multiply it): a second Grinder, and the Rig posted to it, is what keeps the Beacons in Lenses |
+| **2 regions open** | the world | a second expedition |
+| **1 Beacon burning** | the world, the crew, the Lenses | the Lens's second use: 2,000 to light, a Surveyor who stays, 1,500 an hour |
+| **4 levels of the regions' research** | research | a held region's line goes two levels further |
+| **a crew of 3 of each kind** | the crew | the keeper is a Surveyor the sorties no longer have |
+
+**Core 13, "The Dark Reach":**
+
+| row | kind | why this row |
+|---|---|---|
+| **170M credits** | economy | 1.5 times Core 12's |
+| **2,000 Prisms in the store** | production | the Dark Reach's Umbrite, cut with two Lenses each by the Prism Cutter Core 12 opens |
+| **3 regions open** | the world | the last of the first three, or the Dark Reach, which takes none of the Core's room |
+| **2 Beacons burning** | the world, the crew, the Lenses | the second costs 4,000 Lenses, and the two 3,000 an hour |
+| **6 levels of the regions' research** | research | only held regions' lines go that far |
+| **a crew of 4 of each kind** | the crew | a keeper each, guides for the dark, a tuner |
+
+**Past Core 13** the formula grows each kind in its own way: a region
+more while the map has one (Core 14: all four), a Beacon more (Core 14:
+3), two more research levels, a crew of one more each, credits 1.5
+times, the store 1.6 times.
+
+### Played, after
+
+From the Core 10 save of a new game (12:31:57), each region first, to
+Core 13 (`GAME-LOOP.md`, section 13, "Played"):
+
+| first region | Core 11 | Core 12 | Core 13 |
+|---|---|---|---|
+| the Caverns | 13:34:17 | 15:33:12 | **18:53:47** |
+| the Sunken Works | 14:34:37 | 18:12:02 | **19:55:32** |
+| the Foundry | 15:06:32 | 17:12:17 | **19:53:32** |
+| a new game, no save | 14:17:27 | 16:08:12 | **19:06:02** |
+
+Under the formula (the round before), the same new game reached Core 12 at
+17:20:37, holding 191,000 Lenses, and Core 12 -> 13 took 1:21:09 from its
+Core 11 save with two machines placed. Now the region runs end Core 13
+with about 3,000 Lenses in the store -- the Beacons' next hour -- and the
+new game with 13,800; the rows
+that came last were the Lenses, the Beacon, the regions' research and the
+price: work, not a wait, in all but two stages (Core 12 -> 13 with the
+Caverns first, 37% credits alone, and from the new game, 26%).
 
 ---
 

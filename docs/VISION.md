@@ -25,12 +25,12 @@ measurements are in `PROGRESSION.md`.
 | **the world around the factory**: rock, cliffs, crystals, veins, water, steam, passages | the canyon painting and the floating island; props (crystal, ore veins, vents, lamps, crates, rubble); **gallery mouths** (open, boarded, the nest) and the **Rig Bay** (`world/galleries.webp`); **land for each band** beyond the yard and under its unbuilt tiles -- a grass meadow at the Surface, rocky mine ground in the Workings, cooled lava with glowing cracks in the Deep, violet crystal ground in the Abyss (`tiles/land_*.jpg`) -- and only the tiles a machine stands on, with a one-tile apron, paved | PARTIAL: no water or cliffs on the board itself; the props are one set |
 | **each depth a new world** (the poster's "Derinlikler") | **a painting and a floor for each band** (`world/surface.jpg`, `workings.jpg`, `deep.jpg`, `abyss.jpg`, `tiles/floor_*.jpg`), crossfading on the dive into a new band | **DONE** (this round) for the painting and the yard's floor; the island's rock and the props are still one set |
 | **the Foreman as a character** | five poses, speaking the tutorial and the game's news in the screen's margin -- **and on the board**: he stands at the front of the Core's plate, walks to a machine the moment it is laid, jumps at the Core when it grows, cheers there when a machine is found, and now and then walks over to a working machine to look it over | **DONE** (27 September) |
-| **operations that are not a menu** | Rigs drive to mine entrances past the yard, weld there with sparks, drive home with a crate; what they bring flies into the Core; **the team is the player's choice**: more Rigs come home less worn and burn more fuel, fewer leave Rigs for a post and take a share; **two kinds**: from Core 6 a Rig refitted as a Breaker does 2.5 Rigs' work on rock (where a Rig does half) and less than one in water, so the team is picked against the site; **from Core 10 a third kind**, the Surveyor, leads the expeditions that open **the deep map's three regions** -- water, rock and danger -- whose mouths stand past the yard, boarded until opened (`GAME-LOOP.md`, section 12) | PARTIAL: three fixed regions; the new kinds and regions have no art of their own |
+| **operations that are not a menu** | Rigs drive to mine entrances past the yard, weld there with sparks, drive home with a crate; what they bring flies into the Core; **the team is the player's choice**: more Rigs come home less worn and burn more fuel, fewer leave Rigs for a post and take a share; **two kinds**: from Core 6 a Rig refitted as a Breaker does 2.5 Rigs' work on rock (where a Rig does half) and less than one in water, so the team is picked against the site; **from Core 10 a third kind**, the Surveyor, leads the expeditions that open **the deep map's three regions** -- water, rock and danger -- whose mouths stand past the yard, boarded until opened (`GAME-LOOP.md`, section 12); **from Core 11 a region is held** by a Beacon lit on its high ground, a warm light over its mouth that goes dark when the store runs out of Lenses, and **from Core 12 a fourth region, the Dark Reach**, where a team needs a Surveyor to guide it (section 13); the Breaker and the Surveyor are drawn from **pose sheets of their own** (`crew/breaker.webp`, `crew/surveyor.webp`) | PARTIAL: four fixed regions; the regions' mouths are the galleries' pictures tinted |
 | **reward feedback** | toasts; gems flying from the Bay into the Core; the Core's pulse on a level; **a reward card for each Core level**: the Core's new picture, the era's name, the Foreman cheering, what the level opened and the next level's first rows, each a tap that goes to do it; the NEW! card with the Foreman for a machine found | **DONE** for the Core and machines; a site's find is still a toast |
 | **UI: big icons, strong cards, a menu of Machines / Research / Shop / Missions** | **a side menu** of picture keys with their words: Tasks (What now?), Core (its stage's picture), Crew (the Rig Bay), Sorties (the galleries), Heat, Problems; Research, **Map**, Collapse and Codex at the bottom left | PARTIAL: the shop is still in Settings; the research screen is a grid of cards, not a tree |
 | **the research tree** as a graph of branches | cards by branch | PARTIAL |
 | **missions ("Görevler")** | What now? points at the next thing; the Core's rows are the goals | PARTIAL: no list of goals with rewards |
-| **map ("Harita")** | **the shaft's map**: the four bands top to bottom, each with its painting, its strata, the machines found there (a lock until found), where the factory is, how far the Core lets it go, and the galleries' sites; **from Core 10 the deep map**: three region cards, each with its picture, ground, gift, research and state, and the expedition that opens it | PARTIAL: three regions, no fog |
+| **map ("Harita")** | **the shaft's map**: the four bands top to bottom, each with its painting, its strata, the machines found there (a lock until found), where the factory is, how far the Core lets it go, and the galleries' sites; **from Core 10 the deep map**: region cards, each with its picture, ground, gift, research and state, the expedition that opens it and, from Core 11, its Beacon (lit, dark, or what lighting it costs) and the work a held region gives | PARTIAL: four regions, no fog |
 | **shop** with the two one-time purchases | Settings holds them | PARTIAL: no shop screen of its own |
 | **daily rewards, daily and weekly goals** | none, by decision D2 | **owner's call**: the images show them; D2 rejects daily and weekly loops |
 | **gems (a premium currency) and energy (12/20)** | none, by decisions D4 and V3 | **owner's call**: the images show both; D4 and V3 reject them |
@@ -60,6 +60,7 @@ adapt, ERTELE = defer, ALMA = reject.
 | missions to targets that pay | BB operations, RoK barbarians | **UYARLA** (done) | the galleries' sites |
 | expeditions of hours | BB submarine | **ERTELE** | a sortie is a minute or two (V3) |
 | a map of regions, explored | BB radar, RoK map | **UYARLA** (first slice, 28 September) | the deep map: an expedition led by a Surveyor opens a region; its sites, research and gift follow |
+| territory held, and its upkeep | BB's resource bases, RoK's alliance territory | **UYARLA** (29 September) | a Beacon holds a region for Lenses and a keeper; held, it pays more and gives work of its own; unpaid, it goes dark |
 | attack and defence against players | CoC, BB | **ALMA** now (V1/D3) | a rival factory from a share code, later |
 | rewards only a battle brings | CoC loot, BB power stones | **UYARLA** (done) | salvage |
 | research as a tree | WOS, RoK | **UYARLA** | the research screen as a graph (the image) |
@@ -93,13 +94,17 @@ parked and on sorties.
 board, their cards on the map, the Surveyor parked and on expeditions, and
 "A region opened!" with the Foreman.
 
+**Done on 29 September:** pose sheets of their own for the Breaker (bulkier,
+rust-red, armour plates, a rock hammer and a shovel claw) and the Surveyor
+(slimmer, sea-glass, a lantern mast and a satchel of Lenses), generated on
+Higgsfield with the Rig's sheet as reference;
+a Beacon's light over each held region's mouth; the Dark Reach's mouth.
+
 **Next, in order:** the research screen as a tree (the image's); a site's
 find as a reward card; a Missions screen of goals with rewards, built from
-the Core's rows and What now?; water and cliffs on the Surface's land; art
-of its own for the Breaker (it is the Rig's, bigger and rust-red), the
-Surveyor (the Rig's, smaller and sea-glass) and the regions' mouths (the
-galleries', tinted) -- the Higgsfield connector was not connected on 28
-September, so none was generated.
+the Core's rows and What now?; water and cliffs on the Surface's land; the
+regions' mouths and the Beacon as pictures of their own (they are the
+galleries', tinted, and a drawn light).
 
 ## 4. Art, and what it cost
 

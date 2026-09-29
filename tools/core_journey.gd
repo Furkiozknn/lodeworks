@@ -607,7 +607,7 @@ func _row_text(r: Array) -> String:
 			return "credits %s" % Economy.fmt(float(r[1]))
 		CoreLevels.Req.STOCK:
 			return "stock %s %d" % [String(MachineDB.RES_NAME[int(r[1])]), int(r[2])]
-		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE, CoreLevels.Req.OPERATIONS, 				CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES:
+		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE, CoreLevels.Req.OPERATIONS, 				CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES, CoreLevels.Req.BEACONS:
 			return "%s %d" % [name, int(r[1])]
 	var job: String = " (%s)" % CoreLevels.row_job(r) if CoreLevels.row_job(r) != "" else ""
 	return "%s %s %d%s" % [name, str(r[1]), int(r[2]), job]

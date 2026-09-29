@@ -376,3 +376,22 @@ questions.
 regions with no fog and no growth; the new crew and regions have no art
 of their own; Resonite has one use; the pace of a person and anything on
 a phone are not measured.
+
+## 15. The Lens's second use, and the map past Core 12 (29 September 2026)
+
+The brief: a second use for the Lens that is a decision, not a bonus;
+a map that goes on past Core 12; regions that progress; roles that
+depend on the ground and the purpose. The whole round is in
+`GAME-LOOP.md`, section 13; here, the benchmark's questions.
+
+| benchmark question | before | after |
+|---|---|---|
+| does a material have more than one use, and do they compete? | the Lens: the Core's row, 200 an expedition; a new game held 191,000 at Core 12 | six uses: the Core's row, expeditions, a Beacon lit, a Beacon kept (1,500 an hour), light in the dark, the Prism Cutter; none more than a third of what was spent, Core 10 -> 13: Beacons kept 26-33%, the Prism Cutter 23-25%, Beacons lit 19-24%, the Core's row 12-16%, light 6-8%, expeditions 4-5%; the region runs end Core 13 at about 3,000, the Beacons' next hour (the new game at 13,800) |
+| does holding ground cost upkeep? (Boom Beach's resource bases, Rise of Kingdoms' territory) | a region, once opened, was the shaft's for good | a region is held only while its Beacon burns: Lenses an hour and a Surveyor who stays; unpaid, every Beacon goes dark |
+| does a region progress, and give something each stage? | opened once, then a board slot | explored (an expedition), held (a Beacon: half again the pay, every tier, two more research levels), and its own work (brine mains, the Resonant Bore, reclaimed forges, lit paths) |
+| does the map go on? | three regions, spent at Core 12 | a fourth past Core 12, the Dark Reach: new ground, Umbrite, a danger that needs a guide, a new machine job (the Prism Cutter), a research line; Core 14 asks for all four and three Beacons |
+| is "send the strongest" the answer? | Breakers on almost everything | on rock Breakers alone (0/4/0 to 0/6/0); in water Surveyors with them (0/5/3), in the Sunken Works Rigs too (4/5/2); in the dark always a Surveyor (0/6/2, 2/5/3); a Beacon Breakers and its keeper; the Rigs at the posts, 29-50% of their time |
+| do the factory and the army compete for the same units? | Rigs: posted or on sorties | a Surveyor is a keeper, a guide, an expedition leader or a tuner (a machine's input halved): one at a time |
+| is there a wait with nothing to do? | only credits left: 0%, 0% and 12% of Core 10 -> 11 | only credits left: 0-8% of eight of the nine Core 10 -> 13 stages played from the Core 10 save, 37% in one (the Caverns first, Core 12 -> 13: the scripted player bought 181M of machine levels there); a decision in 94% or more of the minutes of eight stages, 73% in that one |
+
+**Still not at the reference games' level:** the regions are four and fixed, with no art of their own; the research the factory makes still holds four of the nine stages, with the Assay Benches the scripted player leaves starved; the Lens economy is now tight enough that whether it reads as a choice or a squeeze needs a person; nothing measured on a phone.

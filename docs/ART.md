@@ -61,6 +61,17 @@ repeat, mirrored at its edges) that covers everything beyond the yard and
 the yard's own unbuilt tiles; only a machine's tile and a one-tile apron
 round it are paved with the band's floor. `--only core_t1,core_t3,core_t4,terrain_bands`.
 
+**Added 29 September 2026:** pose sheets for the crew's other two kinds,
+each generated with the Rig's sheet as its reference so the family, the
+camera and the light match: the Breaker (`crew/breaker.webp`, bulkier and
+lower, rust-red, armour plates, a rock hammer and a shovel claw, amber
+eyes; `base_px` 150) and the Surveyor (`crew/surveyor.webp`, slimmer,
+sea-glass teal, a lantern mast and a satchel of Lenses; `base_px` 104).
+Same five poses as the Rig. `--only crew_breaker,crew_surveyor`. Two 2k
+images, 5.5 credits, the account at 156.03 before them. A Beacon over a
+held region's mouth is drawn in code (`IsoView._draw_beacon`), not an
+image.
+
 ## 2. Camera and projection
 
 - **2:1 isometric**, cell 128 x 64 world units (`Iso.TW`, `Iso.TH`). Board x
