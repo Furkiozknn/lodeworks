@@ -542,9 +542,14 @@ func _build_machines() -> void:
 ## neighbour is heat, so it gets a lagged heat pipe instead.
 func _build_links() -> void:
 	for cell: int in grid.cells:
-		var res: int = Palette.output_res(grid.machine_at(cell))
-		if res < 0:
+		# What it hands its neighbours: the first output of its recipe as the
+		# simulation runs it (the board's own links read MachineDB the same
+		# way, Iso.links). Palette.output_res, which this called, went with the
+		# rectangle renderer's leftovers (d9e3574).
+		var outs: Dictionary = sim.machine_of(cell).get("outputs", {})
+		if outs.is_empty():
 			continue
+		var res: int = int(outs.keys()[0])
 		for n: int in sim.debug_takers(cell, res):
 			_chute(cell, n, false)
 	for cell: int in grid.cells:
