@@ -1287,6 +1287,20 @@ scripted player not doing what the screen now asks.
   in what they buy (research a Frame, faster Jigs, no docks for the Benches
   -- or Rigs that carry more, more docks, stronger Surveyors), but the
   Core's rows count either; a row asking for one of each is a later round.
+- **Past Core 15 the formula is a grind, and the late factory does not
+  grow.** Played on from each way's Core 14 save (to 40 hours): Core 15 ->
+  16 took 16:29:30 crew first -- stability 170 came last -- and was not
+  reached in 17:34 factory first (stability 170 never met); Core 16 then
+  asked 855M and stability 190. Income stood at 39-41K/s from Core 10 to
+  Core 16; the stage made 65-75M research and spent 20-22M; no Overdrive
+  step was taken past Core 10, because a step waits for a type at the
+  level the Core before allowed (15), and the factory's types stood at 7
+  to 9. Given three more levels on every type, for free, the Core 14
+  factory earned 2-3% less, not more; taken down
+  from stratum 27 to 33 -- two more rings of yard, a fifth more richness,
+  a degree more heat -- it went from 336 machines to 282, overheating,
+  and earned 26-30K/s, not 41K/s. What grows a factory past Core 15 is the next round's work
+  (`BENCHMARK.md`, section 16).
 - **Research past the rows piles up**: the Works and the regions' lines
   are the only things it buys late, and the Benches the rows ask for make
   more than they cost.
