@@ -340,11 +340,12 @@ const JOBS := {
 		"vein": true,
 	}, "resonite": {
 		# The Resonite Caverns' seam, brought to the factory (Operations,
-		# "Beacons"): only while a Beacon burns in the Caverns. Before it no
+		# "Beacons"): only while a Beacon stands in the Caverns, lit or dark
+		# (Sim._sync_tuners: its Resonite is what relights it). Before it no
 		# line makes Resonite; after it the Lens chain can be laid on the
 		# board, and the crew is free for other work.
 		"name": "Resonant Bore",
-		"short": "Bores Resonite out of the rock -- while a Beacon burns in the Caverns.",
+		"short": "Bores Resonite out of the rock -- while a Beacon stands in the Caverns.",
 		"outputs": {Res.RESONITE: 1},
 		"heat_optimum": 3.0,
 		"heat_tolerance": 7.0,

@@ -1179,6 +1179,10 @@ msgid "Beacons burning: %d, in whichever regions"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Levels of the Works' research: %d, the factory's or the crew's"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
 msgstr ""
 
@@ -1263,6 +1267,14 @@ msgid "For the Core's level %d: %s"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "The store's Frames run out in %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Benches and the Lens Grinders take more than the Frame Jigs make: more Frame Jigs, or a Rig to feed one beside the Core from the store's Alloy and Components."
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Upgrade the %s to level %d"
 msgstr ""
 
@@ -1336,6 +1348,14 @@ msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "What it buys stays, even after a collapse."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Plan the research the Frames make"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "The Core asks for research: choose the line the Assay Benches work towards."
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1423,6 +1443,58 @@ msgid "Neighbour boost +%.0f%%"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "A Frame sells for %s credits, or teaches %s research at an Assay Bench."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Frames an hour: %s made, %s taught, %s ground into Lenses; %s in the store."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "At this rate the store's Frames run out in %s: the Benches and the Lens Grinders take more than the Frame Jigs make."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "No plan: open a line's ? and plan it -- its next level is bought the moment it is paid for."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- it opens behind what it needs."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- the Core's level holds it."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- the store is short of Frames."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- no research is being made."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- in %s."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Research %s an hour."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d Beacons burning"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%d %s at work"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "%s open"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "Doctrine: %s. %s"
 msgstr ""
 
@@ -1439,6 +1511,10 @@ msgid "Follow it"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Planned"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "MAX"
 msgstr ""
 
@@ -1451,11 +1527,23 @@ msgid "%s only"
 msgstr ""
 
 #: res://scripts/ui/main.gd
+msgid "Needs %s"
+msgstr ""
+
+#: res://scripts/ui/main.gd
 msgid "This one also costs Cores. You get Cores when you collapse the shaft."
 msgstr ""
 
 #: res://scripts/ui/main.gd
 msgid "The Factory Core's level is this line's limit. At level %d it goes further."
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Stop planning it"
+msgstr ""
+
+#: res://scripts/ui/main.gd
+msgid "Plan it"
 msgstr ""
 
 #: res://scripts/ui/main.gd
@@ -1927,7 +2015,7 @@ msgid "Resonant Bore"
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
-msgid "Bores Resonite out of the rock -- while a Beacon burns in the Caverns."
+msgid "Bores Resonite out of the rock -- while a Beacon stands in the Caverns."
 msgstr ""
 
 #: res://scripts/core/machine_db.gd
@@ -2215,6 +2303,78 @@ msgid "The crew brings home 25% more Umbrite from every site, for each level."
 msgstr ""
 
 #: res://scripts/core/economy.gd
+msgid "Assay Racks"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Benches learn more from a Frame."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Assay Benches and Labs learn 25% more from every Frame, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Jig Lines"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Frame Jigs work faster."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Every Frame Jig works 25% faster, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Store Chutes"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Benches beside the Core feed themselves."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Every Assay Bench beside the Core draws a Frame a second from the store, for each level -- no Rig needed."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Hauling Harness"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Posted Rigs carry more."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "A Rig posted to a machine hauls 50% more from the store, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Bay Wing"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "The Rig Bay docks more Rigs."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Two more Rigs can be posted at once, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Survey Instruments"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Surveyors are stronger."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Every Surveyor brings 25% more strength to a site, an expedition or a Beacon, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
 msgid "Rig Plating"
 msgstr ""
 
@@ -2350,6 +2510,10 @@ msgstr ""
 msgid "Robotics"
 msgstr ""
 
+#: res://scripts/core/economy.gd res://scripts/core/core_levels.gd
+msgid "The Works"
+msgstr ""
+
 #: res://scripts/core/core_levels.gd
 msgid "Extraction"
 msgstr ""
@@ -2396,6 +2560,10 @@ msgstr ""
 
 #: res://scripts/core/core_levels.gd res://scripts/core/operations.gd
 msgid "The Dark Reach"
+msgstr ""
+
+#: res://scripts/core/core_levels.gd
+msgid "The Deep Works"
 msgstr ""
 
 #: res://scripts/core/strata.gd

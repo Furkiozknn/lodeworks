@@ -34,6 +34,11 @@ extends RefCounted
 
 const MAX := 5
 
+## From the deep map: the store's Frames running out within this many
+## seconds is a line of its own (Sim.frames_left) -- the Beacons' Lenses and
+## the Assay Benches burn them with no row of the Core asking for any.
+const FRAMES_WARN := 7200.0
+
 ## Research lines the game does not offer yet (see main.HIDDEN_RESEARCH):
 ## none, now the Core card saves and lays blueprints.
 const HIDDEN := []
@@ -41,8 +46,9 @@ const HIDDEN := []
 
 ## The list for this shaft: [{"kind", ...}], in the order above.
 ## kind "problems": n; "core_grow": level; "descend": stratum; "core_need": st
-## (a CoreLevels.status row); "upgrade": id, level; "overdrive": id, step;
-## "research": n; "contract": i
+## (a CoreLevels.status row); "frames": left (seconds until the store's
+## Frames run out); "upgrade": id, level; "overdrive": id, step;
+## "research": n; "plan" (a research row open, no research planned); "contract": i
 ## (a Dispatch slot that can be filled); "post": cell (a starved machine
 ## beside the Core a Rig could feed from the store); "sortie": i, n, share, part (a
 ## site `n` Rigs at home clear, or with share true take `part` of); "collapse": cores,
@@ -81,6 +87,15 @@ static func of(state: Object) -> Array:
 	var ready: int = research_ready(state)
 	if ready > 0:
 		out.append({"kind": "research", "n": ready})
+	# From the deep map, a research row of the Core open and no plan for the
+	# research the Frames make.
+	if core and state.has_method("plan_research") and String(state.get("research_plan")) == "" \
+			and int(state.get("core_level")) >= Operations.REGION_CORE:
+		for st: Dictionary in (state.call("core_status") as Array):
+			if not bool(st["met"]) and int(st["req"][0]) in [CoreLevels.Req.RESEARCH, CoreLevels.Req.REGION_LINES,
+					CoreLevels.Req.TECH]:
+				out.append({"kind": "plan"})
+				break
 	if state.has_method("can_fill_contract"):
 		for i in range(Dispatch.SLOTS):
 			if bool(state.call("can_fill_contract", i)):
@@ -368,6 +383,10 @@ static func best_placement(state: Object) -> Dictionary:
 ## region the Core has room for, or, with no Surveyor in the crew, the
 ## refit it needs.
 static func _deep_map(state: Object, out: Array) -> void:
+	if state.has_method("frames_left") and int(state.get("core_level")) >= Operations.REGION_CORE:
+		var left: float = float(state.call("frames_left"))
+		if left >= 0.0 and left < FRAMES_WARN:
+			out.append({"kind": "frames", "left": left})
 	if state.has_method("send_expedition") and int(state.get("core_level")) >= Operations.REGION_CORE \
 			and (state.get("regions_open") as Array).size() + int(state.call("expeditions_out")) \
 				< Operations.region_room(int(state.get("core_level"))):

@@ -192,6 +192,7 @@ func _process(delta: float) -> void:
 		research_per_sec = _rate_accum_research / _rate_elapsed
 		_measured_rate = credits_per_sec
 		_measured_research_rate = research_per_sec
+		_measure_frames(_rate_elapsed)
 		_rate_accum_credits = 0.0
 		_rate_accum_research = 0.0
 		_rate_elapsed = 0.0
@@ -343,7 +344,7 @@ func upgrade_core() -> bool:
 				if int(r[1]) == MachineDB.Res.LENS:
 					_spend_lens(int(r[2]), "core")
 				else:
-					_take_stock({int(r[1]): int(r[2])})
+					_take_stock({int(r[1]): int(r[2])}, "core")
 	core_level += 1
 	# The Core's rows count the sites cleared since it last grew.
 	ops_cleared = 0
@@ -374,7 +375,9 @@ func has_stock(cost: Dictionary) -> bool:
 	return true
 
 
-func _take_stock(cost: Dictionary) -> void:
+func _take_stock(cost: Dictionary, why: String = "") -> void:
+	if why != "" and cost.has(MachineDB.Res.FRAME):
+		frame_spent[why] = int(frame_spent.get(why, 0)) + int(cost[MachineDB.Res.FRAME])
 	for res: int in cost:
 		var left: int = stock_of(res) - int(cost[res])
 		if left > 0:
@@ -547,7 +550,7 @@ func fill_contract(i: int) -> bool:
 		return false
 	var c: Dictionary = contract(i)
 	var paid: float = contract_pay(i)
-	_take_stock({int(c["res"]): int(c["n"])})
+	_take_stock({int(c["res"]): int(c["n"])}, "contract")
 	if int(c["res"]) == MachineDB.Res.LENS:
 		lens_spent["contract"] = int(lens_spent.get("contract", 0)) + int(c["n"])
 	if String(c["pays"]) == "research":
@@ -670,7 +673,7 @@ func refit_rig(role: String = "breaker") -> bool:
 		return false
 	var c: Dictionary = Operations.refit_cost(core_level, role)
 	salvage -= int(c["salvage"])
-	_take_stock({int(c["res"]): int(c["n"])})
+	_take_stock({int(c["res"]): int(c["n"])}, "refit")
 	stock[MachineDB.Res.RIG] = rigs_home() - 1
 	if role == "surveyor":
 		surveyors += 1
@@ -700,6 +703,14 @@ func region_lines() -> int:
 	for id: String in Economy.RESEARCH_TREE:
 		if String((Economy.RESEARCH_TREE[id] as Dictionary).get("region", "")) != "":
 			n += upgrade_level(id)
+	return n
+
+
+## Levels bought in the Works' lines (Economy.WORKS), whichever.
+func tech_levels() -> int:
+	var n: int = 0
+	for id: String in Economy.WORKS:
+		n += upgrade_level(id)
 	return n
 
 
@@ -816,6 +827,10 @@ var tuners: Dictionary = {}
 ## Lenses spent, by what for: "core", "expedition", "beacon", "upkeep",
 ## "light", "factory" (hauled into a machine), "contract" (Dispatch).
 var lens_spent: Dictionary = {}
+## Frames taken from the store, by what for: "core" (the Core's row),
+## "refit" (a Surveyor), "contract", "research" (hauled to an Assay Bench or
+## a Lab), "lens" (hauled to a Lens Grinder), "factory" (hauled elsewhere).
+var frame_spent: Dictionary = {}
 
 
 ## Does a Beacon burn in region `r` now?
@@ -1013,11 +1028,16 @@ func _sync_tuners() -> void:
 			surveyors += 1
 			continue
 		ins[cell] = info["tuned"]
+	# A job a Beacon keeps runs while the Beacon stands, dark or lit: a
+	# Resonant Bore stopped by the dark stopped the Resonite that relights it
+	# (measured: at Core 14 the Lenses fell to 0, four Beacons went dark, the
+	# Bores stood with them, and the crew -- too weak for that Core's sites --
+	# brought no Resonite home; the Beacons stayed dark for thirteen hours).
 	var off: Dictionary = {}
 	for id: String in MachineDB.JOBS:
 		for job: String in (MachineDB.JOBS[id] as Dictionary):
 			var c: String = String((MachineDB.JOBS[id][job] as Dictionary).get("control", ""))
-			if c != "" and not controlled(c):
+			if c != "" and not beacons.has(c):
 				off[job] = true
 	if ins != sim.cell_inputs or off != sim.jobs_off:
 		sim.cell_inputs = ins
@@ -1041,11 +1061,11 @@ func rigs_posted() -> int:
 
 
 func bay_posts() -> int:
-	return Operations.bay_posts(bay_level)
+	return Operations.bay_posts(bay_level) + int(float(_mult.get("docks", 0.0)))
 
 
 func haul_rate() -> float:
-	return Operations.haul_rate(bay_level)
+	return Operations.haul_rate(bay_level) * float(_mult.get("haul", 1.0))
 
 
 ## What machine `cell` would be hauled, from the store: the inputs it takes
@@ -1072,12 +1092,36 @@ func haul_floor(res: int) -> int:
 	# went dark, with a row only held regions' research meets still open).
 	if res == MachineDB.Res.LENS:
 		keep += int(beacon_upkeep())
+		# And the next Beacon's price and first hour while the Core's next
+		# level asks for one more (measured: a Rig posted to the Prism Cutter
+		# took every Lens over the Beacons' hour -- 11,300 into Prisms, the
+		# row's 2,000 long cut -- and the 6,000 a third Beacon costs were
+		# never in the store).
+		for r: Array in CoreLevels.requirements(core_level + 1):
+			if int(r[0]) == CoreLevels.Req.BEACONS and beacons.size() < int(r[1]):
+				keep += beacon_lenses() + int(Operations.BEACON_UPKEEP)
+				break
 	if keep > stock_cap():
 		keep = int(float(stock_cap()) * (1.0 - HAUL_TOP))
 	return keep
 
 
 const HAUL_TOP := 0.05
+
+
+## What research leaves of the store's Frames: the haul floor, and while
+## Beacons burn, the Frames the Lens Grinders grind their next hour on -- the
+## Beacons before the Benches, as the Lenses are kept before the Prisms
+## (measured: at Core 14 nine Assay Benches took every Frame, the Lenses fell
+## to 0, all three Beacons went dark and stayed dark for eleven hours; kept
+## only while the Lenses were short of the hour, the Benches' Chutes still
+## took the Frames faster than the Grinders, and four Beacons' Lenses fell
+## by 350 every ten minutes).
+func research_floor() -> int:
+	var keep: int = haul_floor(MachineDB.Res.FRAME)
+	if not beacons.is_empty():
+		keep += int(beacon_upkeep())
+	return keep
 
 
 ## What the crew may haul of `res`: the store's, over its floor.
@@ -1170,6 +1214,7 @@ func _haul(dt: float) -> void:
 	var floors: Dictionary = {}
 	for res: int in MachineDB.STOCKED:
 		floors[int(res)] = haul_floor(int(res))
+	var research_frames: int = research_floor()
 	for cell: int in posts.keys():
 		if grid.is_empty(cell) or not sim.core_touching().has(cell):
 			recall_rig(cell)
@@ -1177,13 +1222,19 @@ func _haul(dt: float) -> void:
 		var budget: float = float(posts[cell]) + rate * dt
 		var ins: Array[int] = haul_inputs(cell)
 		var buf: Dictionary = grid.cells[cell]["buf_in"]
+		var job: String = grid.job_at(cell)
+		var frame_use: String = "research" if grid.machine_at(cell) == "lab" else "lens" if job == "lens" else "factory"
+		var floor_of: Dictionary = floors
+		if frame_use == "research":
+			floor_of = floors.duplicate()
+			floor_of[MachineDB.Res.FRAME] = research_frames
 		var moved: bool = true
 		while budget >= 1.0 and moved:
 			moved = false
 			for res: int in ins:
 				if budget < 1.0:
 					break
-				if stock_of(res) <= int(floors.get(res, 0)) or int(buf.get(res, 0)) >= limit:
+				if stock_of(res) <= int(floor_of.get(res, 0)) or int(buf.get(res, 0)) >= limit:
 					continue
 				buf[res] = int(buf.get(res, 0)) + 1
 				stock[res] = stock_of(res) - 1
@@ -1191,6 +1242,8 @@ func _haul(dt: float) -> void:
 				hauled += 1
 				if res == MachineDB.Res.LENS:
 					lens_spent["factory"] = int(lens_spent.get("factory", 0)) + 1
+				elif res == MachineDB.Res.FRAME:
+					frame_spent[frame_use] = int(frame_spent.get(frame_use, 0)) + 1
 				moved = true
 		# Nothing to haul now: the Rig waits, and does not bank the time.
 		posts[cell] = minf(budget, 1.0)
@@ -1206,7 +1259,8 @@ func crew_strength(n: int) -> float:
 ## What `n` Rigs, `b` Breakers and `v` Surveyors bring to site `s`
 ## (Operations.team_factor).
 func team_strength(s: Dictionary, n: int, b: int, v: int = 0) -> float:
-	return crew_strength(1) * Operations.team_factor(s, n, b, v, float(_mult.get("breaker_power", 1.0)))
+	return crew_strength(1) * Operations.team_factor(s, n, b, v, float(_mult.get("breaker_power", 1.0)),
+		float(_mult.get("surveyor_power", 1.0)))
 
 
 func site(i: int) -> Dictionary:
@@ -1538,7 +1592,9 @@ func after_tick(dt: float) -> void:
 	_collect_stock()
 	advance_ops(dt)
 	_haul(dt)
+	_chutes(dt)
 	_upkeep(dt)
+	_follow_plan()
 
 
 ## --- machine levels ------------------------------------------------------------
@@ -1791,21 +1847,62 @@ func upgrade_level(id: String) -> int:
 
 
 func can_buy_upgrade(id: String) -> bool:
+	return research_blocker(id) == ""
+
+
+## Why research line `id` cannot go up a level now, or "" when it can: "none"
+## (no such line), "max", "core" (the Core's limit), "doctrine", "region" (not
+## open), "needs" (what it opens behind: research_needs), then what is short:
+## "research", "frames", "cores", "salvage".
+func research_blocker(id: String) -> String:
 	var u: Dictionary = Economy.RESEARCH_TREE.get(id, {})
 	if u.is_empty():
-		return false
+		return "none"
 	var lvl: int = upgrade_level(id)
-	if lvl >= line_max(id) or lvl >= research_cap(id):
-		return false
+	if lvl >= line_max(id):
+		return "max"
+	if lvl >= research_cap(id):
+		return "core"
 	# A doctrine's line only in a shaft that follows it.
 	if Economy.doctrine_of(id) != "" and Economy.doctrine_of(id) != doctrine:
-		return false
+		return "doctrine"
 	# A region's line only once the region is open.
 	var reg: String = String(u.get("region", ""))
 	if reg != "" and not region_open(reg):
-		return false
+		return "region"
+	if not research_needs(id).is_empty():
+		return "needs"
 	var c: Dictionary = Economy.upgrade_cost(id, lvl)
-	return research >= float(c["research"]) and cores >= int(c["cores"]) and salvage >= int(c["salvage"])
+	if research < float(c["research"]):
+		return "research"
+	if stock_of(MachineDB.Res.FRAME) < int(c["frames"]):
+		return "frames"
+	if cores < int(c["cores"]):
+		return "cores"
+	if salvage < int(c["salvage"]):
+		return "salvage"
+	return ""
+
+
+## What research line `id` still opens behind (Economy "requires"): the
+## needs not met, as they are written -- ["line", id, level], ["beacons", n],
+## ["working", machine, n, job].
+func research_needs(id: String) -> Array:
+	var out: Array = []
+	for need: Array in (Economy.RESEARCH_TREE.get(id, {}).get("requires", []) as Array):
+		var met: bool = true
+		match String(need[0]):
+			"line":
+				met = upgrade_level(String(need[1])) >= int(need[2])
+			"beacons":
+				met = lit_beacons() >= int(need[1])
+			"working":
+				met = CoreLevels.working(self, String(need[1]), String(need[3]) if need.size() > 3 else "") >= int(need[2])
+			"region":
+				met = region_open(String(need[1]))
+		if not met:
+			out.append(need)
+	return out
 
 
 ## How far research line `id` may go under this shaft's Core.
@@ -1829,12 +1926,130 @@ func buy_upgrade(id: String) -> bool:
 	research -= float(c["research"])
 	cores -= int(c["cores"])
 	salvage -= int(c["salvage"])
+	if int(c["frames"]) > 0:
+		_take_stock({MachineDB.Res.FRAME: int(c["frames"])}, "tech")
 	upgrade_levels[id] = lvl + 1
+	if research_plan == id:
+		research_plan = ""
 	_recompute()
 	stats_changed.emit()
 	Save.save_game(self)
 	Analytics.track("first_upgrade")
 	return true
+
+
+## The Frames, a second, over the last rate window: made by the machines,
+## taught to research machines, hauled to Lens Grinders ({"made",
+## "research", "lens"}); and "store", how the store's Frames have moved,
+## averaged over about FRAME_TREND seconds (frames_left).
+var frame_rates: Dictionary = {}
+var _frame_marks: Array = []
+const FRAME_TREND := 300.0
+
+
+## Close the Frames' window of `seconds` (0: only start a new one).
+func _measure_frames(seconds: float) -> void:
+	if sim == null:
+		return
+	var now: Array = [int(sim.made.get(MachineDB.Res.FRAME, 0)), int(sim.learned.get(MachineDB.Res.FRAME, 0)),
+		int(frame_spent.get("lens", 0)), stock_of(MachineDB.Res.FRAME)]
+	if seconds > 0.0 and _frame_marks.size() == now.size():
+		var moved: float = float(int(now[3]) - int(_frame_marks[3])) / seconds
+		var k: float = seconds / (seconds + FRAME_TREND)
+		frame_rates = {"made": float(int(now[0]) - int(_frame_marks[0])) / seconds,
+			"research": float(int(now[1]) - int(_frame_marks[1])) / seconds,
+			"lens": float(int(now[2]) - int(_frame_marks[2])) / seconds,
+			"store": lerpf(float(frame_rates.get("store", moved)), moved, k)}
+	_frame_marks = now
+
+
+## Seconds until the store's Frames run out at the way they have moved
+## (frame_rates "store"), or -1 while they are not falling.
+func frames_left() -> float:
+	var d: float = float(frame_rates.get("store", 0.0))
+	return float(stock_of(MachineDB.Res.FRAME)) / -d if d < 0.0 else -1.0
+
+
+## What a Frame sells for at a Vault, and what it teaches an Assay Bench,
+## on this stratum with this research: the choice the store's Frames are.
+func frame_sale_value() -> float:
+	return MachineDB.value_of(MachineDB.Res.FRAME) * sim.value_mult \
+		* float(sim.res_value_mult.get(MachineDB.Res.FRAME, 1.0))
+
+
+func frame_research_value() -> float:
+	return MachineDB.ASSAY_LEARNS * sim.research_mult * float(sim.res_learn_mult.get(MachineDB.Res.FRAME, 1.0))
+
+
+## The research the player has set the shaft to work towards: its next
+## level is bought the moment the store and the research pay for it, and
+## the plan is then done (the next is the player's choice again). "" for
+## none.
+var research_plan: String = ""
+
+
+## Plan research line `id` ("" to clear it). False when it is no line, or
+## at its end.
+func plan_research(id: String) -> bool:
+	if id == "":
+		research_plan = ""
+		stats_changed.emit()
+		return true
+	var b: String = research_blocker(id)
+	if b in ["none", "max", "doctrine"]:
+		return false
+	research_plan = id
+	stats_changed.emit()
+	return true
+
+
+## How long until the plan's research is in, at the rate research is made
+## now: seconds, 0 when it is, -1 when none is being made (or nothing is
+## planned).
+func plan_eta() -> float:
+	if research_plan == "":
+		return -1.0
+	var c: Dictionary = Economy.upgrade_cost(research_plan, upgrade_level(research_plan))
+	var short: float = float(c["research"]) - research
+	if short <= 0.0:
+		return 0.0
+	var rate: float = research_per_sec if research_per_sec > 0.0 else _measured_research_rate
+	return short / rate if rate > 0.0 else -1.0
+
+
+func _follow_plan() -> void:
+	if research_plan != "" and research_blocker(research_plan) == "":
+		buy_upgrade(research_plan)
+
+
+## --- the store's chutes (Economy "bench_chutes") -----------------------------
+
+## Each Assay Bench beside the Core with no Rig posted to it draws the
+## chutes' Frames a second from the store, above what a posted Rig would
+## leave there (research_floor).
+func _chutes(dt: float) -> void:
+	var per: float = float(_mult.get("chutes", 0.0))
+	if per <= 0.0:
+		return
+	var floor_frames: int = research_floor()
+	var limit: int = sim.cap()
+	for cell: int in sim.core_touching():
+		if posts.has(cell) or grid.job_at(cell) != "assay":
+			continue
+		var buf: Dictionary = grid.cells[cell]["buf_in"]
+		var acc: float = float(_chute_carry.get(cell, 0.0)) + per * dt
+		var n: int = int(acc)
+		_chute_carry[cell] = acc - float(n)
+		n = mini(mini(n, limit - int(buf.get(MachineDB.Res.FRAME, 0))), stock_of(MachineDB.Res.FRAME) - floor_frames)
+		if n <= 0:
+			continue
+		buf[MachineDB.Res.FRAME] = int(buf.get(MachineDB.Res.FRAME, 0)) + n
+		stock[MachineDB.Res.FRAME] = stock_of(MachineDB.Res.FRAME) - n
+		frame_spent["research"] = int(frame_spent.get("research", 0)) + n
+	_sync_core()
+
+
+var _chute_carry: Dictionary = {}
 
 
 ## --- derived state ---------------------------------------------------------
@@ -1852,6 +2067,7 @@ func _reset_rate_window(and_display: bool = false) -> void:
 	_rate_accum_credits = 0.0
 	_rate_accum_research = 0.0
 	_rate_elapsed = 0.0
+	_measure_frames(0.0)
 	_board_changed_at = Time.get_ticks_msec() / 1000.0
 	if and_display:
 		credits_per_sec = 0.0
@@ -2319,11 +2535,13 @@ func to_dict() -> Dictionary:
 		"upkeep_due": _upkeep_due,
 		"tuners": tuners.keys(),
 		"lens_spent": lens_spent,
+		"frame_spent": frame_spent,
 		"posts": posts.keys(),
 		"bay_level": bay_level,
 		"hauled": hauled,
 		"salvage_earned": salvage_earned,
 		"upgrades": upgrade_levels,
+		"research_plan": research_plan,
 		"blueprints": blueprints,
 		"blueprint_pending": blueprint_pending,
 		"doctrine": doctrine,
@@ -2416,6 +2634,11 @@ func from_dict(d: Dictionary) -> void:
 	if typeof(ls) == TYPE_DICTIONARY:
 		for k in (ls as Dictionary):
 			lens_spent[String(k)] = int((ls as Dictionary)[k])
+	frame_spent = {}
+	var fs: Variant = d.get("frame_spent", {})
+	if typeof(fs) == TYPE_DICTIONARY:
+		for k in (fs as Dictionary):
+			frame_spent[String(k)] = int((fs as Dictionary)[k])
 	bay_level = clampi(int(d.get("bay_level", 1)), 1, Operations.BAY_MAX)
 	hauled = int(d.get("hauled", 0))
 	salvage_earned = int(d.get("salvage_earned", 0))
@@ -2425,6 +2648,9 @@ func from_dict(d: Dictionary) -> void:
 	var away: Array = d.get("sorties", [])
 	sorties = []
 	upgrade_levels = d.get("upgrades", {})
+	research_plan = String(d.get("research_plan", ""))
+	if not Economy.RESEARCH_TREE.has(research_plan):
+		research_plan = ""
 	# Blueprints; JSON brings every number back as a float.
 	blueprints = []
 	for b in (d.get("blueprints", []) as Array):

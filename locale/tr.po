@@ -1180,6 +1180,10 @@ msgid "Beacons burning: %d, in whichever regions"
 msgstr "Yanan Fener: %d, hangi bölgede olursa"
 
 #: res://scripts/ui/main.gd
+msgid "Levels of the Works' research: %d, the factory's or the crew's"
+msgstr "Atölye araştırmasında seviye: %d, fabrikanınki ya da ekibinki"
+
+#: res://scripts/ui/main.gd
 msgid "%d machines at working heat, none overheating"
 msgstr "%d makine çalışma ısısında, hiçbiri aşırı ısınmıyor"
 
@@ -1264,6 +1268,14 @@ msgid "For the Core's level %d: %s"
 msgstr "Çekirdeğin seviye %d için: %s"
 
 #: res://scripts/ui/main.gd
+msgid "The store's Frames run out in %s"
+msgstr "Depodaki Çerçeveler %s içinde bitiyor"
+
+#: res://scripts/ui/main.gd
+msgid "The Benches and the Lens Grinders take more than the Frame Jigs make: more Frame Jigs, or a Rig to feed one beside the Core from the store's Alloy and Components."
+msgstr "Tezgâhlar ve Mercek Taşlayıcılar, Çerçeve Kalıplarının yaptığından fazlasını alıyor: daha çok Çerçeve Kalıbı kur ya da Çekirdeğin yanındakini depodaki Alaşım ve Parçalarla beslemesi için bir Robot görevlendir."
+
+#: res://scripts/ui/main.gd
 msgid "Upgrade the %s to level %d"
 msgstr "%s yükseltmesi: seviye %d"
 
@@ -1338,6 +1350,14 @@ msgstr "Sözleşme teslim et: %d %s"
 #: res://scripts/ui/main.gd
 msgid "What it buys stays, even after a collapse."
 msgstr "Aldığın şey çöküşten sonra bile kalır."
+
+#: res://scripts/ui/main.gd
+msgid "Plan the research the Frames make"
+msgstr "Çerçevelerin yaptığı araştırmayı planla"
+
+#: res://scripts/ui/main.gd
+msgid "The Core asks for research: choose the line the Assay Benches work towards."
+msgstr "Çekirdek araştırma istiyor: Tahlil Tezgâhlarının çalışacağı dalı seç."
 
 #: res://scripts/ui/main.gd
 msgid "Collapse for %d Cores"
@@ -1424,6 +1444,58 @@ msgid "Neighbour boost +%.0f%%"
 msgstr "Komşu desteği +%%%.0f"
 
 #: res://scripts/ui/main.gd
+msgid "A Frame sells for %s credits, or teaches %s research at an Assay Bench."
+msgstr "Bir Çerçeve %s krediye satılır ya da bir Tahlil Tezgâhında %s araştırma öğretir."
+
+#: res://scripts/ui/main.gd
+msgid "Frames an hour: %s made, %s taught, %s ground into Lenses; %s in the store."
+msgstr "Saatte Çerçeve: %s yapıldı, %s öğretildi, %s Merceğe işlendi; depoda %s."
+
+#: res://scripts/ui/main.gd
+msgid "At this rate the store's Frames run out in %s: the Benches and the Lens Grinders take more than the Frame Jigs make."
+msgstr "Bu hızla depodaki Çerçeveler %s içinde biter: Tezgâhlar ve Mercek Taşlayıcılar, Çerçeve Kalıplarının yaptığından fazlasını alıyor."
+
+#: res://scripts/ui/main.gd
+msgid "No plan: open a line's ? and plan it -- its next level is bought the moment it is paid for."
+msgstr "Plan yok: bir dalın ?'ini aç ve planla -- sonraki seviyesi parası çıktığı an alınır."
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- it opens behind what it needs."
+msgstr "Plan: %s -- istediği şeylerin arkasında açılıyor."
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- the Core's level holds it."
+msgstr "Plan: %s -- Çekirdeğin seviyesi tutuyor."
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- the store is short of Frames."
+msgstr "Plan: %s -- depoda Çerçeve yetmiyor."
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- no research is being made."
+msgstr "Plan: %s -- araştırma yapılmıyor."
+
+#: res://scripts/ui/main.gd
+msgid "Plan: %s -- in %s."
+msgstr "Plan: %s -- %s sonra."
+
+#: res://scripts/ui/main.gd
+msgid "Research %s an hour."
+msgstr "Saatte %s araştırma."
+
+#: res://scripts/ui/main.gd
+msgid "%d Beacons burning"
+msgstr "%d Fener yanıyor"
+
+#: res://scripts/ui/main.gd
+msgid "%d %s at work"
+msgstr "%d %s çalışıyor"
+
+#: res://scripts/ui/main.gd
+msgid "%s open"
+msgstr "%s açık"
+
+#: res://scripts/ui/main.gd
 msgid "Doctrine: %s. %s"
 msgstr "Doktrin: %s. %s"
 
@@ -1440,6 +1512,10 @@ msgid "Follow it"
 msgstr "İzle"
 
 #: res://scripts/ui/main.gd
+msgid "Planned"
+msgstr "Planlandı"
+
+#: res://scripts/ui/main.gd
 msgid "MAX"
 msgstr "MAKS"
 
@@ -1452,12 +1528,24 @@ msgid "%s only"
 msgstr "Yalnızca %s"
 
 #: res://scripts/ui/main.gd
+msgid "Needs %s"
+msgstr "Gerekli: %s"
+
+#: res://scripts/ui/main.gd
 msgid "This one also costs Cores. You get Cores when you collapse the shaft."
 msgstr "Bu, Çekirdek de ister. Çekirdeği kuyuyu çökertince alırsın."
 
 #: res://scripts/ui/main.gd
 msgid "The Factory Core's level is this line's limit. At level %d it goes further."
 msgstr "Bu hattın sınırı Fabrika Çekirdeğinin seviyesidir. Çekirdek seviye %d olunca daha ileri gider."
+
+#: res://scripts/ui/main.gd
+msgid "Stop planning it"
+msgstr "Plandan çıkar"
+
+#: res://scripts/ui/main.gd
+msgid "Plan it"
+msgstr "Planla"
 
 #: res://scripts/ui/main.gd
 msgid "Collapsing the shaft turns everything you have built into Cores, and Cores stay with you into the next shaft.\n\nIt opens at stratum %d. You have reached %d."
@@ -1928,8 +2016,8 @@ msgid "Resonant Bore"
 msgstr "Rezonans Delgisi"
 
 #: res://scripts/core/machine_db.gd
-msgid "Bores Resonite out of the rock -- while a Beacon burns in the Caverns."
-msgstr "Kayadan Rezonit deler -- Mağaralarda bir Fener yandığı sürece."
+msgid "Bores Resonite out of the rock -- while a Beacon stands in the Caverns."
+msgstr "Kayadan Rezonit deler -- Mağaralarda bir Fener durduğu sürece."
 
 #: res://scripts/core/machine_db.gd
 msgid "White Heat"
@@ -2216,6 +2304,78 @@ msgid "The crew brings home 25% more Umbrite from every site, for each level."
 msgstr "Her seviye, ekibin her alandan %25 daha fazla Gölgetaş getirmesini sağlar."
 
 #: res://scripts/core/economy.gd
+msgid "Assay Racks"
+msgstr "Tahlil Rafları"
+
+#: res://scripts/core/economy.gd
+msgid "Benches learn more from a Frame."
+msgstr "Tezgâhlar bir Çerçeveden daha çok öğrenir."
+
+#: res://scripts/core/economy.gd
+msgid "Assay Benches and Labs learn 25% more from every Frame, for each level."
+msgstr "Tahlil Tezgâhları ve Laboratuvarlar her Çerçeveden seviye başına %25 daha çok öğrenir."
+
+#: res://scripts/core/economy.gd
+msgid "Jig Lines"
+msgstr "Kalıp Hatları"
+
+#: res://scripts/core/economy.gd
+msgid "Frame Jigs work faster."
+msgstr "Çerçeve Kalıpları daha hızlı çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "Every Frame Jig works 25% faster, for each level."
+msgstr "Her Çerçeve Kalıbı seviye başına %25 daha hızlı çalışır."
+
+#: res://scripts/core/economy.gd
+msgid "Store Chutes"
+msgstr "Depo Olukları"
+
+#: res://scripts/core/economy.gd
+msgid "Benches beside the Core feed themselves."
+msgstr "Çekirdeğin yanındaki Tezgâhlar kendini besler."
+
+#: res://scripts/core/economy.gd
+msgid "Every Assay Bench beside the Core draws a Frame a second from the store, for each level -- no Rig needed."
+msgstr "Çekirdeğin yanındaki her Tahlil Tezgâhı seviye başına saniyede bir Çerçeveyi depodan kendisi çeker -- Robot gerekmez."
+
+#: res://scripts/core/economy.gd
+msgid "Hauling Harness"
+msgstr "Taşıma Koşumu"
+
+#: res://scripts/core/economy.gd
+msgid "Posted Rigs carry more."
+msgstr "Görevli Robotlar daha çok taşır."
+
+#: res://scripts/core/economy.gd
+msgid "A Rig posted to a machine hauls 50% more from the store, for each level."
+msgstr "Bir makineye görevlendirilen Robot depodan seviye başına %50 daha çok taşır."
+
+#: res://scripts/core/economy.gd
+msgid "Bay Wing"
+msgstr "Garaj Kanadı"
+
+#: res://scripts/core/economy.gd
+msgid "The Rig Bay docks more Rigs."
+msgstr "Robot Garajı daha çok Robot barındırır."
+
+#: res://scripts/core/economy.gd
+msgid "Two more Rigs can be posted at once, for each level."
+msgstr "Seviye başına aynı anda iki Robot daha görevlendirilebilir."
+
+#: res://scripts/core/economy.gd
+msgid "Survey Instruments"
+msgstr "Keşif Aletleri"
+
+#: res://scripts/core/economy.gd
+msgid "Surveyors are stronger."
+msgstr "Kâşifler daha güçlü."
+
+#: res://scripts/core/economy.gd
+msgid "Every Surveyor brings 25% more strength to a site, an expedition or a Beacon, for each level."
+msgstr "Her Kâşif bir alana, bir keşif seferine ya da bir Fenere seviye başına %25 daha çok güç getirir."
+
+#: res://scripts/core/economy.gd
 msgid "Rig Plating"
 msgstr "Robot Zırhı"
 
@@ -2351,6 +2511,10 @@ msgstr "Lojistik"
 msgid "Robotics"
 msgstr "Robotik"
 
+#: res://scripts/core/economy.gd res://scripts/core/core_levels.gd
+msgid "The Works"
+msgstr "Atölye"
+
 #: res://scripts/core/core_levels.gd
 msgid "Extraction"
 msgstr "Çıkarım"
@@ -2398,6 +2562,10 @@ msgstr "Fenerler"
 #: res://scripts/core/core_levels.gd res://scripts/core/operations.gd
 msgid "The Dark Reach"
 msgstr "Karanlık Yarık"
+
+#: res://scripts/core/core_levels.gd
+msgid "The Deep Works"
+msgstr "Derin Atölye"
 
 #: res://scripts/core/strata.gd
 msgid "Thermal Vent"
@@ -3102,4 +3270,7 @@ msgstr "Arduvaz"
 #: res://scripts/ui/themes.gd
 msgid "Grey plant, coloured cargo. Shape does the work."
 msgstr "Gri fabrika, renkli yük. İşi şekil görür."
+
+#~ msgid "Bores Resonite out of the rock -- while a Beacon burns in the Caverns."
+#~ msgstr "Kayadan Rezonit deler -- Mağaralarda bir Fener yandığı sürece."
 

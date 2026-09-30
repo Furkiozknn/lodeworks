@@ -1127,3 +1127,186 @@ sessions loaded the machine, and the same code's late-board tick read
 anywhere from 1.8 to 9.3 ms; with the order of the checkouts reversed,
 neither was consistently faster. `tests/test_performance.gd` passes
 (8 of 8). A phone: not measured (no device connected).
+
+## 14. The Works: research as a line of the factory (29-30 September 2026)
+
+The owner's brief for this round: make the Frame -> Assay Bench ->
+research chain a decision the player can see and steer, not a list the
+bot buys from; tie research to the factory, the crew, the sorties and the
+regions; give it a tree with prerequisites and alternatives; let Cores 14
+and up ask for several systems at once; and measure Cores 10 -> 15.
+
+### Measured first
+
+The round's base (2b68221), a new game, the scripted player with the
+round's instruments only (`LODEWORKS_CORE_SKIP=1`, to 34 hours):
+
+| stage | length | Assay Benches at work | waiting on research alone | only credits left | Frames made / taught to research / to contracts | minutes with a decision |
+|---|---|---|---|---|---|---|
+| 10 -> 11 | 1:42:24 | 42% of their time | 0 | 0% | 360K / 44.6K / 0 | 101 of 103 |
+| 11 -> 12 | 1:50:44 | 36% | 0:28:50 (26%) | 0% | 387K / 35.9K / 265K | 107 of 112 |
+| 12 -> 13 | 2:57:50 | 8% | 0 | 26% | 552K / 7.0K / 360K | 149 of 179 |
+| 13 -> 14 | **not reached in 14:54** | **0%** | 2:11:30 | 0% | 3.29M / 0 / 935K | 111 of 895 |
+
+- **The research the Frames made stopped at Core 13.** Past it the Assay
+  Benches learnt from no Frame at all while 3.29 million were made and
+  935,000 went to contracts; the Frames sold at the Vaults the Frame line
+  ended in, and none reached the Benches.
+- **Core 14 was never reached.** The formula's rows (the regions'
+  research, three Beacons) were each met once, never together: the
+  Beacons went dark at 22:00 with the store's Resonite at 0 and stayed
+  dark to the end, twelve hours; the regions' eighth level came 9:38 into
+  the stage.
+- **Research was bought, not chosen**: the scripted player bought what the
+  rows asked for the moment it could; nothing else asked for research.
+
+### What was built
+
+| the brief asked for | built | where |
+|---|---|---|
+| a Frame's opportunity cost, visible | the research screen, from Core 10, opens with **what a Frame is worth each way** -- its price at a Vault against the research it teaches an Assay Bench on this rock with this research -- the Frames an hour made, taught and ground into Lenses, the research an hour and the plan with its time; and, when the store's Frames are falling, **when they run out** | `main.gd` `_research_budget`, `Sim.frame_rates`, `Sim.frames_left`, `Sim.frame_sale_value`, `Sim.frame_research_value` |
+| research as a plan, not a purchase list | **the plan**: a line's "?" sheet plans it; its next level is bought the moment research and Frames pay for it, then the plan is done and the next is the player's choice again. What now? asks for one while a research row is open and none is planned | `Sim.research_plan`, `Sim.plan_research`, `Sim._follow_plan`, `Worklist` "plan" |
+| a tree with prerequisites | every line can open behind another line's level, Beacons burning, or machines at work ("requires"); a card that still needs one says what; `Economy.tree_problems` catches a line that needs itself, one that is not there, a level it does not have, one that opens later | `Economy`, `Sim.research_needs`, `Sim.research_blocker` |
+| alternatives, one resource | **the Works**: six lines paid in research **and Frames from the store**, in two ways -- the factory's (Assay Racks: a Frame teaches more; Jig Lines: Frame Jigs faster; Store Chutes: Benches beside the Core draw Frames with no Rig) and the crew's (Hauling Harness: posted Rigs carry more; Bay Wing: two more docks; Survey Instruments: Surveyors stronger, behind a Beacon). The same Frames and research buy one or the other first | `Economy.WORKS` |
+| research tied to the factory, the robots, the sorties, the regions | the factory's lines feed the research that buys them (more research a Frame, more Frames, no dock needed); the crew's move more of the store to the machines and make the Surveyors that hold regions stronger; the regions' own lines stay | the Works; `Operations.team_factor` (Surveyor power) |
+| Cores 14 and up: several systems at once | **Core 14, The Works**: 255M, six Assay Benches at work, three levels of the Works (whichever), all four regions, eight levels of their research, three Beacons. **Core 15, The Deep Works**: 380M, eight Benches, six levels of the Works, ten of the regions', four Beacons, stability 150. Past it the formula grows each | `CoreLevels` |
+| the Frames measured | a ledger by use -- the Core, the Works, refits, contracts, research (hauled or chuted), Lenses, other machines -- and the Frames made and learned from | `Sim.frame_spent`, `Simulation.made`, `Simulation.learned` |
+| the store's Frames kept for what burns them | while Beacons burn, research leaves an hour of their Frames; a posted Rig leaves the next Beacon's price and hour of Lenses while the Core asks for one | `Sim.research_floor`, `Sim.haul_floor` |
+
+### Played
+
+A new game each way on the round's code, the scripted player choosing the
+Works factory-first or crew-first (`LODEWORKS_CORE_TECH=factory|crew`,
+`LODEWORKS_CORE_SKIP=1`), to Core 15 or 34 hours. Core 1 -> 10 is the
+base's to the second (Core 10 at 12:35:02 in all three).
+
+| stage | the base (2b68221) | the Works, crew first | the Works, factory first |
+|---|---|---|---|
+| Core 10 -> 11 | 1:42:24 | 1:31:19 | 1:31:19 |
+| 11 -> 12 | 1:50:44 | 1:43:24 | 1:43:24 |
+| 12 -> 13 | 2:57:50 | 2:25:24 | 3:31:59 |
+| 13 -> 14 | **not in 14:54** | 3:18:05 | 1:36:45 |
+| 14 -> 15 | -- | **2:57:00** | **not in 13:01** |
+| Core 13, 14, 15 at | 19:06:02, --, -- | 18:15:12, 21:33:17, **24:30:17** | 19:21:46, 20:58:31, -- |
+| the row that came last, 13 -> 14 | the Beacons (dark from 22:00) | the regions' research (3:18:05) | credits (1:36:45) |
+| the row that came last, 14 -> 15 | -- | credits (2:35:50) | stability 150, never met |
+
+Each stage, crew first / factory first (the base's in brackets):
+
+| stage | only credits left | waiting on research alone | Assay Benches at work | minutes with a decision |
+|---|---|---|---|---|
+| 10 -> 11 | 4% / 4% (0%) | 29% / 29% (0%) | 41% / 41% (42%) | 90 of 92 / 90 of 92 (101 of 103) |
+| 11 -> 12 | 5% / 4% (0%) | 0% / 0% (26%) | 46% / 46% (36%) | 101 of 104 / 101 of 104 (107 of 112) |
+| 12 -> 13 | 21% / 33% (26%) | 24% / 0% (0%) | 24% / 29% (8%) | 144 of 147 / 183 of 213 (149 of 179) |
+| 13 -> 14 | 0% / 23% (0%) | 24% / 29% (15%) | 31% / 76% (**0%**) | 197 of 199 / 98 of 98 (111 of 895) |
+| 14 -> 15 | 0% / 0% | 0% / 0% | 83% / 28% | 108 of 178 / 574 of 783 |
+
+**The Frames, each stage** (made; taught to research; what went out of the
+store to the Works, contracts and Lens Grinders):
+
+| stage | crew first | factory first | the base |
+|---|---|---|---|
+| 11 -> 12 | 362K; 51K; Works 15K, contracts 265K, Lenses 7K | 362K; 51K; Works 15K, contracts 265K, Lenses 7K | 387K; 36K; contracts 265K |
+| 12 -> 13 | 598K; 30K; Works 90K, contracts 360K, Lenses 35K | 763K; 48K; Works 210K, contracts 360K, Lenses 30K | 552K; 7K; contracts 360K |
+| 13 -> 14 | 404K; 45K; Works 90K, Lenses 16K | 90K; 63K; Works 45K, Lenses 7K | 3.29M; **0**; contracts 935K |
+| 14 -> 15 | 451K; 159K; Works 90K, Lenses 31K | 1.07M; 294K; Lenses 102K | -- |
+
+**The Works each way bought** (the plan's reasons, from the player's log):
+crew first, Hauling Harness 1-3 at Cores 11 and 12 ("capacity, crew
+first"), then, with no Rig to post to the Benches the Core 14 row asked
+for, Assay Racks 1-2 and Store Chutes 1 at Core 13 and Store Chutes 2 at
+Core 14; factory first, Assay Racks 1-4 at Cores 11 and 12, Store Chutes 1
+at Core 13 and Hauling Harness 1 at Core 14.
+Ten of the twenty (crew) and eleven of the eighteen (factory) plans were
+for the regions' research the rows asked for.
+
+- **Core 14 and Core 15 are reached**, where the base never reached Core
+  14: crew first in 21:33:17 and 24:30:17. Factory first reaches Core 14
+  sooner (20:58:31) and then holds: its Frame line, laid on the hot rock
+  beside the Core, overheats, the stability row never comes, and the
+  Benches starve (28% at work) while the Lenses are plenty (102,000 ground).
+- **The Benches work.** From Core 13 they were at work 0% of the time on
+  the base; now 31-83% (crew) and 76% then 28% (factory), and the research
+  they make goes somewhere: the Works, the regions' lines.
+- **Waiting is mostly gone from the late stages**: only credits 0-5% in
+  four of the crew-first stages, 21% in one; factory first 23% and 33% in
+  two. A decision in 97-100% of the minutes of Core 10 -> 14 crew first;
+  the Core 14 -> 15 stage, when the Beacons are lit and the Benches fed,
+  is 108 of 178 (the rest is the price, 380M).
+- **The two ways differ**: crew first spends its early research on the
+  Rigs (Hauling Harness), comes to the Benches late -- its Core 13 -> 14
+  is 3:18 -- and then fits the late rows; factory first teaches the Benches
+  more early, has its Core 13 -> 14 in 1:37, and then needs a Frame line
+  the scripted player cannot keep cool.
+
+**Found on the way, and whose it was.** The Works' first version, played
+from a new game and from the Core 10 save (Caverns first), collapsed at
+Core 13 and at Core 14 in the same way: the store's Frames and Lenses at
+0, every Beacon dark, the Benches idle, 2.7 million research banked and
+unspent. Each cause was measured, changed, and played again:
+
+| cause | whose | the change |
+|---|---|---|
+| A credit-only wait was fast-forwarded with the store as it stood: an hour of three Beacons' upkeep and of the Benches' Frames went unburnt, and the fall showed only after | the measurement | from Core 10 the skip carries the store's measured trend, and stops while a falling store still holds half (`core_journey.gd` `_skip`) |
+| The Frame line ended at its Vaults: past Core 14, 759,000 Frames made and the store's 3,390 down to 0, the Lenses with them, three Beacons dark and nine Benches idle for eleven hours -- and nothing on screen said it was coming | the player, and **the game** | **the store's Frames running out within two hours is a line in What now? and a warning on the research screen** (`Sim.frames_left`, `Worklist` "frames"); the scripted player keeps two Frame Jigs beside the Core, a Rig feeding them from the store's Alloy and Components, while the store is short or falling |
+| Nine Benches took every Frame while the Lenses fell | **the game** | while Beacons burn, research leaves an hour of their Frames in the store (`Sim.research_floor`) |
+| Contracts took 265,000 and 360,000 Frames in the Core 11 and 12 eras | the player | contracts leave 60,000 |
+| Store Chutes asked for four Benches at work, and the docks that could feed four were taken | **the game** | two |
+| The plan went to the regions' research while the Core's Bench row waited on docks | the player | a Bench row no Rig can reach plans Store Chutes (factory first) or the Bay Wing (crew first) |
+| The Prism Cutter took every Lens over the Beacons' hour (11,300 into Prisms, the row's 2,000 long cut), and its Grinders handed it theirs before the store saw them: the 6,000 a third Beacon costs never gathered | **the game**, and the player | a posted Rig leaves the next Beacon's price and first hour while the Core asks for one (`Sim.haul_floor`); the Cutter grinds Lenses once no row asks for Prisms |
+| Two Resonant Bores made 3,400 Resonite an hour against the 4,500 Lenses three Beacons burn | the player | a Bore more while Resonite is short, up to six, beside a Grinder or a side of the Core |
+| 1,700 Lenses an hour went on light for Umbrite no row wanted | the player | no light while the store is under what the Beacons want |
+| **A dark Beacon stopped its Resonant Bore, and with it the Resonite that would relight it**: four Beacons dark for thirteen hours | **the game** | the Bore bores while its Beacon stands, lit or dark |
+| The fourth Beacon was lit with its 8,000 and little more, and all four were dark within the hour; later every post was emptied for a Beacon the store could not pay for | the player | lit with its price and the next hour in the store; no crew gathered before |
+| The Frames short, Lens Grinders were retasked to Frame Jigs, a Bore laid for Resonite was sold for a Frame Jig, and the Frame Jigs laid stood starved with every dock at a Grinder or a Bench the Chutes also fed | the player | the Beacons' Grinders and Bores kept like a row's machines; Frames wanted from Core 10; a Bench's Rig called over to another row's machine once the Chutes feed it |
+
+The game's changes are five: the Frames' warning, the Benches leaving the
+Beacons' Frames, Store Chutes behind two Benches, the next Beacon's
+Lenses kept from the Rigs, and the Bore in the dark. The rest was the
+scripted player not doing what the screen now asks.
+
+### What it still is not
+
+- **The scripted player needed every change in the table to get past Core
+  13**; each is a rule a player follows from the screen, and the order it
+  follows them in is one of many. Its hours are an upper bound.
+- **The Frame line beside the Core is the long pole of Core 15.** Eight
+  Benches and four Beacons' Lenses take more Frames than the Frame line the
+  factory grew for Core 10 makes; the store's Alloy and Components
+  (hundreds of thousands) would make them, on a Frame Jig beside the Core
+  a Rig feeds. Played factory first, those Jigs were laid on hot rock
+  between Smelters, overheated, were sold for the stability row and laid
+  again: Core 15 was not reached in thirteen hours. A player sees it (What
+  now?, the research screen, the Jig's heat); the scripted player does not
+  yet cool a Jig it lays there.
+- **The Lens economy is tight.** Four Beacons burn 6,000 Lenses an hour;
+  a Bore makes about 1,700 Resonite an hour on stratum 27, two per Lens
+  untuned. Held, it works (crew first, 31,000 ground in the last stage;
+  factory first, 102,000), but whether four to six Bores and every Grinder
+  tuned reads as a plan or a chore needs a person.
+- **The Works are six lines.** The factory's way and the crew's way differ
+  in what they buy (research a Frame, faster Jigs, no docks for the Benches
+  -- or Rigs that carry more, more docks, stronger Surveyors), but the
+  Core's rows count either; a row asking for one of each is a later round.
+- **Research past the rows piles up**: the Works and the regions' lines
+  are the only things it buys late, and the Benches the rows ask for make
+  more than they cost.
+
+### What it costs to draw
+
+`tools/perf_probe.tscn` (1440x720, Intel UHD, the compatibility
+renderer), the round's base (2b68221) against this round's code, in two
+checkouts, three times each, the order swapped for the third (60 s soak):
+
+| | 2b68221 | now |
+|---|---|---|
+| draw calls: idle / the soak / the late board | 195-196 / 212 / 232 | 195-196 / 212 / 232 |
+| texture memory | 37.3-40.7 MB | 37.3-40.7 MB (the same run to run) |
+| static memory over the soak | 53.5-54.6 MB | 53.9-54.9 MB |
+| a sim tick on the late board (308 machines) | 3.48, 4.48, 2.93 ms | 3.03, 3.82, 3.16 ms |
+| frame p50 over the soak | 9.96, 9.97, 10.78 ms | 10.82, 11.24, 9.61 ms |
+
+The frame times follow the order the checkouts ran in, not the code: the
+one run second was the slower each time, and swapped, the base was. No
+new draw call, texture or node; the Frames' warning is one label on the
+research screen. A phone: not measured (no device connected).

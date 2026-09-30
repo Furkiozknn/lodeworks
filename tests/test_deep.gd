@@ -368,12 +368,18 @@ func test_core_10_puts_the_assay_bench_to_work_and_opens_the_cores_export() -> v
 	runner.check(bool(CoreLevels.opens(CoreLevels.EXPORT_CORE)["export"]), "Core 10 opens the Core's export")
 	runner.check(not bool(CoreLevels.opens(9)["export"]), "")
 	# From Core 11 the deep map's rows take over from them (test_regions.gd).
-	for level in range(11, 16):
+	for level in range(11, 15):
 		var w: Array = []
 		for r: Array in CoreLevels.requirements(level):
 			if int(r[0]) == CoreLevels.Req.REGIONS:
 				w = r
 		runner.check(not w.is_empty(), "Core %d asks for regions of the deep map" % level)
+	# Core 14 asks for the whole map; from Core 15 it asks for all of it held.
+	var beacons15: int = 0
+	for r: Array in CoreLevels.requirements(15):
+		if int(r[0]) == CoreLevels.Req.BEACONS:
+			beacons15 = int(r[1])
+	runner.eq(beacons15, Operations.REGION_ORDER.size(), "Core 15: every region held")
 	# A Core past the table costs about what an era's income grows by more
 	# than the one before it, not four times.
 	var p10: float = 0.0

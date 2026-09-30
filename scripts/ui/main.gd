@@ -1826,7 +1826,7 @@ func _build_sheet() -> void:
 
 ## A "?" key: the words for something a panel now shows in pictures. The
 ## text is read when it is pressed, so it can describe the moment.
-func _help_button(title: String, text: Callable) -> Button:
+func _help_button(title: String, text: Callable, actions: Callable = Callable()) -> Button:
 	var b := _button("?", Palette.PANEL)
 	b.add_theme_color_override("font_color", Palette.ACCENT)
 	b.add_theme_font_size_override("font_size", 32)
@@ -1841,7 +1841,7 @@ func _help_button(title: String, text: Callable) -> Button:
 		Juice.tap()
 		var t: String = String(text.call())
 		var head: String = title if title != "" else _sheet_title.text
-		_info(head, t))
+		_info(head, t, actions.call() if actions.is_valid() else []))
 	return b
 
 
@@ -3932,6 +3932,10 @@ func _core_req_info(st: Dictionary) -> Dictionary:
 			pic = _icon_rect("descend", 44)
 			words = Loc.t("Beacons burning: %d, in whichever regions") % int(st["need"])
 			go = _show_map
+		CoreLevels.Req.TECH:
+			pic = _icon_rect("research", 44)
+			words = Loc.t("Levels of the Works' research: %d, the factory's or the crew's") % int(st["need"])
+			go = _show_research
 		_:
 			pic = _icon_rect("heat", 44)
 			words = Loc.t("%d machines at working heat, none overheating") % int(st["need"])
@@ -4208,6 +4212,11 @@ func _work_row(e: Dictionary) -> Button:
 			title = String(info["words"])
 			sub = Loc.t("For the Core's level %d: %s") % [Sim.core_level + 1, String(info["amount"])]
 			go = info["go"]
+		"frames":
+			pic = Chips.Gem.new(MachineDB.Res.FRAME, 1, 44.0)
+			title = Loc.t("The store's Frames run out in %s") % Economy.fmt_duration(float(e["left"]))
+			sub = Loc.t("The Benches and the Lens Grinders take more than the Frame Jigs make: more Frame Jigs, or a Rig to feed one beside the Core from the store's Alloy and Components.")
+			go = _show_research
 		"upgrade":
 			var uid: String = String(e["id"])
 			pic = Chips.MachineSprite.new(uid, 52.0)
@@ -4279,6 +4288,11 @@ func _work_row(e: Dictionary) -> Button:
 			pic = _icon_rect("research", 52)
 			title = Loc.tn("%d research line ready", "%d research lines ready", n2) % n2
 			sub = Loc.t("What it buys stays, even after a collapse.")
+			go = _show_research
+		"plan":
+			pic = _icon_rect("research", 52)
+			title = Loc.t("Plan the research the Frames make")
+			sub = Loc.t("The Core asks for research: choose the line the Assay Benches work towards.")
 			go = _show_research
 		"collapse":
 			var lines: int = (e["lines"] as Array).size()
@@ -4629,10 +4643,10 @@ func _fit_overlay(card: Control, body: Control, max_h: float) -> void:
 	card.create_tween().tween_property(card, "modulate:a", 1.0, 0.12)
 
 
-func _info(title: String, text: String) -> void:
+func _info(title: String, text: String, actions: Array = []) -> void:
 	var l := _label(text, 20, Palette.TEXT_DIM)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_open_overlay(title, l, [])
+	_open_overlay(title, l, actions)
 
 
 func _toast_msg(text: String) -> void:
@@ -4775,6 +4789,12 @@ const RESEARCH_ART := {
 	"mass_1": ["assembler", "heat"],
 	"jigs_1": ["assembler", "credits"],
 	"benches_1": ["lab", "research"],
+	"assay_racks": ["lab", "research"],
+	"jig_lines": ["assembler", "energy"],
+	"bench_chutes": ["@core", "research"],
+	"haul_harness": ["@crew:crew:carry", "energy"],
+	"bay_wing": ["@crew:crew:idle", "upgrade"],
+	"survey_kit": ["@crew:crew_surveyor:work", "star"],
 }
 ## The research grid's columns: three side by side on a landscape phone, two
 ## where the screen is too narrow for three to keep their pictures big.
@@ -4822,9 +4842,82 @@ func _show_research() -> void:
 				grid.add_child(_research_card(id))
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 14)
+	if Sim.core_level >= Operations.REGION_CORE:
+		body.add_child(_research_budget())
 	body.add_child(_doctrine_row())
 	body.add_child(grid)
 	_open_overlay(Loc.t("Research"), body, [], 1240.0, wallet)
+
+
+## Where the research comes from and where it is going, above the grid from
+## the deep map on: what a Frame is worth sold against taught, the Frames
+## made and where they went this last while, the research an hour, and the
+## plan with how long until it is in.
+func _research_budget() -> Control:
+	var p := _panel(Palette.PANEL_HI, 0.96)
+	p.set_meta("research_budget", true)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	p.add_child(col)
+	var fr: Dictionary = Sim.frame_rates
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(Chips.Gem.new(MachineDB.Res.FRAME, 1, 40.0))
+	var worth := _label(Loc.t("A Frame sells for %s credits, or teaches %s research at an Assay Bench.") % [
+		Economy.fmt(Sim.frame_sale_value()), Economy.fmt(Sim.frame_research_value())], 18, Palette.TEXT)
+	worth.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	worth.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(worth)
+	col.add_child(top)
+	var flow := _label(Loc.t("Frames an hour: %s made, %s taught, %s ground into Lenses; %s in the store.") % [
+		Economy.fmt(float(fr.get("made", 0.0)) * 3600.0), Economy.fmt(float(fr.get("research", 0.0)) * 3600.0),
+		Economy.fmt(float(fr.get("lens", 0.0)) * 3600.0), Economy.fmt(float(Sim.stock_of(MachineDB.Res.FRAME)))],
+		16, Palette.TEXT_DIM)
+	flow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(flow)
+	# The store running dry, while there is time to lay a Frame Jig.
+	var left: float = Sim.frames_left()
+	if left >= 0.0 and left < Worklist.FRAMES_WARN:
+		var dry := _label(Loc.t("At this rate the store's Frames run out in %s: the Benches and the Lens Grinders take more than the Frame Jigs make.")
+			% Economy.fmt_duration(left), 16, Palette.WARN)
+		dry.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dry.set_meta("frames_dry", true)
+		col.add_child(dry)
+	var rate: float = Sim.research_per_sec * 3600.0
+	var plan_words: String = Loc.t("No plan: open a line's ? and plan it -- its next level is bought the moment it is paid for.")
+	if Sim.research_plan != "":
+		var plan_name: String = Loc.t(String(Economy.RESEARCH_TREE[Sim.research_plan]["name"]))
+		var eta: float = Sim.plan_eta()
+		var b: String = Sim.research_blocker(Sim.research_plan)
+		if b == "needs":
+			plan_words = Loc.t("Plan: %s -- it opens behind what it needs.") % plan_name
+		elif b == "core":
+			plan_words = Loc.t("Plan: %s -- the Core's level holds it.") % plan_name
+		elif b == "frames":
+			plan_words = Loc.t("Plan: %s -- the store is short of Frames.") % plan_name
+		elif eta < 0.0:
+			plan_words = Loc.t("Plan: %s -- no research is being made.") % plan_name
+		else:
+			plan_words = Loc.t("Plan: %s -- in %s.") % [plan_name, Economy.fmt_duration(eta)]
+	var plan := _label(Loc.t("Research %s an hour.") % Economy.fmt(rate) + " " + plan_words, 16, Palette.RESEARCH)
+	plan.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(plan)
+	return p
+
+
+## What research line `id` still opens behind, in words.
+func _need_words(need: Array) -> String:
+	match String(need[0]):
+		"line":
+			return Loc.t("%s at level %d") % [Loc.t(String(Economy.RESEARCH_TREE[String(need[1])]["name"])), int(need[2])]
+		"beacons":
+			return Loc.t("%d Beacons burning") % int(need[1])
+		"working":
+			return Loc.t("%d %s at work") % [int(need[2]), MachineDB.job_name(String(need[1]),
+				String(need[3]) if need.size() > 3 else "")]
+		"region":
+			return Loc.t("%s open") % Loc.t(String(Operations.REGIONS[String(need[1])]["name"]))
+	return ""
 
 
 ## The shaft's doctrine (Economy.DOCTRINES), above the research grid: the
@@ -4906,6 +4999,9 @@ func _research_card(id: String) -> Control:
 	# A region's line, before the region is open.
 	var region: String = String(u.get("region", ""))
 	var sealed: bool = region != "" and not Sim.region_open(region)
+	# What it opens behind (Economy "requires").
+	var needs: Array = Sim.research_needs(id)
+	var planned: bool = Sim.research_plan == id
 	# The Core's level is this line's limit: the level that lets it go on.
 	var core_needed: int = 0
 	if not maxed and lvl >= Sim.research_cap(id):
@@ -4924,13 +5020,19 @@ func _research_card(id: String) -> Control:
 	if maxed:
 		sb.border_color = Palette.CORE
 		sb.set_border_width_all(3)
+	elif planned:
+		sb.border_color = Palette.CORE
+		sb.set_border_width_all(3)
+		sb.bg_color = Color(Palette.PANEL_HI.lerp(Palette.CORE, 0.10), 0.96)
 	elif can:
 		sb.border_color = Palette.RESEARCH
 		sb.set_border_width_all(3)
 		sb.bg_color = Color(Palette.PANEL_HI.lerp(Palette.RESEARCH, 0.12), 0.96)
 	card.set_meta("research_id", id)
 	card.set_meta("state", "max" if maxed else ("ready" if can else ("doctrine" if other
-		else ("core" if core_needed > 0 else ("locked" if locked else "short")))))
+		else ("core" if core_needed > 0 else ("needs" if not needs.is_empty() and not sealed
+		else ("locked" if locked else "short"))))))
+	card.set_meta("planned", planned)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
@@ -4946,6 +5048,8 @@ func _research_card(id: String) -> Control:
 	var tag: String = Loc.t(String(Economy.BRANCHES.get(String(u.get("branch", "")), ""))).to_upper()
 	if doctrine != "":
 		tag += " · " + Loc.t(String(Economy.DOCTRINES[doctrine]["name"]))
+	if planned:
+		tag += " · " + Loc.t("Planned").to_upper()
 	# Wrapped, so a long language's branch and doctrine never widen the card.
 	var tag_lbl := _label(tag, 14, Palette.RESEARCH if doctrine == "" else Palette.CORE)
 	tag_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -5013,6 +5117,21 @@ func _research_card(id: String) -> Control:
 		wait.add_child(_icon_rect("lock", 40))
 		wait.add_child(_label(Loc.t("Core level %d") % core_needed, 22, Palette.TEXT_DIM))
 		bottom.add_child(wait)
+	elif not needs.is_empty():
+		var wait2 := HBoxContainer.new()
+		wait2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wait2.alignment = BoxContainer.ALIGNMENT_CENTER
+		wait2.custom_minimum_size = Vector2(0, MIN_TOUCH)
+		wait2.add_theme_constant_override("separation", 8)
+		wait2.add_child(_icon_rect("lock", 40))
+		var parts: Array[String] = []
+		for need: Array in needs:
+			parts.append(_need_words(need))
+		var need_lbl := _label(Loc.t("Needs %s") % ", ".join(parts), 18, Palette.TEXT_DIM)
+		need_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		need_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wait2.add_child(need_lbl)
+		bottom.add_child(wait2)
 	else:
 		# The price as pictures and numbers on the key that buys it. What is
 		# missing is red, so a short card says what to go and get.
@@ -5036,6 +5155,10 @@ func _research_card(id: String) -> Control:
 			price.add_child(_icon_rect("settings", 36))
 			price.add_child(_label(str(int(c["salvage"])), 24,
 				ok_col if Sim.salvage >= int(c["salvage"]) else Palette.BAD))
+		if int(c["frames"]) > 0:
+			price.add_child(Chips.Gem.new(MachineDB.Res.FRAME, 1, 34.0))
+			price.add_child(_label(Economy.fmt(float(c["frames"])), 24,
+				ok_col if Sim.stock_of(MachineDB.Res.FRAME) >= int(c["frames"]) else Palette.BAD))
 		b.add_child(price)
 		b.disabled = not can
 		b.pressed.connect(func():
@@ -5048,13 +5171,25 @@ func _research_card(id: String) -> Control:
 				if _overlay_scroll != null:
 					_overlay_scroll.scroll_vertical = keep)
 		bottom.add_child(b)
+	# The plan: this line's next level bought the moment it is paid for.
+	# The "?" sheet also plans the line (Sim.research_plan): its next level
+	# bought the moment it is paid for. On the sheet, not on the card, so the
+	# card keeps its width in any language.
+	var plannable: bool = not maxed and not other and not sealed and core_needed == 0
 	var help := _help_button(Loc.t(String(u["name"])), func() -> String:
 		var t: String = Loc.t(String(u["desc"]))
 		if locked:
 			t += "\n\n" + Loc.t("This one also costs Cores. You get Cores when you collapse the shaft.")
 		if core_needed > 0:
 			t += "\n\n" + Loc.t("The Factory Core's level is this line's limit. At level %d it goes further.") % core_needed
-		return t)
+		return t, func() -> Array:
+			if not plannable:
+				return []
+			var now: bool = Sim.research_plan == id
+			return [{"text": Loc.t("Stop planning it") if now else Loc.t("Plan it"), "color": Palette.CORE,
+				"cb": func():
+					Sim.plan_research("" if now else id)
+					_show_research()}])
 	help.custom_minimum_size = Vector2(MIN_TOUCH, MIN_TOUCH)
 	bottom.add_child(help)
 	col.add_child(bottom)
@@ -5076,6 +5211,8 @@ func _research_art(id: String, px: float, locked: bool) -> Control:
 		pic = _core_picture(px)
 	elif subject.begins_with("@icon:"):
 		pic = _icon_rect(subject.substr(6), px * 0.86)
+	elif subject.begins_with("@crew:"):
+		pic = _sheet_picture(subject.get_slice(":", 1), subject.get_slice(":", 2), px)
 	else:
 		pic = Chips.MachineSprite.new(subject, px)
 	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

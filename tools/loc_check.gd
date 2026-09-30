@@ -232,6 +232,18 @@ func _run() -> void:
 	await _settle(0.4)
 	await _screen("39_reach_opened")
 	_main.call("_close_overlay")
+	# The Works (Economy, "The Works"): the research screen with its Frame
+	# budget and a plan.
+	Sim.plan_research("jig_lines")
+	# The store running dry: the warning line under the Frames' flow.
+	Sim.stock[MachineDB.Res.FRAME] = 50000
+	Sim.frame_rates = {"store": -40.0}
+	_main.call("_show_research")
+	await _settle(0.4)
+	await _screen("40_works_research")
+	_main.call("_close_overlay")
+	Sim.frame_rates = {}
+	Sim.plan_research("")
 	if grinder >= 0:
 		Sim.sell(grinder)
 	Sim.clear_ops()

@@ -122,8 +122,8 @@ func _new_work(level: int, r: Array) -> bool:
 			return int(r[2]) > (0 if first else CoreLevels.overdrive_cap(before))
 		CoreLevels.Req.DOCTRINE:
 			return int(r[1]) > (0 if first else CoreLevels.doctrine_cap(before))
-		CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES, CoreLevels.Req.BEACONS:
-			# The deep map's: new work while the era before had no map, and
+		CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES, CoreLevels.Req.BEACONS, CoreLevels.Req.TECH:
+			# The deep map's and the Works': new work while the era before had no map, and
 			# after it, more than any level before asked.
 			if CoreLevels.available_at(r) > before:
 				return true

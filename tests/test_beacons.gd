@@ -175,16 +175,33 @@ func test_a_beacon_burns_lenses_and_goes_dark_without_them() -> void:
 	runner.check(Sim.beacons_dark, "no Lenses: dark")
 	runner.eq(Sim.lit_beacons(), 0, "")
 	runner.check(not Sim.controlled("caverns"), "what it gives stops")
-	runner.check(Sim.sim.jobs_off.has("resonite"), "the Resonant Bore with it")
+	# The Beacon still stands: the Resonant Bore bores on, and its Resonite
+	# is what relights it.
+	runner.check(not Sim.sim.jobs_off.has("resonite"), "the Resonant Bore does not stop in the dark")
 	runner.eq(dims, [true], "")
 	Sim.stock[LENS] = 100
 	_run(1.0)
 	runner.check(not Sim.beacons_dark, "Lenses again: lit again")
 	runner.eq(dims, [true, false], "")
+	# Put out, the Beacon is gone: the Bore with it.
+	runner.check(Sim.douse_beacon("caverns"), "")
+	runner.check(Sim.sim.jobs_off.has("resonite"), "no Beacon standing: no Resonant Bore")
 	_done()
 
 
 ## --- what a held region gives -------------------------------------------------------------
+
+func test_a_rig_leaves_the_next_beacon_s_lenses_while_the_core_asks_for_it() -> void:
+	_held(12, ["caverns", "sunken"])
+	runner.check(_light("caverns"), "")
+	# Core 13 asks for two Beacons burning: the second's price stays too.
+	var hour: int = int(Operations.BEACON_UPKEEP)
+	runner.eq(Sim.haul_floor(LENS), 2 * hour + Sim.beacon_lenses(), "the Beacons' hour, the next one's price and its hour")
+	runner.eq(Sim.beacon_lenses(), 2 * Operations.BEACON_LENS, "")
+	runner.check(_light("sunken"), "")
+	runner.eq(Sim.haul_floor(LENS), 2 * hour, "both burning: the hour alone")
+	_done()
+
 
 func test_a_held_region_pays_more_deals_every_tier_and_researches_further() -> void:
 	_held(12, ["caverns", "foundry"])

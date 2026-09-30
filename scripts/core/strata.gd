@@ -260,7 +260,13 @@ static func apply(sim: Simulation, grid: Grid, st: Dictionary,
 	var fine: float = float(mu.get("fine_value", 1.0))
 	sim.res_value_mult = {} if fine == 1.0 else {MachineDB.Res.FRAME: fine, MachineDB.Res.COMPONENT: fine}
 	var learn: float = float(mu.get("deep_learn", 1.0))
-	sim.res_learn_mult = {} if learn == 1.0 else {MachineDB.Res.ALLOY: learn, MachineDB.Res.FRAME: learn}
+	# The Works' Assay Racks: a Frame teaches more.
+	var frame: float = learn * float(mu.get("frame_learn", 1.0))
+	sim.res_learn_mult = {} if learn == 1.0 and frame == 1.0 \
+		else {MachineDB.Res.ALLOY: learn, MachineDB.Res.FRAME: frame}
+	# The Works' Jig Lines: Frame Jigs faster.
+	var jig: float = float(mu.get("jig_speed", 1.0))
+	sim.job_speed = {} if jig == 1.0 else {"frame": jig}
 	sim.buffer_cap = maxi(Simulation.BUF_CAP + int(st["buffer_delta"]), 1)
 
 

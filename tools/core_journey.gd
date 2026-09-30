@@ -69,6 +69,7 @@ var skipped: float = 0.0
 ## The crew as last seen, and sorties sent since (Sim.sortie_sent).
 var _sorties_sent: int = 0
 var _posted: int = 0
+var _plan: String = ""
 var _bay: int = 1
 var _wear: float = 0.0
 
@@ -90,6 +91,9 @@ func _initialize() -> void:
 	if OS.get_environment("LODEWORKS_CORE_SALVAGE") != "":
 		P.salvage_mode = OS.get_environment("LODEWORKS_CORE_SALVAGE")
 		print("  (salvage goes to: %s)" % P.salvage_mode)
+	if OS.get_environment("LODEWORKS_CORE_TECH") in ["factory", "crew"]:
+		P.tech_first = OS.get_environment("LODEWORKS_CORE_TECH")
+		print("  (the Works first: %s)" % P.tech_first)
 	if Operations.REGIONS.has(OS.get_environment("LODEWORKS_CORE_REGION")):
 		P.region_first = OS.get_environment("LODEWORKS_CORE_REGION")
 		print("  (the first region of the deep map: %s)" % P.region_first)
@@ -297,6 +301,11 @@ func _open_stage() -> void:
 		# The crew over the stage: sites, salvage, hauling, and where the
 		# Rigs were, beat by beat; and how much of the store stood full.
 		"lens_spent0": S.lens_spent.duplicate(), "lens0": S.stock_of(MachineDB.Res.LENS),
+		# The Frames over the stage: made, learned from, taken from the store.
+		"frames_made0": int(S.sim.made.get(MachineDB.Res.FRAME, 0)),
+		"frames_learned0": int(S.sim.learned.get(MachineDB.Res.FRAME, 0)),
+		"frame_spent0": S.frame_spent.duplicate(), "frames0": S.stock_of(MachineDB.Res.FRAME),
+		"benches": 0, "benches_at_work": 0, "research_wait": 0.0,
 		"sites0": int(S.ops_lifetime), "salvage_earned0": int(S.salvage_earned),
 		"salvage0": int(S.salvage), "hauled0": int(S.hauled), "beats": 0,
 		"rigs_out": 0, "rigs_posted": 0, "rigs_home": 0, "full": 0, "kept": 0,
@@ -329,6 +338,10 @@ func _close_stage(reached: bool) -> void:
 	stage["hauled1"] = int(P.S.hauled)
 	stage["lens_spent1"] = P.S.lens_spent.duplicate()
 	stage["lens1"] = P.S.stock_of(MachineDB.Res.LENS)
+	stage["frames_made1"] = int(P.S.sim.made.get(MachineDB.Res.FRAME, 0))
+	stage["frames_learned1"] = int(P.S.sim.learned.get(MachineDB.Res.FRAME, 0))
+	stage["frame_spent1"] = P.S.frame_spent.duplicate()
+	stage["frames1"] = P.S.stock_of(MachineDB.Res.FRAME)
 	stages.append(stage)
 
 
@@ -341,6 +354,12 @@ func _record(level_before: int) -> void:
 	stage["rigs_posted"] = int(stage["rigs_posted"]) + S.rigs_posted()
 	stage["rigs_home"] = int(stage["rigs_home"]) + S.rigs_home() + S.breakers + S.surveyors
 	stage["breakers"] = maxi(int(stage.get("breakers", 0)), S.breakers + S.breakers_out())
+	# The Assay Benches, beat by beat: how many, and how many at work.
+	for cell: int in S.grid.cells:
+		if S.grid.job_at(cell) == "assay":
+			stage["benches"] = int(stage["benches"]) + 1
+			if S.sim.status_of(cell) == Simulation.Status.RUNNING:
+				stage["benches_at_work"] = int(stage["benches_at_work"]) + 1
 	for res: int in MachineDB.STOCKED:
 		if S.stock_of(int(res)) > 0:
 			stage["kept"] = int(stage["kept"]) + 1
@@ -402,6 +421,10 @@ func _record(level_before: int) -> void:
 		d["sorties"] = int(d.get("sorties", 0)) + _sorties_sent
 		n += _sorties_sent
 		_sorties_sent = 0
+	if S.research_plan != _plan and S.research_plan != "":
+		d["plans"] = int(d.get("plans", 0)) + 1
+		n += 1
+	_plan = S.research_plan
 	if S.rigs_posted() != _posted:
 		d["posts"] = int(d.get("posts", 0)) + absi(S.rigs_posted() - _posted)
 		n += 1
@@ -435,9 +458,22 @@ func _record(level_before: int) -> void:
 		return int(s["req"][0]) == CoreLevels.Req.CREDITS and not bool(s["met"]))
 	if _saving(status):
 		stage["saving"] = float(stage.get("saving", 0.0)) + P.BEAT
+	# Waiting on research: every open row a research row (or the price).
+	var research_open: bool = false
+	var other_open: bool = false
+	for st: Dictionary in status:
+		if bool(st["met"]):
+			continue
+		var k: int = int(st["req"][0])
+		if k in [CoreLevels.Req.RESEARCH, CoreLevels.Req.REGION_LINES, CoreLevels.Req.DOCTRINE, CoreLevels.Req.TECH]:
+			research_open = true
+		elif k != CoreLevels.Req.CREDITS:
+			other_open = true
+	if research_open and not other_open:
+		stage["research_wait"] = float(stage["research_wait"]) + P.BEAT
 	if only_credits and credits_open:
 		stage["wait"] = float(stage["wait"]) + P.BEAT
-		_wait_log.append([P.t, float(S.lifetime_credits), float(S.research)])
+		_wait_log.append([P.t, float(S.lifetime_credits), float(S.research), S.stock.duplicate()])
 	else:
 		_wait_log.clear()
 
@@ -501,8 +537,23 @@ func _skip(horizon: float) -> void:
 		if int(s["req"][0]) == CoreLevels.Req.CREDITS:
 			need = float(s["need"]) - float(P.S.credits)
 	var dt: float = minf(minf(need / rate - 60.0, SKIP_CHUNK), horizon - P.t)
+	# From the deep map the store moves in a wait too -- the Beacons burn
+	# Lenses, the Grinders and Benches Frames -- so the stretch carries the
+	# store's measured trend, and ends while a falling store still holds half
+	# of what it held (measured: skipped as credits alone, a Core 13 wait left
+	# 17,000 Frames and 4,600 Lenses as they were for an hour; played on, both
+	# fell to 0 within the next, the Beacons went dark and the Benches stood).
+	var trend: Dictionary = {}
+	if int(P.S.core_level) >= Operations.REGION_CORE:
+		for res: int in MachineDB.STOCKED:
+			var d: float = (float(P.S.stock_of(res)) - float((a[3] as Dictionary).get(res, 0))) / span
+			trend[res] = d
+			if d < 0.0:
+				dt = minf(dt, 0.5 * float(P.S.stock_of(res)) / -d)
 	if dt < 600.0:
 		return
+	for res: int in trend:
+		P.S.stock[res] = clampi(int(round(float(P.S.stock_of(res)) + float(trend[res]) * dt)), 0, P.S.stock_cap())
 	P.S.credits += rate * dt
 	P.S.lifetime_credits += rate * dt
 	P.S.research += r_rate * dt
@@ -590,6 +641,23 @@ func _print_stages() -> void:
 			print("  Lenses: %s ground; spent %s (%s); %s in the store at the end" % [Economy.fmt(float(made)),
 				Economy.fmt(float(lens_out)), ", ".join(went) if not went.is_empty() else "none",
 				Economy.fmt(float(int(s.get("lens1", 0))))])
+		# The Frames over the stage, and the Assay Benches.
+		var fs0: Dictionary = s.get("frame_spent0", {})
+		var fs1: Dictionary = s.get("frame_spent1", {})
+		var fwent: Array[String] = []
+		for why: String in ["core", "tech", "refit", "contract", "research", "lens", "factory"]:
+			var fd: int = int(fs1.get(why, 0)) - int(fs0.get(why, 0))
+			if fd > 0:
+				fwent.append("%s %s" % [why, Economy.fmt(float(fd))])
+		print("  Frames: %s made, %s learned from (research); from the store: %s; in the store %s -> %s" % [
+			Economy.fmt(float(int(s.get("frames_made1", 0)) - int(s.get("frames_made0", 0)))),
+			Economy.fmt(float(int(s.get("frames_learned1", 0)) - int(s.get("frames_learned0", 0)))),
+			", ".join(fwent) if not fwent.is_empty() else "none",
+			Economy.fmt(float(int(s.get("frames0", 0)))), Economy.fmt(float(int(s.get("frames1", 0))))])
+		var bench_beats: int = int(s.get("benches", 0))
+		print("  Assay Benches: %.1f on average, at work %d%% of their time; waiting on research alone: %s (%d%% of the stage)" % [
+			float(bench_beats) / beats, int(round(100.0 * float(s.get("benches_at_work", 0)) / maxf(float(bench_beats), 1.0))),
+			_clock(float(s.get("research_wait", 0.0))), int(round(100.0 * float(s.get("research_wait", 0.0)) / dur))])
 		print("  the store: %d%% of the time a material it keeps stood at the Vault's limit" % [
 			int(round(100.0 * float(s["full"]) / maxf(float(s["kept"]), 1.0)))])
 		if float(s.get("research_od", 0.0)) + float(s.get("research_doctrine", 0.0)) > 0.0:
@@ -601,13 +669,13 @@ func _print_stages() -> void:
 
 func _row_text(r: Array) -> String:
 	var name: String = ["credits", "stock", "working", "machine", "depth", "research", "serves",
-		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles", "beacons"][int(r[0])]
+		"stable", "overdrive", "doctrine", "operations", "regions", "region lines", "roles", "beacons", "tech"][int(r[0])]
 	match int(r[0]):
 		CoreLevels.Req.CREDITS:
 			return "credits %s" % Economy.fmt(float(r[1]))
 		CoreLevels.Req.STOCK:
 			return "stock %s %d" % [String(MachineDB.RES_NAME[int(r[1])]), int(r[2])]
-		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE, CoreLevels.Req.OPERATIONS, 				CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES, CoreLevels.Req.BEACONS:
+		CoreLevels.Req.DEPTH, CoreLevels.Req.STABLE, CoreLevels.Req.DOCTRINE, CoreLevels.Req.OPERATIONS, 				CoreLevels.Req.REGIONS, CoreLevels.Req.REGION_LINES, CoreLevels.Req.ROLES, CoreLevels.Req.BEACONS, CoreLevels.Req.TECH:
 			return "%s %d" % [name, int(r[1])]
 	var job: String = " (%s)" % CoreLevels.row_job(r) if CoreLevels.row_job(r) != "" else ""
 	return "%s %s %d%s" % [name, str(r[1]), int(r[2]), job]

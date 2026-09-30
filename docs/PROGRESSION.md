@@ -1574,10 +1574,9 @@ section 13; here, the rows.
 | **6 levels of the regions' research** | research | only held regions' lines go that far |
 | **a crew of 4 of each kind** | the crew | a keeper each, guides for the dark, a tuner |
 
-**Past Core 13** the formula grows each kind in its own way: a region
-more while the map has one (Core 14: all four), a Beacon more (Core 14:
-3), two more research levels, a crew of one more each, credits 1.5
-times, the store 1.6 times.
+**Past Core 13** the formula grew each kind in its own way (a region
+more, a Beacon more, two more research levels, a crew of one more each,
+credits 1.5 times); Cores 14 and 15 are written out now (below).
 
 ### Played, after
 
@@ -1599,6 +1598,68 @@ new game with 13,800; the rows
 that came last were the Lenses, the Beacon, the regions' research and the
 price: work, not a wait, in all but two stages (Core 12 -> 13 with the
 Caverns first, 37% credits alone, and from the new game, 26%).
+
+## Cores 14 and 15: the Works
+
+The whole design, its decisions and its measurements are in `GAME-LOOP.md`,
+section 14; here, the rows.
+
+### Measured first
+
+- A new game on the round's base (2b68221) reached Core 13 at 19:06:02
+  and **not Core 14 in the fifteen hours after** (to 34:00): the formula's
+  rows -- 255M, 3,200 Prisms, all four regions, three Beacons, the
+  regions' eighth research level, a crew of four each, Yield research 3 --
+  were each met once and never together; the Beacons went dark at 22:00,
+  with no Resonite in the store, and stayed dark.
+- The Assay Benches were at work 42%, 36%, 8% and 0% of their time in the
+  four stages from Core 10; nothing past Core 13 asked for the research
+  they make.
+
+### What changed
+
+**Core 14, "The Works"** (`CoreLevels.LEVELS`):
+
+| row | kind | why this row |
+|---|---|---|
+| **255M credits** | economy | 1.5 times Core 13's |
+| **6 Assay Benches at working heat** | production (research) | the Benches fed -- by a Rig, by the Store Chutes, by a Frame Jig beside them |
+| **3 levels of the Works** | research | the factory's lines or the crew's, whichever: the plan's choice |
+| **4 regions open** | the world | the map finished |
+| **8 levels of the regions' research** | research | the held regions' lines go further |
+| **3 Beacons burning** | the world, the crew, the Lenses | 4,500 Lenses an hour, and Bores to grind them from |
+
+**Core 15, "The Deep Works":**
+
+| row | kind | why this row |
+|---|---|---|
+| **380M credits** | economy | 1.5 times Core 14's |
+| **8 Assay Benches at working heat** | production (research) | a Frame line that keeps up with them and the Beacons |
+| **6 levels of the Works** | research | both ways, or one far |
+| **10 levels of the regions' research** | research | |
+| **4 Beacons burning** | the world, the crew, the Lenses | the Dark Reach held too: 6,000 Lenses an hour |
+| **stability 150** | heat | a factory that big, none of it overheating |
+
+Past Core 15 the formula grows each kind, the Works' row by two levels a
+Core (to what the lines hold).
+
+### Played, after
+
+A new game each way, the Works factory-first or crew-first (`GAME-LOOP.md`,
+section 14, "Played"):
+
+| | Core 13 | Core 14 | Core 15 |
+|---|---|---|---|
+| the base (2b68221) | 19:06:02 | not in 34 h | -- |
+| the Works, crew first | 18:15:12 | 21:33:17 | **24:30:17** |
+| the Works, factory first | 19:21:46 | 20:58:31 | not in 34 h (stability 150 never met) |
+
+Core 13 -> 14 took 3:18:05 crew first (the regions' research last) and
+1:36:45 factory first (the price last); Core 14 -> 15, 2:57:00 crew first
+(the price last). Only credits left: 0% of both Core 13 -> 14 and 14 -> 15
+stages crew first, 23% and 0% factory first. The Assay Benches, at work 0%
+of their time past Core 13 on the base, were at work 31% and 83% crew
+first, 76% and 28% factory first.
 
 ---
 

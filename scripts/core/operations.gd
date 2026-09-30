@@ -324,7 +324,7 @@ const SURVEYOR_SALVAGE := 6
 
 ## What `n` Rigs, `b` Breakers and `v` Surveyors bring to site `s`, in whole
 ## Rigs. `bpow` is the Breakers' research (Economy, "breaker_power").
-static func team_factor(s: Dictionary, n: int, b: int, v: int = 0, bpow: float = 1.0) -> float:
+static func team_factor(s: Dictionary, n: int, b: int, v: int = 0, bpow: float = 1.0, vpow: float = 1.0) -> float:
 	var rock: bool = armored(s)
 	var rig: float = ARMOR_RIG if rock else 1.0
 	var breaker: float = BREAKER_POWER * bpow * (FLOOD_BREAKER if watery(s) else 1.0)
@@ -339,7 +339,7 @@ static func team_factor(s: Dictionary, n: int, b: int, v: int = 0, bpow: float =
 	# A Beacon's ground is held: Breakers dig in.
 	if holding(s):
 		breaker *= CONTROL_HOLD
-	var all: float = float(maxi(n, 0)) * rig + float(maxi(b, 0)) * breaker + float(maxi(v, 0)) * surveyor
+	var all: float = float(maxi(n, 0)) * rig + float(maxi(b, 0)) * breaker + float(maxi(v, 0)) * surveyor * vpow
 	# In the dark, with no Surveyor to guide it, a team is lost.
 	if dark(s) and v <= 0:
 		all *= DARK_LOST
@@ -462,7 +462,8 @@ const UMBRITE_PER_NEED := 0.3
 ##
 ## A Beacon burns BEACON_UPKEEP Lenses an hour from the store. With none,
 ## every Beacon goes dark, and what they give stops until there are Lenses
-## again. What a held region gives:
+## again -- all but the Resonant Bore, which bores on while its Beacon
+## stands, so the dark is not for good. What a held region gives:
 ##
 ##   * its sites pay CONTROL_PAY times, and are dealt from every tier;
 ##   * its research line goes CONTROL_LINE levels further;

@@ -44,6 +44,9 @@ extends RefCounted
 ##             Breakers and Surveyors.
 ##   BEACONS   Beacons burning (Operations, "Beacons") -- in whichever
 ##             regions: the row asks for ground held, not which.
+##   TECH      levels bought in the Works' lines (Economy.WORKS) -- the
+##             factory's or the crew's, whichever: the row asks for the
+##             research the Frames made to have gone somewhere, not where.
 ##
 ## The graph has no cycles by construction -- everything level L asks for is
 ## possible at level L-1 -- and `validate()` checks it, with every
@@ -51,7 +54,7 @@ extends RefCounted
 ## never ask for the impossible.
 
 enum Req { CREDITS, STOCK, WORKING, MACHINE, DEPTH, RESEARCH, SERVES, STABLE, OVERDRIVE, DOCTRINE,
-	OPERATIONS, REGIONS, REGION_LINES, ROLES, BEACONS }
+	OPERATIONS, REGIONS, REGION_LINES, ROLES, BEACONS, TECH }
 
 ## A support machine touches four machines at most (Grid.serves).
 const MAX_SERVES := 4
@@ -250,6 +253,33 @@ const LEVELS := [
 		[Req.REGION_LINES, 6],
 		[Req.ROLES, 4],
 	]},
+	# The Core 13 era's rows are the research the Frames make and what it is
+	# spent on (docs/GAME-LOOP.md, section 14): six Assay Benches at work,
+	# three levels of the Works (the factory's or the crew's, whichever), and
+	# the map finished -- all four regions open, the regions' research the
+	# Beacons let go further, a third Beacon, the price. Measured before it:
+	# the formula asked Core 13's rows again, grown, and the regions' research
+	# alone held four of nine stages while the Assay Benches stood idle most
+	# of the time.
+	{"level": 14, "era": "The Works", "depth_cap": 54, "machine_cap": 15, "requires": [
+		[Req.CREDITS, 255000000.0],
+		[Req.WORKING, "lab", 6, "assay"],
+		[Req.TECH, 3],
+		[Req.REGIONS, 4],
+		[Req.REGION_LINES, 8],
+		[Req.BEACONS, 3],
+	]},
+	# Core 14's rows grown in each direction at once -- more Benches, more of
+	# the Works, every region held -- and the heat of a factory that big under
+	# control.
+	{"level": 15, "era": "The Deep Works", "depth_cap": 59, "machine_cap": 16, "requires": [
+		[Req.CREDITS, 380000000.0],
+		[Req.WORKING, "lab", 8, "assay"],
+		[Req.TECH, 6],
+		[Req.REGION_LINES, 10],
+		[Req.BEACONS, 4],
+		[Req.STABLE, 150],
+	]},
 ]
 
 ## From this level the Core sells what its store has no room for, at
@@ -330,6 +360,10 @@ static func _entry(level: int) -> Dictionary:
 			Req.BEACONS:
 				# One more Beacon a level, as the map has regions to hold.
 				reqs.append([Req.BEACONS, mini(int(r[1]) + n, Operations.region_room(level - 1))])
+			Req.TECH:
+				reqs.append([Req.TECH, mini(int(r[1]) + 2 * n, tech_cap(level - 1))])
+			Req.MACHINE:
+				reqs.append([Req.MACHINE, r[1], mini(int(r[2]) + n, machine_cap(level - 1))])
 	var line: String = String(LATE_RESEARCH[n % LATE_RESEARCH.size()])
 	reqs.append([Req.RESEARCH, line, mini(3 + n / LATE_RESEARCH.size(),
 		Economy.research_cap(line, level - 1))])
@@ -402,6 +436,15 @@ static func doctrine_at(n: int) -> int:
 
 
 ## The Overdrive steps a machine type may take under a Core of `level`.
+## The most levels of the Works' lines a Core of `level` lets a shaft have
+## bought: each line at the Core's research limit.
+static func tech_cap(level: int) -> int:
+	var n: int = 0
+	for id: String in Economy.WORKS:
+		n += Economy.research_cap(id, level)
+	return n
+
+
 static func overdrive_cap(level: int) -> int:
 	return MachineDB.OVERDRIVE_PER_CORE * maxi(level - MachineDB.OVERDRIVE_CORE + 1, 0)
 
@@ -444,6 +487,7 @@ static func opens(level: int) -> Dictionary:
 		"regions": level == Operations.REGION_CORE,
 		"beacons": level == Operations.CONTROL_CORE,
 		"reach": level == Operations.REACH_CORE,
+		"works": level == Operations.REGION_CORE,
 		"operations": level == MachineDB.RIG_CORE or level == Operations.FIRST_SITE_CORE,
 		"machine_cap": machine_cap(level), "research": lines,
 		"stock_cap": MachineDB.stock_cap(machine_cap(level)),
@@ -509,6 +553,9 @@ static func status(state: Object) -> Array:
 				need = float(r[1])
 			Req.BEACONS:
 				have = float(int(state.call("lit_beacons"))) if state.has_method("lit_beacons") else 0.0
+				need = float(r[1])
+			Req.TECH:
+				have = float(int(state.call("tech_levels"))) if state.has_method("tech_levels") else 0.0
 				need = float(r[1])
 		row.merge({"req": r, "met": have >= need, "have": have, "need": need})
 		out.append(row)
@@ -686,6 +733,15 @@ static func available_at(r: Array) -> int:
 			if int(r[1]) > Operations.REGION_ORDER.size():
 				return -1
 			return maxi(Operations.CONTROL_CORE, available_at([Req.REGIONS, int(r[1])]))
+		Req.TECH:
+			var at: int = Operations.REGION_CORE
+			var guard: int = 0
+			while tech_cap(at) < int(r[1]):
+				at += 1
+				guard += 1
+				if guard > 1000:
+					return -1
+			return at
 	return -1
 
 

@@ -186,6 +186,13 @@ var res_learn_mult: Dictionary = {}
 var jobs_off: Dictionary = {}
 var cell_inputs: Dictionary = {}
 var job_stamp: int = 0
+## Counted since the simulation was made (not saved): what the machines
+## turned out ({res: units}), and what research machines learned from
+## ({res: units}) -- the Frames that became research.
+var made: Dictionary = {}
+var learned: Dictionary = {}
+## A job's own speed ({job: multiplier}; Economy "jig_speed").
+var job_speed: Dictionary = {}
 
 
 func _init(g: Grid, seed_value: int = 12345) -> void:
@@ -273,6 +280,8 @@ func effective_rate(i: int) -> float:
 	var src: float = source_speed_mult if (m["tags"] as Array).has("source") else 1.0
 	if m.has("vein"):
 		src *= vein_mult
+	if not job_speed.is_empty():
+		src *= float(job_speed.get(String(m.get("job", "")), 1.0))
 	return float(m["rate"]) * eff * amp * speed_mult * src
 
 
@@ -460,7 +469,7 @@ func _work(dt: float) -> void:
 	# "A late board").
 	grid.heat_at(0)
 	var key: Array = [grid.version, grid.heat_stamp, speed_mult, source_speed_mult,
-		amplify_mult, tolerance_bonus, levels_stamp, vein_mult, job_stamp]
+		amplify_mult, tolerance_bonus, levels_stamp, vein_mult, job_stamp, job_speed]
 	if key != _rate_key:
 		_rate_key = key
 		_rate_cache.clear()
@@ -600,6 +609,7 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 		if best < 0:
 			return false
 		_consume(buf_in, {best: 1})
+		learned[best] = int(learned.get(best, 0)) + 1
 		last_research += float(learns[best]) * float(m.get("research_per_cycle", 1.0)) * research_mult \
 			* float(res_learn_mult.get(best, 1.0))
 		return true
@@ -630,6 +640,7 @@ func _run_cycle(i: int, cell: Dictionary, m: Dictionary, tags: Array) -> bool:
 			whole *= 2
 		if whole > 0:
 			buf_out[res] = int(buf_out.get(res, 0)) + whole
+			made[res] = int(made.get(res, 0)) + whole
 	return true
 
 

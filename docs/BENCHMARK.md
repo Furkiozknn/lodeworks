@@ -76,6 +76,7 @@ research reports), with Lodeworks' version and its state:
 | Orders board (Hay Day, Township) → make the goods asked → which order → a premium → the next order | the Dispatch board | first version |
 | Survival pressure (Whiteout's cold) → heat as the constraint → where to heat and cool → working buildings → deeper, colder, harder | heat and strata: rock heat rises with depth; modes; cooling levels | DONE, and the game's own identity |
 | Fog and regions (Boom Beach) → explore for resources → which region → new income → further regions | the deep map: an expedition opens a region, its sites pay Resonite, its gift changes the factory, the next Core has room for the next (§14) | first slice (28 Sep); no fog, three fixed regions |
+| Laboratory and tech tree (CoC, Rise of Kingdoms) → research with prerequisites and branches → which line next → stronger units and economy → the next tier | the Works: six lines paid in research and Frames, behind other lines, Beacons or machines at work; a plan the player sets; the factory's way or the crew's (§16) | first version; Cores 14-15 ask for it |
 | Prestige layer (idle genre) → reset for a permanent multiplier → when to reset → a faster next run → deeper runs | collapse → Cores → the Core-priced tree | weak (§5) |
 | Layout editor (CoC) → saved layouts → try a configuration → a better base → share | Blueprint (FP-20) | MISSING (P7) |
 | Clan, wars, capital (CoC) → cooperation | none (D3: no server) | out by decision; limits in §8 |
@@ -395,3 +396,24 @@ depend on the ground and the purpose. The whole round is in
 | is there a wait with nothing to do? | only credits left: 0%, 0% and 12% of Core 10 -> 11 | only credits left: 0-8% of eight of the nine Core 10 -> 13 stages played from the Core 10 save, 37% in one (the Caverns first, Core 12 -> 13: the scripted player bought 181M of machine levels there); a decision in 94% or more of the minutes of eight stages, 73% in that one |
 
 **Still not at the reference games' level:** the regions are four and fixed, with no art of their own; the research the factory makes still holds four of the nine stages, with the Assay Benches the scripted player leaves starved; the Lens economy is now tight enough that whether it reads as a choice or a squeeze needs a person; nothing measured on a phone.
+
+## 16. The Works: research the factory makes, and Cores 14 and 15 (30 September 2026)
+
+The brief: make the Frame -> Assay Bench -> research chain a decision the
+player sees and steers; research as a tree with prerequisites and
+alternatives; research that does something for the factory, the crew and
+the regions; Cores 14 and up asking for several systems at once; and the
+whole measured from a new game. The round is in `GAME-LOOP.md`, section
+14; here, the benchmark's questions.
+
+| benchmark question | before | after |
+|---|---|---|
+| is research a decision, or a list bought in order? | bought the moment a row asked; nothing else to buy late | a plan the player sets on a line's "?" sheet, bought when research and Frames pay; What now? asks for one while a research row waits; the scripted player's plans, with their reasons, are in its log (twenty plans crew first (ten for the regions' research, six for Benches no Rig could reach, four for the crew's capacity), eighteen factory first) |
+| does a material have an opportunity cost the player can read? | a Frame: sold at a Vault or taught to a Bench, nowhere side by side | the research screen puts a Frame's Vault price beside what it teaches, the Frames an hour made, taught and ground into Lenses, and when the store's Frames run out at this rate |
+| does the tech tree have prerequisites and alternatives? | lines behind the Core's level only | lines behind other lines' levels, Beacons burning or machines at work; the Works buy one of two ways -- the factory's or the crew's -- with the same research and Frames; `Economy.tree_problems` catches a tree that could never be climbed |
+| does research change the factory, the crew and the sorties? | the regions' lines did; the Benches' research went nowhere past Core 13 | a Frame teaches more, Frame Jigs run faster, Benches beside the Core feed themselves -- or posted Rigs carry more, the Bay docks more, Surveyors are stronger |
+| do late levels ask for several systems at once? | past Core 13 the formula grew each kind; a new game never reached Core 14 (15 hours) | Core 14: price, six Benches at work, the Works, all four regions, eight region levels, three Beacons. Core 15: price, eight Benches, six levels of the Works, ten region levels, four Beacons, stability 150 (a new game: crew first Core 14 at 21:33:17 and Core 15 at 24:30:17; factory first Core 14 at 20:58:31, Core 15 not in 34 hours (its Frame line overheats beside the Core and stability 150 never comes)) |
+| is there a wait with nothing to do? | only credits left: 0%, 0%, 26% of Core 10 -> 13; then fifteen hours with no Core | only credits left: crew first 4%, 5%, 21%, 0%, 0% of Core 10 -> 15; factory first 4%, 4%, 33%, 23%, then a stage held by heat, not money; a decision in 97-99% of the minutes of Core 10 -> 14 crew first |
+| is the idle production visible? | the Benches were at work 42%, 36%, 8% and 0% of their time, Core 10 -> 14 | at work 41%, 46%, 24%, 31%, 83% crew first and 41%, 46%, 29%, 76%, 28% factory first; the research screen says what a Frame is worth each way and when the store's run out |
+
+**Still not at the reference games' level:** the Frame line beside the Core on hot rock is a layout the scripted player cannot keep cool, and it holds the factory-first Core 15; the Works are six lines, and a row that asks for one of each way is not written; research past the rows piles up; four Beacons' Lenses are tight enough that a person has to say whether it is a plan or a chore; nothing measured on a phone.

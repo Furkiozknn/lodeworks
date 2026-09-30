@@ -225,6 +225,111 @@ const RESEARCH_TREE := {
 		"core": Operations.REACH_CORE,
 		"region": "reach",
 	},
+	# The Works (docs/GAME-LOOP.md, section 14): from the deep map on, what
+	# the research the Frames make is spent on -- the factory's line (the
+	# Assay Benches, the Frame Jigs, the store's chutes) or the crew's (the
+	# Rigs' harness, the Bay's wing, the Surveyors' instruments). Each level
+	# is paid in research and in Frames from the store ("cost_frames"), and
+	# each line opens behind another's level, a Beacon, or Assay Benches at
+	# work ("requires", checked by Sim.research_blocker): so a Frame goes to a
+	# Bench, to one of these, to a Lens Grinder or to the Core, and the order
+	# a shaft buys them in is its strategy. The Core's rows from 14 ask for
+	# levels of them, whichever (CoreLevels.Req.TECH).
+	"assay_racks": {
+		"name": "Assay Racks",
+		"short": "Benches learn more from a Frame.",
+		"desc": "Assay Benches and Labs learn 25% more from every Frame, for each level.",
+		"cost_research": 200000.0,
+		"cost_cores": 0,
+		"cost_frames": 15000.0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "frame_learn",
+		"branch": "works",
+		"per_level": 0.25,
+		"core": Operations.REGION_CORE,
+		"requires": [],
+	},
+	"jig_lines": {
+		"name": "Jig Lines",
+		"short": "Frame Jigs work faster.",
+		"desc": "Every Frame Jig works 25% faster, for each level.",
+		"cost_research": 400000.0,
+		"cost_cores": 0,
+		"cost_frames": 30000.0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "jig_speed",
+		"branch": "works",
+		"per_level": 0.25,
+		"core": Operations.CONTROL_CORE,
+		"requires": [["line", "assay_racks", 1]],
+	},
+	"bench_chutes": {
+		"name": "Store Chutes",
+		"short": "Benches beside the Core feed themselves.",
+		"desc": "Every Assay Bench beside the Core draws a Frame a second from the store, for each level -- no Rig needed.",
+		"cost_research": 600000.0,
+		"cost_cores": 0,
+		"cost_frames": 45000.0,
+		"max": 3,
+		"cost_growth": 2.0,
+		"effect": "chutes",
+		"branch": "works",
+		"per_level": 1.0,
+		"core": Operations.CONTROL_CORE,
+		# Two Benches at work, not four: a Bench beside the Core works only
+		# with a dock of the Bay feeding it, and the Chutes are what frees the
+		# docks (measured: with every dock at the Beacons' Grinders, the Prism
+		# Cutter and the Frame Jigs, a new game kept two of seven Benches at
+		# work for hours, and asking four for the Chutes locked them away).
+		"requires": [["line", "assay_racks", 2], ["working", "lab", 2, "assay"]],
+	},
+	"haul_harness": {
+		"name": "Hauling Harness",
+		"short": "Posted Rigs carry more.",
+		"desc": "A Rig posted to a machine hauls 50% more from the store, for each level.",
+		"cost_research": 200000.0,
+		"cost_cores": 0,
+		"cost_frames": 15000.0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "haul",
+		"branch": "robotics",
+		"per_level": 0.5,
+		"core": Operations.REGION_CORE,
+		"requires": [],
+	},
+	"bay_wing": {
+		"name": "Bay Wing",
+		"short": "The Rig Bay docks more Rigs.",
+		"desc": "Two more Rigs can be posted at once, for each level.",
+		"cost_research": 400000.0,
+		"cost_cores": 0,
+		"cost_frames": 30000.0,
+		"max": 3,
+		"cost_growth": 2.0,
+		"effect": "docks",
+		"branch": "robotics",
+		"per_level": 2.0,
+		"core": Operations.CONTROL_CORE,
+		"requires": [["line", "haul_harness", 1]],
+	},
+	"survey_kit": {
+		"name": "Survey Instruments",
+		"short": "Surveyors are stronger.",
+		"desc": "Every Surveyor brings 25% more strength to a site, an expedition or a Beacon, for each level.",
+		"cost_research": 400000.0,
+		"cost_cores": 0,
+		"cost_frames": 30000.0,
+		"max": 4,
+		"cost_growth": 2.0,
+		"effect": "surveyor_power",
+		"branch": "robotics",
+		"per_level": 0.25,
+		"core": Operations.CONTROL_CORE,
+		"requires": [["beacons", 1]],
+	},
 	"rig_plating": {
 		"name": "Rig Plating",
 		"short": "Every Rig is stronger.",
@@ -349,7 +454,11 @@ const RESEARCH_TREE := {
 const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resonance",
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
 	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1", "rig_plating",
-	"salvage_gearing", "brine_1", "lens_1", "forge_1", "reach_1"]
+	"salvage_gearing", "brine_1", "lens_1", "forge_1", "reach_1",
+	"assay_racks", "jig_lines", "bench_chutes", "haul_harness", "bay_wing", "survey_kit"]
+
+## The Works' lines (Req.TECH counts their levels, whichever).
+const WORKS := ["assay_racks", "jig_lines", "bench_chutes", "haul_harness", "bay_wing", "survey_kit"]
 
 ## What each line of the tree is about: the research grid shows it branch by
 ## branch, in this order.
@@ -361,6 +470,7 @@ const BRANCHES := {
 	"logistics": "Logistics",
 	"core": "Core",
 	"robotics": "Robotics",
+	"works": "The Works",
 	"frontier": "The deep map",
 }
 
@@ -441,7 +551,51 @@ static func upgrade_cost(id: String, level: int) -> Dictionary:
 			* (1.0 + CORE_COST_GROWTH * float(level)))),
 		# Salvage, which only the galleries' sites pay (Operations.salvage).
 		"salvage": int(ceil(float(u.get("cost_salvage", 0.0)) * g)),
+		# Frames from the Core's store: the Works' lines.
+		"frames": int(ceil(float(u.get("cost_frames", 0.0)) * g)),
 	}
+
+
+## Every problem with the research tree's "requires": [] when it is sound. A
+## line asking for a line that is not in the tree, a level a line does not
+## have, one opened later than itself, a kind of need there is not, or a loop.
+static func tree_problems(tree: Dictionary = RESEARCH_TREE, order: Array = TREE_ORDER) -> Array[String]:
+	var errors: Array[String] = []
+	for id: String in order:
+		if not tree.has(id):
+			errors.append("%s is in the tree's order but not in the tree" % id)
+	for id: String in tree:
+		for need: Array in (tree[id].get("requires", []) as Array):
+			match String(need[0]):
+				"line":
+					var other: Dictionary = tree.get(String(need[1]), {})
+					if other.is_empty():
+						errors.append("%s needs %s, which is not a line" % [id, String(need[1])])
+					elif int(need[2]) > int(other["max"]) or int(need[2]) < 1:
+						errors.append("%s needs %s %d, a level it does not have" % [id, String(need[1]), int(need[2])])
+					elif int(other.get("core", 1)) > int(tree[id].get("core", 1)):
+						errors.append("%s needs %s, which opens later" % [id, String(need[1])])
+				"beacons", "working", "region":
+					pass
+				_:
+					errors.append("%s needs %s, a kind of need there is not" % [id, str(need)])
+	# No line can need itself, however far round.
+	for id: String in tree:
+		var seen: Dictionary = {}
+		var todo: Array = [id]
+		while not todo.is_empty():
+			var at: String = String(todo.pop_back())
+			for need: Array in (tree.get(at, {}).get("requires", []) as Array):
+				if String(need[0]) != "line":
+					continue
+				if String(need[1]) == id:
+					errors.append("%s needs itself" % id)
+					todo.clear()
+					break
+				if not seen.has(String(need[1])):
+					seen[String(need[1])] = true
+					todo.append(String(need[1]))
+	return errors
 
 
 ## Cores earned by collapsing right now.
@@ -516,6 +670,12 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		"resonite": 1.0,
 		"breaker_power": 1.0,
 		"umbrite": 1.0,
+		"frame_learn": 1.0,
+		"jig_speed": 1.0,
+		"chutes": 0.0,
+		"haul": 1.0,
+		"docks": 0.0,
+		"surveyor_power": 1.0,
 	}
 	for id: String in RESEARCH_TREE:
 		var lvl: int = int(levels.get(id, 0))
@@ -528,7 +688,8 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		var effect: String = String(u["effect"])
 		match effect:
 			"speed", "yield", "value", "research", "resonance", "vein", "cooling", "fine_value", "deep_learn", \
-					"rig_power", "resonite", "breaker_power", "umbrite":
+					"rig_power", "resonite", "breaker_power", "umbrite", "frame_learn", "jig_speed", "chutes", "haul", \
+					"docks", "surveyor_power":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"quota":
 				m[effect] = maxf(float(m[effect]) - per * float(lvl), 0.2)
