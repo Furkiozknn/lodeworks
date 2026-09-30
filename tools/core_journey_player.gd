@@ -787,8 +787,72 @@ func _frames() -> void:
 	if not _frames_short() or t - _last_frames < LAB_BEAT:
 		return
 	_last_frames = t
+	# The makers there first, at their working heat; then, while the store
+	# holds what a Frame Jig takes, one beside the Core with no chain behind
+	# it, a Rig feeding it; only failing that, the chain.
+	for cell: int in S.sim.core_touching():
+		if S.grid.job_at(cell) == "frame" and S.sim.heat_efficiency_at(cell) < CoreLevels.WORKING_HEAT \
+				and _fix_heat(cell):
+			return
+	# Two beside the Core, fed or waiting for a Rig, are enough to be going on
+	# with: the posts feed them.
+	var jigs: int = 0
+	for cell: int in S.sim.core_touching():
+		if S.grid.job_at(cell) == "frame":
+			jigs += 1
+	if jigs >= 2 or _frame_jig_side():
+		return
 	_pursue({"req": [CoreLevels.Req.STOCK, MachineDB.Res.FRAME, FRAME_LOW], "met": false,
 		"have": float(S.stock_of(MachineDB.Res.FRAME)), "need": float(FRAME_LOW), "cap": S.stock_cap()})
+
+
+## A Frame Jig beside the Core that a posted Rig feeds from the store's Alloy
+## and Components, with no chain behind it, on the coolest side of the Core
+## to be had -- free, or given up by a machine built for income alone or one
+## no row keeps and making nothing wanted -- and cooled if it needs it.
+## False when the store cannot feed one or no side stays within its heat
+## (measured: Frame Jigs laid with their chains -- White Heat Smelters
+## beside them -- on the hottest sides overheated, were sold for the Core 15
+## row's stability and laid again, and Core 15 was not reached in thirteen
+## hours, with 600,000 Alloy and 230,000 Components in the store).
+func _frame_jig_side() -> bool:
+	if not _store_feeds("assembler", "frame") or not S.can_afford("assembler"):
+		return false
+	var m: Dictionary = MachineDB.job_machine("assembler", "frame")
+	var own: float = float(MachineDB.get_machine("assembler").get("heat_out", 0.0)) \
+		* float(S.grid.heat_scale.get("assembler", 1.0))
+	var edge: float = float(m["heat_tolerance"]) + S.sim.tolerance_bonus - COOL_MARGIN
+	var rows: Array = _row_machines()
+	var wanted: Dictionary = _wanted()
+	var best: int = -1
+	var coolest: float = INF
+	for cell: int in S.sim.core_touching():
+		var open: bool = _free(cell) or _income_only(cell)
+		if not open and not S.grid.is_empty(cell) and S.grid.machine_at(cell) != "vault" \
+				and not _in_rows(cell, rows) and not S.posts.has(cell) and not S.tuners.has(cell) \
+				and t - float(_fed_at.get(cell, -1.0e9)) >= SETTLE:
+			open = true
+			for o: int in (S.sim.machine_of(cell).get("outputs", {}) as Dictionary):
+				open = open and not wanted.has(o)
+		if not open:
+			continue
+		var h: float = S.grid.raw_heat_at(cell) - S.grid.emitted_at(cell) + own
+		if h < coolest:
+			coolest = h
+			best = cell
+	if best < 0 or coolest > edge:
+		return false
+	if not S.grid.is_empty(best):
+		if S.posts.has(best):
+			S.recall_rig(best)
+		S.sell(best)
+	if not S.try_place(best, "assembler") or not S.set_job(best, "frame"):
+		return false
+	_fed_at[best] = t
+	_line[best] = true
+	_cool_if_needed(best)
+	_event("frame_jig_side", "first Frame Jig beside the Core fed from the store, no chain")
+	return true
 
 
 func _frames_short() -> bool:

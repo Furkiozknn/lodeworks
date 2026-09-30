@@ -1651,6 +1651,18 @@ section 14, "Played"):
 | | Core 13 | Core 14 | Core 15 |
 |---|---|---|---|
 | the base (2b68221) | 19:06:02 | not in 34 h | -- |
+| the Works, crew first | 17:50:37 | 20:15:27 | **23:11:57** |
+| the Works, factory first | 18:12:02 | 19:46:22 | **22:20:12** |
+
+Core 13 -> 14 took 2:24:50 crew first (the regions' research last) and
+1:34:20 factory first (the price last); Core 14 -> 15, 2:56:30 and 2:33:50
+(the price last both ways). Only credits left: 0% and 2% of those two
+stages crew first, 31% and 1% factory first. The Assay Benches, at work 0%
+of their time past Core 13 on the base, were at work 40% and 96% crew
+first, 76% and 89% factory first.
+
+---|---|---|---|
+| the base (2b68221) | 19:06:02 | not in 34 h | -- |
 | the Works, crew first | 18:15:12 | 21:33:17 | **24:30:17** |
 | the Works, factory first | 19:21:46 | 20:58:31 | not in 34 h (stability 150 never met) |
 

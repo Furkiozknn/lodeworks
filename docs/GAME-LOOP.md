@@ -1184,12 +1184,12 @@ base's to the second (Core 10 at 12:35:02 in all three).
 |---|---|---|---|
 | Core 10 -> 11 | 1:42:24 | 1:31:19 | 1:31:19 |
 | 11 -> 12 | 1:50:44 | 1:43:24 | 1:43:24 |
-| 12 -> 13 | 2:57:50 | 2:25:24 | 3:31:59 |
-| 13 -> 14 | **not in 14:54** | 3:18:05 | 1:36:45 |
-| 14 -> 15 | -- | **2:57:00** | **not in 13:01** |
-| Core 13, 14, 15 at | 19:06:02, --, -- | 18:15:12, 21:33:17, **24:30:17** | 19:21:46, 20:58:31, -- |
-| the row that came last, 13 -> 14 | the Beacons (dark from 22:00) | the regions' research (3:18:05) | credits (1:36:45) |
-| the row that came last, 14 -> 15 | -- | credits (2:35:50) | stability 150, never met |
+| 12 -> 13 | 2:57:50 | 2:00:49 | 2:22:14 |
+| 13 -> 14 | **not in 14:54** | 2:24:50 | 1:34:20 |
+| 14 -> 15 | -- | 2:56:30 | 2:33:50 |
+| Core 13, 14, 15 at | 19:06:02, --, -- | 17:50:37, 20:15:27, **23:11:57** | 18:12:02, 19:46:22, **22:20:12** |
+| the row that came last, 13 -> 14 | the Beacons (dark from 22:00) | the regions' research (2:24:45) | credits (1:34:20) |
+| the row that came last, 14 -> 15 | -- | credits (2:55:35) | credits (2:33:25) |
 
 Each stage, crew first / factory first (the base's in brackets):
 
@@ -1197,47 +1197,47 @@ Each stage, crew first / factory first (the base's in brackets):
 |---|---|---|---|---|
 | 10 -> 11 | 4% / 4% (0%) | 29% / 29% (0%) | 41% / 41% (42%) | 90 of 92 / 90 of 92 (101 of 103) |
 | 11 -> 12 | 5% / 4% (0%) | 0% / 0% (26%) | 46% / 46% (36%) | 101 of 104 / 101 of 104 (107 of 112) |
-| 12 -> 13 | 21% / 33% (26%) | 24% / 0% (0%) | 24% / 29% (8%) | 144 of 147 / 183 of 213 (149 of 179) |
-| 13 -> 14 | 0% / 23% (0%) | 24% / 29% (15%) | 31% / 76% (**0%**) | 197 of 199 / 98 of 98 (111 of 895) |
-| 14 -> 15 | 0% / 0% | 0% / 0% | 83% / 28% | 108 of 178 / 574 of 783 |
+| 12 -> 13 | 5% / 0% (26%) | 29% / 0% (0%) | 23% / 34% (8%) | 119 of 122 / 140 of 144 (149 of 179) |
+| 13 -> 14 | 0% / 31% (0%) | 9% / 15% (15%) | 40% / 76% (**0%**) | 144 of 146 / 88 of 95 (111 of 895) |
+| 14 -> 15 | 2% / 1% | 1% / 0% | 96% / 89% | 166 of 177 / 143 of 155 |
 
 **The Frames, each stage** (made; taught to research; what went out of the
 store to the Works, contracts and Lens Grinders):
 
 | stage | crew first | factory first | the base |
 |---|---|---|---|
-| 11 -> 12 | 362K; 51K; Works 15K, contracts 265K, Lenses 7K | 362K; 51K; Works 15K, contracts 265K, Lenses 7K | 387K; 36K; contracts 265K |
-| 12 -> 13 | 598K; 30K; Works 90K, contracts 360K, Lenses 35K | 763K; 48K; Works 210K, contracts 360K, Lenses 30K | 552K; 7K; contracts 360K |
-| 13 -> 14 | 404K; 45K; Works 90K, Lenses 16K | 90K; 63K; Works 45K, Lenses 7K | 3.29M; **0**; contracts 935K |
-| 14 -> 15 | 451K; 159K; Works 90K, Lenses 31K | 1.07M; 294K; Lenses 102K | -- |
+| 11 -> 12 | 362K; 51K; Works 15K, contracts 265K, Lenses 8K | 362K; 51K; Works 15K, contracts 265K, Lenses 7K | 387K; 36K; contracts 265K |
+| 12 -> 13 | 439K; 24K; Works 30K, contracts 360K, Lenses 26K | 524K; 44K; Works 90K, contracts 360K, Lenses 21K | 552K; 7K; contracts 360K |
+| 13 -> 14 | 561K; 66K; Works 180K, Lenses 20K | 416K; 69K; Works 135K, Lenses 24K | 3.29M; **0**; contracts 935K |
+| 14 -> 15 | 881K; 209K; Works 270K, Lenses 30K | 651K; 157K; Works 345K, Lenses 24K | -- |
 
-**The Works each way bought** (the plan's reasons, from the player's log):
-crew first, Hauling Harness 1-3 at Cores 11 and 12 ("capacity, crew
-first"), then, with no Rig to post to the Benches the Core 14 row asked
-for, Assay Racks 1-2 and Store Chutes 1 at Core 13 and Store Chutes 2 at
-Core 14; factory first, Assay Racks 1-4 at Cores 11 and 12, Store Chutes 1
-at Core 13 and Hauling Harness 1 at Core 14.
-Ten of the twenty (crew) and eleven of the eighteen (factory) plans were
-for the regions' research the rows asked for.
+**The Works each way bought** (the plan's reasons, from the player's log).
+Crew first: Hauling Harness 1 and 2 at Cores 11 and 12 ("capacity, crew
+first"); at Core 13, with no Rig to post to the Benches the Core 14 row
+asked for, Assay Racks 1-2 and Store Chutes 1-2; at Core 14 Hauling
+Harness 3-4 and the Bay Wing 1-2 -- ten levels. Factory first: Assay Racks
+1 and 2 at Cores 11 and 12, Assay Racks 3 and Store Chutes 1-2 at Core 13,
+Hauling Harness 1, Assay Racks 4, Store Chutes 3 and Jig Lines 1 at Core
+14 -- nine. Of the plans, ten of twenty-two (crew) and eleven of
+twenty-one (factory) were for the regions' research the rows asked for,
+six and four for the Benches, the rest for the Works' own way.
 
-- **Core 14 and Core 15 are reached**, where the base never reached Core
-  14: crew first in 21:33:17 and 24:30:17. Factory first reaches Core 14
-  sooner (20:58:31) and then holds: its Frame line, laid on the hot rock
-  beside the Core, overheats, the stability row never comes, and the
-  Benches starve (28% at work) while the Lenses are plenty (102,000 ground).
+- **Core 14 and Core 15 are reached both ways**, where the base never
+  reached Core 14: crew first at 20:15:27 and 23:11:57, factory first at
+  19:46:22 and 22:20:12 -- Core 10 -> 15 in 10 h 37 min and 9 h 45 min.
 - **The Benches work.** From Core 13 they were at work 0% of the time on
-  the base; now 31-83% (crew) and 76% then 28% (factory), and the research
-  they make goes somewhere: the Works, the regions' lines.
-- **Waiting is mostly gone from the late stages**: only credits 0-5% in
-  four of the crew-first stages, 21% in one; factory first 23% and 33% in
-  two. A decision in 97-100% of the minutes of Core 10 -> 14 crew first;
-  the Core 14 -> 15 stage, when the Beacons are lit and the Benches fed,
-  is 108 of 178 (the rest is the price, 380M).
-- **The two ways differ**: crew first spends its early research on the
-  Rigs (Hauling Harness), comes to the Benches late -- its Core 13 -> 14
-  is 3:18 -- and then fits the late rows; factory first teaches the Benches
-  more early, has its Core 13 -> 14 in 1:37, and then needs a Frame line
-  the scripted player cannot keep cool.
+  the base; now 40% then 96% crew first, 76% then 89% factory first, and
+  the research they make goes to the Works and the regions' lines.
+- **Waiting is mostly gone**: only credits left 0-5% of every stage crew
+  first; factory first 0-4%, and 31% once (Core 13 -> 14, where every
+  other row was met in 1:05). A decision in 93-99% of the minutes of
+  every stage from Core 10 both ways, against 12% of the base's last.
+- **The two ways differ, and meet**: crew first spends its early research
+  on the Rigs, comes to the Benches only when the Core 14 row asks, is
+  slower through Core 13 (2:25) and buys docks and Rigs that carry more
+  at the end; factory first teaches the Benches more from Core 11 and is
+  through Core 13 in 1:34, and needs Store Chutes to feed them. The Core's
+  rows take either.
 
 **Found on the way, and whose it was.** The Works' first version, played
 from a new game and from the Core 10 save (Caverns first), collapsed at
@@ -1259,6 +1259,7 @@ unspent. Each cause was measured, changed, and played again:
 | **A dark Beacon stopped its Resonant Bore, and with it the Resonite that would relight it**: four Beacons dark for thirteen hours | **the game** | the Bore bores while its Beacon stands, lit or dark |
 | The fourth Beacon was lit with its 8,000 and little more, and all four were dark within the hour; later every post was emptied for a Beacon the store could not pay for | the player | lit with its price and the next hour in the store; no crew gathered before |
 | The Frames short, Lens Grinders were retasked to Frame Jigs, a Bore laid for Resonite was sold for a Frame Jig, and the Frame Jigs laid stood starved with every dock at a Grinder or a Bench the Chutes also fed | the player | the Beacons' Grinders and Bores kept like a row's machines; Frames wanted from Core 10; a Bench's Rig called over to another row's machine once the Chutes feed it |
+| Frame Jigs laid beside the Core with their chains -- White Heat Smelters beside them -- on the hottest sides overheated, were sold for the stability row and laid again: factory first did not reach Core 15 in thirteen hours, with 600,000 Alloy and 230,000 Components in the store | the player | a Frame Jig beside the Core with no chain, on the coolest side to be had, a Rig feeding it from the store (then Core 15 at 22:20:12) |
 
 The game's changes are five: the Frames' warning, the Benches leaving the
 Beacons' Frames, Store Chutes behind two Benches, the next Beacon's
@@ -1270,20 +1271,18 @@ scripted player not doing what the screen now asks.
 - **The scripted player needed every change in the table to get past Core
   13**; each is a rule a player follows from the screen, and the order it
   follows them in is one of many. Its hours are an upper bound.
-- **The Frame line beside the Core is the long pole of Core 15.** Eight
-  Benches and four Beacons' Lenses take more Frames than the Frame line the
-  factory grew for Core 10 makes; the store's Alloy and Components
-  (hundreds of thousands) would make them, on a Frame Jig beside the Core
-  a Rig feeds. Played factory first, those Jigs were laid on hot rock
-  between Smelters, overheated, were sold for the stability row and laid
-  again: Core 15 was not reached in thirteen hours. A player sees it (What
-  now?, the research screen, the Jig's heat); the scripted player does not
-  yet cool a Jig it lays there.
+- **The Frame line is the Core 14 era's work, and it is the scripted
+  player's hardest.** Eight Benches and four Beacons take more Frames than
+  the line grown for Core 10 makes; one Frame Jig beside the Core, fed by
+  a Rig from the store's Alloy and Components, on a side cool enough for
+  it, covers them. Laid anywhere else it overheats. What now? and the
+  research screen say when the Frames will run out; whether a person finds
+  the Jig's place from that is for a playtest.
 - **The Lens economy is tight.** Four Beacons burn 6,000 Lenses an hour;
   a Bore makes about 1,700 Resonite an hour on stratum 27, two per Lens
-  untuned. Held, it works (crew first, 31,000 ground in the last stage;
-  factory first, 102,000), but whether four to six Bores and every Grinder
-  tuned reads as a plan or a chore needs a person.
+  untuned. Held, it works (about 24,000-30,000 ground in each run's last
+  stage, the store at 10,600-11,000 at the end), but whether four to six
+  Bores and the Grinders tuned reads as a plan or a chore needs a person.
 - **The Works are six lines.** The factory's way and the crew's way differ
   in what they buy (research a Frame, faster Jigs, no docks for the Benches
   -- or Rigs that carry more, more docks, stronger Surveyors), but the
