@@ -253,6 +253,7 @@ static func apply(sim: Simulation, grid: Grid, st: Dictionary,
 	sim.yield_mult = float(mu.get("yield", 1.0)) * float(st["source_yield"]) \
 		* float(st["richness"])
 	sim.value_mult = float(mu.get("value", 1.0)) * float(st["value"])
+	sim.sink_mult = float(mu.get("sink_rate", 1.0))
 	sim.research_mult = float(mu.get("research", 1.0)) * float(st["research"])
 	sim.tolerance_bonus = float(mu.get("tolerance", 0.0))
 	sim.vein_mult = float(st.get("vein", 0.0)) * float(mu.get("vein", 1.0))

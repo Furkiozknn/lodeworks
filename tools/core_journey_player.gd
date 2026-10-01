@@ -79,8 +79,8 @@ var salvage_mode: String = "gearing"
 ## Surveyors' instruments. Either way the other comes after.
 var tech_first: String = "factory"
 const TECH_ORDER := {
-	"factory": ["assay_racks", "bench_chutes", "jig_lines", "haul_harness", "bay_wing", "survey_kit"],
-	"crew": ["haul_harness", "bay_wing", "survey_kit", "assay_racks", "bench_chutes", "jig_lines"],
+	"factory": ["assay_racks", "bench_chutes", "trade_floors", "jig_lines", "haul_harness", "bay_wing", "survey_kit"],
+	"crew": ["haul_harness", "bay_wing", "survey_kit", "assay_racks", "bench_chutes", "trade_floors", "jig_lines"],
 }
 ## [seconds, what] for every first: a Core level, a stratum, a machine type
 ## built, a machine level, a research level.
@@ -1416,6 +1416,15 @@ func _plan() -> void:
 	if choice != "":
 		why = "the Core's Benches, no Rig to post to them"
 		counts.clear()
+	# The Core's price open and the factory's output waiting on its Vaults:
+	# the line that sells more a second serves that row too, at its price
+	# against the others' (measured: at Core 14 a fifth of the machines stood
+	# blocked, and Vaults taking twice as much made 74K/s of a 41K/s factory,
+	# while every plan went to the regions' research).
+	elif _vault_bound():
+		counts.append("trade_floors")
+		if why == "":
+			why = "the Core's price, the Vaults full"
 	var best: float = INF
 	for id: String in counts:
 		var b: String = S.research_blocker(id)
@@ -1461,6 +1470,21 @@ func _bench_line() -> String:
 		if line != "":
 			return line
 	return ""
+
+
+## Is the Core's price open while a fifth of the machines or more stand
+## blocked -- their output waiting on the Vaults?
+func _vault_bound() -> bool:
+	var credits_open: bool = false
+	for st: Dictionary in S.core_status():
+		credits_open = credits_open or int(st["req"][0]) == CoreLevels.Req.CREDITS and not bool(st["met"])
+	if not credits_open or S.grid.cells.is_empty():
+		return false
+	var blocked: int = 0
+	for cell: int in S.grid.cells:
+		if S.sim.status_of(cell) == Simulation.Status.BLOCKED:
+			blocked += 1
+	return float(blocked) >= 0.2 * float(S.grid.cells.size())
 
 
 ## Line `id`, or the first line it opens behind that can be planned; "".

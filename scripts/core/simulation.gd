@@ -172,6 +172,9 @@ var research_mult: float = 1.0
 var tolerance_bonus: float = 0.0
 ## Stratum "Unstable" shrinks this; "Drafting"-style upgrades could grow it.
 var buffer_cap: int = BUF_CAP
+## How much more than a buffer a Vault takes a second (Economy "trading
+## floors"): what the late factory sells is what its Vaults take.
+var sink_mult: float = 1.0
 ## How much crystal the rock gives a Deep Bore (Strata.vein, and a
 ## doctrine's research): a rate on machines on a job marked "vein".
 var vein_mult: float = 1.0
@@ -327,10 +330,17 @@ func _transfer() -> void:
 			var start: int = int(_rotor.get(src_cell, 0)) % takers.size()
 			var moved_total: int = 0
 			var k: int = 0
+			# What each takes into its buffer: a Vault more, with Trading Floors.
+			var limits: Array[int] = []
+			var most: int = cap()
+			for tk: int in takers:
+				limits.append(_intake(tk))
+				most = maxi(most, int(limits[-1]))
 			# One unit at a time so that a single item cannot all land in the
 			# same place twice running.
-			while moved_total < avail and k < takers.size() * cap():
+			while moved_total < avail and k < takers.size() * most:
 				var t: int = takers[(start + k) % takers.size()]
+				var lim: int = limits[(start + k) % takers.size()]
 				k += 1
 				if t == CORE_TAKER:
 					if int(core_wants.get(res, 0)) <= 0:
@@ -350,7 +360,7 @@ func _transfer() -> void:
 					continue
 				var dst: Dictionary = grid.cells[t]
 				var buf_in: Dictionary = dst["buf_in"]
-				if int(buf_in.get(res, 0)) >= cap():
+				if int(buf_in.get(res, 0)) >= lim:
 					continue
 				buf_in[res] = int(buf_in.get(res, 0)) + 1
 				moved_total += 1
@@ -366,6 +376,16 @@ func _transfer() -> void:
 	# tick is served last on the next one.
 	for src_cell: int in grid.cells:
 		_rotor[src_cell] = int(_rotor.get(src_cell, 0)) + 1
+
+
+## How much of one material machine `cell` takes into its buffer: a buffer,
+## or for a Vault a buffer times `sink_mult`.
+func _intake(cell: int) -> int:
+	if cell == CORE_TAKER or sink_mult <= 1.0:
+		return cap()
+	if (_machine_in(grid.cells[cell])["tags"] as Array).has("sink"):
+		return int(ceil(float(cap()) * sink_mult))
+	return cap()
 
 
 ## The neighbours of `source` that would accept `res` right now, in board

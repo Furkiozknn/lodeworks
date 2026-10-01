@@ -417,3 +417,19 @@ whole measured from a new game. The round is in `GAME-LOOP.md`, section
 | is the idle production visible? | the Benches were at work 42%, 36%, 8% and 0% of their time, Core 10 -> 14 | at work 41%, 46%, 23%, 40%, 96% crew first and 41%, 46%, 34%, 76%, 89% factory first; the research screen says what a Frame is worth each way and when the store's run out |
 
 **Still not at the reference games' level:** the Frame line beside the Core wants a cool side and a Rig, and whether a person finds that from the warning is for a playtest; past Core 15 the formula is a grind on a factory that stops growing (income flat at 39-41K/s from Core 10; Core 15 -> 16 took 16:29 crew first and was not reached in 17:34 factory first, stability 170 last; machine levels and a deeper stratum do not raise the income; `GAME-LOOP.md`, section 14); the Works are six lines, and a row that asks for one of each way is not written; research past the rows piles up; four Beacons' Lenses are tight enough that a person has to say whether it is a plan or a chore; nothing measured on a phone.
+
+## 17. Trading Floors: what grows the late factory (1 October 2026)
+
+The round is in `GAME-LOOP.md`, section 15; here, the benchmark's
+questions.
+
+| benchmark question | before | after |
+|---|---|---|
+| does the economy keep growing late (the reference games' storages and collectors upgraded with each Town Hall)? | income 39-41K/s at every Core from 10 to 16; machine levels, a deeper stratum gave nothing; the Vaults took six of a material a second | a research line that lets every Vault sell a quarter more a second a level: 79-99K/s by Core 16 -> 17 |
+| does surplus research buy something late? | 65-75M made a stage, 20-22M spent | the line is paid in it: 1M to 16M a level |
+| is there a wall past Core 15? | Core 15 -> 16: 16:29 crew first, not in 17 h factory first (stability 170) | 5:07 and 3:34; Core 16 at 27:42:12 and 25:19:47 |
+
+**Still not at the reference games' level:** Core 16 -> 17 is held by
+stability 190 -- twenty more machines at their working heat a Core on the
+same rock -- and nothing the scripted player tries moves it; the crew's way
+has no line of its own for the late income; a phone not measured.

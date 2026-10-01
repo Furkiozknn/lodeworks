@@ -2339,6 +2339,18 @@ msgid "Every Assay Bench beside the Core draws a Frame a second from the store, 
 msgstr ""
 
 #: res://scripts/core/economy.gd
+msgid "Trading Floors"
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Vaults sell more a second."
+msgstr ""
+
+#: res://scripts/core/economy.gd
+msgid "Every Vault sells 25% more a second, for each level."
+msgstr ""
+
+#: res://scripts/core/economy.gd
 msgid "Hauling Harness"
 msgstr ""
 

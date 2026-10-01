@@ -285,6 +285,28 @@ const RESEARCH_TREE := {
 		# work for hours, and asking four for the Chutes locked them away).
 		"requires": [["line", "assay_racks", 2], ["working", "lab", 2, "assay"]],
 	},
+	"trade_floors": {
+		# The late factory sells what its Vaults take a second, no more: from
+		# the Core 12 era on its income is the Vaults' (measured: at Core 14,
+		# 91 of 336 machines stood blocked, their output waiting on Vaults;
+		# Vaults taking twice as much a second made 74K/s of a 41K/s
+		# factory, four times 120K/s, while three more levels on every
+		# machine made 2% less). The factory's way to grow past the rows:
+		# research and Frames into what the Vaults sell.
+		"name": "Trading Floors",
+		"short": "Vaults sell more a second.",
+		"desc": "Every Vault sells 25% more a second, for each level.",
+		"cost_research": 1000000.0,
+		"cost_cores": 0,
+		"cost_frames": 50000.0,
+		"max": 5,
+		"cost_growth": 2.0,
+		"effect": "sink_rate",
+		"branch": "works",
+		"per_level": 0.25,
+		"core": Operations.REACH_CORE,
+		"requires": [["line", "assay_racks", 2]],
+	},
 	"haul_harness": {
 		"name": "Hauling Harness",
 		"short": "Posted Rigs carry more.",
@@ -455,10 +477,11 @@ const TREE_ORDER := ["throughput_1", "yield_1", "value_1", "research_1", "resona
 	"heat_tolerance", "offline_cap", "offline_rate", "blueprint_slots",
 	"core_yield", "vein_1", "survey_1", "cryo_1", "mass_1", "jigs_1", "benches_1", "rig_plating",
 	"salvage_gearing", "brine_1", "lens_1", "forge_1", "reach_1",
-	"assay_racks", "jig_lines", "bench_chutes", "haul_harness", "bay_wing", "survey_kit"]
+	"assay_racks", "jig_lines", "bench_chutes", "trade_floors", "haul_harness", "bay_wing", "survey_kit"]
 
 ## The Works' lines (Req.TECH counts their levels, whichever).
-const WORKS := ["assay_racks", "jig_lines", "bench_chutes", "haul_harness", "bay_wing", "survey_kit"]
+const WORKS := ["assay_racks", "jig_lines", "bench_chutes", "trade_floors", "haul_harness", "bay_wing",
+	"survey_kit"]
 
 ## What each line of the tree is about: the research grid shows it branch by
 ## branch, in this order.
@@ -676,6 +699,7 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		"haul": 1.0,
 		"docks": 0.0,
 		"surveyor_power": 1.0,
+		"sink_rate": 1.0,
 	}
 	for id: String in RESEARCH_TREE:
 		var lvl: int = int(levels.get(id, 0))
@@ -689,7 +713,7 @@ static func multipliers(levels: Dictionary, doctrine: String = "") -> Dictionary
 		match effect:
 			"speed", "yield", "value", "research", "resonance", "vein", "cooling", "fine_value", "deep_learn", \
 					"rig_power", "resonite", "breaker_power", "umbrite", "frame_learn", "jig_speed", "chutes", "haul", \
-					"docks", "surveyor_power":
+					"docks", "surveyor_power", "sink_rate":
 				m[effect] = float(m[effect]) + per * float(lvl)
 			"quota":
 				m[effect] = maxf(float(m[effect]) - per * float(lvl), 0.2)

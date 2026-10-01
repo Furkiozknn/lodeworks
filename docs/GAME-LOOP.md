@@ -1299,8 +1299,7 @@ scripted player not doing what the screen now asks.
   factory earned 2-3% less, not more; taken down
   from stratum 27 to 33 -- two more rings of yard, a fifth more richness,
   a degree more heat -- it went from 336 machines to 282, overheating,
-  and earned 26-30K/s, not 41K/s. What grows a factory past Core 15 is the next round's work
-  (`BENCHMARK.md`, section 16).
+  and earned 26-30K/s, not 41K/s. What held it was the Vaults: section 15.
 - **Research past the rows piles up**: the Works and the regions' lines
   are the only things it buys late, and the Benches the rows ask for make
   more than they cost.
@@ -1323,3 +1322,113 @@ The frame times follow the order the checkouts ran in, not the code: the
 one run second was the slower each time, and swapped, the base was. No
 new draw call, texture or node; the Frames' warning is one label on the
 research screen. A phone: not measured (no device connected).
+
+## 15. Trading Floors: what grows a factory past Core 15 (30 September - 1 October 2026)
+
+The last round's own finding, chosen as the next gap: past Core 15 the
+formula's levels are a grind on a factory that stops growing.
+
+### Measured first
+
+Played on from each way's Core 14 save of section 14 (to 40 hours):
+
+- **Income stood still from Core 10 to Core 16**: 39-41K/s. Core 15 ->
+  16 took 16:29:30 crew first (stability 170 last) and was not reached in
+  17:34 factory first; Core 16 asked 855M and stability 190.
+- **The research made had nowhere to go**: 65-75M a stage made, 20-22M
+  spent; no Overdrive step past Core 10, because a step waits for a type at
+  the level the Core before allowed (15), and the factory's types stood at
+  7 to 9.
+- **What holds the income** (`tools/diag_*`, scratch, from the Core 14
+  save of the factory-first run):
+
+  | tried, for 20 minutes | income |
+  |---|---|
+  | as it stood | 41.1K/s |
+  | three more levels on every machine type, free | 40.0-40.3K/s |
+  | down from stratum 27 to 33 (two more rings, a fifth more richness) | 26-30K/s: 336 machines to 282, overheating |
+  | every Vault taking twice as much a second | **73.7K/s** |
+  | four times | **119.8K/s** |
+
+  91 of the 336 machines stood blocked, their output waiting on Vaults. A
+  Vault sells what its buffer holds -- six of a material -- once a second:
+  fed Alloy, 150 credits a second. The next Vault cost 4.9M: nine hours to
+  pay itself back. The late factory's income is what its Vaults take.
+
+### What was built
+
+| | built | where |
+|---|---|---|
+| a way to grow the late factory | **Trading Floors**, a seventh line of the Works, the factory's way: every Vault takes and sells 25% more a second a level, to five; 1M research and 50,000 Frames for the first, twice that each level after; from Core 12, behind Assay Racks 2 | `Economy` "trade_floors", `Simulation.sink_mult`, `Simulation._intake` |
+| research with a use late | the line is paid in the research the Benches pile up, and it counts for the Works' rows | the Works |
+| the scripted player | while the Core's price is open and a fifth of the machines stand blocked, Trading Floors is one of the lines the plan weighs, at its price against the rows' | `core_journey_player.gd` `_vault_bound` |
+
+### Played
+
+A new game each way on this round's code (`LODEWORKS_CORE_SKIP=1`, to
+Core 17 or 40 hours), against section 14's runs -- a new game to Core 15,
+and from its Core 14 saves on to 40 hours:
+
+| | the Works, crew first | | the Works, factory first | |
+|---|---|---|---|---|
+| | section 14 | now | section 14 | now |
+| Core 13 | 17:50:37 | 17:50:37 | 18:12:02 | 18:12:02 |
+| Core 14 | 20:15:27 | 20:15:27 | 19:46:22 | **19:38:52** |
+| Core 15 | 23:11:57 | **22:35:37** | 22:20:12 | **21:45:42** |
+| Core 16 | 39:21:42 (from the Core 14 save) | **27:42:12** | not in 40 h | **25:19:47** |
+| Core 17 | not in 40 h | not in 40 h | not in 40 h | not in 40 h |
+| income at Core 16 | 39.1K/s | 95.6K/s | -- | 54.0K/s, 90.3K/s by 40 h |
+
+**When the plan bought it** (from the player's log): factory first at
+17:40 -- the Core 13 row's price open, a fifth of the machines blocked --
+bought at 18:04, the second at 23:19, the third to fifth at 28:06, 31:38
+and 34:58; crew first, the first planned at 20:15 and bought at 20:39,
+the rest at 23:57, 26:11, 34:19 and 39:36. The income each time: factory first
+39.7K/s at Core 12 -> 50.8K/s at Core 13; crew first 39.7K/s -> 54.3K/s
+through Core 14 -> 15 and 95.6K/s by Core 16.
+
+| stage, crew first / factory first | only credits left | minutes with a decision |
+|---|---|---|
+| 13 -> 14 | 0% / 0% | 144 of 146 / 65 of 87 |
+| 14 -> 15 | 22% / 18% | 129 of 141 / 112 of 128 |
+| 15 -> 16 | 26% / 1% | 274 of 308 / 44 of 215 |
+| 16 -> 17 (not reached in 12-15 h) | 0% / 0% | 81 of 739 / 106 of 882 |
+
+- **The late factory grows now**: from 39-41K/s at every Core from 10 to
+  16 to 79-99K/s, with no other change than the line and the plan's
+  reason to buy it. Core 15 -> 16 took 5:07 and 3:34 where it had taken
+  16:29 and more than 17.
+- **What the Vaults took, they pay**: the research the Benches pile up past
+  the rows buys it (1M, 2M, 4M, 8M, 16M), and Frames from the store with it.
+- **Core 16 -> 17 is held by stability 190 and twelve Benches**, not by the
+  price: 855M came in 2:52 and 5:05. A factory of 370-380 machines held
+  160-175 at their working heat with none overheating, rarely 190, and
+  ten or eleven of its twelve Benches at work.
+  The minutes with a decision fall with it (81 of 739): the scripted player
+  has nothing left to try for the heat. That is the next gap.
+
+### What it still is not
+
+- **Stability past 170 is a wall of its own.** The formula asks 20 more
+  machines at their working heat each Core; on stratum 27, at 370-380
+  machines, the factory held 160-175. More yard (deeper strata) brings more
+  heat; what grows stability without it -- cooling research, quieter
+  machines, a bigger yard on the same rock -- is for a later round.
+- **One line carries the late income.** Trading Floors is the factory's
+  way only; the crew's way has no line that sells more. Played crew first,
+  the plan still bought it -- for the Core's price -- which is a way of
+  mixing the two, not a second road.
+- **Five levels and done**: at the fifth (35 h) the Vaults sell 2.25 times
+  what they did; past it the price grows and the income does not.
+
+### What it costs to draw
+
+A producer now asks each Vault beside it how much it takes, once a tick
+(`Simulation._intake`). `tools/perf_probe.tscn` (1440x720, Intel UHD, the
+compatibility renderer, a 180 s soak), the base (2b68221) and this round's
+code, twice each, alternating: a sim tick on the late board (308 machines)
+4.28 and 4.68 ms on the base, 3.36 and 3.75 ms now; draw calls 196 / 212 /
+232 both; frame p50 over the soak 11.16 and 11.36 ms against 11.31 and
+10.89 ms; static memory 54.5-54.6 MB against 53.9-55.0 MB.
+`tests/test_performance.gd` passes, 8 of 8, run alone. A phone: not
+measured.

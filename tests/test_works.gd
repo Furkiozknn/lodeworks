@@ -253,6 +253,44 @@ func test_each_works_line_does_what_it_says() -> void:
 	_done()
 
 
+func test_trading_floors_let_a_vault_sell_more_a_second() -> void:
+	# Three Drills round one Vault, far from the Core: more than a Vault takes
+	# a second. What it sells in a minute, before and after two levels of
+	# Trading Floors.
+	var sold: Array = []
+	for lvl: int in [0, 2]:
+		_shaft(13)
+		Sim.upgrade_levels["trade_floors"] = lvl
+		Sim.machine_levels["drill"] = 12
+		Sim._recompute()
+		runner.near(Sim.sim.sink_mult, 1.0 + 0.25 * float(lvl), 0.001, "Trading Floors %d" % lvl)
+		var yard: Array[int] = BuildArea.cells(Sim.max_depth)
+		var vault: int = -1
+		var drills: Array[int] = []
+		for cell: int in yard:
+			if Sim.sim.core_touching().has(cell) or not Sim.grid.is_empty(cell) or Sim.is_blocked(cell):
+				continue
+			drills.clear()
+			for n: int in Sim.grid.neighbours(cell):
+				if yard.has(n) and Sim.grid.is_empty(n) and not Sim.is_blocked(n) and not Sim.sim.core_touching().has(n):
+					drills.append(n)
+			if drills.size() >= 3:
+				vault = cell
+				break
+		runner.check(vault >= 0, "room for a Vault and three Drills")
+		Sim.grid.place(vault, "vault")
+		for d: int in drills.slice(0, 3):
+			Sim.grid.place(d, "drill")
+		Sim.sim.forget(Sim.grid.cells.keys())
+		var c: float = 0.0
+		for _i in range(int(60.0 * Simulation.TICK_HZ)):
+			c += float(Sim.sim.tick()["credits"])
+		sold.append(c)
+	runner.gt(float(sold[0]), 0.0, "the Vault sells")
+	runner.gt(float(sold[1]), float(sold[0]) * 1.3, "and sells more a second with the floors")
+	_done()
+
+
 func test_store_chutes_feed_a_bench_with_no_rig() -> void:
 	_shaft(12)
 	var cell: int = _bench()

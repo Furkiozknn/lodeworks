@@ -4792,6 +4792,7 @@ const RESEARCH_ART := {
 	"assay_racks": ["lab", "research"],
 	"jig_lines": ["assembler", "energy"],
 	"bench_chutes": ["@core", "research"],
+	"trade_floors": ["vault", "upgrade"],
 	"haul_harness": ["@crew:crew:carry", "energy"],
 	"bay_wing": ["@crew:crew:idle", "upgrade"],
 	"survey_kit": ["@crew:crew_surveyor:work", "star"],
