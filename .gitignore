@@ -9,3 +9,7 @@ android/
 # committed: large prebuilt AARs that update on Google's schedule, and the
 # game is written to build and run without them.
 addons/
+# docs/CI.md and docs/RELEASE.md run keytool in the current directory;
+# a release keystore must never be committed.
+*.keystore
+*.jks

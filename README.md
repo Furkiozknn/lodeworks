@@ -7,7 +7,7 @@ Not published. This repository is a working game, a test suite that checks the
 *balance* and not only the code, and everything needed to put it on Google Play
 except the things only a human with a bank account can do.
 
-![Three stages of a run](store/screenshots/03_full_board.png)
+![A full production line on the seven by ten grid, machines feeding their neighbours](store/screenshots/01_line.png)
 
 ---
 
@@ -289,7 +289,9 @@ nothing behind it:
   `services.gradle.org` and `repo1.maven.org` are all unreachable from the
   machine this was written on, and so are Godot's own export templates. The
   workflow that does it is committed, validated and has never run.
-- No sound, and blueprints save and load but have no UI.
+- Sound is synthesised but has never been heard through a phone speaker
+  (see the Sound row in [docs/RELEASE.md](docs/RELEASE.md) §6), and blueprints
+  save and load but have no UI.
 
 See [docs/RELEASE.md](docs/RELEASE.md) §6 for claim-by-claim evidence and §7
 for what needs a human.
