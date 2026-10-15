@@ -816,7 +816,10 @@ func _draw_placement_preview(font: Font, cs: float) -> void:
 	var m: Dictionary = MachineDB.get_machine(id)
 	if m.is_empty():
 		return
-	var emitted: float = float(m.get("heat_out", 0.0))
+	# Every tile whose heat this machine changes, from the same rebuild the
+	# board uses: neighbours for an emitter, and with a Heat Pipe in play also
+	# tiles two steps away.
+	var change: Dictionary = Sim.grid.heat_contribution(cell, id)
 
 	draw_rect(cell_rect(cell).grow(2.0), Palette.ACCENT, false, 2.0)
 
@@ -828,12 +831,13 @@ func _draw_placement_preview(font: Font, cs: float) -> void:
 	if m.has("amplify") or m.has("duplicate_chance"):
 		_draw_service_preview(font, cs, cell, m)
 
-	for n in Sim.grid.neighbours(cell):
+	for n: int in change:
 		var nr: Rect2 = cell_rect(n)
 		var nid: String = Sim.grid.machine_at(n)
-		var bleed: float = emitted * Sim.grid.heat_spread
-		if Sim.grid.is_empty(cell) and absf(bleed) < 0.001:
-			continue
+		var bleed: float = float(change[n])
+		# Pressing an existing tile shows what it is doing to the tiles now;
+		# their heat already includes it, so "before" is without it.
+		var now_offset: float = 0.0 if Sim.grid.is_empty(cell) else -bleed
 		var tint: Color = Palette.ST_HOT if bleed > 0.0 else Palette.ST_COLD
 		tint.a = 0.20
 		draw_rect(nr, tint, true)
@@ -844,7 +848,7 @@ func _draw_placement_preview(font: Font, cs: float) -> void:
 				# What that bleed does to the machine already standing there
 				# is the number that actually decides the placement.
 				var nm: Dictionary = MachineDB.get_machine(nid)
-				var now: float = Sim.grid.heat_at(n)
+				var now: float = maxf(Sim.grid.raw_heat_at(n) + now_offset, 0.0)
 				var before: float = MachineDB.heat_efficiency(now,
 					float(nm["heat_optimum"]),
 					float(nm["heat_tolerance"]) + Sim.sim.tolerance_bonus)
