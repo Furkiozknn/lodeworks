@@ -185,7 +185,7 @@ delete in week one.
 
 ```bash
 godot --path . --resolution 720x1440                              # play it
-godot --headless --path . --script res://tests/test_runner.gd     # 137 tests
+godot --headless --path . --script res://tests/test_runner.gd     # 255 tests
 godot --headless --path . --script res://tools/selftest_cli.gd    # the device self test, minus the device
 godot --headless --path . --script res://tools/diagnose.gd        # per-tile balance dump
 godot --headless --path . --script res://tools/layout_lab.gd      # score the reference layouts
@@ -269,7 +269,7 @@ scripts/services/ save, analytics, ads, IAP, and the device self test — each
 scripts/ui/       drawn with _draw(); there is not one bitmap in the project,
                   and MachineArt is the single place a machine is drawn -- the
                   board, the icon and the feature graphic all call it
-tests/            137 tests, no framework dependency
+tests/            255 tests, no framework dependency
 tools/            store assets, balance scoring, layout search, the self test
                   CLI, the plugin installer and the Android build script
 .github/          tests and screenshots on every push; the Android export runs
