@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0.0",
+  "id": "lodeworks",
+  "owner": "Furkiozknn",
+  "repository": "https://github.com/Furkiozknn/lodeworks",
+  "homepage": null,
+  "releases": "https://github.com/Furkiozknn/lodeworks/releases",
+  "status": "prototype",
+  "category": "game",
+  "platform": [
+    "android"
+  ],
+  "primary_language": "GDScript",
+  "technologies": [
+    "Godot 4.7",
+    "GDScript",
+    "Android"
+  ],
+  "version": null,
+  "license": "MIT",
+  "topics": [
+    "android",
+    "factory-game",
+    "game",
+    "gdscript",
+    "godot",
+    "godot4",
+    "idle-game",
+    "mobile-game",
+    "simulation"
+  ],
+  "summary": "Idle machine-grid builder for Android in Godot 4.7: place machines that feed each other by adjacency, manage heat and descend the strata · Godot 4.7 ile Android için idle makine ızgarası oyunu: komşuluğa göre birbirini besleyen makineler kur, ısıyı yönet, katmanlara in",
+  "key_features": [
+    "Machines feed each other by adjacency; manage heat and descend the strata",
+    "An eight-step first chapter taught on your real board, then no more tutorial windows",
+    "Codex pages run a real two-to-five tile Simulation instead of describing the rule",
+    "Not published on Google Play; the README says so"
+  ],
+  "media": {
+    "hero": null,
+    "screenshots": [],
+    "gifs": [],
+    "videos": []
+  },
+  "tests": {
+    "count": 255,
+    "source": "CI log (ci.yml, main, 2026-10-19): `=== 255 tests passed (2082 assertions) ===`",
+    "measured": "2026-10-19"
+  },
+  "ci": {
+    "workflows": [
+      "ci.yml",
+      "android.yml"
+    ],
+    "badge": "https://github.com/Furkiozknn/lodeworks/actions/workflows/ci.yml/badge.svg"
+  },
+  "docs": {
+    "readme": "README.md",
+    "changelog": null,
+    "version_history": null,
+    "roadmap": null,
+    "security": null,
+    "contributing": null,
+    "license_file": "LICENSE"
+  },
+  "provenance": {
+    "generated_at": "2026-10-19",
+    "generator": "hand-written",
+    "rule": "mechanical fields read from the repository and the GitHub API; editorial fields hand-written from the README; no field is generated from a guess"
+  }
+}
