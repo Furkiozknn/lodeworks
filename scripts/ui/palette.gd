@@ -116,6 +116,7 @@ const MACHINE_COLOR := {
 	"lab": Color("a780ff"),
 	"duplicator": Color("ff8fd0"),
 	"condenser": Color("6fd6e8"),
+	"heat_pipe": Color("c27a52"),
 }
 
 ## A one-or-two glyph mark per machine, drawn as text. Cheaper than icons,
@@ -133,6 +134,7 @@ const MACHINE_GLYPH := {
 	"lab": "○",         # flask bulb
 	"duplicator": "⧉",  # two squares - a copy
 	"condenser": "❅",   # flowered snowflake
+	"heat_pipe": "⇌",   # two-way arrows - heat carried across
 }
 
 ## Silhouette families. Two machines of the same colour must still be
@@ -161,6 +163,7 @@ const MACHINE_FAMILY := {
 	"lab": Family.LAB,
 	"duplicator": Family.FIELD,
 	"condenser": Family.FURNACE,
+	"heat_pipe": Family.FURNACE,
 }
 
 const RADIUS := 10.0
@@ -348,6 +351,7 @@ const MACHINE_LIGHT := {
 	"lab": "b06bff",         # research violet
 	"duplicator": "ff6bc4",  # duplication pink
 	"condenser": "4ff0cf",   # condensation teal
+	"heat_pipe": "ffa8a0",   # glowing copper
 }
 
 

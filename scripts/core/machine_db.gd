@@ -219,10 +219,32 @@ const MACHINES := {
 		"tags": ["cool", "amplify"],
 		"amplify": 0.12,
 	},
+	# The first machine that moves heat instead of making or removing it.
+	# Grid._rebuild_heat relays, to each neighbour, the heat the pipe receives
+	# from its OTHER neighbours, at full strength: the two tiles on either side
+	# of a pipe become thermally adjacent. One hop, like material bridging,
+	# so a line of pipes is not a heat network. Cold travels too: a Coolant Cell
+	# on one side cools the tile on the other.
+	"heat_pipe": {
+		"name": "Heat Pipe",
+		"desc": "Makes no heat and removes none: it carries what reaches it to the tiles on its other sides, so a Boiler can warm a Smelter two tiles away and a Press can sit clear of both. Material passes straight through it.",
+		"cost": 650.0,
+		"cost_growth": 1.22,
+		"inputs": {},
+		"outputs": {},
+		"rate": 1.0,
+		"heat_out": 0.0,
+		"heat_optimum": 0.0,
+		"heat_tolerance": 99.0,
+		"unlock_depth": 3,
+		"tags": ["relay"],
+		"heat_relay": 1.0,
+	},
 }
 
 const ORDER := ["drill", "crusher", "vault", "smelter", "boiler", "coolant",
-	"press", "assembler", "amplifier", "lab", "duplicator", "condenser"]
+	"press", "assembler", "amplifier", "lab", "duplicator", "condenser",
+	"heat_pipe"]
 
 
 ## --- economic models -------------------------------------------------------

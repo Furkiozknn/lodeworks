@@ -216,6 +216,18 @@ static func build(ci: CanvasItem, rect: Rect2, scale_ref: float, id: String,
 				_b(ci, r, cx, 0.46, 0.06, 0.40, dark, 0.0, false)
 			_e(ci, r, 0.30, 0.20, 0.40, 0.18, light, glow * 1.1)
 			_e(ci, r, 0.14, 0.62, 0.20, 0.08, light, glow * 0.45)
+		"heat_pipe":
+			# A cross of lagged pipe on a low plinth: it reaches every side,
+			# because it hands heat to every side. The glow travels along it.
+			_b(ci, r, 0.10, 0.72, 0.80, 0.18, dark, 0.08, true, true)    # plinth
+			_b(ci, r, 0.04, 0.38, 0.92, 0.22, body, 0.14, true, true)    # run
+			_b(ci, r, 0.39, 0.06, 0.22, 0.70, body, 0.14)                # riser
+			for i in range(2 + tier):
+				var fx: float = 0.10 + float(i) * (0.74 / float(2 + tier))
+				_b(ci, r, fx, 0.34, 0.05, 0.30, trim, 0.0, false)        # flanges
+			var flow: float = 0.08 + beat * 0.60
+			_e(ci, r, flow, 0.44, 0.22, 0.10, light, glow * 0.9)
+			_e(ci, r, 0.42, 0.40, 0.16, 0.18, light, glow * 0.6)
 		_:
 			_b(ci, r, 0.12, 0.18, 0.76, 0.74, body, 0.16, true, true)
 			_e(ci, r, 0.30, 0.36, 0.40, 0.20, light, glow)

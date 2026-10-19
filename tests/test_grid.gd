@@ -271,3 +271,121 @@ func test_the_preview_reads_zero_where_a_support_tile_is_wasted() -> void:
 		"next to a Vault and another Amplifier is a wasted tile, and the "
 		+ "preview has to say so before the player spends the credits")
 	runner.near(Grid.factor_for(0), 0.0, 0.0001, "worth nothing")
+
+
+## --- Heat Pipe ---------------------------------------------------------------
+
+func _own(id: String) -> float:
+	return float(MachineDB.get_machine(id)["heat_out"])
+
+
+func test_a_heat_pipe_makes_the_tiles_on_either_side_thermally_adjacent() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(1, 3), "boiler")
+	g.place(Grid.idx(3, 3), "smelter")
+	var apart: float = g.heat_at(Grid.idx(3, 3))
+	runner.near(apart, _own("smelter"), 0.001,
+		"two tiles apart, the Boiler does not reach the Smelter")
+	g.place(Grid.idx(2, 3), "heat_pipe")
+	runner.near(g.heat_at(Grid.idx(3, 3)),
+		_own("smelter") + _own("boiler") * MachineDB.HEAT_SPREAD, 0.001,
+		"with a pipe between them the Smelter gets exactly what touching would give")
+
+
+func test_a_heat_pipe_never_hands_a_machine_its_own_heat_back() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(3, 3), "smelter")
+	g.place(Grid.idx(4, 3), "heat_pipe")
+	runner.near(g.heat_at(Grid.idx(3, 3)), _own("smelter"), 0.001,
+		"a pipe alone beside a machine changes nothing for it")
+	runner.near(g.heat_at(Grid.idx(5, 3)), _own("smelter") * MachineDB.HEAT_SPREAD, 0.001,
+		"but the far side receives the Smelter's bleed")
+
+
+func test_cold_travels_through_a_heat_pipe_too() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(1, 3), "coolant")
+	g.place(Grid.idx(2, 3), "heat_pipe")
+	g.place(Grid.idx(3, 3), "press")
+	runner.near(g.raw_heat_at(Grid.idx(3, 3)),
+		_own("press") + _own("coolant") * MachineDB.HEAT_SPREAD, 0.001,
+		"a Coolant Cell cools the Press two tiles away")
+
+
+func test_heat_pipes_relay_one_hop_and_never_chain() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(1, 3), "boiler")
+	g.place(Grid.idx(2, 3), "heat_pipe")
+	g.place(Grid.idx(3, 3), "heat_pipe")
+	g.place(Grid.idx(4, 3), "smelter")
+	runner.near(g.heat_at(Grid.idx(4, 3)), _own("smelter"), 0.001,
+		"two pipes in a row are not a heat network: the Smelter gets nothing from the Boiler")
+
+
+func test_a_heat_pipe_does_not_double_the_stratum_heat() -> void:
+	var g := Grid.new()
+	g.set_environment(2.0, MachineDB.HEAT_SPREAD)
+	g.place(Grid.idx(3, 3), "heat_pipe")
+	for n in g.neighbours(Grid.idx(3, 3)):
+		runner.near(g.heat_at(n), 2.0, 0.001, "ambient is added once, after the relay")
+
+
+func test_a_heat_pipe_bridges_material_like_every_support_tile() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(0, 0), "drill")
+	g.place(Grid.idx(1, 0), "heat_pipe")
+	g.place(Grid.idx(2, 0), "vault")
+	runner.check(g.is_support(Grid.idx(1, 0)), "a Heat Pipe is a support tile")
+	runner.check(g.bridged_machines(Grid.idx(0, 0)).has(Grid.idx(2, 0)),
+		"ore crosses the pipe to the Vault")
+	var s := Simulation.new(g, 7)
+	var out: Dictionary = s.run_ticks(200)
+	runner.gt(float(out["credits"]), 0.0, "and the Vault sells it")
+
+
+func test_a_pipe_fed_smelter_runs_faster_than_a_cold_one() -> void:
+	var g := Grid.new()
+	g.place(Grid.idx(1, 3), "boiler")
+	g.place(Grid.idx(3, 3), "smelter")
+	var s := Simulation.new(g, 7)
+	var cold: float = s.effective_rate(Grid.idx(3, 3))
+	g.place(Grid.idx(2, 3), "heat_pipe")
+	runner.gt(s.effective_rate(Grid.idx(3, 3)), cold * 1.05,
+		"the Smelter wants heat, and the pipe delivers it from two tiles away")
+
+
+func test_the_heat_preview_is_the_rebuild_the_board_runs() -> void:
+	# The placement preview draws the change in heat on every tile a placement
+	# touches. It must be the board's own rule, pipes included, or the number
+	# under the player's finger is a guess.
+	var cases: Array = [
+		[Grid.idx(3, 3), "boiler"],      # plain emitter
+		[Grid.idx(2, 3), "heat_pipe"],   # emits nothing, still changes heat
+		[Grid.idx(4, 4), "coolant"],     # next to the pipe: reaches two tiles away
+	]
+	for c: Array in cases:
+		var g := Grid.new()
+		g.place(Grid.idx(1, 3), "boiler")
+		g.place(Grid.idx(2, 4), "smelter")
+		g.place(Grid.idx(4, 3), "heat_pipe")
+		g.place(Grid.idx(5, 3), "press")
+		var before: Array = []
+		for k in range(Grid.W * Grid.H):
+			before.append(g.raw_heat_at(k))
+		var owned_before: Dictionary = g.owned.duplicate()
+		var cell: int = int(c[0])
+		var predicted: Dictionary = g.heat_contribution(cell, String(c[1]))
+		runner.eq(g.cells.size(), 4, "previewing places nothing")
+		runner.eq(g.owned, owned_before, "and charges nothing")
+		g.place(cell, String(c[1]))
+		var mismatch: int = 0
+		for k in range(Grid.W * Grid.H):
+			if k == cell:
+				continue
+			var actual: float = g.raw_heat_at(k) - float(before[k])
+			if absf(actual - float(predicted.get(k, 0.0))) > 0.001:
+				mismatch += 1
+		runner.eq(mismatch, 0, "preview of %s matches the board on every tile" % c[1])
+		var placed: Dictionary = g.heat_contribution(cell)
+		runner.eq(placed.size(), predicted.size(),
+			"pressing the placed %s shows the same tiles it previewed" % c[1])

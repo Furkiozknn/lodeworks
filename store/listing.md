@@ -51,7 +51,7 @@ Every machine emits heat, half of it bleeds into each neighbour, and every
 machine has a temperature it works best at. A smelter next to a boiler runs
 hot and fast. A press three tiles away chokes on the same heat and needs a
 coolant cell you would rather have spent on production. Two players with the
-same twelve machines will not build the same board.
+same thirteen machines will not build the same board.
 
 LEARNING IT
 The first chapter is eight steps, each one line and a pulsing outline on the
@@ -104,10 +104,10 @@ NO DARK PATTERNS
 
 Plays entirely offline. No sign-in, no cloud, nothing to create.
 
-TWELVE MACHINES
+THIRTEEN MACHINES
 Drill, Crusher, Vault, Smelter, Boiler, Coolant Cell, Press, Assembler,
-Amplifier, Lab, Duplicator, Condenser. Only twelve — but what matters is what
-each one is next to, and that is a much larger number.
+Amplifier, Lab, Duplicator, Condenser, Heat Pipe. Only thirteen — but what
+matters is what each one is next to, and that is a much larger number.
 ```
 
 ## Category and tags

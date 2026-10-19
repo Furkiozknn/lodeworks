@@ -125,9 +125,85 @@ func _rebuild_heat() -> void:
 		_heat[i] += h
 		for n in neighbours(i):
 			_heat[n] += h * heat_spread
+	_relay_heat()
 	for k in range(_heat.size()):
 		_heat[k] += ambient_heat
 	_heat_dirty = false
+
+
+## Heat Pipes. Each pipe hands every neighbour the heat its OTHER neighbours
+## spread into the pipe's tile, times the pipe's heat_relay. Leaving out the
+## receiving neighbour's own contribution is what stops a Smelter heating
+## itself through the pipe, and reading only the first-pass spread (never
+## another pipe's relay) keeps it one hop, the same rule as material bridging:
+## a player can see what a pipe connects without tracing a network.
+##
+## Ambient heat is added after this on purpose. The stratum warms every tile
+## once; a pipe must not double it.
+func _relay_heat() -> void:
+	var extra: Dictionary = {}
+	for p: int in cells:
+		var pm: Dictionary = MachineDB.get_machine(machine_at(p))
+		var relay: float = float(pm.get("heat_relay", 0.0))
+		if relay <= 0.0:
+			continue
+		var into: Dictionary = {}
+		for n in neighbours(p):
+			if is_empty(n):
+				continue
+			var nm: Dictionary = MachineDB.get_machine(machine_at(n))
+			into[n] = float(nm.get("heat_out", 0.0)) * heat_spread
+		for n in neighbours(p):
+			var carried: float = 0.0
+			for src: int in into:
+				if src != n:
+					carried += float(into[src])
+			if not is_zero_approx(carried):
+				extra[n] = float(extra.get(n, 0.0)) + carried * relay
+	for n: int in extra:
+		_heat[n] += float(extra[n])
+
+
+## What one machine does to the heat of every OTHER tile, as cell -> signed
+## change. For an empty cell it is the machine id would be if placed there;
+## for an occupied one, the machine already standing on it.
+##
+## Computed by rebuilding the field with and without it rather than by a
+## formula, so the placement preview and the board run one rule and cannot
+## disagree. That matters since the Heat Pipe: a pipe emits nothing, yet
+## placing one changes its neighbours' heat, and an emitter placed beside a
+## pipe warms tiles two steps away. Ownership counts and buffers are untouched.
+func heat_contribution(cell: int, id: String = "") -> Dictionary:
+	if cell < 0 or cell >= W * H:
+		return {}
+	if _heat_dirty:
+		_rebuild_heat()
+	var with_it: PackedFloat32Array
+	var without: PackedFloat32Array
+	if is_empty(cell):
+		if not MachineDB.exists(id):
+			return {}
+		without = _heat.duplicate()
+		cells[cell] = {"id": id, "buf_in": {}, "buf_out": {}}
+		_rebuild_heat()
+		with_it = _heat.duplicate()
+		cells.erase(cell)
+	else:
+		with_it = _heat.duplicate()
+		var saved: Dictionary = cells[cell]
+		cells.erase(cell)
+		_rebuild_heat()
+		without = _heat.duplicate()
+		cells[cell] = saved
+	_heat_dirty = true
+	var out: Dictionary = {}
+	for k in range(with_it.size()):
+		if k == cell:
+			continue
+		var change: float = with_it[k] - without[k]
+		if absf(change) > 0.001:
+			out[k] = change
+	return out
 
 
 ## Heat in a cell, floored at zero. Negative heat from coolant cancels positive

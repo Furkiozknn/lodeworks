@@ -88,6 +88,38 @@ Resonant*, and the layout that was right for one is wrong for the other.
 That is the production argument for this design: **one more modifier is one row
 of data and a large multiple of gameplay.** A match-3 gets one more level.
 
+## Heat that travels
+
+Until stratum 3 heat is strictly local: a machine warms its own tile and half
+of that bleeds one step. That makes the core tension sharp, because the Boiler
+that a Smelter wants is the same Boiler that chokes the Press beside it. It
+also makes some boards impossible, because there is no way to warm one tile
+without warming everything round it.
+
+The **Heat Pipe** (unlocks at stratum 3, alongside the Press) is the one
+machine that moves heat instead of making or removing it. It hands each
+neighbour the heat its *other* neighbours give it, at full strength, so the
+two tiles on either side of a pipe behave as if they touched. A Boiler can
+warm a Smelter two tiles away, and the Press can stand clear of both. Cold
+travels the same way: a Coolant Cell on one side cools the tile on the other.
+
+Three rules keep it readable, and each one has a test in `tests/test_grid.gd`:
+
+- **One hop.** A pipe relays only what its neighbours emit, never what
+  another pipe relays, so two pipes in a row are not a heat network. This is
+  the same rule as material bridging.
+- **No feedback.** A machine never gets its own heat back through a pipe.
+- **Ambient once.** The stratum warms every tile once, after the relay.
+
+Like every support tile, material passes straight through it. Because the pipe
+emits nothing, the placement preview could no longer be "heat out × spread".
+It now comes from `Grid.heat_contribution()`, which rebuilds the field with and
+without the machine. The number under your finger is therefore the board's own
+rule, including tiles two steps away. The Codex has a running page for it.
+Factorio's heat pipes (Space Age) and Oxygen Not Included's conductive tiles
+are the genre references. Here it is deliberately one tile and one hop, so the
+board stays something you can read at a glance.
+
 ## Why depth is worth it
 
 It was not, and that was measured rather than suspected. Under the original
