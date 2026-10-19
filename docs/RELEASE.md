@@ -203,7 +203,7 @@ claims with the evidence next to each one.
 | The board explains itself | **verified in a render** | `tools/smoke.tscn` boots the real game under xvfb, opens the settings panel and the self-test screen, and fails if what came up is a black rectangle |
 | The store assets meet Play's specs | **verified** | `tools/check-store-assets.py` checks every dimension, colour type and count against the published spec and runs at the end of every asset build |
 | Haptics | **UNKNOWN** | `Input.vibrate_handheld` needs a device. The `VIBRATE` permission is now in the export preset — without it Godot 4.4 was reported to crash on Android |
-| Sound | **verified as generated, UNKNOWN as heard** | every sound is synthesised at startup and the test suite asserts all twelve exist; nobody has heard them through a phone speaker |
+| Sound | **verified as generated, UNKNOWN as heard** | every sound is synthesised at startup and the test suite asserts all fourteen exist; nobody has heard them through a phone speaker |
 
 The MVP ships **one** ad placement — doubling offline earnings — out of the
 three that are written. It is the only one where the player knows the exact
