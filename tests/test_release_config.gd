@@ -422,6 +422,15 @@ func test_the_listing_describes_the_products_that_exist() -> void:
 		"the policy should say plainly that there are no loot boxes")
 
 
+func test_the_listing_names_every_machine_in_the_game() -> void:
+	# The store copy lists the machines by name. A machine added to MachineDB
+	# and not to the listing makes the description quietly wrong.
+	var listing: String = _read("res://store/listing.md")
+	for id: String in MachineDB.ORDER:
+		var name: String = String(MachineDB.get_machine(id)["name"])
+		runner.check(listing.contains(name), "the store listing never mentions the " + name)
+
+
 func test_the_research_behind_the_catalogue_is_in_the_repository() -> void:
 	var r: String = _read("res://docs/research/monetization-2026.md")
 	runner.gt(float(r.length()), 3000.0, "the research document exists")

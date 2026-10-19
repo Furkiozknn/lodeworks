@@ -89,6 +89,15 @@ const PAGES := [
 		"body": "A Coolant Cell produces nothing. It buys back the throughput the heat was taking, and it costs you a tile you would rather have filled. That trade is most of the late game.",
 	},
 	{
+		"id": "heat_pipe",
+		"title": "Heat can travel",
+		"unlock": 3,
+		"board": [[0, 0, "drill"], [1, 0, "crusher"], [2, 0, "smelter"],
+			[3, 0, "vault"], [2, 1, "heat_pipe"], [2, 2, "boiler"]],
+		"watch": "The Boiler never touches the Smelter, and still heats it.",
+		"body": "A Heat Pipe makes and removes nothing. It hands each neighbour the heat its other neighbours give it, so the tiles on either side behave as if they touched. One hop only, and cold travels the same way.",
+	},
+	{
 		"id": "chain",
 		"title": "The long chain",
 		"unlock": 3,

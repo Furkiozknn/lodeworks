@@ -30,7 +30,7 @@ const DEFAULT := "shaft"
 ## catalogue test catches rather than a tile that silently draws magenta.
 const REQUIRED_MACHINES: Array[String] = ["drill", "crusher", "vault", "smelter",
 	"boiler", "coolant", "press", "assembler", "amplifier", "lab",
-	"duplicator", "condenser"]
+	"duplicator", "condenser", "heat_pipe"]
 
 const THEMES := {
 	# The board as designed: cold rock, blue-grey machinery, heat as the only
@@ -43,7 +43,7 @@ const THEMES := {
 			"drill": "6e8ba8", "crusher": "7f96ad", "vault": "5ddba0",
 			"smelter": "d98a4a", "boiler": "e2703a", "coolant": "4fc3f7",
 			"press": "8fa5bd", "assembler": "9fb4c9", "amplifier": "ffd479",
-			"lab": "a780ff", "duplicator": "ff8fd0", "condenser": "6fd6e8",
+			"lab": "a780ff", "duplicator": "ff8fd0", "condenser": "6fd6e8", "heat_pipe": "c27a52",
 		},
 		"resources": ["8a7f72", "b79b76", "cfd6df", "8fb4d6", "d9c56a"],
 		"rock_deep": "2a1c26",
@@ -59,7 +59,7 @@ const THEMES := {
 			"drill": "b08d57", "crusher": "9c7c4a", "vault": "7ec49a",
 			"smelter": "e09a3e", "boiler": "d4622a", "coolant": "6fc2d6",
 			"press": "c9a166", "assembler": "d8b779", "amplifier": "ffd98a",
-			"lab": "b894e0", "duplicator": "e59ac0", "condenser": "8fd4de",
+			"lab": "b894e0", "duplicator": "e59ac0", "condenser": "8fd4de", "heat_pipe": "d08a4e",
 		},
 		"resources": ["8f7c5e", "c4a173", "e4dcc8", "a8b89a", "e8cf7a"],
 		"rock_deep": "2b2018",
@@ -75,7 +75,7 @@ const THEMES := {
 			"drill": "8fa8c4", "crusher": "a3b8cf", "vault": "6fd9b8",
 			"smelter": "e6a15c", "boiler": "eb8354", "coolant": "7fd8f5",
 			"press": "c3d3e2", "assembler": "d6e2ee", "amplifier": "ffe6a8",
-			"lab": "bba6f0", "duplicator": "f0aad8", "condenser": "9ae8f2",
+			"lab": "bba6f0", "duplicator": "f0aad8", "condenser": "9ae8f2", "heat_pipe": "b0806a",
 		},
 		"resources": ["9aa7b3", "c2cbd4", "eef3f8", "a9c9e8", "e8dc9a"],
 		"rock_deep": "16222e",
@@ -90,7 +90,7 @@ const THEMES := {
 			"drill": "6f9a72", "crusher": "84a97f", "vault": "6fe0a4",
 			"smelter": "d09040", "boiler": "cf6f3a", "coolant": "5ec9c4",
 			"press": "9ab594", "assembler": "aec7a5", "amplifier": "e8d477",
-			"lab": "9fd06a", "duplicator": "e2a0c8", "condenser": "7ad6c0",
+			"lab": "9fd06a", "duplicator": "e2a0c8", "condenser": "7ad6c0", "heat_pipe": "a8865e",
 		},
 		"resources": ["7d8471", "a3a878", "d7dcc4", "93b8a0", "cfd06a"],
 		"rock_deep": "1d2a1e",
@@ -106,7 +106,7 @@ const THEMES := {
 			"drill": "a8706e", "crusher": "b58280", "vault": "6fd99a",
 			"smelter": "f0954a", "boiler": "ff7a44", "coolant": "5fc9ef",
 			"press": "c99a96", "assembler": "d9ada8", "amplifier": "ffd06a",
-			"lab": "c48af0", "duplicator": "ff9ac2", "condenser": "7fd2e6",
+			"lab": "c48af0", "duplicator": "ff9ac2", "condenser": "7fd2e6", "heat_pipe": "c98a6e",
 		},
 		"resources": ["8f6f68", "bf8d78", "e6d8d0", "b0a0c8", "f0c860",
 		],
@@ -124,7 +124,7 @@ const THEMES := {
 			"drill": "8a939c", "crusher": "9aa3ac", "vault": "b6c0c8",
 			"smelter": "a8a29c", "boiler": "b0a49c", "coolant": "9caab4",
 			"press": "aab3bc", "assembler": "b8c1c9", "amplifier": "c6ccd2",
-			"lab": "9fa6b4", "duplicator": "c0bcc6", "condenser": "a6b4bc",
+			"lab": "9fa6b4", "duplicator": "c0bcc6", "condenser": "a6b4bc", "heat_pipe": "9a8f88",
 		},
 		# The cargo stays in colour on purpose: in a greyscale plant the chip
 		# is the only thing saying what a machine hands over.
